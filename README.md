@@ -16,6 +16,7 @@
 | v2 | [`archive/itting-v2.html`](archive/itting-v2.html) | 첫 대화 지원(관계 단계·넛지), 니치 매칭, 방 주인 경험, 알림 센터 |
 | v3 | [`itting-prototype.html`](itting-prototype.html) | 방 무드 10종, 벽 장식, 소품 66종, 관심 분류 11개, 샘플 방 14개 |
 | 두더지 시안 | [`itting-mole.html`](itting-mole.html) | v3에서 갈라진 세계관 변형. 두더지가 관심사 밭을 걷다가 남의 굴을 파고 들어감 |
+| 밤티 두더지 | [`itting-mole-v2.html`](itting-mole-v2.html) | 두더지 시안을 귀엽고 어이없게. 짝짝이 눈 아기 두더지, 흙 동굴 굴, 삐뚤빼뚤 손글씨 UI (리뷰: 귀엽지 않고 너무 덜떨어지게 나옴) |
 
 모든 버전은 HTML 파일 하나로 되어 있고, 외부 의존성은 Google Fonts와 three.js r128뿐입니다.
 
@@ -102,6 +103,28 @@ v3를 기반으로 세계관을 바꿔 본 별도 시안입니다. v3를 대체�
 
 > 스크린샷은 정지 화면이라 파고들기, 천장에서 떨어지기 같은 애니메이션은 담기지 않았습니다. 남의 굴 스크린샷은 떨어지는 연출을 끄고 찍었습니다. 직접 실행해서 확인해 주세요.
 
+## 밤티 두더지: 귀엽고 어이없게
+
+두더지 시안을 "밤티 나게" 바꾼 버전입니다. 대충 만든 것 같은 어설픔과 조금 모자라 보이는 캐릭터로 "실수해도 괜찮은 곳"이라는 분위기를 만들고, 지켜 주고 싶은 마음이 들게 하는 게 목표입니다. 밭 배치 3종, 파고들기, 천장에서 떨어지기 같은 흐름은 두더지 시안과 같습니다.
+
+![밤티 두더지 · 내 굴](docs/screenshots/mole2-my-room.png)
+
+- **두더지**: 머리가 크고 몸이 짧은 아기 비율에, 크기도 높이도 다른 짝짝이 눈과 뻐드렁니 두 개가 있습니다. 머리에는 새싹, 흙덩이, 돌멩이가 붙어 있고, 목도리는 삐뚤게 매고 있습니다. 눈은 느리게 깜빡이고 가끔 한쪽만 감습니다.
+- **자주 넘어짐**: 밭에서도 굴 안에서도 걷다가 가끔 앞으로 철퍼덕 엎어졌다가 부르르 털고 일어납니다("꽈당", "철퍼덕"). 다른 두더지도 굴 안을 돌아다니다 넘어집니다.
+- **굴 = 대충 파낸 흙 동굴**: 평평한 벽 대신 울퉁불퉁한 흙벽이 위로 갈수록 방 쪽으로 말려 들어옵니다. 천장 처마에서 뿌리가 늘어지고, 벽에는 돌멩이와 삽질 자국이 있고, 옆에는 "옆집 (아마)" 팻말이 붙은 굴 구멍이 있습니다. 무드 벽지는 테이프로 대충 붙인 조각으로, 무드 바닥은 삐뚤게 깐 장판으로 남겼습니다.
+- **밤티 UI**: 제목·버튼·칩을 손글씨 서체(Gaegu Bold)로 바꾸고, 1~2도씩 기울였습니다. 카드 테두리는 바느질한 점선이고, 군데군데 테이프가 붙어 있습니다. 버튼에 마우스를 올리면 흔들립니다.
+- **어이없는 문구**: "어디를 파 볼까요? (아무 데나 파도 됨)", "아무 데나 막 파기", "굴 파다가 길 한 번 잃는 중", "퐁! 밭으로 올라왔어요. 입에 흙 들어감" 같은 문구로 바꿨습니다.
+
+![밤티 두더지 캐릭터](docs/screenshots/mole2-character.png)
+
+| 밭 둘러보기 | 남의 굴 | 온보딩 |
+|---|---|---|
+| ![밤티 밭](docs/screenshots/mole2-field.png) | ![밤티 남의 굴](docs/screenshots/mole2-visit.png) | ![밤티 온보딩](docs/screenshots/mole2-onboarding.png) |
+
+### 리뷰
+
+- 귀엽지 않고 너무 덜떨어지게 나왔다
+
 ---
 
 ## 실행 방법
@@ -111,6 +134,7 @@ v3를 기반으로 세계관을 바꿔 본 별도 시안입니다. v3를 대체�
 ```bash
 node tools/serve.js                          # v3      → http://127.0.0.1:5178
 PORT=5179 node tools/serve.js itting-mole.html          # 두더지 시안
+PORT=5181 node tools/serve.js itting-mole-v2.html       # 밤티 두더지
 PORT=5180 node tools/serve.js archive/itting-v2.html    # v2
 ```
 
@@ -123,6 +147,7 @@ PORT=5180 node tools/serve.js archive/itting-v2.html    # v2
 ```
 itting-prototype.html   v3 (기준 버전)
 itting-mole.html        두더지 시안
+itting-mole-v2.html     밤티 두더지
 archive/itting-v2.html  v2 보관본
 tools/serve.js          로컬 미리보기 서버
 docs/screenshots/       README용 스크린샷

@@ -21,6 +21,7 @@
 |---|---|
 | `itting-prototype.html` | 프로토타입 전체 (단일 파일, 약 280KB). **이게 원본** |
 | `itting-mole.html` | 두더지 시안 (v3에서 갈라진 별도 시안, 약 300KB). 이 파일이 시안의 원본 |
+| `itting-mole-v2.html` | 밤티 두더지 (두더지 시안에서 갈라진 별도 시안) |
 | `archive/itting-v2.html` | v2 백업 |
 | `tools/serve.js` | 로컬 미리보기 서버 (`PORT=… node tools/serve.js <파일>`) |
 | `README.md`, `docs/screenshots/` | 버전별 특징 정리와 스크린샷 (화면이 바뀌면 같이 갱신) |
@@ -88,6 +89,15 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 전환: `Iris.close/open` (밭→굴 파고들기, 굴→밭 뿅). 굴 도착은 `Engine.mount(..., {drop:true})`로 천장에서 떨어짐, 주인이 있으면 점프
 - UI 문구의 "방"은 "굴"로 바꿈. 둘러보기는 "밭에서 찾기"(기본) / "목록으로 찾기"(기존 검색)
 - 이 PC 크롬은 소프트웨어 렌더러라 2fps 정도로 느림. 헤드리스 Edge는 rAF가 거의 안 돌아서 애니메이션 흐름은 실제 브라우저로 확인해야 함
+
+## 밤티 두더지 (`itting-mole-v2.html`)
+게시: https://claude.ai/artifact/4jnfvDHX9RvixmprcwjZRG (비공개로 시작)
+- 두더지 시안에서 갈라진 별도 파일. 사용자 요청: "밤티 나게(귀엽고 어이없게)", 굴은 땅굴처럼, 캐릭터는 멍청하고 모성애 느껴지게
+- `makeMole`: 아기 비율 몸, 짝짝이 눈(크기·높이·눈동자 방향 다름), 뻐드렁니, 머리에 새싹·흙덩이·돌멩이(털+목도리 색 해시로 고름), 삐뚤어진 목도리. `blinkMole`은 느리고 가끔 한쪽만 감음
+- 넘어짐: 밭은 `Field`의 `state='trip'`(`updateTrip`), 굴 안은 `Engine` 아바타 `u.trip`. 걷는 중 확률(초당 약 0.1)로 발생, `reduceMotion`이면 안 넘어짐
+- `buildShell`: 흙 동굴(`caveWall` 정점 변형 + 위쪽 처마 `caveLip`), 바닥은 다진 흙 + 무드 무늬 장판, 무드 벽지는 테이프 조각(`tapedPatch`), 뿌리·돌멩이·옆 굴 구멍. 창문·벽 장식은 벽에서 0.5 띄움, 천장 띠는 0.84배로 줄여 안쪽으로
+- 리뷰: "귀엽지 않고 너무 덜떨어지게 나왔다" (사용자 평가. 다음에 손볼 때 짝짝이 눈·뻐드렁니·넘어짐 같은 '모자람' 장치를 줄이고 귀여움 쪽으로 조정)
+- UI: 제목·버튼 서체 Gaegu Bold(자간 -0.04em), 1~2도 기울기, 바느질 점선 테두리(`outline: dashed`), 테이프 장식, 호버 시 흔들기. 문구는 어이없게 바꿈
 
 ## 남은 아이디어 / 미확인
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
