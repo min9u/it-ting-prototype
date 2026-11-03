@@ -20,8 +20,10 @@
 | 경로 | 내용 |
 |---|---|
 | `itting-prototype.html` | 프로토타입 전체 (단일 파일, 약 280KB). **이게 원본** |
+| `itting-mole.html` | 두더지 시안 (v3에서 갈라진 별도 시안, 약 300KB). 이 파일이 시안의 원본 |
 | `archive/itting-v2.html` | v2 백업 |
-| `tools/serve.js` | 로컬 미리보기 서버 |
+| `tools/serve.js` | 로컬 미리보기 서버 (`PORT=… node tools/serve.js <파일>`) |
+| `README.md`, `docs/screenshots/` | 버전별 특징 정리와 스크린샷 (화면이 바뀌면 같이 갱신) |
 
 게시된 아티팩트 (v3): https://claude.ai/artifact/QMnEBTJiKyvwEkmevz1c63 — "링크가 있는 누구나" 공유.
 아티팩트를 갱신할 수 있는 건 만든 계정(소유자)뿐. 새 세션에서는 Artifact `read`로 먼저 읽고 같은 `url`로 publish 해야 함.
@@ -76,6 +78,16 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - v1: 화면 전체 + 색·타이포 시스템 + 디자인 시스템 페이지
 - v2: 첫 대화(관계 단계·넛지), 니치 매칭, 방 주인 경험(방 기록), 알림 센터
 - v3: 방 무드 10종, 벽 장식 16종 + 천장 띠, 소품 24 → 66종, 분류 3개 추가(운동·아웃도어, 영화·애니, 반려동물), 샘플 방 14개, 꾸미기 패널 3탭
+
+## 두더지 시안 (`itting-mole.html`)
+게시: https://claude.ai/artifact/PxPeWqeQ3vPrLqc926Xx77 (비공개로 시작. 공유는 페이지의 Share 메뉴에서)
+- 세계관: 캐릭터는 두더지(털 색 + 목도리 색). 땅 위 "관심사 밭"을 걷다가 굴 입구(흙무더기)를 파고 들어가면 남의 굴(방)이 나옴. 다른 두더지는 굴 안에서만 만남
+- 스타일: 참고 페이지(외부 아티팩트 "두더지 관심사 밭") 기반. Jua(제목·버튼·숫자) + Gowun Dodum(본문), Leaf/Bell/Berry + Sand/Bark 팔레트, 아래 그림자 알약 버튼, 툰 셰이딩(`MeshToonMaterial`, `grad()`)
+- 굴 = 기존 방 생성 그대로 + 흙 단면 셸(`buildShell`: 흙덩이 3개, 위에 풀밭, 버팀목). 흙 텍스처는 `soilCanvas` 한 장을 면마다 잘라 씀
+- 밭(`Field` 모듈, 별도 WebGL 렌더러): 배치 3종 `fieldLayout('cat'|'me'|'tag')` = 분류별 밭+반짝 작물 / 나 중심 / 태그 텃밭. 접속 중인 주인은 굴 밖으로 고개를 내밂
+- 전환: `Iris.close/open` (밭→굴 파고들기, 굴→밭 뿅). 굴 도착은 `Engine.mount(..., {drop:true})`로 천장에서 떨어짐, 주인이 있으면 점프
+- UI 문구의 "방"은 "굴"로 바꿈. 둘러보기는 "밭에서 찾기"(기본) / "목록으로 찾기"(기존 검색)
+- 이 PC 크롬은 소프트웨어 렌더러라 2fps 정도로 느림. 헤드리스 Edge는 rAF가 거의 안 돌아서 애니메이션 흐름은 실제 브라우저로 확인해야 함
 
 ## 남은 아이디어 / 미확인
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
