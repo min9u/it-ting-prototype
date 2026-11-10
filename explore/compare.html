@@ -29,7 +29,9 @@ h3{font-family:var(--f-display);font-weight:400;font-size:18px;margin:0}
 section{display:flex;flex-direction:column;gap:16px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media (max-width:720px){.grid{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:900px}
+table.narrow{min-width:520px}
+@media (max-width:720px){.grid{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 figure{margin:0;display:flex;flex-direction:column;gap:8px}
 figure img{display:block;width:100%;max-width:100%;height:auto;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
 figcaption{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:14px}
@@ -78,6 +80,28 @@ tr:last-child th,tr:last-child td{border-bottom:0}
       <figure><img src="img/playcanvas-mole.png" alt="PlayCanvas 두더지 확대" loading="lazy"><figcaption><b>PlayCanvas</b></figcaption></figure>
     </div>
     <p class="note">세 두더지 모두 아래가 넓은 젤리형 몸, 반짝이는 눈, 큰 분홍 코와 튀어나온 코끝, 볼터치, 분홍 손과 흰 발톱, 납작한 발까지 맞췄습니다. 원본만큼 보송한 털 질감과 부드러운 빛 번짐은 셋 다 내지 못했습니다.</p>
+  </section>
+
+  <section aria-labelledby="s-shape">
+    <h2 id="s-shape">두더지 머리 모양: 원통형 → 원본형</h2>
+    <div class="grid3">
+      <figure class="ref"><img src="img/ref-mole.png" alt="Figma 원본 두더지: 아래가 넓고 머리 쪽으로 좁아지는 모양" loading="lazy"><figcaption><b>원본</b><span class="tag">기준</span></figcaption></figure>
+      <figure><img src="img/three-mole-cyl.png" alt="이전 three.js 두더지: 눈 높이까지 거의 원통" loading="lazy"><figcaption><b>이전</b><span class="tag">원통형</span></figcaption></figure>
+      <figure><img src="img/three-mole.png" alt="새 three.js 두더지: 위로 갈수록 좁아짐" loading="lazy"><figcaption><b>지금</b><span class="tag">원본형</span></figcaption></figure>
+    </div>
+    <div class="tablewrap">
+      <table class="narrow">
+        <thead><tr><th scope="col">높이 (바닥 0 → 정수리 1)</th><th scope="col">원본</th><th scope="col">이전 (원통형)</th><th scope="col">지금 (원본형)</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">0.82 (이마)</th><td class="num">0.69</td><td class="num">0.81</td><td class="num best">0.71</td></tr>
+          <tr><th scope="row">0.75 (눈)</th><td class="num">0.78</td><td class="num">0.88</td><td class="num best">0.80</td></tr>
+          <tr><th scope="row">0.60 (코)</th><td class="num">0.90</td><td class="num">0.93</td><td class="num best">0.91</td></tr>
+          <tr><th scope="row">0.45</th><td class="num">0.97</td><td class="num">0.94</td><td class="num best">0.95</td></tr>
+          <tr><th scope="row">0.24 (가장 넓은 곳)</th><td class="num">1.00</td><td class="num">1.00</td><td class="num">1.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">확대 샷에서 줄마다 몸 폭을 재서 가장 넓은 곳을 1로 맞춘 값입니다. 이전 버전은 눈 높이까지 거의 원통이었고, 지금은 원본처럼 바닥에서 머리까지 꾸준히 좁아집니다. 탐색하기 페이지의 "머리 좁게(원본형)" 체크박스로 두 모양을 바꿔 볼 수 있습니다.</p>
   </section>
 
   <section aria-labelledby="s-room">

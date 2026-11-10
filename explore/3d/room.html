@@ -483,6 +483,7 @@ function fuzzAlphaTex(size = 512, rep = [10, 5]) {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); t.magFilter = THREE.NearestFilter; return t;
 }
 const MOLE_FELT = {
+  shape: location.hash.includes('cyl') ? 'cyl' : 'taper', // 'taper' = 원본형(위로 좁아짐), 'cyl' = 이전 원통형
   body: '#977f72', nose: '#f39e96', tip: '#e9787c', paw: '#f2aaa4', foot: '#ebd2c9',
   sheen: 1, nScale: .45, shells: 12, fuzz: .014, tipLight: .18,
   cheekY: .655, cheekPhi: .6, cheekR: 32, cheekA: .5,
@@ -493,12 +494,24 @@ MOLE_FELT.fuzzTex = fuzzAlphaTex();
 function makeMole() {
   const H = 1, W = .83;           // 높이 1 기준 비율 (높이:폭 ≈ 1.3:1)
   const R = W / 2;
-  // 단면: 평평한 바닥 → 살짝 넓은 아랫부분 → 거의 수직 옆면 → 둥근 머리
   const pts = [new THREE.Vector2(0, 0)];
-  pts.push(new THREE.Vector2(R * .82, 0), new THREE.Vector2(R * .96, .018), new THREE.Vector2(R * 1.03, .055), new THREE.Vector2(R * 1.06, .11));
-  for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .1 * Math.pow(i / 10, 1.2)), y)); }
-  const capH = H - .6, r0 = R * .96; // 옆면 꼭대기와 같은 반지름 (턱 없이 이어지게)
-  for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .7)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
+  if (MOLE_FELT.shape === 'taper') {
+    // 원본형: 아래(높이 .2)가 가장 넓고 머리까지 꾸준히 좁아짐. 원본 확대 샷에서 잰 폭 비율에 맞춤
+    // (높이 .45→.97, .60→.90, .75→.78, .82→.69). 바닥은 둥글게 말림
+    const M = .42, n = 2.6, taper = .12;
+    pts.push(new THREE.Vector2(M * .8, 0), new THREE.Vector2(M * .93, .02), new THREE.Vector2(M * .98, .06), new THREE.Vector2(M * .997, .12));
+    for (let k = 0; k <= 48; k++) {
+      const t = Math.sin(k / 48 * Math.PI / 2), y = .2 + .8 * t; // 꼭대기 쪽을 촘촘하게
+      pts.push(new THREE.Vector2(Math.max(0.0001, M * (1 - taper * t) * Math.pow(Math.max(0, 1 - Math.pow(t, n)), 1 / n)), y));
+    }
+  } else {
+    // 이전형: 거의 수직 옆면 → 넓은 돔 (원통에 가까움)
+    pts.push(new THREE.Vector2(R * .82, 0), new THREE.Vector2(R * .96, .018), new THREE.Vector2(R * 1.03, .055), new THREE.Vector2(R * 1.06, .11));
+    for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .1 * Math.pow(i / 10, 1.2)), y)); }
+    const capH = H - .6, r0 = R * .96; // 옆면 꼭대기와 같은 반지름 (턱 없이 이어지게)
+    for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .7)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
+  }
+  const TAPER = MOLE_FELT.shape === 'taper';
   const rAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) { const a = pts[i - 1], b = pts[i]; return a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y || 1); } return 0; };
   const vAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) return (i - 1 + (y - pts[i - 1].y) / (pts[i].y - pts[i - 1].y || 1)) / (pts.length - 1); return 1; };
   const ZS = .84; // 앞뒤로 약간 납작
@@ -518,7 +531,7 @@ function makeMole() {
   g.fillStyle = vg; g.fillRect(0, 0, TW, TH);
   // 볼터치 (u: 0.5가 정면, v: 단면 위치)
   for (const s of [-1, 1]) {
-    const u = .5 + s * FELT.cheekPhi / (Math.PI * 2), v = vAt(FELT.cheekY);
+    const u = .5 + s * (TAPER ? .73 : FELT.cheekPhi) / (Math.PI * 2), v = vAt(FELT.cheekY);
     const cx = u * TW, cy = TH - v * TH, r = FELT.cheekR;
     const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
     gr.addColorStop(0, `rgba(255,172,168,${FELT.cheekA})`); gr.addColorStop(.55, `rgba(255,175,170,${FELT.cheekA * .45})`); gr.addColorStop(1, 'rgba(255,175,170,0)');
@@ -570,7 +583,7 @@ function makeMole() {
   // 두 눈 모두 정면을 보게(곡면을 따라 바깥으로 돌리면 시선이 갈라져 사시처럼 보임).
   // 하이라이트는 두 눈 모두 같은 자리(오른쪽 위)에 둬서 같은 곳을 보는 것처럼.
   for (const s of [-1, 1]) {
-    const ang = s * .44, p = surf(.765, ang, -.014);
+    const ang = s * (TAPER ? .55 : .44), p = surf(.765, ang, -.014);
     const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.036, .052, .036); e.rotation.y = ang * .2;
     const h = new THREE.Mesh(SPH, hiM); h.position.set(p.x + .011, p.y + .017, p.z + .03); h.scale.set(.011, .013, .006); mole.add(h);
   }
