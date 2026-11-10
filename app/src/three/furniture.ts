@@ -4,13 +4,17 @@ import * as THREE from 'three'
 import { add, at, box, clay, cyl, sph } from './clay'
 
 /* ---------- 가구 카탈로그 ---------- */
-// 관심 분야(Figma 온보딩의 11개 분야) → 가구 17개. 모든 가구는 뒤쪽 반원 벽을 따라 붙고 방 가운데를 봄.
+// 관심 분야(Figma 온보딩의 11개 분야) → 가구 19개. 모든 가구는 뒤쪽 반원 벽을 따라 붙고 방 가운데를 봄.
 // 가운데 바닥(러그)은 비워서 두더지가 다닐 수 있게.
 //  - build(g): 가구를 자기 원점 기준으로 만듦 (앞면이 +Z, 바닥 y=0)
 //  - slot: { a: 벽 위 각도(도, 뒤 가운데 0, 오른쪽 +), d: 앞뒤 깊이(벽에서 띄울 거리 계산용), y: 벽걸이 높이 }
 //    slot이 없으면(러그) 방 가운데
 //  - tag: 이름표 위치(가구 원점 기준 높이)
 //  - foot: 두더지가 못 지나가는 바닥 반경 (벽걸이는 0)
+//  - pos: [x, z, ry] 벽이 아니라 바닥 아무 데나 놓는 가구 (방석·빈백)
+//  - seat: { kind: 'cushion' | 'beanbag' | 'chair', h: 앉는 높이(m, 두더지 키 1m 기준) } → 누르면 걸어가서 앉음
+//    (design/digul_3d_handoff_v1/docs/sit_points.md. 앉는 자리 = 가구 원점, 앉으면 가구 +Z를 바라봄)
+//  - act: 'drink' → 누르면 가구 앞에 가서 커피를 마심. stand = 가구 원점에서 두더지가 설 자리까지 거리
 // 필요한 도우미: box, cyl, sph, add, at, clay (페이지/모듈 쪽에 정의돼 있어야 함)
 // furnishRoom(root, { interests, wallR, wallAt }) → 놓인 가구 그룹 배열 (group.userData.furniture = 항목, .foot = {x, z, r})
 const FURNITURE_CATS = ['게임·놀이', '책·글', '음악', '공예·만들기', '사진', '운동·아웃도어', '차·커피·베이킹', '자연·식물', '우주·과학', '영화·애니', '반려동물'];
@@ -21,6 +25,16 @@ const FURNITURE = [
   { id: 'rug', label: '러그', cat: '기본', foot: 0, build(g) {
     cyl(g, 2.6, 2.6, .04, '#a3bf72', 0, 0, 0, 64);
     cyl(g, 2.05, 2.05, .05, '#efc57e', 0, 0, 0, 64);
+  } },
+  { id: 'cushion', label: '방석', cat: '기본', pos: [2.9, 1.5, -.25], foot: .75, seat: { kind: 'cushion', h: .13 }, tag: .6, build(g) {
+    cyl(g, .72, .76, .19, '#8fb9cf', 0, 0, 0, 40);
+    sph(g, .73, '#a9cde0', 0, .19, 0, 1, .075, 1);
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; sph(g, .07, '#f4eadd', Math.cos(a) * .74, .1, Math.sin(a) * .74); }
+  } },
+  { id: 'beanbag', label: '빈백', cat: '기본', pos: [-3.1, 1.3, .25], foot: .95, seat: { kind: 'beanbag', h: .24 }, tag: 1.4, build(g) {
+    sph(g, .92, '#e9b65f', 0, .23, .08, 1, .26, 1);
+    sph(g, .86, '#e2a94f', 0, .5, -.78, 1, .64, .46);
+    sph(g, .5, '#efc57e', -.62, .38, -.2, .45, .36, .8); sph(g, .5, '#efc57e', .62, .38, -.2, .45, .36, .8);
   } },
   { id: 'bed', label: '침대', cat: '기본', slot: { a: -66, d: 3.3 }, foot: 1.75, tag: 1.3, build(g) {
     box(g, 2.0, .55, 3.2, '#c27a52', 0, 0, 0, .12);
@@ -55,7 +69,7 @@ const FURNITURE = [
     for (let i = 0; i < 6; i++) { const m = sph(g, .3, '#7fa95a', Math.cos(i) * .3, 2.0, Math.sin(i) * .2, 1.1, .4, .6); m.rotation.z = Math.cos(i) * .6; }
   } },
   /* 차·커피·베이킹 */
-  { id: 'kitchen', label: '부엌 선반', cat: '차·커피·베이킹', slot: { a: 0, d: 1.0 }, foot: 1.35, tag: 2.4, build(g) {
+  { id: 'kitchen', label: '부엌 선반', cat: '차·커피·베이킹', slot: { a: 0, d: 1.0 }, foot: 1.35, act: 'drink', stand: 1.95, tag: 2.4, build(g) {
     box(g, 2.6, 1.55, .9, '#f2e2c8', 0, 0, 0, .06);
     box(g, 2.7, .1, 1.0, '#c98559', 0, 1.55, 0, .03);
     cyl(g, .32, .3, .32, '#e8714b', .5, 1.65, .05); box(g, .7, .12, .06, '#e8714b', .5, 1.88, .05, .03);
@@ -63,7 +77,7 @@ const FURNITURE = [
     for (let i = 0; i < 3; i++) for (let k = 0; k < 2; k++) cyl(g, .07, .07, .17, ['#e07a52', '#9fbf74', '#f0d7a8'][i], -.85 + i * .25, 1.73 + k * .3, -.05);
     for (let i = 0; i < 2; i++) box(g, 1.0, .6, .04, '#f8ecda', -.6 + i * 1.2, .35, .46, .05);
   } },
-  { id: 'wallShelf', label: '찻병 선반', cat: '차·커피·베이킹', slot: { a: 0, d: .45, y: 3.2 }, foot: 0, tag: .85, build(g) {
+  { id: 'wallShelf', label: '찻병 선반', cat: '차·커피·베이킹', slot: { a: 0, d: .45, y: 3.2 }, foot: 0, act: 'drink', stand: 2.1, tag: .85, build(g) {
     box(g, 1.4, .12, .45, '#b26d47', 0, 0, 0, .03);
     [['#9fbf74', .55], ['#b9d3df', .42], ['#f0d7a8', .65], ['#e9c25f', .5]].forEach(([c, h], i) => cyl(g, .09, .1, h, c, -.45 + i * .3, .12, 0));
   } },
@@ -155,7 +169,8 @@ function furnishRoom(root, opts = {}) {
       const r = f.slot.r || (wall - f.slot.d / 2 - .06);
       g.position.set(Math.sin(a) * r, y, -Math.cos(a) * r);
       g.rotation.y = -a;
-    } else g.position.set(center[0], 0, center[1]);
+    } else if (f.pos) { g.position.set(f.pos[0], 0, f.pos[1]); g.rotation.y = f.pos[2] || 0; }
+    else g.position.set(center[0], 0, center[1]);
     f.build(g);
     g.userData.foot = f.foot ? { x: g.position.x, z: g.position.z, r: f.foot } : null;
     placed.push(g);

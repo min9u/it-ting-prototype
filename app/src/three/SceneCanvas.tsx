@@ -12,7 +12,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   focusX: number
   className?: string
   label?: string
-  onReady?: () => void
+  onReady?: (handle: SceneHandle) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const handle = useRef<SceneHandle | null>(null)
@@ -31,7 +31,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
       return
     }
     handle.current = h
-    latest.current.onReady?.()
+    latest.current.onReady?.(h)
     return () => {
       h.dispose()
       handle.current = null

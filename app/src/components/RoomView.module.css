@@ -13,3 +13,21 @@
 .canvas { position: absolute; inset: 0; }
 /* 탐색하기 밭: 3D 준비 전 하늘 → 풀빛 */
 .field { background: linear-gradient(#a3d3f7 0%, #c2e2f8 30%, #dbeff9 34%, #9ccc58 34.5%, #8fc24e 100%); }
+/* 두더지 리액션 버튼 줄 (방 왼쪽 아래) */
+.reactions {
+  position: absolute; left: 35px; bottom: 33px; z-index: 5;
+  display: flex; gap: 2px; padding: 4px; border-radius: 9px;
+  background: var(--toggle-bg); box-shadow: 0 2px 6px rgba(80, 50, 30, 0.15);
+}
+.reaction {
+  height: 34px; padding: 0 12px; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-display); font-size: 14px; color: var(--ink-700);
+}
+.reaction span { font-size: 16px; line-height: 1; }
+.reaction:hover { background: rgba(255, 255, 255, 0.55); }
+.reaction:active { transform: translateY(1px); }
+@media (max-width: 720px) {
+  .reactions { left: 12px; bottom: 86px; }
+  .reaction { padding: 0 9px; }
+}

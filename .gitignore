@@ -8,3 +8,7 @@ app/node_modules/
 app/dist/
 app/*.tsbuildinfo
 app/dist-share/
+
+.DS_Store
+# 3D 핸드오프 영상은 용량이 커서 제외 (원본은 디자이너 zip)
+design/digul_3d_handoff_v1/videos/

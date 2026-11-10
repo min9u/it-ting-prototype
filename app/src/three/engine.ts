@@ -8,6 +8,8 @@ export interface SceneHandle {
   resize(): void
   /** 장면 가운데가 놓일 가로 위치 (0–1). 오른쪽 패널이 열리면 왼쪽으로 치우친다 */
   setFocusX(x: number): void
+  /** 두더지 리액션 (땅굴 장면만) */
+  react?(kind: 'greet' | 'look' | 'scratch' | 'drink'): void
 }
 
 /**

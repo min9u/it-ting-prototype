@@ -5,7 +5,8 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { add, at, clay, cyl, group, box, sph, roomNoise } from './clay'
 import { furnishRoom } from './furniture'
-import { makeMole, createMoleMotion, bindMoleKeys } from './mole'
+import { bindMoleKeys } from './mole'
+import { createMoleActor, loadMoleGltf, REACTIONS, type MoleActor } from './moleActor'
 import { gradientEnv, ROOM_ENV } from './lighting'
 import { roomGradePass } from './post'
 import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
@@ -20,6 +21,8 @@ export interface RoomSceneOptions {
   ownerId?: string
   interests?: string[]
   focusX?: number
+  /** 남의 땅굴이면 집주인 닉네임. 집주인 두더지가 방에 서 있음 */
+  hostName?: string
 }
 
 const R = 6.4, DH = 8.6 // 돔 반지름, 높이
@@ -172,12 +175,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const placed: THREE.Group[] = furnishRoom(furniture, { interests: opts.interests, wallAt, center: [0, .7] })
   scene.add(furniture)
 
-  // 두더지
-  const mole = makeMole()
-  mole.position.set(-.2, 0, .8); mole.scale.setScalar(1.9)
-  scene.add(mole)
+  // 두더지 (glb, 따로 불러옴 → 오면 천장에서 떨어짐)
   // 다닐 수 있는 곳: 바닥 원판 안, 뒤쪽 벽 안, 가구 발자리 밖
-  const MOLE_R = .38
+  const MOLE_R = .38, MOLE_S = 1.9
   const clampRoom = (p: THREE.Vector3) => {
     const fr = R + .2 - MOLE_R, d = Math.hypot(p.x, p.z)
     if (d > fr) { p.x *= fr / d; p.z *= fr / d }
@@ -187,24 +187,104 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const dx = p.x - f.x, dz = p.z - f.z, dd = Math.hypot(dx, dz), need = f.r + MOLE_R
       if (dd < need) { p.x = f.x + dx / (dd || 1) * need; p.z = f.z + dz / (dd || 1) * need }
     }
+    // 집주인 두더지와 겹치지 않게 (두더지 몸 폭 약 0.8m × scale)
+    if (host) {
+      const h = host.object.position, dx = p.x - h.x, dz = p.z - h.z, dd = Math.hypot(dx, dz), need = 1.35
+      if (dd < need) { p.x = h.x + dx / (dd || 1) * need; p.z = h.z + dz / (dd || 1) * need }
+    }
     return p
   }
-  const motion = createMoleMotion(mole, { ground: () => 0, startRest: 3, speed: .8, clamp: clampRoom, wander: { center: new THREE.Vector3(0, 0, 1.3), radius: 2, rest: [3, 7] } })
-  // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로
-  const unbindKeys = bindMoleKeys(motion)
-  const el = renderer.domElement, floorRay = new THREE.Raycaster(), ndc = new THREE.Vector2()
+  let host: MoleActor | null = null
+  let mole: MoleActor | null = null
+  let disposed = false
+  const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
+  loadMoleGltf().then((gltf) => {
+    if (disposed) return
+    // 같은 glb 하나를 복제해서 씀 (집주인 + 나)
+    if (opts.hostName) {
+      host = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(1.5, 0, .4), yaw: -.35, drop: false, lookEvery: [5, 11] })
+      scene.add(host.object)
+    }
+    mole = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(opts.hostName ? -1.4 : -.2, 0, 1.6), clamp: clampRoom })
+    scene.add(mole.object)
+  }).catch((err) => console.warn('[3D] 두더지 모델을 못 불러왔어요', err))
+  // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로, 동작이 있는 가구를 누르면 그 동작
+  const unbindKeys = bindMoleKeys(keyProxy)
+  const el = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
+  const furnitureOf = (o: THREE.Object3D | null) => {
+    for (; o; o = o.parent) if (o.userData.furniture) return o.userData.furniture.id === 'rug' ? null : o
+    return null
+  }
+  const pick = (e: PointerEvent) => {
+    const rect = el.getBoundingClientRect()
+    ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height * 2 - 1))
+    ray.setFromCamera(ndc, camera)
+    const hit = ray.intersectObject(furniture, true)[0]
+    // 집주인 두더지: 몸을 세로 막대(키 1m × scale)로 보고 광선과의 거리로 판정
+    let onHost = false
+    if (host) {
+      const hp = host.object.position, a = new THREE.Vector3(hp.x, .1 * MOLE_S, hp.z), b2 = new THREE.Vector3(hp.x, 1 * MOLE_S, hp.z)
+      const pr = new THREE.Vector3(), ps = new THREE.Vector3()
+      const d2 = ray.ray.distanceSqToSegment(a, b2, pr, ps)
+      onHost = d2 < (.45 * MOLE_S) ** 2 && (!hit || pr.distanceTo(ray.ray.origin) < hit.distance)
+    }
+    return { g: hit && !onHost ? furnitureOf(hit.object) : null, onHost }
+  }
+  const actionOf = (g: THREE.Object3D | null) => {
+    const f = g?.userData.furniture
+    return f?.seat ? `${f.label}에 앉기` : f?.act === 'drink' ? '커피 마시기' : null
+  }
+  // 말풍선(리액션)·가구 이름표(마우스를 올렸을 때)
+  // 말풍선은 두더지 오른쪽 위 (머리 위 '대화 요청하기' 버튼과 안 겹치게). 꼬리는 왼쪽 아래
+  const makeBubble = () => {
+    const b = document.createElement('div')
+    Object.assign(b.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none', zIndex: '4', font: '600 22px/1 system-ui, sans-serif', padding: '8px 11px', borderRadius: '16px 16px 16px 4px', background: 'rgba(251,248,244,.96)', boxShadow: '0 4px 14px rgba(60,35,20,.18)', transformOrigin: '0 100%', transform: 'translate(0,-100%) scale(.6)', opacity: '0', transition: 'opacity .18s, transform .22s cubic-bezier(.2,.7,.2,1.4)' })
+    container.append(b)
+    return { el: b, from: 0, until: 0, who: null as MoleActor | null }
+  }
+  const bubbles = [makeBubble(), makeBubble()]
+  const say = (i: number, who: MoleActor, emoji: string, delay = 0) => {
+    const b = bubbles[i]; b.el.textContent = emoji; b.who = who; b.from = clock + delay; b.until = clock + delay + 2.2
+  }
+  const sideV = new THREE.Vector3()
+  const drawBubbles = (t: number) => {
+    for (const b of bubbles) {
+      const on = !!b.who && t >= b.from && t < b.until
+      if (on && b.who) {
+        // 머리 높이에서 몸 오른쪽(화면 기준)으로 0.55m
+        b.who.headTop(headV); headV.y -= .25 * MOLE_S
+        sideV.copy(headV).project(camera)
+        b.el.style.left = `${(sideV.x * .5 + .5) * W + 34}px`; b.el.style.top = `${(-sideV.y * .5 + .5) * H}px`
+      }
+      const op = on ? '1' : '0'
+      if (b.el.style.opacity !== op) { b.el.style.opacity = op; b.el.style.transform = `translate(0,-100%) scale(${on ? 1 : .6})` }
+    }
+  }
+  const hint = document.createElement('div')
+  Object.assign(hint.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none', zIndex: '4', font: '500 13px/1 Pretendard, system-ui, sans-serif', padding: '7px 10px', borderRadius: '8px', background: 'rgba(62,42,31,.88)', color: '#fbf4ec', transform: 'translate(-50%, calc(-100% - 14px))', opacity: '0', transition: 'opacity .12s', whiteSpace: 'nowrap' })
+  container.append(hint)
+  let clock = 0
+  const headV = new THREE.Vector3()
+
   let down: { x: number; y: number } | null = null
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY } }
   const onUp = (e: PointerEvent) => {
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
     down = null
-    const rect = el.getBoundingClientRect()
-    ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height * 2 - 1))
-    floorRay.setFromCamera(ndc, camera)
-    const o = floorRay.ray.origin, dir = floorRay.ray.direction; if (dir.y >= 0) return
-    const t = -o.y / dir.y; motion.walkTo(new THREE.Vector3(o.x + dir.x * t, 0, o.z + dir.z * t))
+    if (!mole) return
+    const { g, onHost } = pick(e)
+    if (onHost) return
+    if (g && mole.interact(g)) return
+    if (g) return // 동작 없는 가구는 interact 가 앞까지 걸어감
+    const o = ray.ray.origin, dir = ray.ray.direction; if (dir.y >= 0) return
+    const t = -o.y / dir.y; mole.walkTo(new THREE.Vector3(o.x + dir.x * t, 0, o.z + dir.z * t))
   }
-  el.addEventListener('pointerdown', onDown); el.addEventListener('pointerup', onUp); el.style.cursor = 'pointer'
+  let moveQueued: PointerEvent | null = null
+  const onMove = (e: PointerEvent) => { moveQueued = e }
+  const onLeave = () => { moveQueued = null; hint.style.opacity = '0'; el.style.cursor = 'pointer' }
+  el.addEventListener('pointerdown', onDown); el.addEventListener('pointerup', onUp)
+  el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave)
+  el.style.cursor = 'pointer'
 
   // 후처리: GTAO + 색보정
   const composer = new EffectComposer(renderer)
@@ -238,7 +318,18 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     },
     frame(dt, t) {
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
-      motion.update(dt, t)
+      clock = t
+      if (moveQueued) {
+        const e = moveQueued; moveQueued = null
+        const pk = pick(e), rect = el.getBoundingClientRect()
+        const label = pk.onHost ? opts.hostName ?? null : actionOf(pk.g)
+        hint.textContent = label ?? ''
+        hint.style.opacity = label ? '1' : '0'
+        hint.style.left = `${e.clientX - rect.left}px`; hint.style.top = `${e.clientY - rect.top}px`
+      }
+      host?.update(dt)
+      mole?.update(dt)
+      drawBubbles(t)
       grade.uniforms.uTime.value = t % 10
       composer.render(dt)
     },
@@ -251,10 +342,33 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       // 루프가 안 도는 환경(헤드리스·숨은 탭)에서도 최종 위치는 맞게
       if (document.hidden) { focus = x; applyFrame() }
     },
+    react(kind) {
+      if (!mole) return
+      const emoji = REACTIONS.find((r) => r.kind === kind)?.emoji ?? ''
+      if (kind === 'greet' && host) {
+        // 집주인 앞까지 가서 마주 보고 인사 → 집주인도 0.25초 뒤 인사. 말풍선은 인사를 시작할 때
+        const me = mole, hs = host
+        me.greetWith(hs)
+        const started = clock
+        const watch = () => {
+          if (disposed || clock - started > 20) return
+          if (me.isGreeting()) { say(0, me, emoji); say(1, hs, emoji, .25); return }
+          requestAnimationFrame(watch)
+        }
+        requestAnimationFrame(watch)
+        return
+      }
+      mole.react(kind)
+      say(0, mole, emoji)
+    },
     dispose() {
+      disposed = true
       loop.stop()
       unbindKeys()
+      mole?.dispose(); host?.dispose()
+      bubbles.forEach((b) => b.el.remove()); hint.remove()
       el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       disposeObject(scene)
       ao.dispose(); output.dispose(); grade.dispose(); composer.dispose()
       destroyRenderer(renderer)
