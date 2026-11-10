@@ -456,69 +456,136 @@ box(scene, .8, .35, .5, '#f2e6d4', -1.2, 0, 3.1, .1, .15);
 
 /* ---------- 두더지 (탐색하기 장면과 같은 캐릭터) ---------- */
 const SPH = new THREE.SphereGeometry(1, 32, 20);
+/* ---------- 두더지 펠트 재료 ---------- */
+// 섬유 노멀맵: 짧은 털 가닥을 높이맵으로 그린 뒤 기울기로 노멀을 만듦
+function feltNormalTex(size = 512, strands = 9000, rep = [6, 3]) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+  g.fillStyle = 'rgb(128,128,128)'; g.fillRect(0, 0, size, size);
+  g.lineCap = 'round';
+  for (let i = 0; i < strands; i++) {
+    const x = Math.random() * size, y = Math.random() * size, a = Math.random() * Math.PI * 2, l = 2 + Math.random() * 6, v = Math.random() < .5 ? 175 : 85;
+    g.strokeStyle = `rgba(${v},${v},${v},.55)`; g.lineWidth = .6 + Math.random() * .8;
+    for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + Math.cos(a) * l, y + oy + Math.sin(a) * l); g.stroke(); }
+  }
+  const src = g.getImageData(0, 0, size, size).data, out = g.createImageData(size, size), h = (x, y) => src[(((y + size) % size) * size + ((x + size) % size)) * 4] / 255;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const dx = (h(x + 1, y) - h(x - 1, y)) * 2.0, dy = (h(x, y + 1) - h(x, y - 1)) * 2.0, l = Math.hypot(dx, dy, 1), i = (y * size + x) * 4;
+    out.data[i] = (-dx / l * .5 + .5) * 255; out.data[i + 1] = (dy / l * .5 + .5) * 255; out.data[i + 2] = (1 / l * .5 + .5) * 255; out.data[i + 3] = 255;
+  }
+  g.putImageData(out, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); t.anisotropy = 8; return t;
+}
+// 잔털 알파맵: 픽셀마다 무작위 값. 껍질마다 alphaTest를 올려 바깥일수록 털이 드문드문
+function fuzzAlphaTex(size = 512, rep = [10, 5]) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'), d = g.createImageData(size, size);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.pow(Math.random(), 1.4) * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); t.magFilter = THREE.NearestFilter; return t;
+}
+const MOLE_FELT = {
+  body: '#977f72', nose: '#f39e96', tip: '#e9787c', paw: '#f2aaa4', foot: '#ebd2c9',
+  sheen: 1, nScale: .45, shells: 12, fuzz: .014, tipLight: .18,
+  cheekY: .655, cheekPhi: .6, cheekR: 32, cheekA: .5,
+};
+MOLE_FELT.normal = feltNormalTex();
+MOLE_FELT.fuzzTex = fuzzAlphaTex();
+
 function makeMole() {
-  const H = 1, W = .76;           // 높이 1 기준 비율 (높이:폭 ≈ 1.3:1)
+  const H = 1, W = .83;           // 높이 1 기준 비율 (높이:폭 ≈ 1.3:1)
   const R = W / 2;
   // 단면: 평평한 바닥 → 살짝 넓은 아랫부분 → 거의 수직 옆면 → 둥근 머리
   const pts = [new THREE.Vector2(0, 0)];
   pts.push(new THREE.Vector2(R * .82, 0), new THREE.Vector2(R * .96, .018), new THREE.Vector2(R * 1.03, .055), new THREE.Vector2(R * 1.06, .11));
-  for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .13 * Math.pow(i / 10, 1.2)), y)); }
-  const capH = H - .6, r0 = R * .93;
-  for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .85)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
+  for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .1 * Math.pow(i / 10, 1.2)), y)); }
+  const capH = H - .6, r0 = R * .96; // 옆면 꼭대기와 같은 반지름 (턱 없이 이어지게)
+  for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .7)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
   const rAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) { const a = pts[i - 1], b = pts[i]; return a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y || 1); } return 0; };
   const vAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) return (i - 1 + (y - pts[i - 1].y) / (pts[i].y - pts[i - 1].y || 1)) / (pts.length - 1); return 1; };
   const ZS = .84; // 앞뒤로 약간 납작
 
-  // 몸 텍스처: 회갈색 + 은은한 얼룩 + 볼터치
+  /* --- 펠트 재료: 섬유 노멀맵 + 잔털 알파맵 (한 번 만들어 코·손·발도 같이 씀) --- */
+  const FELT = MOLE_FELT;
+
+  /* --- 몸 색 텍스처: 회갈색 + 큰 얼룩 + 볼터치 --- */
   const TW = 1024, TH = 512;
   const c = document.createElement('canvas'); c.width = TW; c.height = TH; const g = c.getContext('2d');
-  g.fillStyle = '#7f695d'; g.fillRect(0, 0, TW, TH);
-  g.filter = 'blur(6px)'; for (let i = 0; i < 260; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(165,142,126,.08)' : 'rgba(80,58,48,.05)'; g.beginPath(); g.ellipse(Math.random() * TW, Math.random() * TH, 20 + Math.random() * 60, 14 + Math.random() * 40, Math.random() * 3, 0, 7); g.fill(); } g.filter = 'none';
-  // 아래쪽은 살짝 어둡게, 머리 쪽은 살짝 밝게
-  const vg = g.createLinearGradient(0, 0, 0, TH); vg.addColorStop(0, 'rgba(40,25,18,.25)'); vg.addColorStop(.35, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(255,235,220,.06)');
+  g.fillStyle = FELT.body; g.fillRect(0, 0, TW, TH);
+  g.filter = 'blur(10px)';
+  for (let i = 0; i < 200; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(178,158,144,.1)' : 'rgba(84,62,52,.05)'; g.beginPath(); g.ellipse(Math.random() * TW, Math.random() * TH, 30 + Math.random() * 80, 20 + Math.random() * 50, Math.random() * 3, 0, 7); g.fill(); }
+  g.filter = 'none';
+  // 아래쪽은 살짝 어둡게, 머리 쪽은 살짝 밝게 (캔버스 아래 = 몸 아래)
+  const vg = g.createLinearGradient(0, 0, 0, TH); vg.addColorStop(0, 'rgba(255,240,228,.08)'); vg.addColorStop(.7, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(40,25,18,.06)');
   g.fillStyle = vg; g.fillRect(0, 0, TW, TH);
   // 볼터치 (u: 0.5가 정면, v: 단면 위치)
-  const cheekY = .6, cheekPhi = .78;
   for (const s of [-1, 1]) {
-    const u = .5 + s * cheekPhi / (Math.PI * 2), v = vAt(cheekY);
-    const cx = u * TW, cy = v * TH;  // 캔버스 y는 flipY로 뒤집힘
-    const cyy = TH - cy;
-    const gr = g.createRadialGradient(cx, cyy, 0, cx, cyy, 46);
-    gr.addColorStop(0, 'rgba(246,160,160,.6)'); gr.addColorStop(.55, 'rgba(244,160,160,.28)'); gr.addColorStop(1, 'rgba(240,140,140,0)');
-    g.save(); g.translate(cx, cyy); g.scale(1, 1.05); g.translate(-cx, -cyy); g.fillStyle = gr; g.beginPath(); g.arc(cx, cyy, 46, 0, 7); g.fill(); g.restore();
+    const u = .5 + s * FELT.cheekPhi / (Math.PI * 2), v = vAt(FELT.cheekY);
+    const cx = u * TW, cy = TH - v * TH, r = FELT.cheekR;
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    gr.addColorStop(0, `rgba(255,172,168,${FELT.cheekA})`); gr.addColorStop(.55, `rgba(255,175,170,${FELT.cheekA * .45})`); gr.addColorStop(1, 'rgba(255,175,170,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
   }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
 
+  const feltMat = (o) => new THREE.MeshPhysicalMaterial({
+    roughness: 1, metalness: 0,
+    normalMap: FELT.normal, normalScale: new THREE.Vector2(FELT.nScale, FELT.nScale),
+    sheen: FELT.sheen, sheenRoughness: .5, sheenColor: new THREE.Color(o.sheenColor || '#f3e4da'),
+    ...o.base,
+  });
+
   const mole = new THREE.Group();
-  const bodyGeo = new THREE.LatheGeometry(pts, 96, -Math.PI, Math.PI * 2);
-  const body = add(new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, bumpMap: noiseTex(256, 110, 30, 6), bumpScale: .8 })), mole);
+  const bodyGeo = new THREE.LatheGeometry(pts, 128, -Math.PI, Math.PI * 2);
+  const bodyMat = feltMat({ base: { map: tex } });
+  // 정수리(회전체 극점)에서는 노멀맵 방향 계산이 불안정해 밝은 줄이 생김 → 위로 갈수록 노멀맵 세기를 0으로
+  bodyMat.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying float vPole;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPole = 1.0 - smoothstep(0.84, 0.97, position.y);');
+    sh.fragmentShader = 'varying float vPole;\n' + sh.fragmentShader.replace('mapN.xy *= normalScale;', 'mapN.xy *= normalScale * vPole;');
+  };
+  const body = add(new THREE.Mesh(bodyGeo, bodyMat), mole);
   body.scale.z = ZS;
+
+  // 보송한 잔털 막: 몸을 법선 방향으로 조금씩 부풀린 껍질을 여러 겹, 바깥으로 갈수록 털이 드문드문
+  if (FELT.shells) {
+    const pos = bodyGeo.attributes.position, nrm = bodyGeo.attributes.normal;
+    for (let k = 1; k <= FELT.shells; k++) {
+      const t = k / FELT.shells, geo = bodyGeo.clone(), p = geo.attributes.position;
+      const col = new Float32Array(p.count * 3);
+      for (let i = 0; i < p.count; i++) {
+        const y = pos.getY(i); const top = 1 - THREE.MathUtils.smoothstep(y, .86, .99); // 정수리(극점)는 잔털이 한 점에 몰려 밝은 줄이 생겨서 줄임
+        const fade = Math.min(1, y / .04) * (.35 + .65 * top); // 바닥 쪽은 거의 안 부풂
+        const lt = 1 + t * FELT.tipLight * top; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = lt;
+        p.setXYZ(i, pos.getX(i) + nrm.getX(i) * FELT.fuzz * t * fade, y + nrm.getY(i) * FELT.fuzz * t * fade, pos.getZ(i) + nrm.getZ(i) * FELT.fuzz * t * fade);
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const m = new THREE.MeshStandardMaterial({ map: tex, alphaMap: FELT.fuzzTex, alphaTest: .25 + t * .6, roughness: 1, vertexColors: true });
+      const sh = new THREE.Mesh(geo, m); sh.scale.z = ZS; sh.receiveShadow = true; mole.add(sh);
+    }
+  }
   // 몸 표면 위의 점 (angle 0 = 정면)
   const surf = (y, ang, out = 0) => { const r = rAt(y) + out; return new THREE.Vector3(r * Math.sin(ang), y, r * Math.cos(ang) * ZS); };
 
   // 눈: 까맣고 반짝이는 작은 타원 + 흰 하이라이트
-  const eyeM = new THREE.MeshStandardMaterial({ color: '#1c1310', roughness: .25, metalness: 0 });
+  const eyeM = new THREE.MeshPhysicalMaterial({ color: '#1a1210', roughness: .18, clearcoat: 1, clearcoatRoughness: .1 });
   const hiM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
   for (const s of [-1, 1]) {
-    const ang = s * .5, p = surf(.735, ang, -.01);
-    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.038, .055, .03); e.rotation.y = ang;
-    const h = new THREE.Mesh(SPH, hiM); h.position.copy(surf(.75, ang - .03, .012)); h.scale.setScalar(.011); mole.add(h);
+    const ang = s * .44, p = surf(.765, ang, -.006);
+    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.036, .052, .03); e.rotation.y = ang;
+    const h = new THREE.Mesh(SPH, hiM); h.position.copy(surf(.785, ang + .05, .03)); h.scale.set(.012, .014, .008); mole.add(h);
   }
-  // 코: 크고 넓적한 연분홍 주둥이
-  const noseM = new THREE.MeshStandardMaterial({ color: '#f5a4a0', roughness: .6 });
-  const nose = add(new THREE.Mesh(SPH, noseM), mole);
-  nose.position.copy(surf(.6, 0, -.03)); nose.position.z += .045; nose.scale.set(.15, .095, .1);
-  const nos = add(new THREE.Mesh(SPH, clay('#e8707a', { roughness: .5 })), mole);
-  nos.position.copy(nose.position).add(new THREE.Vector3(0, -.025, .09)); nos.scale.set(.042, .04, .035);
+  // 코: 넓적한 연분홍 펠트 주둥이 + 튀어나온 코끝
+  const nose = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.nose }, sheenColor: '#fff0ec' })), mole);
+  nose.position.copy(surf(.645, 0, -.03)); nose.position.z += .045; nose.scale.set(.15, .092, .1);
+  const nos = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.tip }, sheenColor: '#ffd6d6' })), mole);
+  nos.position.copy(nose.position).add(new THREE.Vector3(0, -.022, .092)); nos.scale.set(.048, .045, .04);
   // 손: 양옆 분홍 앞발 + 흰 발톱
-  const pawM = clay('#f2a9a3');
+  const pawM = feltMat({ base: { color: FELT.paw }, sheenColor: '#fff0ec' });
   for (const s of [-1, 1]) {
     const p = surf(.38, s * 1.35, -.02);
     const paw = add(new THREE.Mesh(SPH, pawM), mole); paw.position.copy(p); paw.position.x += s * .03; paw.scale.set(.042, .065, .05); paw.rotation.z = s * .35;
-    for (let k = 0; k < 3; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.012, .04, 6), clay('#fbf3ea')), mole); cl.position.set(p.x + s * .04, p.y - .07, p.z - .02 + k * .025); cl.rotation.x = Math.PI; }
+    for (let k = 0; k < 2; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.01, .045, 6), clay('#fbf3ea')), mole); cl.position.set(p.x + s * .045, p.y - .075, p.z - .005 + k * .022); cl.rotation.set(Math.PI, 0, -s * .3); }
   }
   // 발: 앞쪽 납작한 연분홍 타원
-  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, clay('#efd8d2')), mole); f.position.set(s * .12, .025, rAt(.03) * ZS * .92); f.scale.set(.085, .035, .075); }
+  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.foot } })), mole); f.position.set(s * .12, .022, rAt(.03) * ZS * .88); f.scale.set(.074, .03, .062); }
   return mole;
 }
 
