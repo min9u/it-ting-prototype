@@ -7,3 +7,4 @@ edge-prof/
 app/node_modules/
 app/dist/
 app/*.tsbuildinfo
+app/dist-share/

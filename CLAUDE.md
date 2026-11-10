@@ -26,6 +26,10 @@
 - legacy 실행: `cd legacy && node tools/serve.js <파일>`
 - Figma: https://www.figma.com/design/HMFoyhSV5kc70UkFYUxspg (03. Screens = node 408:7577). **Figma MCP는 View 시트라 호출 한도가 매우 적음** → 받아 둔 자료는 `design/figma/` (스크린샷 3장 + 페이지 구조 `screens-metadata.xml`). 화면 PNG는 Figma에서 직접 내보내 이 폴더에 넣는 게 현실적
 - 새 앱: `app/` (Vite + React + TS), 계획은 `docs/frontend-plan.md`. 3D는 `app/src/three/` (three.js 0.165, 지연 로딩). **두더지·가구 원본은 `explore/3d/lib/`** → `node explore/3d/lib/build-app.js`로 `app/src/three/mole.ts`, `furniture.ts` 생성 (앱 쪽 두 파일은 직접 고치지 말 것)
+- **팀 공유용 앱 배포 (아티팩트)**: https://claude.ai/artifact/Fd1hfXP3T6nzY2Zg4QXYAS (비공개로 시작, 공유는 페이지 Share 메뉴)
+  - 저장소가 비공개이고 gh 로그인이 없어 GitHub Pages 대신 아티팩트로 올림
+  - 갱신:  (# 라우팅·상대 경로, ) → 의 js·css 파일명으로 을 다시 쓰고 → Artifact publish(같은 url, root=dist-share, files=assets/*). 파일명 해시가 바뀌므로 옛 assets는 null로 지워도 됨
+  - Pretendard는 CDN 대신 npm 로 번들 (아티팩트는 외부 CSS 차단)
 - 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n), 탐색하기 `explore/3d/field.html`
 - 3D 엔진 비교: `explore/{3d,babylon,playcanvas}/` 같은 과제(`explore/BRIEF.md`), 미리보기 `node explore/serve.js <포트>`. 비교 페이지 https://claude.ai/artifact/7saUop5kLtVnDDXCdU8UDT
 - 회차별 스크린샷은 gitignore (`shots/final-*`, `shots/ref-*`만 커밋)

@@ -1,4 +1,7 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { createBrowserRouter, createHashRouter, Navigate, Outlet } from 'react-router-dom'
+
+// 공유용 빌드(npm run build:share)는 주소 경로를 바꿀 수 없는 곳에 올라가서 # 라우팅을 씀
+const createRouter = import.meta.env.VITE_HASH_ROUTER ? createHashRouter : createBrowserRouter
 import AppHeader from './components/AppHeader'
 import MyBurrow from './screens/burrow/MyBurrow'
 import ExploreBurrow from './screens/burrow/ExploreBurrow'
@@ -25,7 +28,7 @@ function AppLayout() {
   )
 }
 
-export const router = createBrowserRouter([
+export const router = createRouter([
   // 시작하기 v2
   { path: '/', element: <Landing /> },
   { path: '/look', element: <LookAround /> },
