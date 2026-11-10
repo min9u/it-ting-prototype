@@ -422,10 +422,12 @@ function makeMole() {
   // 눈: 까맣고 반짝이는 작은 타원 + 흰 하이라이트
   const eyeM = new THREE.MeshPhysicalMaterial({ color: '#1a1210', roughness: .18, clearcoat: 1, clearcoatRoughness: .1 });
   const hiM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  // 두 눈 모두 정면을 보게(곡면을 따라 바깥으로 돌리면 시선이 갈라져 사시처럼 보임).
+  // 하이라이트는 두 눈 모두 같은 자리(오른쪽 위)에 둬서 같은 곳을 보는 것처럼.
   for (const s of [-1, 1]) {
-    const ang = s * .44, p = surf(.765, ang, -.006);
-    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.036, .052, .03); e.rotation.y = ang;
-    const h = new THREE.Mesh(SPH, hiM); h.position.copy(surf(.785, ang + .05, .03)); h.scale.set(.012, .014, .008); mole.add(h);
+    const ang = s * .44, p = surf(.765, ang, -.014);
+    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.036, .052, .036); e.rotation.y = ang * .2;
+    const h = new THREE.Mesh(SPH, hiM); h.position.set(p.x + .011, p.y + .017, p.z + .03); h.scale.set(.011, .013, .006); mole.add(h);
   }
   // 코: 넓적한 연분홍 펠트 주둥이 + 튀어나온 코끝
   const nose = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.nose }, sheenColor: '#fff0ec' })), mole);
