@@ -20,7 +20,12 @@
   2. 이 파일의 "조사·결정 기록"에 한 줄 요약과 링크 추가
   3. 커밋하고 푸시
 
-## 파일
+## ⚠️ 방향 전환 (2026-11-10)
+- 새 디자인 기준은 **Figma 파일의 "03. Screens" 페이지**. 방향과 디자인이 완전히 바뀌었음
+- 그 전에 만든 단일 HTML 프로토타입(v1~v3, 두더지, 밤티 두더지)은 전부 **`legacy/`** 폴더로 옮김. 아래 "파일" 표부터 끝까지의 설명은 legacy 기준이고, 경로는 `legacy/` 아래에 있음 (예: `legacy/itting-mole.html`, `legacy/tools/serve.js`)
+- legacy 실행: `cd legacy && node tools/serve.js <파일>`
+
+## 파일 (legacy/ 기준)
 | 경로 | 내용 |
 |---|---|
 | `itting-prototype.html` | 프로토타입 전체 (단일 파일, 약 280KB). **이게 원본** |
