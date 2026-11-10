@@ -1,0 +1,61 @@
+/* 디굴디굴 디자인 토큰
+   값은 design/figma/burrow-my-room.png 에서 픽셀로 뽑았다. (docs/frontend-plan.md 참고) */
+:root {
+  /* 바탕 */
+  --bg-cream: #fbf4ec;      /* 헤더, 페이지 바탕 */
+  --bg-scene: #d3b690;      /* 3D 방 뒤 땅 */
+  --bg-dark: #412d1d;       /* 랜딩 어두운 바탕 */
+  --surface: #fbf8f4;       /* 카드 */
+  --surface-sunken: #f4e6d8;/* 자기소개 박스 */
+  --surface-item: #f8ede2;  /* 방명록·목록 아이템 */
+  --line: #e8d3bf;          /* 헤더 아래 선, 카드 선 */
+  --line-strong: #e3cbb5;   /* 아이콘 버튼 테두리 */
+
+  /* 글자 */
+  --ink-900: #3e2a1f;
+  --ink-800: #4a3428;
+  --ink-700: #5c4334;
+  --ink-500: #6e5444;
+  --ink-400: #a39186;
+  --ink-300: #b3a193;
+  --on-brown: #fbf4ec;
+
+  /* 브랜드 */
+  --brown-700: #6b4a3a;     /* 활성 Nav Pill */
+  --brown-650: #735343;     /* 모드 토글 활성 */
+  --brown-600: #744a32;     /* 장면 버튼 글자·테두리 */
+  --accent: #9a4a2c;        /* 링크, 개수 배지 */
+  --orange: #e8792f;        /* 로고 주황 */
+  --alert: #d9573a;         /* 알림 점 */
+  --green: #5e8a3a;         /* 접속 중 점 */
+  --green-ink: #526b3f;
+
+  /* 장면 버튼 */
+  --scene-btn-cream: #f7e6c8;
+  --scene-btn-mint: #e8f0e1;
+  --toggle-bg: rgba(236, 218, 197, 0.92);
+
+  /* 관심사 칩 톤 (Interest Chip / Tone=*) */
+  --tone-sage-bg: #dde7cc;   --tone-sage-fg: #3f5a24;
+  --tone-sky-bg: #d9e6ec;    --tone-sky-fg: #2f5868;
+  --tone-butter-bg: #f3e6be; --tone-butter-fg: #6b5410;
+  --tone-lilac-bg: #e6ddeb;  --tone-lilac-fg: #5b4370;
+  --tone-rose-bg: #f2d9d9;   --tone-rose-fg: #7d3a3f;
+  --tone-clay-bg: #f1dccb;   --tone-clay-fg: #7e3b22;
+  --tone-mint-bg: #d5e8df;   --tone-mint-fg: #2e5e4c;
+  --tone-sand-bg: #eadfc6;   --tone-sand-fg: #5e4a1e;
+
+  /* 서체 — TODO: 디자이너에게 실제 서체 확인 */
+  --font-display: 'Do Hyeon', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  --font-body: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+
+  /* 크기 */
+  --header-h: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-card: 0 2px 10px rgba(80, 50, 30, 0.08);
+  --shadow-pop: 0 18px 50px rgba(60, 35, 20, 0.22);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}

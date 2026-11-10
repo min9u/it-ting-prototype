@@ -1,0 +1,10 @@
+.pager { display: flex; justify-content: center; align-items: center; gap: 0; }
+.num, .arrow {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 14px; color: var(--ink-500);
+}
+.arrow { color: var(--ink-700); }
+.arrow:disabled { color: #d6c7ba; cursor: default; }
+.num:hover, .arrow:not(:disabled):hover { background: var(--surface-item); }
+.on, .on:hover { background: var(--brown-700); color: var(--on-brown); font-weight: 600; }

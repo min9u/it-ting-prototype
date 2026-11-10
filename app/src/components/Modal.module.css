@@ -1,0 +1,19 @@
+.backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(52, 33, 20, 0.38);
+  display: grid; place-items: center; padding: 16px;
+  animation: fade .18s ease-out;
+}
+.box {
+  position: relative; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto;
+  background: var(--surface); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop); outline: none !important;
+  animation: pop .22s var(--ease-out);
+}
+.close {
+  position: absolute; top: 18px; right: 18px; z-index: 1;
+  width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-500);
+}
+.close:hover { background: var(--surface-item); }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.98); } }

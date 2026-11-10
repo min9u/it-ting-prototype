@@ -1,0 +1,162 @@
+/* 땅굴 화면 공용 (내 땅굴 · 탐색 · 방문자 뷰). 수치는 1440×960 Figma 프레임 기준 */
+.page {
+  position: relative;
+  height: calc(100vh - var(--header-h));
+  min-height: 640px;
+  overflow: hidden;
+}
+
+.sceneTools {
+  position: absolute; top: 48px; left: 35px; z-index: 5;
+  display: flex; gap: 14px;
+}
+
+/* 오른쪽 "내 정보" 카드 (Right Column 340×811) */
+.panel {
+  position: absolute; top: 48px; right: 32px; bottom: 37px; z-index: 6;
+  width: 340px;
+  display: flex; flex-direction: column;
+  padding: 24px 24px 22px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow-y: auto;
+  animation: slideIn .3s var(--ease-out);
+}
+@keyframes slideIn { from { opacity: 0; transform: translateX(24px); } }
+
+.panelHead { display: flex; align-items: center; justify-content: space-between; height: 28px; }
+.panelHead h2 { font-size: 22px; color: var(--ink-900); }
+
+.profile { display: flex; align-items: center; gap: 14px; margin-top: 16px; height: 64px; }
+.nick { font-size: 20px; color: var(--ink-900); line-height: 1.2; }
+.aff { margin-top: 3px; font-size: 12px; color: var(--ink-400); }
+
+.introBox {
+  margin: 16px -3px 0;
+  flex: none; height: 224px;
+  display: flex; flex-direction: column;
+  padding: 16px;
+  background: var(--surface-sunken);
+  border-radius: 4px;
+  cursor: text;
+}
+.introHead { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-900); }
+.introHead strong { font-size: 14px; font-weight: 700; }
+.introText {
+  flex: 1; margin-top: 8px; padding: 0;
+  border: 0; outline: none; resize: none; background: transparent;
+  font-size: 13px; line-height: 1.55; color: var(--ink-800);
+}
+.introText::placeholder { color: #745951; }
+.introBox:focus-within { box-shadow: inset 0 0 0 1.5px rgba(116, 74, 50, 0.35); }
+
+.interests { margin-top: 16px; }
+.sectionLabel { font-size: 12px; font-weight: 600; color: var(--ink-500); margin-bottom: 10px; }
+.sectionLabel span { margin-left: 4px; font-weight: 400; }
+
+.guestbook { margin-top: 14px; display: flex; flex-direction: column; }
+.gbTitle { display: flex; align-items: center; gap: 7px; font-size: 21px; color: #1f1510; padding-left: 4px; }
+.gbList { margin-top: 11px; display: flex; flex-direction: column; gap: 10px; }
+.more { align-self: flex-end; margin-top: 6px; margin-right: 4px; }
+.gbEmpty {
+  margin-top: 18px; padding: 0 16px;
+  font-size: 13px; line-height: 1.7; color: var(--ink-500);
+}
+
+/* 사이드바 접힘 (454:7053): 오른쪽 위 "내 정보" 버튼 106×54 */
+.reopen {
+  position: absolute; top: 49px; right: 33px; z-index: 6;
+  height: 54px; padding: 0 14px 0 19px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  font-size: 18px; color: var(--ink-900);
+}
+.reopen:hover { background: #fff; }
+
+/* 방명록 전체보기 모달 825×511 */
+.gbModal { padding: 23px 34px 22px 33px; min-height: 511px; display: flex; flex-direction: column; }
+.gbModalTitle { display: flex; align-items: center; gap: 8px; font-size: 28px; color: #1f1510; }
+.gbModalTitle :global(.count-badge) { height: 22px; font-size: 14px; }
+.gbModalList { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.gbPager { margin-top: auto; padding-top: 12px; }
+.gbNote { margin-top: 6px; text-align: center; font-size: 11px; color: var(--ink-300); }
+
+.simpleModal { padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 14px; }
+.simpleModal h2 { font-size: 22px; }
+.simpleModal p { font-size: 14px; color: var(--ink-500); line-height: 1.6; }
+.visitorList { display: flex; flex-direction: column; gap: 10px; }
+.visitorList li { display: flex; align-items: center; gap: 10px; }
+.visitorList span { display: flex; flex-direction: column; }
+.visitorList small { color: var(--ink-400); font-size: 12px; }
+
+/* ---- 탐색 / 방문자 뷰 ---- */
+.roomInfo { composes: panel; top: 40px; }
+.qna { margin-top: 12px; padding: 16px; background: var(--surface-sunken); border-radius: 4px; display: flex; flex-direction: column; gap: 14px; }
+.qna dt { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.qna dd { margin: 4px 0 0; font-size: 13px; color: var(--ink-800); line-height: 1.5; }
+.qnaTitle { margin-top: 14px; font-size: 20px; }
+.details { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.details div { display: flex; }
+.details dt { width: 84px; color: var(--ink-400); }
+.details dd { margin: 0; color: var(--ink-900); font-weight: 600; }
+
+.speech {
+  position: absolute; z-index: 5;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 52px; padding: 0 20px;
+  background: var(--surface); border-radius: 26px;
+  box-shadow: 0 4px 14px rgba(70, 40, 20, .2);
+  font-family: var(--font-display); font-size: 17px; color: var(--brown-600);
+  transform: translateX(-50%);
+  animation: bob 3s ease-in-out infinite;
+}
+.speech::after {
+  content: ''; position: absolute; bottom: -8px; left: 50%; margin-left: -8px;
+  border: 8px solid transparent; border-top-color: var(--surface); border-bottom: 0;
+}
+.speech:hover { background: #fff; }
+@keyframes bob { 50% { transform: translate(-50%, -4px); } }
+
+.ownerTag {
+  position: absolute; top: 48px; left: 35px; z-index: 5;
+  height: 50px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--scene-btn-cream); border-radius: 10px;
+  border: 1.5px solid rgba(116, 74, 50, 0.55);
+  font-family: var(--font-display); font-size: 18px; color: var(--brown-600);
+}
+
+.gbWrite { margin-top: 10px; padding: 10px 14px; background: var(--surface-item); border-radius: var(--radius-md); }
+.gbWrite textarea { width: 100%; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; height: 40px; }
+.gbWriteRow { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--ink-400); }
+
+.exploreHint {
+  position: absolute; left: 50%; top: 40px; transform: translateX(-50%); z-index: 5;
+  padding: 10px 18px; border-radius: 20px; background: rgba(251, 248, 244, .92);
+  font-size: 13px; color: var(--ink-700); box-shadow: var(--shadow-card);
+}
+.neighbors { position: absolute; inset: 0; z-index: 4; }
+.neighbor {
+  position: absolute; transform: translate(-50%, -100%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.neighborCard {
+  padding: 8px 12px; border-radius: 10px; background: var(--surface);
+  box-shadow: var(--shadow-card); text-align: center; min-width: 120px;
+}
+.neighborCard strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; display: block; }
+.neighborCard small { font-size: 11px; color: var(--ink-400); }
+.neighborCard em { display: block; font-style: normal; font-size: 11px; color: var(--green-ink); margin-top: 2px; }
+.mound {
+  width: 64px; height: 26px; border-radius: 50% 50% 8px 8px;
+  background: radial-gradient(circle at 50% 30%, #8a5a3c, #5e3d29);
+}
+.neighbor:hover .neighborCard { background: #fff; transform: translateY(-2px); }
+.neighbor .neighborCard { transition: transform .15s; }
+
+.requestModal { padding: 23px 28px 21px; }
+.requestModal h2 { margin-top: 12px; font-size: 26px; }
+.phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.phrase { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--surface-item); font-size: 13px; color: var(--ink-700); }
+.phrase:hover { background: #f1dfcd; }
