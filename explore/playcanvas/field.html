@@ -1,0 +1,586 @@
+<title>디굴디굴 밭 PlayCanvas 실험</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f6efe6; --surface:#fffaf3; --ink:#3b2a20; --muted:#8a6f5e;
+  --line:#e6d6c4; --accent:#c4643c; --stage:#cfe6f3;
+  --ok:#5f8a46; --warn:#b7791f; --no:#b0473a;
+  --f-display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+    --line:#43342a; --accent:#e58a5e; --stage:#22303a;
+    --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+  --line:#43342a; --accent:#e58a5e; --stage:#22303a;
+  --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,4vw,36px);margin:0;line-height:1.2;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:66ch}
+
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+.seg button{font:500 14px var(--f-body);color:var(--muted);background:none;border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,.tog:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tog{font:500 13px var(--f-body);color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+
+.stage{position:relative;width:100%;aspect-ratio:1440/897;max-width:100%;background:var(--stage);border-radius:18px;overflow:hidden;touch-action:none}
+.stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+.stage img.ref{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none}
+.stage .tag{position:absolute;top:12px;font:500 12px var(--f-mono);letter-spacing:.04em;background:rgba(40,28,20,.72);color:#fbeee0;padding:3px 9px;border-radius:6px}
+.stage .tag.l{left:12px}.stage .tag.r{right:12px}
+.stage .handle{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);pointer-events:none}
+.stage .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+#wipe{width:100%;accent-color:var(--accent)}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 10px}
+.card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.card li{display:grid;grid-template-columns:52px 1fr;gap:10px;font-size:14px;align-items:baseline}
+.pill{font:500 11px var(--f-mono);letter-spacing:.04em;text-align:center;border-radius:6px;padding:1px 0;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.no{color:var(--no)}
+.verdict p{margin:0 0 8px;font-size:15px;max-width:72ch}
+.verdict p:last-child{margin:0}
+.verdict strong{color:var(--accent)}
+
+/* 스크린샷용: UI 없이 장면만 */
+body.bare{padding:0;overflow:hidden;background:#000}
+body.bare .wrap>:not(.stage){display:none}
+body.bare .stage{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;border-radius:0}
+body.bare .tag,body.bare .handle{display:none}
+body.crop .stage img.ref{object-fit:fill;inset:auto;width:auto;height:auto}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>탐색하기 밭, PlayCanvas로 얼마나 비슷해지나</h1>
+    <p>Figma "탐색하기" 화면의 땅 위 장면을 PlayCanvas 엔진(2.23.3)만으로 다시 만들었습니다. 도형은 모두 코드로 만들고(모델 파일 없음), 꽃·덤불·돌은 인스턴싱으로 한 번에 그립니다. 점토 느낌은 하늘색 환경광, 부드러운 그림자(PCSS), CameraFrame 후처리(SSAO·톤매핑·비네트)로 냈습니다.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="보기 방식">
+      <button type="button" data-mode="3d" aria-pressed="false">3D만</button>
+      <button type="button" data-mode="wipe" aria-pressed="true">밀어서 비교</button>
+      <button type="button" data-mode="ref" aria-pressed="false">Figma 원본</button>
+    </div>
+    <label class="tog"><input type="checkbox" id="post" checked> 후처리(SSAO·톤매핑·비네트)</label>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="loading" id="loading">밭을 일구는 중…</div>
+    <img class="ref" id="ref" src="ref-field.png" alt="Figma 원본 탐색하기 화면">
+    <div class="handle" id="handle"></div>
+    <span class="tag l" id="tagL">PlayCanvas</span>
+    <span class="tag r" id="tagR">Figma</span>
+  </div>
+  <div id="wipeRow"><input type="range" id="wipe" min="0" max="100" value="55" aria-label="비교 경계 위치"></div>
+  <p class="hint" id="hint"></p>
+
+  <section class="card verdict">
+    <h2>판정</h2>
+    <p id="verdictA">구도(둔덕 3개·표지판 3개·두더지 위치), 하늘과 잔디 색, 흩뿌린 꽃과 덤불의 밀도는 <strong>코드만으로 원본에 꽤 가깝게</strong> 맞출 수 있었습니다.</p>
+    <p id="verdictB">두더지는 탄환형 몸, 눈·볼·코·손·발 배치까지 맞췄지만, 원본의 손으로 빚은 듯한 미세한 울퉁불퉁함과 렌더러의 간접광 번짐은 실시간으로는 흉내만 냅니다.</p>
+  </section>
+
+  <div class="notes">
+    <section class="card">
+      <h2>항목별 비교</h2>
+      <ul id="items"></ul>
+    </section>
+    <section class="card">
+      <h2>PlayCanvas 메모</h2>
+      <ul id="engine"></ul>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+import * as pc from 'https://cdn.jsdelivr.net/npm/playcanvas@2.23.3/build/playcanvas.min.mjs';
+
+/* ===== 판정 노트 (페이지 아래) ===== */
+const ITEMS = [
+  ['ok', '하늘 그라데이션, 잔디 색, 지평선 높이와 완만한 언덕'],
+  ['ok', '구도: 둔덕 3개, 표지판 3개, 두더지 위치·크기'],
+  ['ok', '꽃(데이지·분홍꽃)·덤불·돌멩이·흙덩이 분포 (인스턴싱)'],
+  ['warn', '흙 둔덕: 도넛 모양과 안쪽 어두운 구멍은 맞지만 원본보다 표면이 고름'],
+  ['warn', '두더지: 몸 실루엣·눈·볼·코·손·발 배치는 가까움, 점토 얼룩 질감은 부분'],
+  ['warn', '부드러운 그림자·접지 그림자 (PCSS + SSAO), 원본의 간접광 번짐은 없음'],
+  ['no', '원본 렌더러의 피사계 심도·미세한 표면 요철']
+];
+const ENGINE = [
+  ['ok', 'CameraFrame 한 객체로 SSAO·톤매핑·비네트·색보정이 켜짐 (three.js는 패스를 직접 이어 붙여야 함). 헤드리스 소프트웨어 렌더러에서도 그대로 동작'],
+  ['ok', 'EnvLighting으로 캔버스에 그린 하늘·바닥 그라데이션을 바로 환경광으로 구움 → 점토 느낌의 부드러운 밝기'],
+  ['ok', '인스턴싱이 MeshInstance.setInstancing 한 줄. 꽃·덤불·돌 수백 개가 드로우콜 몇 번'],
+  ['ok', 'camera.calculateProjection으로 비대칭 프러스텀을 바로 지정 → 두더지 부분 확대 비교가 쉬움'],
+  ['warn', 'Lathe·Tube·둥근 상자 같은 지오메트리 헬퍼가 없어 직접 작성 (three.js 대비 코드가 늚)'],
+  ['warn', 'SSAO 반경이 월드 단위라 기본값(30)을 그대로 쓰면 장면 전체가 어두워짐. 조명 방향(-Y 축)도 three.js와 달라 헷갈림'],
+  ['warn', 'ESM min 빌드 약 2.5MB(gzip 약 640KB)로 three.js(약 170KB)보다 첫 로드가 무거움']
+];
+const pill = { ok: '가까움', warn: '부분', no: '차이 큼' };
+document.getElementById('items').innerHTML = ITEMS.map(([k, t]) => `<li><span class="pill ${k}">${pill[k]}</span><span>${t}</span></li>`).join('');
+document.getElementById('engine').innerHTML = ENGINE.map(([k, t]) => `<li><span class="pill ${k}">${k === 'ok' ? '쉬움' : '어려움'}</span><span>${t}</span></li>`).join('');
+
+/* ===== 보기 모드 (해시) ===== */
+const HASH = location.hash.split("&")[0], FLAGS = location.hash.split("&").slice(1);
+const BARE = HASH.startsWith('#bare');
+const MOLE_CROP = [560, 470, 860, 800];          // 1440×897 장면 좌표에서 두더지 영역
+const CROP = HASH === '#bare-mole' || HASH === '#bare-ref-mole';
+if (BARE) document.body.classList.add('bare');
+if (CROP) document.body.classList.add('crop');
+
+/* ===== 유틸 ===== */
+let seed = 7;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const rr = (a, b) => a + rnd() * (b - a);
+const hex = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+/* ===== 앱 ===== */
+const stage = document.getElementById('stage');
+const canvas = document.createElement('canvas');
+stage.prepend(canvas);
+const app = new pc.Application(canvas, { graphicsDeviceOptions: { antialias: false, preserveDrawingBuffer: true, alpha: false } });
+app.setCanvasFillMode(pc.FILLMODE_NONE);
+app.setCanvasResolution(pc.RESOLUTION_AUTO);
+app.graphicsDevice.maxPixelRatio = Math.min(devicePixelRatio, 2);
+app.autoRender = false;
+const device = app.graphicsDevice;
+
+/* ===== 지오메트리: 직접 만드는 프리미티브 (위치·법선·uv·인덱스) ===== */
+function sphereP(ws = 24, hs = 16) {
+  const p = [], n = [], uv = [], i = [];
+  for (let y = 0; y <= hs; y++) { const th = y / hs * Math.PI; for (let x = 0; x <= ws; x++) { const ph = x / ws * 2 * Math.PI; const sx = -Math.cos(ph) * Math.sin(th), sy = Math.cos(th), sz = Math.sin(ph) * Math.sin(th); p.push(sx, sy, sz); n.push(sx, sy, sz); uv.push(x / ws, 1 - y / hs); } }
+  for (let y = 0; y < hs; y++) for (let x = 0; x < ws; x++) { const a = y * (ws + 1) + x, b = a + ws + 1; i.push(a, b, a + 1, b, b + 1, a + 1); }
+  return { p, n, uv, i };
+}
+// 회전체: prof = [[r,y],...] 아래→위. φ=0이 +z(정면)
+function latheP(prof, seg = 48, ph0 = -Math.PI, phL = Math.PI * 2) {
+  const p = [], n = [], uv = [], i = [], L = prof.length;
+  for (let j = 0; j < L; j++) {
+    const a = prof[Math.max(0, j - 1)], b = prof[Math.min(L - 1, j + 1)];
+    let dr = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dr, dy) || 1; const nr = dy / l, ny = -dr / l;
+    for (let k = 0; k <= seg; k++) { const ph = ph0 + phL * k / seg, s = Math.sin(ph), c = Math.cos(ph); p.push(prof[j][0] * s, prof[j][1], prof[j][0] * c); n.push(nr * s, ny, nr * c); uv.push(k / seg, j / (L - 1)); }
+  }
+  for (let j = 0; j < L - 1; j++) for (let k = 0; k < seg; k++) { const a = j * (seg + 1) + k, b = a + 1, c = a + seg + 1; i.push(a, b, c, b, c + 1, c); }
+  return { p, n, uv, i };
+}
+function discP(r, seg = 32, y = 0, up = true) {
+  const p = [0, y, 0], n = [0, up ? 1 : -1, 0], uv = [.5, .5], i = [];
+  for (let k = 0; k <= seg; k++) { const ph = k / seg * 2 * Math.PI; p.push(r * Math.sin(ph), y, r * Math.cos(ph)); n.push(0, up ? 1 : -1, 0); uv.push(.5 + .5 * Math.sin(ph), .5 + .5 * Math.cos(ph)); }
+  for (let k = 1; k <= seg; k++) up ? i.push(0, k, k + 1) : i.push(0, k + 1, k);
+  return { p, n, uv, i };
+}
+function merge(...ps) { const o = { p: [], n: [], uv: [], i: [] }; for (const q of ps) { const b = o.p.length / 3; o.p.push(...q.p); o.n.push(...q.n); o.uv.push(...q.uv); for (const x of q.i) o.i.push(x + b); } return o; }
+// 원기둥: y=0~h, 뚜껑 포함
+const cylP = (rt, rb, h, seg = 24) => merge(latheP([[rb, 0], [rt, h]], seg), discP(rt, seg, h, true), discP(rb, seg, 0, false));
+// 둥근 상자 (중심 기준). 모서리는 진짜 원호, 법선은 해석적으로
+function rboxP(w, h, d, r = .08, s = 4) {
+  r = Math.min(r, w / 2, h / 2, d / 2) * .999;
+  const H = [w / 2, h / 2, d / 2], I = H.map(v => v - r), o = { p: [], n: [], uv: [], i: [] };
+  const coords = ax => { const a = []; for (let k = s; k >= 0; k--) a.push(-(I[ax] + r * Math.tan(k / s * Math.PI / 4))); for (let k = 0; k <= s; k++) a.push(I[ax] + r * Math.tan(k / s * Math.PI / 4)); return a; };
+  const faces = [[0, 1, 2, 1], [0, 2, 1, -1], [1, 2, 0, 1], [1, 0, 2, -1], [2, 0, 1, 1], [2, 1, 0, -1]]; // [법선축, u축, v축, 부호]
+  for (const [na, ua, va, sg] of faces) {
+    const U = coords(ua), Vv = coords(va), b = o.p.length / 3, nu = U.length;
+    for (let y = 0; y < Vv.length; y++) for (let x = 0; x < nu; x++) {
+      const q = [0, 0, 0]; q[na] = sg * H[na]; q[ua] = U[x]; q[va] = Vv[y];
+      const c = q.map((v, k) => Math.max(-I[k], Math.min(I[k], v))); const dv = q.map((v, k) => v - c[k]); const l = Math.hypot(...dv) || 1;
+      o.p.push(...c.map((v, k) => v + dv[k] / l * r)); o.n.push(...dv.map(v => v / l)); o.uv.push(x / (nu - 1), y / (Vv.length - 1));
+    }
+    for (let y = 0; y < Vv.length - 1; y++) for (let x = 0; x < nu - 1; x++) { const a = b + y * nu + x; sg > 0 ? o.i.push(a, a + 1, a + nu, a + 1, a + 1 + nu, a + nu) : o.i.push(a, a + nu, a + 1, a + 1, a + nu, a + 1 + nu); }
+  }
+  return o;
+}
+// 튜브: pts = [[x,y,z],...]
+function tubeP(pts, rad, rs = 8) {
+  const p = [], n = [], uv = [], i = [], P = pts.map(a => new pc.Vec3(...a));
+  let N = null;
+  for (let j = 0; j < P.length; j++) {
+    const T = new pc.Vec3().sub2(P[Math.min(P.length - 1, j + 1)], P[Math.max(0, j - 1)]).normalize();
+    if (!N) { N = new pc.Vec3().cross(T, Math.abs(T.y) < .9 ? pc.Vec3.UP : pc.Vec3.RIGHT).normalize(); }
+    N.sub(new pc.Vec3().copy(T).mulScalar(N.dot(T))).normalize();
+    const B = new pc.Vec3().cross(T, N); const rj = typeof rad === 'function' ? rad(j / (P.length - 1)) : rad;
+    for (let k = 0; k <= rs; k++) { const a = k / rs * 2 * Math.PI, dx = N.x * Math.cos(a) + B.x * Math.sin(a), dy = N.y * Math.cos(a) + B.y * Math.sin(a), dz = N.z * Math.cos(a) + B.z * Math.sin(a); p.push(P[j].x + dx * rj, P[j].y + dy * rj, P[j].z + dz * rj); n.push(dx, dy, dz); uv.push(k / rs, j / (P.length - 1)); }
+  }
+  for (let j = 0; j < P.length - 1; j++) for (let k = 0; k < rs; k++) { const a = j * (rs + 1) + k; i.push(a, a + 1, a + rs + 1, a + 1, a + rs + 2, a + rs + 1); }
+  return { p, n, uv, i };
+}
+// 여러 프리미티브를 위치·회전·크기·꼭짓점 색과 함께 한 메시로 합침
+class Geo {
+  constructor() { this.p = []; this.n = []; this.uv = []; this.c = []; this.i = []; }
+  add(src, o = {}) {
+    const pos = o.pos || [0, 0, 0], s = typeof o.scl === 'number' ? [o.scl, o.scl, o.scl] : (o.scl || [1, 1, 1]);
+    const q = new pc.Quat().setFromEulerAngles(...(o.rot || [0, 0, 0])), v = new pc.Vec3(), nv = new pc.Vec3(), base = this.p.length / 3;
+    for (let k = 0; k < src.p.length / 3; k++) {
+      const x = src.p[3 * k], y = src.p[3 * k + 1], z = src.p[3 * k + 2];
+      v.set(x * s[0], y * s[1], z * s[2]); q.transformVector(v, v); v.x += pos[0]; v.y += pos[1]; v.z += pos[2];
+      nv.set(src.n[3 * k] / s[0], src.n[3 * k + 1] / s[1], src.n[3 * k + 2] / s[2]); q.transformVector(nv, nv); nv.normalize();
+      this.p.push(v.x, v.y, v.z); this.n.push(nv.x, nv.y, nv.z); this.uv.push(src.uv[2 * k], src.uv[2 * k + 1]);
+      const c = typeof o.col === 'function' ? o.col(x, y, z, v, nv) : o.col ? (typeof o.col === 'string' ? hex(o.col) : o.col) : src.c ? src.c.slice(4 * k, 4 * k + 3) : [255, 255, 255];
+      this.c.push(c[0], c[1], c[2], 255);
+    }
+    for (const x of src.i) this.i.push(x + base);
+    return this;
+  }
+  mesh(recalc = false) {
+    const m = new pc.Mesh(device);
+    m.setPositions(this.p); m.setNormals(recalc ? pc.calculateNormals(this.p, this.i) : this.n);
+    m.setUvs(0, this.uv); m.setColors32(new Uint8Array(this.c.map(v => Math.max(0, Math.min(255, Math.round(v)))))); m.setIndices(this.i); m.update();
+    return m;
+  }
+}
+
+/* ===== 재질 ===== */
+function canvasTex(cv, srgb = true, repeat = false) {
+  const t = new pc.Texture(device, { width: cv.width, height: cv.height, format: srgb ? pc.PIXELFORMAT_SRGBA8 : pc.PIXELFORMAT_RGBA8, mipmaps: true, minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR, magFilter: pc.FILTER_LINEAR, addressU: repeat ? pc.ADDRESS_REPEAT : pc.ADDRESS_CLAMP_TO_EDGE, addressV: repeat ? pc.ADDRESS_REPEAT : pc.ADDRESS_CLAMP_TO_EDGE, anisotropy: 8 });
+  t.setSource(cv); return t;
+}
+// 무광 점토: 정반사 거의 없음, 넓고 흐린 하이라이트
+function clay(col = '#ffffff', o = {}) {
+  const m = new pc.StandardMaterial();
+  m.diffuse = new pc.Color().fromString(col);
+  m.specular = new pc.Color(o.spec ?? .05, o.spec ?? .05, o.spec ?? .05);
+  m.gloss = o.gloss ?? .22;
+  if (o.vc) { m.diffuseVertexColor = true; m.vertexColorGamma = true; }
+  if (o.map) m.diffuseMap = o.map;
+  if (o.unlit) { m.useLighting = false; m.useSkybox = false; m.useFog = false; m.emissive = new pc.Color().fromString(col); m.emissiveVertexColor = !!o.vc; m.diffuse = new pc.Color(0, 0, 0); }
+  if (o.emissive) { m.emissive = new pc.Color().fromString(o.emissive); m.emissiveIntensity = o.ei ?? 1; }
+  if (o.twoSided) { m.cull = pc.CULLFACE_NONE; m.twoSidedLighting = true; }
+  if (o.noFog) m.useFog = false;
+  m.update(); return m;
+}
+function addMesh(mesh, mat, o = {}) {
+  const e = new pc.Entity();
+  e.addComponent('render', { meshInstances: [new pc.MeshInstance(mesh, mat)], castShadows: o.cast ?? true, receiveShadows: o.recv ?? true });
+  if (o.pos) e.setLocalPosition(...o.pos); if (o.rot) e.setLocalEulerAngles(...o.rot); if (o.scl) e.setLocalScale(...(typeof o.scl === 'number' ? [o.scl, o.scl, o.scl] : o.scl));
+  (o.parent || app.root).addChild(e); return e;
+}
+// 같은 메시를 여러 번: 인스턴싱 (트랜스폼만 넘기면 드로우콜 1번)
+function instanced(mesh, mat, list, cast = true) {
+  if (!list.length) return;
+  const data = new Float32Array(list.length * 16), m4 = new pc.Mat4(), q = new pc.Quat(), v = new pc.Vec3(), s = new pc.Vec3();
+  list.forEach((t, k) => { q.setFromEulerAngles(t.rx || 0, t.ry || 0, t.rz || 0); v.set(...t.pos); const sc = typeof t.s === 'number' ? [t.s, t.s, t.s] : t.s; s.set(...sc); m4.setTRS(v, q, s); data.set(m4.data, k * 16); });
+  const vb = new pc.VertexBuffer(device, pc.VertexFormat.getDefaultInstancingFormat(device), list.length, { data });
+  const mi = new pc.MeshInstance(mesh, mat); mi.setInstancing(vb);
+  const e = new pc.Entity(); e.addComponent('render', { meshInstances: [mi], castShadows: cast, receiveShadows: true }); app.root.addChild(e);
+  return e;
+}
+
+/* ===== 카메라 (화면 좌표 → 땅 위치를 역으로 계산해 원본 구도에 맞춤) ===== */
+const CAM = { pos: [0, 2.55, 5.3], pitch: 11.5, fov: 38, aspect: 1440 / 897 };
+const camE = new pc.Entity('cam');
+camE.addComponent('camera', { fov: CAM.fov, nearClip: .1, farClip: 700, clearColor: new pc.Color(.62, .8, .95) });
+camE.setLocalPosition(...CAM.pos); camE.setLocalEulerAngles(-CAM.pitch, 0, 0);
+app.root.addChild(camE);
+// 원본 1440×897 화면 픽셀 (sx,sy) 아래 땅(y=gy) 위치
+function ground(sx, sy, gy = 0) {
+  const t = Math.tan(CAM.fov * Math.PI / 360), nx = (sx / 1440 * 2 - 1) * t * CAM.aspect, ny = (1 - sy / 897 * 2) * t, a = -CAM.pitch * Math.PI / 180;
+  const dy = ny * Math.cos(a) - (-1) * Math.sin(a), dz = ny * Math.sin(a) + (-1) * Math.cos(a), dx = nx;
+  const k = (gy - CAM.pos[1]) / dy; return [CAM.pos[0] + dx * k, gy, CAM.pos[2] + dz * k];
+}
+// 그 위치에서 화면 1px 이 몇 m 인지
+function perPx(p) { const t = Math.tan(CAM.fov * Math.PI / 360), a = CAM.pitch * Math.PI / 180; const rel = [p[0] - CAM.pos[0], p[1] - CAM.pos[1], p[2] - CAM.pos[2]]; const depth = -(rel[2] * Math.cos(a)) + -rel[1] * Math.sin(a); return depth * 2 * t / 897; }
+if (CROP) {
+  // 두더지 영역만 크게: 비대칭 프러스텀
+  const [x0, y0, x1, y1] = MOLE_CROP;
+  camE.camera.calculateProjection = (mat) => { const n = .1, t = n * Math.tan(CAM.fov * Math.PI / 360), r = t * CAM.aspect; mat.setFrustum(-r + x0 / 1440 * 2 * r, -r + x1 / 1440 * 2 * r, t - y1 / 897 * 2 * t, t - y0 / 897 * 2 * t, n, 700); };
+}
+
+/* ===== 환경광: 캔버스에 그린 하늘(위)·풀밭(아래) 그라데이션을 EnvLighting으로 구움 ===== */
+{
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#c4dcf0'); gr.addColorStop(.45, '#e4eef2'); gr.addColorStop(.5, '#f0f2e8'); gr.addColorStop(.54, '#d6d2bc'); gr.addColorStop(1, '#b0a892');
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
+  const src = new pc.Texture(device, { width: 512, height: 256, format: pc.PIXELFORMAT_SRGBA8, projection: pc.TEXTUREPROJECTION_EQUIRECT, mipmaps: false, addressU: pc.ADDRESS_REPEAT, addressV: pc.ADDRESS_CLAMP_TO_EDGE });
+  src.setSource(cv);
+  const lsrc = pc.EnvLighting.generateLightingSource(src, { size: 64 });
+  if (!FLAGS.includes("noenv")) app.scene.envAtlas = pc.EnvLighting.generateAtlas(lsrc);
+  app.scene.skyboxIntensity = 1.1;
+  app.scene.exposure = 1.0;
+}
+app.scene.ambientLight = new pc.Color(0, 0, 0);
+const fog = app.scene.fog; fog.type = pc.FOG_LINEAR; fog.color = new pc.Color().fromString('#d6ecd0'); fog.start = 45; fog.end = 320;
+
+/* ===== 햇빛 ===== */
+const sun = new pc.Entity('sun');
+sun.addComponent('light', {
+  type: 'directional', color: new pc.Color().fromString('#fff6ec'), intensity: 1.0,
+  castShadows: !FLAGS.includes("ns"), shadowType: FLAGS.includes("pcf") ? pc.SHADOW_PCF5_32F : pc.SHADOW_PCSS_32F, shadowResolution: 2048, shadowDistance: 30,
+  shadowBias: .25, normalOffsetBias: .06, penumbraSize: 12, penumbraFalloff: 1.2, shadowIntensity: .7
+});
+sun.setLocalEulerAngles(50, -55, 0);
+if (!FLAGS.includes("nosun")) app.root.addChild(sun);
+
+/* ===== 하늘 돔 (빛 안 받는 꼭짓점 색) ===== */
+{
+  // 고도각(도) → 색. 원본: 지평선 #cbebfd, 화면 위 #aedafd
+  const SKY = [[-90, '#d4eefb'], [0, '#d4eefb'], [2, '#cbebfe'], [5, '#bfe4ff'], [9, '#b2dcff'], [30, '#a2d2fb'], [90, '#98ccf8']];
+  const skyCol = y => { const e = Math.atan2(y, 400) * 180 / Math.PI; for (let k = 1; k < SKY.length; k++) if (e <= SKY[k][0]) return mixc(hex(SKY[k - 1][1]), hex(SKY[k][1]), (e - SKY[k - 1][0]) / (SKY[k][0] - SKY[k - 1][0])); return hex(SKY.at(-1)[1]); };
+  const prof = []; for (let k = 0; k <= 40; k++) prof.push([400, -40 + k * 5]); prof.push([0, 160]);
+  const m = new Geo().add(latheP(prof, 48), { col: (x, y) => skyCol(y) });
+  // 안쪽에서 보이도록 인덱스를 뒤집음
+  for (let k = 0; k < m.i.length; k += 3) { const t = m.i[k]; m.i[k] = m.i[k + 1]; m.i[k + 1] = t; }
+  addMesh(m.mesh(), clay('#ffffff', { unlit: true, vc: true }), { cast: false, recv: false, pos: [0, 0, -40] });
+}
+
+/* ===== 땅: 넓은 판 + 먼 언덕, 가까운 곳은 진한 연두 → 먼 곳은 옅게 ===== */
+const MOUNDS = [];   // 둔덕 위치 (꽃 피할 때 씀)
+{
+  const N = 160, S = 520, g = new Geo(), base = { p: [], n: [], uv: [], i: [] };
+  const hill = (x, z) => { const dz = CAM.pos[2] - z, d = Math.hypot(x, dz), az = Math.min(1.3, Math.abs(Math.atan2(x, Math.max(1, dz))) / .506); const far = -8.6 + 8.4 * az * az + .6 * Math.sin(x * .03 + 1); return far * Math.pow(smooth(20, 430, d), 1.3); };
+  for (let y = 0; y <= N; y++) for (let x = 0; x <= N; x++) {
+    // 가까운 쪽 촘촘하게
+    const u = x / N - .5, v = y / N; const X = u * S * (.25 + .75 * Math.abs(2 * u)), Z = 14 - Math.pow(v, 1.6) * (S * .85);
+    base.p.push(X, hill(X, Z), Z); base.n.push(0, 1, 0); base.uv.push(X / 3, Z / 3);
+  }
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const a = y * (N + 1) + x, b = a + N + 1; base.i.push(a, a + 1, b, a + 1, b + 1, b); }
+  const near = hex('#acc95a'), mid = hex('#b0cd5e'), far = hex('#bcd96e');
+  g.add(base, { col: (x, y, z) => { const d = Math.hypot(x, z - 5); let c = mixc(near, mid, smooth(6, 40, d)); c = mixc(c, far, smooth(40, 180, d)); const w = Math.sin(x * .9 + z * .4) * Math.sin(z * .7 - x * .3); return c.map(v => v * (1 + w * .025)); } });
+  // 잔디 얼룩 텍스처 (아주 은은하게)
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x2 = cv.getContext('2d');
+  x2.fillStyle = '#f4f4f4'; x2.fillRect(0, 0, 256, 256);
+  for (let k = 0; k < 900; k++) { x2.fillStyle = rnd() < .5 ? 'rgba(255,255,255,.10)' : 'rgba(150,170,120,.05)'; x2.beginPath(); x2.arc(rnd() * 256, rnd() * 256, 2 + rnd() * 10, 0, 7); x2.fill(); }
+  const mat = clay('#ffffff', { vc: true, map: canvasTex(cv, true, true), spec: .03, gloss: .15 });
+  addMesh(g.mesh(true), mat, { cast: false });
+}
+
+/* ===== 흙 둔덕: 도넛형 회전체, 안쪽은 아래로 갈수록 어두워짐 ===== */
+const CLAY = hex('#d87c46');
+function moundMesh(R, H, lump = 1) {
+  // 도넛 단면: 바깥은 길고 볼록한 어깨, 꼭대기는 둥근 테, 안쪽은 가파르게 구멍으로
+  const prof = [], Rr = R * .6, Rh = R * .4;
+  for (let k = 0; k <= 20; k++) { const t = k / 20, r = R - (R - Rr) * t, e = 1 - t; prof.push([r, H * Math.pow(Math.max(0, 1 - e * e), .62)]); }
+  for (let k = 1; k <= 16; k++) { const t = k / 16, r = Rr - (Rr - Rh) * t; prof.push([r, H * Math.pow(Math.max(0, 1 - t * t), .5) * (1 - .15 * t) - .05 * t]); }
+  prof.push([Rh * .97, -.05], [0, -.05]);
+  const L = latheP(prof, 72), ph = rr(0, 6); lump *= .45;
+  // 손으로 빚은 듯 울퉁불퉁
+  for (let k = 0; k < L.p.length; k += 3) {
+    const x = L.p[k], z = L.p[k + 2], a = Math.atan2(x, z), w = 1 + lump * (.05 * Math.sin(3 * a + ph) + .035 * Math.sin(5 * a + ph * 2) + .02 * Math.sin(9 * a));
+    L.p[k] *= w; L.p[k + 2] *= w; L.p[k + 1] *= 1 + lump * .05 * Math.sin(3 * a + ph);
+  }
+  const g = new Geo();
+  g.add(L, {
+    col: (x, y, z) => {
+      const r = Math.hypot(x, z) / R;
+      if (r > .6) return CLAY.map(v => v * (1 + .05 * Math.sin(x * 3 + z * 2)));
+      const t = smooth(.6, .4, r);   // 안쪽 깊이: 테 → 갈색 → 검정
+      return mixc(mixc(CLAY, hex('#7a3e1e'), smooth(0, .45, t)), hex('#140c08'), smooth(.45, 1, t));
+    }
+  });
+  return g.mesh(true);
+}
+const moundMat = clay('#ffffff', { vc: true, spec: .06, gloss: .28 });
+function mound(px, py, Rpx, H, ry = 0) {
+  // px,py: 둔덕 바닥 앞쪽 가장자리 화면 위치, Rpx: 화면상 반지름(px)
+  const front = ground(px, py), R = Rpx * perPx(front);
+  const pos = [front[0], 0, front[2] - R * .9];
+  MOUNDS.push([pos[0], pos[2], R]);
+  addMesh(moundMesh(R, H), moundMat, { pos, rot: [0, ry, 0] });
+}
+mound(290, 454, 215, .85, 20);    // 왼쪽 뒤
+mound(1196, 508, 222, .85, -30);   // 오른쪽 뒤
+mound(691, 648, 330, .78, 0);     // 가운데 큰 것 (두더지 뒤)
+
+/* ===== 나무 표지판 ===== */
+const boardMat = clay('#e8935a', { spec: .05, gloss: .25 }), postMat = clay('#9a5530', { spec: .04 });
+function sign(px, py, wpx, roll = 0, yaw = 0) {
+  const p = ground(px, py), s = wpx * perPx(p) / 1.5;
+  const e = new pc.Entity(); e.setLocalPosition(...p); e.setLocalEulerAngles(0, yaw, roll); e.setLocalScale(s, s, s); app.root.addChild(e);
+  addMesh(new Geo().add(rboxP(.17, 1.72, .17, .05)).mesh(), postMat, { parent: e, pos: [0, .86, 0] });
+  addMesh(new Geo().add(rboxP(1.5, .7, .2, .1, 5)).mesh(), boardMat, { parent: e, pos: [0, 1.22, .12] });
+}
+sign(529, 418, 132, 0, 8);
+sign(936, 468, 142, 10, 0);
+sign(1072, 636, 190, 2, -6);
+
+/* ===== 두더지 ===== */
+function buildMole(parent, o = {}) {
+  const FUR = o.fur || '#9a7b67', FURA = hex(FUR).join(',');
+  const H = 1.3, RS = .52, ZS = .82;
+  // 탄환형 단면: 바닥은 평평, 아래가 넓고 위로 갈수록 살짝 좁아지며, 위는 둥근 돔
+  const rAt = y => {
+    const t = y / H, side = RS * (1.03 - .15 * t);
+    const y0 = .42 * H; let r = side;
+    if (y > y0) { const u = (y - y0) / (H - y0); r = side * Math.pow(Math.max(0, 1 - Math.pow(u, 3)), 1 / 3); }
+    const c = .11; if (y < c) r = side - c + Math.sqrt(Math.max(0, c * c - (c - y) ** 2));
+    return r;
+  };
+  const prof = [[0, 0]];
+  for (let k = 0; k <= 12; k++) prof.push([rAt(.11 * k / 12), .11 * k / 12]);
+  for (let k = 1; k <= 70; k++) { const y = .11 + (H - .11) * Math.sin(k / 70 * Math.PI / 2) ** .7; prof.push([rAt(y), y]); }
+  prof[prof.length - 1][0] = 0;
+  // 털 질감: 회갈색에 밝은 얼룩 + 분홍 볼 (텍스처에 직접 칠함)
+  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512; const g = cv.getContext('2d');
+  g.fillStyle = FUR; g.fillRect(0, 0, 1024, 512);
+  for (let k = 0; k < 160; k++) { const x = rnd() * 1024, y = rnd() * 512, r = 30 + rnd() * 70, gr = g.createRadialGradient(x, y, 0, x, y, r); const lt = rnd() < .55; gr.addColorStop(0, lt ? `rgba(196,172,156,${.16 * (o.mottle ?? 1)})` : `rgba(110,86,74,${.14 * (o.mottle ?? 1)})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  // 정수리(극점)로 갈수록 얼룩을 지워 핀치 자국을 없앰
+  { const gr = g.createLinearGradient(0, 400, 0, 512); gr.addColorStop(0, `rgba(${FURA},0)`); gr.addColorStop(1, `rgba(${FURA},1)`); g.fillStyle = gr; g.fillRect(0, 400, 1024, 112); }
+  // 볼: u=0.5가 정면, v=높이/H. 캔버스 y = v×512 (텍스처는 뒤집지 않음)
+  for (const s of [-1, 1]) { const u = .5 + s * .118, v = .635, x = u * 1024, y = v * 512, gr = g.createRadialGradient(x, y, 0, x, y, 40); gr.addColorStop(0, `rgba(240,140,140,${.72 * (o.cheek ?? 1)})`); gr.addColorStop(.5, `rgba(236,140,136,${.36 * (o.cheek ?? 1)})`); gr.addColorStop(1, 'rgba(232,130,128,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, 40, 40, 0, 0, 7); g.fill(); }
+  const furTex = canvasTex(cv);
+  const BL = latheP(prof, 72); for (let k = 0; k < BL.uv.length / 2; k++) BL.uv[2 * k + 1] = BL.p[3 * k + 1] / H;
+  const body = new Geo().add(BL, { scl: [1, 1, ZS] });
+  addMesh(body.mesh(), clay('#ffffff', { map: furTex, spec: .03, gloss: .12 }), { parent });
+  const zAt = (x, y) => Math.sqrt(Math.max(0, rAt(y) ** 2 - x * x)) * ZS;
+  const pink = o.nose || '#fca79c', paw = o.paw || '#f8bda8';
+  // 코: 크고 넓적한 연분홍 타원 + 콧구멍
+  const ny = H * .615, nz = zAt(0, ny);
+  const nose = new Geo().add(sphereP(32, 20), { scl: [.195, .11, .15] });
+  addMesh(nose.mesh(), clay(pink, { spec: .1, gloss: .45 }), { parent, pos: [0, ny, nz + .02] });
+  addMesh(new Geo().add(sphereP(16, 10), { scl: [.045, .04, .03] }).mesh(), clay(o.nostril || '#f2867e', { spec: .1, gloss: .5 }), { parent, pos: [0, ny - .02, nz + .155] });
+  // 눈: 까만 반짝이 타원 + 흰 하이라이트
+  const ey = H * .745, ex = .195, eyeMat = clay('#0e0a09', { spec: .18, gloss: .75 }), hiMat = clay('#ffffff', { emissive: '#ffffff', ei: 1.2 });
+  for (const s of [-1, 1]) {
+    const ez = zAt(ex, ey);
+    addMesh(new Geo().add(sphereP(16, 12), { scl: [.038, .052, .03] }).mesh(), eyeMat, { parent, pos: [s * ex, ey, ez - .004], rot: [0, s * 18, 0] });
+    addMesh(new Geo().add(sphereP(10, 8), { scl: [.012, .015, .01] }).mesh(), hiMat, { parent, pos: [s * ex + .01, ey + .018, ez + .022], cast: false });
+  }
+  // 손: 옆구리에 작은 분홍 앞발 + 흰 발톱
+  for (const s of [-1, 1]) {
+    const hy = H * .385, hx = rAt(hy) * .96;
+    const hand = new Geo().add(sphereP(20, 14), { scl: [.06, .085, .065], col: paw });
+    for (let k = 0; k <= 1; k++) hand.add(sphereP(8, 6), { scl: [.009, .028, .009], pos: [s * (.035 + k * .015), -.085, .02 - k * .02], rot: [0, 0, s * 25], col: '#f6efe6' });
+    addMesh(hand.mesh(), clay('#ffffff', { vc: true, spec: .1, gloss: .4 }), { parent, pos: [s * hx, hy, .12] });
+  }
+  // 발: 바닥 앞쪽 연분홍·흰 납작 타원
+  for (const s of [-1, 1]) addMesh(new Geo().add(sphereP(20, 12), { scl: [.1, .06, .085] }).mesh(), clay('#ecd2c6', { spec: .06, gloss: .35 }), { parent, pos: [s * .18, .035, zAt(.18, .05) - .05] });
+}
+{
+  const mole = new pc.Entity('mole');
+  const feet = ground(711, 752), s = 268 * perPx([feet[0], .65, feet[2]]) / 1.3;
+  mole.setLocalPosition(...feet); mole.setLocalScale(s, s, s);
+  app.root.addChild(mole);
+  buildMole(mole);
+  window.__moleScale = s;
+}
+
+/* ===== 꽃·덤불·돌 (인스턴싱) ===== */
+function daisyMesh(petal = '#fbf5ea', n = 10, pr = [.075, .018, .03]) {
+  const g = new Geo(), green = '#5fae3c';
+  g.add(cylP(.012, .016, .34, 6), { col: green });
+  g.add(sphereP(10, 6), { scl: [.03, .07, .012], pos: [.04, .09, 0], rot: [0, 0, -40], col: '#6db845' });
+  g.add(sphereP(10, 6), { scl: [.03, .06, .012], pos: [-.035, .14, 0], rot: [0, 30, 40], col: '#6db845' });
+  const head = new Geo();
+  for (let k = 0; k < n; k++) { const a = k / n * 360; head.add(sphereP(12, 8), { scl: pr, pos: [Math.sin(a * Math.PI / 180) * pr[0], 0, Math.cos(a * Math.PI / 180) * pr[0]], rot: [0, a + 90, 0], col: petal }); }
+  head.add(sphereP(14, 10), { scl: [.04, .026, .04], pos: [0, .012, 0], col: '#f6b51e' });
+  g.add(head, { pos: [0, .35, 0], rot: [35, 0, 0] });
+  return g.mesh();
+}
+function bushMesh(k) {
+  const g = new Geo(), cols = ['#7fb84a', '#74b042', '#8cc052', '#6aa83c', '#94c85c'];
+  const n = 4 + k % 3;
+  for (let j = 0; j < n; j++) { const a = j / n * 6.28 + k, r = j === 0 ? 0 : rr(.18, .3), s = j === 0 ? .32 : rr(.18, .26); g.add(sphereP(20, 14), { scl: [s, s * .9, s], pos: [Math.cos(a) * r, s * .8, Math.sin(a) * r * .8], col: (x, y) => mixc(hex(cols[(j + k) % 5]), [235, 250, 190], Math.max(0, y) * .18) }); }
+  return g.mesh();
+}
+const pebbleMesh = col => new Geo().add(sphereP(16, 10), { scl: [1, .55, .8], col }).mesh();
+const vcMat = clay('#ffffff', { vc: true, spec: .05, gloss: .3 });
+const daisyM = daisyMesh(), pinkM = daisyMesh('#f47d73', 6, [.07, .022, .042]), bushes = [0, 1, 2].map(bushMesh);
+const brownM = pebbleMesh('#8a6a5e'), creamM = pebbleMesh('#f1e3c8'), clodM = pebbleMesh('#e07e40');
+const L = { daisy: [], pink: [], bush: [[], [], []], brown: [], cream: [], clod: [] };
+// 화면 좌표로 직접 놓는 앞쪽 소품 (원본 구도 맞춤)
+function putPx(kind, sx, sy, size, extra = {}) { const p = ground(sx, sy), s = size * perPx(p); const t = { pos: p, s, ry: rr(-30, 30), ...extra }; (kind.startsWith('bush') ? L.bush[+kind.slice(4)] : L[kind]).push(t); }
+// size = 화면에서의 대략 폭(px) ÷ 기준 폭
+putPx('bush0', 119, 790, 182); putPx('bush1', 10, 470, 132); putPx('bush2', -20, 590, 143); putPx('bush0', 1175, 880, 209); putPx('bush1', 1340, 620, 127);
+putPx('bush2', 738, 395, 77); putPx('bush1', 1200, 360, 61); putPx('bush0', 60, 395, 66);
+for (const [x, y, s] of [[40, 860, 560], [130, 880, 520], [317, 535, 300], [985, 655, 330], [560, 448, 210], [1395, 875, 500], [1340, 420, 220], [1395, 430, 200], [1300, 430, 200], [110, 390, 180], [170, 360, 150], [880, 335, 120], [668, 345, 110]]) putPx('daisy', x, y, s * .55);
+for (const [x, y, s] of [[118, 905, 430], [1296, 790, 380], [1362, 815, 400], [1420, 560, 260], [10, 470, 220], [135, 360, 160], [230, 290, 120]]) putPx('pink', x, y, s * .55, { ry: rr(-15, 15) });
+putPx('brown', 313, 830, 46); putPx('cream', 454, 813, 30); putPx('brown', 418, 822, 14); putPx('cream', 36, 662, 26);
+for (const [x, y, w] of [[346, 520, 40], [299, 560, 36], [389, 655, 44], [443, 452, 20], [1411, 458, 22], [53, 428, 26]]) putPx('clod', x, y, w);
+// 멀리 흩뿌리기: 무리 지어
+function free(x, z, pad) {
+  for (const [mx, mz, R] of MOUNDS) if (Math.hypot(x - mx, z - mz) < R * 1.08 + pad) return false;
+  if (Math.hypot(x - 0, z - (CAM.pos[2] - 5.1)) < 1.1) return false;
+  return true;
+}
+for (let c = 0; c < 520; c++) {
+  const z = -4 - Math.pow(rnd(), 1.15) * 90, x = rr(-1, 1) * (7 + -z * .72);
+  const n = 1 + Math.floor(rnd() * 5), kind = rnd();
+  for (let j = 0; j < n; j++) {
+    const px = x + rr(-.8, .8), pz = z + rr(-.5, .5); if (!free(px, pz, .35)) continue;
+    const s = rr(.7, 1.0) * (1 + -z * .006), t = { pos: [px, 0, pz], s, ry: rr(-180, 180), rx: rr(-6, 6) };
+    if (kind < .38) L.daisy.push({ ...t, ry: rr(-25, 25) });
+    else if (kind < .55) L.pink.push({ ...t, ry: rr(-25, 25) });
+    else if (kind < .9) { if (j < 2) L.bush[j % 3].push({ ...t, s: s * rr(.5, 1.0) }); }
+    else L[['brown', 'cream', 'clod'][j % 3]].push({ ...t, s: rr(.06, .11) });
+  }
+}
+for (let k = 0; k < 45; k++) { const z = -rr(.5, 30), x = rr(-1, 1) * (6 + -z * .7); if (free(x, z, .2)) L[['clod', 'brown', 'cream'][k % 3]].push({ pos: [x, 0, z], s: rr(.05, .12), ry: rr(0, 360) }); }
+instanced(daisyM, vcMat, L.daisy); instanced(pinkM, vcMat, L.pink);
+bushes.forEach((m, k) => instanced(m, vcMat, L.bush[k]));
+instanced(brownM, vcMat, L.brown); instanced(creamM, vcMat, L.cream); instanced(clodM, vcMat, L.clod);
+
+/* ===== 후처리: CameraFrame ===== */
+let frame = null;
+try {
+  if (FLAGS.includes("np")) throw new Error("np");
+  frame = new pc.CameraFrame(app, camE.camera);
+  frame.rendering.toneMapping = pc.TONEMAP_LINEAR;
+  frame.rendering.samples = 4;
+  frame.ssao.type = pc.SSAOTYPE_COMBINE;
+  frame.ssao.intensity = .45; frame.ssao.radius = .5; frame.ssao.samples = 16; frame.ssao.power = 5;
+  frame.grading.enabled = true; frame.grading.saturation = 1.0; frame.grading.contrast = 1.0; frame.grading.brightness = 1.0;
+  frame.vignette.intensity = .12; frame.vignette.inner = .55; frame.vignette.outer = 1.25;
+  frame.update();
+} catch (e) { console.warn('CameraFrame 사용 불가', e); frame = null; }
+document.getElementById('post').addEventListener('change', e => { if (frame) { frame.enabled = e.target.checked; if (e.target.checked) frame.update(); } draw(); });
+
+/* ===== 그리기 ===== */
+function draw() { app.renderNextFrame = true; app.render(); }
+app.start();
+app.update(0);
+draw(); draw();   // 첫 프레임에서 그림자 맵이 비어 있을 수 있어 두 번 그림
+document.getElementById('loading').remove();
+new ResizeObserver(() => draw()).observe(stage);
+
+/* ===== 3D만 모드: 드래그로 살짝 둘러보기 ===== */
+let mode = 'wipe', drag = null, yaw = 0;
+stage.addEventListener('pointerdown', e => { if (mode !== '3d') return; drag = e.clientX; stage.setPointerCapture(e.pointerId); });
+stage.addEventListener('pointermove', e => { if (drag == null) return; yaw = Math.max(-18, Math.min(18, yaw - (e.clientX - drag) * .15)); drag = e.clientX; orbit(); });
+stage.addEventListener('pointerup', () => drag = null);
+function orbit() {
+  const c = [0, 0, -1.5], d = Math.hypot(CAM.pos[2] - c[2], 0), a = yaw * Math.PI / 180;
+  camE.setLocalPosition(c[0] + Math.sin(a) * d, CAM.pos[1], c[2] + Math.cos(a) * d); camE.setLocalEulerAngles(-CAM.pitch, yaw, 0); draw();
+}
+
+/* ===== 비교 UI ===== */
+const ref = document.getElementById('ref'), handle = document.getElementById('handle'), wipe = document.getElementById('wipe');
+const tagL = document.getElementById('tagL'), tagR = document.getElementById('tagR'), hint = document.getElementById('hint'), wipeRow = document.getElementById('wipeRow');
+function apply() {
+  const p = +wipe.value;
+  ref.hidden = mode === '3d'; handle.hidden = wipeRow.hidden = mode !== 'wipe';
+  tagL.hidden = mode === 'ref'; tagR.hidden = mode === '3d';
+  canvas.style.visibility = mode === 'ref' ? 'hidden' : 'visible';
+  ref.style.clipPath = mode === 'wipe' ? `inset(0 0 0 ${p}%)` : 'none';
+  handle.style.left = p + '%';
+  hint.textContent = mode === 'wipe' ? '슬라이더로 경계를 옮겨 보세요. 왼쪽이 PlayCanvas, 오른쪽이 Figma 원본입니다.' : mode === '3d' ? '좌우로 드래그해서 살짝 둘러볼 수 있어요.' : 'Figma 원본 화면(헤더를 잘라낸 장면 부분)입니다.';
+  if (mode !== '3d' && yaw) { yaw = 0; orbit(); }
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b)); apply();
+}));
+wipe.addEventListener('input', apply);
+// 원본 쪽 두더지 영역 자르기: 원본 PNG는 2880×1920, 위 126px 헤더
+function cropRef() {
+  const [x0, y0, x1, y1] = MOLE_CROP, W = stage.clientWidth, k = W / ((x1 - x0) * 2);
+  Object.assign(ref.style, { width: 2880 * k + 'px', height: 1920 * k + 'px', left: -x0 * 2 * k + 'px', top: -(126 + y0 * 2) * k + 'px', position: 'absolute', maxWidth: 'none' });
+}
+const startMode = { '#3d': '3d', '#ref': 'ref', '#bare': '3d', '#bare-mole': '3d', '#bare-ref': 'ref', '#bare-ref-mole': 'ref' }[HASH];
+if (HASH === '#bare-ref-mole') { cropRef(); addEventListener('resize', cropRef); }
+if (startMode) document.querySelector(`.seg button[data-mode="${startMode}"]`).click(); else apply();
+window.__ready = true;
+</script>

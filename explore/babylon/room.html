@@ -1,0 +1,461 @@
+<title>땅굴 방 Babylon 실험</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 위에 비교 무대(1440:897) 하나, 아래에 판정 노트 */
+:root{
+  --bg:#f6efe6; --surface:#fffaf3; --ink:#3b2a20; --muted:#8a6f5e;
+  --line:#e6d6c4; --accent:#c4643c; --stage:#ffffff;
+  --ok:#5f8a46; --warn:#b7791f; --no:#b0473a;
+  --f-display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+    --line:#43342a; --accent:#e58a5e; --stage:#2f241d;
+    --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+  --line:#43342a; --accent:#e58a5e; --stage:#2f241d;
+  --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,4vw,36px);margin:0;line-height:1.2;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+.seg button{font:500 14px var(--f-body);color:var(--muted);background:none;border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,.tog:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tog{font:500 13px var(--f-body);color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.stage{position:relative;width:100%;aspect-ratio:4/3;max-width:100%;background:var(--stage);border-radius:18px;overflow:hidden;touch-action:none}
+.stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;outline:none}
+.stage .ref{position:absolute;inset:0;background:url(ref.png) 50% 50%/100% auto no-repeat;pointer-events:none}
+.stage .tag{position:absolute;top:12px;font:500 12px var(--f-mono);letter-spacing:.04em;background:rgba(40,28,20,.72);color:#fbeee0;padding:3px 9px;border-radius:6px}
+.stage .tag.l{left:12px}.stage .tag.r{right:12px}
+.stage .handle{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);pointer-events:none}
+.stage .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+#wipe{width:100%;accent-color:var(--accent)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 10px}
+.card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.card li{display:grid;grid-template-columns:52px 1fr;gap:10px;font-size:14px;align-items:baseline}
+.pill{font:500 11px var(--f-mono);letter-spacing:.04em;text-align:center;border-radius:6px;padding:1px 0;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.no{color:var(--no)}
+.verdict p{margin:0 0 8px;font-size:15px;max-width:68ch}
+.verdict p:last-child{margin:0}
+.verdict strong{color:var(--accent)}
+/* 스크린샷용: 장면만 창 전체 */
+body.bare{padding:0;overflow:hidden;background:#fff}
+body.bare .wrap>*:not(.stage){display:none!important}
+body.bare .wrap{max-width:none}
+body.bare .stage{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;border-radius:0}
+body.bare .tag,body.bare .handle{display:none!important}
+/* 두더지 확대: 1200×900 기준 (500,590)-(700,800) 영역 */
+body.mole .stage .ref{background-size:600vw auto;background-position:-250vw -295vw}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>땅굴 방, Babylon.js로 얼마나 비슷해지나</h1>
+    <p>Figma "03. Screens"의 땅굴 렌더를 Babylon.js 9 코드 도형만으로 다시 만들어 겹쳐 봅니다. three.js 시험판(explore/3d/room.html)의 배치를 그대로 옮기고, 재질·그림자·후처리만 Babylon 쪽 기능으로 바꿨습니다.</p>
+  </header>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="보기 방식">
+      <button type="button" data-mode="3d" aria-pressed="false">3D만</button>
+      <button type="button" data-mode="wipe" aria-pressed="true">밀어서 비교</button>
+      <button type="button" data-mode="ref" aria-pressed="false">Figma 원본</button>
+    </div>
+    <label class="tog"><input type="checkbox" id="post" checked> 후처리(SSAO2·색보정·그레인)</label>
+  </div>
+  <div class="stage" id="stage">
+    <div class="loading" id="loading">3D 땅굴을 짓는 중…</div>
+    <div class="ref" id="ref" role="img" aria-label="Figma 원본 땅굴 렌더"></div>
+    <div class="handle" id="handle"></div>
+    <span class="tag l" id="tagL">Babylon.js</span>
+    <span class="tag r" id="tagR">Figma</span>
+  </div>
+  <div id="wipeRow"><input type="range" id="wipe" min="0" max="100" value="55" aria-label="비교 경계 위치"></div>
+  <p class="hint" id="hint"></p>
+
+  <section class="card verdict">
+    <h2>판정</h2>
+    <p>three.js 시험판의 배치를 그대로 옮긴 뒤 원본 위치에 맞춰 침대·배낭·빈백·가방·영사기·TV를 다시 놓았습니다. 돔 실루엣, 갈비뼈, 바닥 원판, 꼬마전구·깃발 줄은 <strong>원본에 가깝게</strong> 나옵니다.</p><p>원본과 가장 크게 다른 건 렌더러가 계산한 간접광 번짐과 구석의 부드러운 그림자, 가구 모서리의 말랑한 곡면입니다. Babylon의 SSAO2와 접촉 경화 그림자로 조금 따라가지만, "똑같이"는 여전히 미리 구운 조명이나 glb 모델이 필요합니다.</p>
+  </section>
+  <div class="notes">
+    <section class="card"><h2>항목별 비교</h2><ul id="items"><li><span class="pill ok">가까움</span><span>돔 실루엣, 갈비뼈 기둥 3개, 꼭대기 고리, 바닥 원판과 마루 무늬</span></li><li><span class="pill ok">가까움</span><span>꼬마전구 두 줄, 삼각 깃발 줄, 펜던트 조명, 걸이 화분</span></li><li><span class="pill warn">부분</span><span>가구 배치: 대부분 원본 자리 근처지만 크기·각도가 조금씩 다름</span></li><li><span class="pill warn">부분</span><span>색감: 살구·연어색은 맞지만 원본보다 붉고 대비가 있음</span></li><li><span class="pill warn">부분</span><span>두더지: 크기·위치는 맞음. 원본은 어깨가 더 넓은 비석 모양</span></li><li><span class="pill warn">부분</span><span>점토 질감: 노멀맵 노이즈와 그레인으로 흉내</span></li><li><span class="pill no">차이 큼</span><span>간접광 번짐(GI)과 구석의 깊은 부드러운 그림자</span></li></ul></section>
+    <section class="card"><h2>Babylon.js 써 보니</h2><ul id="engineNotes"><li><span class="pill ok">가까움</span><span>DefaultRenderingPipeline 하나로 MSAA·그레인·비네트·색 커브가 끝남 (three.js는 색보정 셰이더 패스를 직접 작성)</span></li><li><span class="pill ok">가까움</span><span>SSAO2·접촉 경화(contact hardening) 그림자가 내장. 옵션 몇 줄</span></li><li><span class="pill ok">가까움</span><span>thin instance로 꽃·덤불·돌 약 1,800개를 메시 9개로 그림</span></li><li><span class="pill ok">가까움</span><span>useRightHandedSystem으로 three.js 좌표·회전을 그대로 옮김 (회전 방향이 같은 것 확인)</span></li><li><span class="pill ok">가까움</span><span>freezeProjectionMatrix로 축 밖 투영 → 두더지 확대 샷을 같은 카메라로 선명하게</span></li><li><span class="pill warn">부분</span><span>UMD 번들 8.7MB. three.js 모듈보다 첫 로드가 무거움</span></li><li><span class="pill warn">부분</span><span>둥근 상자가 없어 구를 늘려 직접 만듦. CreateLathe의 arc는 기본 closed라 반쪽 돔 앞에 막이 생김 (closed:false 필요)</span></li><li><span class="pill warn">부분</span><span>HDR 파이프라인에서 Layer 배경의 색 공간이 달라 하늘이 회색으로 나옴 → 하늘 구 메시로 교체</span></li></ul></section>
+  </div>
+</div>
+
+<script>window.addEventListener("error",e=>{const p=document.createElement("pre");p.id="err";p.textContent="ERR "+e.message+" @"+e.lineno;document.body.append(p)});</script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs@9.31.3/babylon.js"></script>
+<script>
+(() => {
+const B = BABYLON, V3 = (x, y, z) => new B.Vector3(x, y, z), C3 = h => B.Color3.FromHexString(h);
+const hash = location.hash;
+const BARE = hash.startsWith('#bare'), MOLE = hash.startsWith('#bare-mole') || hash.startsWith('#bare-ref-mole'), REFONLY = hash.startsWith('#bare-ref-mole');
+const NOPOST = hash.includes('nopost');
+if (BARE) document.body.classList.add('bare');
+if (MOLE) document.body.classList.add('mole');
+const stage = document.getElementById('stage'), refEl = document.getElementById('ref');
+if (REFONLY) { document.getElementById('loading').remove(); window.__ready = true; return; }
+
+/* ---------- 엔진·씬 (three.js 좌표를 그대로 쓰려고 오른손 좌표계) ---------- */
+const canvas = document.createElement('canvas'); stage.prepend(canvas);
+const engine = new B.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, premultipliedAlpha: false }, true);
+const scene = new B.Scene(engine);
+scene.useRightHandedSystem = true;
+scene.clearColor = new B.Color4(1, 1, 1, 0);
+
+const FOV = 30 * Math.PI / 180, ASPECT = 4 / 3;
+const camera = new B.ArcRotateCamera('cam', 0, 0, 10, V3(0, 3.45, 0), scene);
+camera.setPosition(V3(0, 4.55, 22.9)); camera.fov = FOV; camera.minZ = 0.5; camera.maxZ = 200;
+const home = { a: camera.alpha, b: camera.beta };
+camera.lowerAlphaLimit = home.a - 0.5; camera.upperAlphaLimit = home.a + 0.5;
+camera.lowerBetaLimit = 1.2; camera.upperBetaLimit = 1.62; camera.lowerRadiusLimit = camera.upperRadiusLimit = camera.radius;
+camera.panningSensibility = 0;
+// 두더지 확대: 1200×900 기준 (500,590)-(700,800)
+const CROP = { x0: 500, y0: 590, x1: 700, y1: 800 };
+if (MOLE) {
+  const a = B.Matrix.PerspectiveFovRH(FOV, ASPECT, camera.minZ, camera.maxZ).asArray().slice();
+  const cx = ((CROP.x0 + CROP.x1) / 2 / 1200) * 2 - 1, cy = 1 - ((CROP.y0 + CROP.y1) / 2 / 900) * 2;
+  const sx = 1200 / (CROP.x1 - CROP.x0), sy = 900 / (CROP.y1 - CROP.y0);
+  a[0] *= sx; a[8] = cx * sx; a[5] *= sy; a[9] = cy * sy;
+  camera.freezeProjectionMatrix(B.Matrix.FromArray(a));
+}
+
+/* ---------- 조명 ---------- */
+const hemi = new B.HemisphericLight('hemi', V3(0, 1, 0.3), scene);
+hemi.diffuse = C3('#ffeadb'); hemi.groundColor = C3('#d8906c'); hemi.specular = B.Color3.Black(); hemi.intensity = 0.66;
+const key = new B.DirectionalLight('key', V3(2, -16, -15).normalize(), scene);
+key.position = V3(-2, 16, 15); key.diffuse = C3('#ffe2c4'); key.specular = C3('#ffe2c4'); key.intensity = 0.36;
+const sg = new B.ShadowGenerator(2048, key);
+sg.useContactHardeningShadow = true; sg.contactHardeningLightSizeUVRatio = 0.04; sg.filteringQuality = B.ShadowGenerator.QUALITY_MEDIUM;
+sg.setDarkness(0.62); sg.bias = 0.003; sg.normalBias = 0.02;
+const bulb = new B.PointLight('bulb', V3(0, 8.6 - 3.2, -0.5), scene); bulb.diffuse = C3('#ffc98a'); bulb.specular = B.Color3.Black(); bulb.intensity = 0.32; bulb.range = 13;
+const fill = new B.PointLight('fill', V3(0, 2.5, 6), scene); fill.diffuse = C3('#ffb38a'); fill.specular = B.Color3.Black(); fill.intensity = 0.25; fill.range = 16;
+
+/* ---------- 재질: 무광 점토 + 미세한 울퉁불퉁(노멀맵) ---------- */
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const NORMAL = (() => {
+  const S = 128, t = new B.DynamicTexture('nrm', S, scene, true), g = t.getContext(), h = new Float32Array(S * S);
+  for (let i = 0; i < S * S; i++) h[i] = rnd();
+  for (let k = 0; k < 2; k++) for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { // 살짝 흐리게
+    const i = y * S + x; h[i] = (h[i] * 2 + h[y * S + (x + 1) % S] + h[((y + 1) % S) * S + x]) / 4;
+  }
+  const d = g.createImageData(S, S);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = y * S + x, dx = h[y * S + (x + 1) % S] - h[y * S + (x + S - 1) % S], dy = h[((y + 1) % S) * S + x] - h[((y + S - 1) % S) * S + x];
+    d.data[i * 4] = 128 + dx * 160; d.data[i * 4 + 1] = 128 + dy * 160; d.data[i * 4 + 2] = 255; d.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(d, 0, 0); t.update(); t.uScale = t.vScale = 3; return t;
+})();
+const matCache = {};
+function clay(hex, o = {}) {
+  const k = hex + JSON.stringify(o); if (matCache[k]) return matCache[k];
+  const m = new B.StandardMaterial('c' + hex, scene);
+  m.diffuseColor = C3(hex); m.specularColor = new B.Color3(.05, .045, .04); m.specularPower = 10;
+  if (!o.flat) { m.bumpTexture = NORMAL; m.bumpTexture.level = 0.35; }
+  if (o.emis) m.emissiveColor = C3(o.emis).scale(o.ei ?? 1);
+  if (o.two) { m.backFaceCulling = false; m.twoSidedLighting = true; }
+  return matCache[k] = m;
+}
+function add(m, parent) { if (parent) m.parent = parent; sg.addShadowCaster(m, false); m.receiveShadows = true; return m; }
+function at(m, x, y, z, ry = 0) { m.position.set(x, y, z); m.rotation.y = ry; return m; }
+// 둥근 상자: 구를 면마다 늘려서 만듦
+const rbGeo = {};
+function rbox(w, h, d, r) {
+  r = Math.min(r, w / 2, h / 2, d / 2) * 0.999;
+  const s = B.MeshBuilder.CreateSphere('rb', { diameter: 2, segments: 8 }, scene);
+  const p = s.getVerticesData(B.VertexBuffer.PositionKind), hx = w / 2 - r, hy = h / 2 - r, hz = d / 2 - r;
+  const sgn = v => Math.abs(v) < 1e-5 ? 0 : Math.sign(v);
+  for (let i = 0; i < p.length; i += 3) { const x = p[i], y = p[i + 1], z = p[i + 2]; p[i] = sgn(x) * hx + r * x; p[i + 1] = sgn(y) * hy + r * y; p[i + 2] = sgn(z) * hz + r * z; }
+  const n = []; B.VertexData.ComputeNormals(p, s.getIndices(), n);
+  s.setVerticesData(B.VertexBuffer.PositionKind, p); s.setVerticesData(B.VertexBuffer.NormalKind, n); return s;
+}
+function box(p, w, h, d, hex, x, y, z, r = 0.08, ry = 0) { const m = rbox(w, h, d, r); m.material = clay(hex); return add(at(m, x, y + h / 2, z, ry), p); }
+function cyl(p, rt, rb, h, hex, x, y, z, seg = 28, o) { const m = B.MeshBuilder.CreateCylinder('cy', { diameterTop: rt * 2, diameterBottom: rb * 2, height: h, tessellation: seg }, scene); m.material = clay(hex, o); return add(at(m, x, y + h / 2, z), p); }
+function sph(p, r, hex, x, y, z, sx = 1, sy = 1, sz = 1, o) { const m = B.MeshBuilder.CreateSphere('sp', { diameter: r * 2, segments: 20 }, scene); m.material = clay(hex, o); m.scaling.set(sx, sy, sz); return add(at(m, x, y, z), p); }
+function torus(p, R, r, hex, x, y, z) { const m = B.MeshBuilder.CreateTorus('to', { diameter: R * 2, thickness: r * 2, tessellation: 28 }, scene); m.material = clay(hex); return add(at(m, x, y, z), p); }
+function group(x, y, z, ry = 0, s = 1) { const g = new B.TransformNode('g', scene); g.position.set(x, y, z); g.rotation.y = ry; g.scaling.setAll(s); return g; }
+function tube(path, radius, hex, o) { const m = B.MeshBuilder.CreateTube('tb', { path, radius, tessellation: 10, cap: B.Mesh.CAP_ALL }, scene); m.material = clay(hex, o); return add(m); }
+function canvasTex(w, h, draw) { const t = new B.DynamicTexture('ct', { width: w, height: h }, scene, true); draw(t.getContext(), w, h); t.update(); return t; }
+
+/* ---------- 땅굴 껍데기 ---------- */
+const R = 6.4, DH = 8.6;
+const prof = y => R * Math.pow(Math.max(0, 1 - Math.pow(y / DH, 2.1)), 0.52);
+const profilePts = (scale = 1, n = 64) => { const pts = []; for (let i = 0; i <= n; i++) { const y = DH * scale * (i / n); pts.push(V3(prof(y / scale) * scale, y, 0)); } return pts; };
+const WALL = '#e29b80', WALL_D = '#b8704c', RIB = '#cf8a69', WOOD = '#c98663';
+{
+  // 벽: 위로 갈수록 살짝 밝아지는 그라데이션 + 점토 얼룩
+  const wt = canvasTex(256, 512, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#eda98c'); gr.addColorStop(.6, '#f4b89b'); gr.addColorStop(1, '#f7c2a6');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 300; i++) { g.fillStyle = rnd() < .5 ? 'rgba(255,220,200,.05)' : 'rgba(150,80,50,.05)'; g.beginPath(); g.arc(rnd() * w, rnd() * h, 4 + rnd() * 18, 0, 7); g.fill(); }
+  });
+  const inner = B.MeshBuilder.CreateLathe('inner', { shape: profilePts(1), tessellation: 72, arc: 0.5, closed: false, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+  const im = clay(WALL, { two: true }); im.diffuseColor = new B.Color3(1, 1, 1); im.diffuseTexture = wt; inner.material = im;
+  inner.rotation.y = Math.PI; inner.receiveShadows = true;
+  const outer = B.MeshBuilder.CreateLathe('outer', { shape: profilePts(1.075), tessellation: 72, arc: 0.5, closed: false, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+  outer.material = clay(WALL_D, { two: true }); outer.rotation.y = Math.PI;
+  // 단면 테두리: 안·밖 프로필 사이를 리본으로
+  const o = profilePts(1.075, 64), i = profilePts(1, 64);
+  const half = (pts, s) => pts.map(p => V3(s * p.x, p.y, 0));
+  const outerPath = [...half(o, -1), ...half(o, 1).reverse()], innerPath = [...half(i, -1), ...half(i, 1).reverse()];
+  for (const z of [0.07, -0.07]) {
+    const rim = B.MeshBuilder.CreateRibbon('rim', { pathArray: [outerPath.map(p => p.add(V3(0, 0, z))), innerPath.map(p => p.add(V3(0, 0, z)))], sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+    rim.material = clay('#dc946c', { two: true }); add(rim);
+  }
+}
+// 갈비뼈 기둥
+function ribAt(phi, rad = 0.13) {
+  const pts = []; for (let k = 0; k <= 48; k++) { const y = DH * 0.985 * k / 48, r = prof(y) - 0.06; pts.push(V3(r * Math.sin(phi), y, r * Math.cos(phi))); }
+  tube(pts, rad, RIB);
+}
+[Math.PI * 0.72, Math.PI, Math.PI * 1.28].forEach(p => ribAt(p));
+torus(null, 0.5, 0.14, RIB, 0, DH - 0.35, -0.2);
+cyl(null, 0.035, 0.035, 2.2, '#efe2d0', 0, DH - 2.6, -0.5, 8);
+// 아래쪽 나무 판벽 띠
+{
+  const t = canvasTex(1024, 64, (g) => {
+    g.fillStyle = '#c98559'; g.fillRect(0, 0, 1024, 64);
+    for (let x = 0; x < 1024; x += 16) { g.fillStyle = 'rgba(90,40,20,.28)'; g.fillRect(x, 0, 2, 64); }
+    g.fillStyle = 'rgba(255,220,190,.25)'; g.fillRect(0, 0, 1024, 5);
+  });
+  const band = B.MeshBuilder.CreateCylinder('band', { diameterTop: (R - 0.12) * 2, diameterBottom: (R - 0.1) * 2, height: 1.25, tessellation: 72, arc: 0.5, cap: B.Mesh.NO_CAP, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+  const bm = new B.StandardMaterial('bandM', scene); bm.diffuseTexture = t; bm.specularColor = B.Color3.Black(); bm.backFaceCulling = false; bm.twoSidedLighting = true;
+  band.material = bm; band.position.y = 0.62; band.receiveShadows = true;
+  const cap = []; for (let k = 0; k <= 48; k++) { const a = Math.PI * k / 48; cap.push(V3((R - 0.14) * Math.cos(a), 1.25, -(R - 0.14) * Math.sin(a))); }
+  tube(cap, 0.07, '#b8704a');
+}
+// 바닥: 원판 + 마루 무늬
+{
+  const t = canvasTex(1024, 1024, (g) => {
+    g.fillStyle = WOOD; g.fillRect(0, 0, 1024, 1024);
+    const rowH = 64;
+    for (let y = 0; y < 1024; y += rowH) {
+      g.fillStyle = 'rgba(110,50,25,.30)'; g.fillRect(0, y, 1024, 3);
+      let x = (y / rowH % 2) * 150 - 80;
+      while (x < 1024) { const w = 220 + rnd() * 160; g.fillStyle = 'rgba(110,50,25,.30)'; g.fillRect(x, y, 3, rowH); g.fillStyle = `rgba(255,${200 + rnd() * 30 | 0},170,${rnd() * .08})`; g.fillRect(x + 3, y + 3, w - 3, rowH - 3); x += w; }
+    }
+  });
+  const side = B.MeshBuilder.CreateCylinder('floorSide', { diameterTop: (R + 0.55) * 2, diameterBottom: (R + 0.6) * 2, height: 0.4, tessellation: 96 }, scene);
+  side.material = clay('#a8603d'); side.position.y = -0.2; side.receiveShadows = true;
+  const top = B.MeshBuilder.CreateDisc('floorTop', { radius: R + 0.55, tessellation: 96, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+  const fm = new B.StandardMaterial('floorM', scene); fm.diffuseTexture = t; fm.bumpTexture = NORMAL; fm.specularColor = new B.Color3(.03, .03, .03);
+  top.material = fm; top.rotation.x = Math.PI / 2; top.position.y = 0.002; top.receiveShadows = true;
+}
+
+/* ---------- 천장 장식 ---------- */
+{
+  const g = group(0, DH - 3.15, -0.5);
+  const shade = B.MeshBuilder.CreateSphere('shade', { diameter: 1.9, segments: 24, slice: 1 / 2.1, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+  shade.material = clay('#d9a046', { two: true }); shade.scaling.y = 0.5; add(shade, g);
+  const b = B.MeshBuilder.CreateSphere('bulbM', { diameter: .56, segments: 16 }, scene); b.material = clay('#fff4dc', { emis: '#ffd9a0', flat: true }); b.parent = g; b.position.y = -0.02;
+}
+const catenary = (a, b, sag, n) => { const pts = []; for (let i = 0; i <= n; i++) { const t = i / n; const p = B.Vector3.Lerp(a, b, t); p.y -= sag * 4 * t * (1 - t); pts.push(p); } return pts; };
+{
+  const pts = catenary(V3(-4.4, 5.6, -1.2), V3(4.4, 5.6, -1.2), 1.0, 15);
+  tube(pts, 0.02, '#f3e6d6');
+  const cols = ['#e07a52', '#f4eadd', '#9fbf74', '#f6efe4', '#b9d3df', '#f0d7a8'];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const f = B.MeshBuilder.CreateDisc('flag', { radius: 0.25, tessellation: 3, sideOrientation: B.Mesh.DOUBLESIDE }, scene);
+    f.material = clay(cols[i % cols.length], { two: true, flat: true }); f.rotation.z = -Math.PI / 2; f.scaling.set(1, 1.7, 1);
+    f.bakeCurrentTransformIntoVertices(); f.position.copyFrom(pts[i]); f.position.y -= 0.12; f.receiveShadows = true;
+  }
+}
+for (const s of [-1, 1]) {
+  const a = V3(s * 0.7, 7.6, -2.4), b = V3(s * 5.0, 5.9, -1.6), mid = B.Vector3.Lerp(a, b, .5).add(V3(0, .3, 0));
+  for (const [p, q] of [[a, mid], [mid, b]]) {
+    const pts = catenary(p, q, .5, 12); tube(pts, .025, '#9a5e40');
+    const bc = ['#fff1cf', '#cfe7c2', '#f6c9c2', '#d9e9f2'];
+    for (let i = 1; i < pts.length; i += 2) { const m = B.MeshBuilder.CreateSphere('lb', { diameter: .22, segments: 10 }, scene); m.material = clay(bc[i % 4], { emis: bc[i % 4], ei: .6, flat: true }); m.position.copyFrom(pts[i]); m.position.y -= .1; }
+  }
+}
+{
+  const g = group(-1.55, 5.55, -1.6);
+  cyl(g, .38, .3, .38, '#df7a57', 0, 0, 0);
+  sph(g, .36, '#7fa95a', 0, .42, 0, 1, .55, 1);
+  for (let i = 0; i < 4; i++) { const x = -.25 + i * .17; for (let k = 0; k < 4; k++) sph(g, .07, '#7fa95a', x + Math.sin(k + i) * .05, -.1 - k * .22 - (i % 2) * .15, .25); }
+  for (const a of [0, 2.1, 4.2]) cyl(g, .01, .01, 1.2, '#c9a27e', Math.cos(a) * .3, .35, Math.sin(a) * .3, 4);
+}
+function frame(x, y, z, w, h, pic, ry) { const g = group(x, y, z, ry); box(g, w, h, .07, '#c97c55', 0, 0, 0, .03); box(g, w * .74, h * .74, .03, pic, 0, h * .13, .05, .01); }
+frame(-1.3, 4.0, -5.15, .62, .62, '#9fbf74', .2);
+frame(1.5, 4.25, -5.1, .55, .7, '#b9d3df', -.2);
+frame(-2.8, 3.4, -4.6, .45, .58, '#f0d7a8', .55);
+
+/* ---------- 가구 ---------- */
+cyl(null, 3.0, 3.0, .04, '#93b263', .2, 0, 1.8, 64);
+cyl(null, 2.45, 2.45, .05, '#eabb80', .2, 0, 1.8, 64);
+{ const g = group(-4.55, 0, 1.6, .45, 1.15);
+  box(g, 2.0, .55, 3.2, '#c27a52', 0, 0, 0, .12); box(g, 1.95, .38, 3.0, '#f1e3d1', 0, .5, 0, .14);
+  box(g, 2.08, .22, 2.3, '#8fae5c', 0, .82, .38, .1); box(g, 1.5, .26, .7, '#f6ead9', 0, .86, -1.1, .13); box(g, 2.1, 1.25, .26, '#b86f49', 0, 0, -1.62, .08); }
+{ const g = group(-4.2, 0, 3.9, .25, .9); box(g, 1.0, 1.15, .62, '#8fae5c', 0, 0, 0, .28); box(g, .7, .45, .2, '#7a9a4c', 0, .25, .36, .1); const h = cyl(g, .2, .2, 1.05, '#a86a48', 0, 1.25, 0); h.rotation.z = Math.PI / 2; }
+sph(null, .78, '#93b763', -2.7, .48, 2.7, 1.05, .66, 1);
+sph(null, .4, '#a7c879', -2.66, .9, 2.42, 1.1, .5, .9);
+{ const g = group(-3.35, 0, -2.75, .62);
+  box(g, 1.7, 3.0, .7, '#c98559', 0, 0, 0, .06);
+  for (const y of [.3, 1.2, 2.1]) box(g, 1.5, .08, .62, '#b26d47', 0, y, .05, .02);
+  const bc = ['#8fae5c', '#b9d3df', '#f0d7a8', '#e07a52', '#f4eadd'];
+  for (let s = 0; s < 3; s++) for (let i = 0; i < 4; i++) box(g, .16, .62 + (i % 2) * .1, .44, bc[(s + i) % 5], -.5 + i * .2, .38 + s * .9, .05, .03); }
+{ const g = group(-4.3, 0, -1.55, .8);
+  box(g, 1.0, 2.5, .95, '#f0e2c9', 0, 0, 0, .1); box(g, .8, .65, .1, '#a9c8a6', 0, 1.55, .47, .06); box(g, 1.02, .5, 1.05, '#e9c25f', 0, .85, .05, .06);
+  sph(g, .07, '#e07a52', -.18, 1.38, .55); sph(g, .07, '#9fbf74', .05, 1.38, .55); }
+{ const g = group(-5.0, 2.75, -1.2, .95);
+  box(g, 1.6, .18, .8, '#b26d47', 0, -.25, 0, .04); box(g, 1.25, 1.0, .75, '#f0e6d4', 0, 0, 0, .14); box(g, .9, .7, .05, '#b6c9c8', -.08, .15, .38, .1); }
+{ cyl(null, .08, .1, 2.4, '#f2e6d4', -1.35, 0, -.25); sph(null, .6, '#e8b27a', -1.35, 2.42, -.25, 1, .45, 1); cyl(null, .3, .35, .08, '#efe1cc', -1.35, 0, -.25); }
+{ cyl(null, .07, .08, .35, '#f6ead9', -2.75, 1.0, -.65); sph(null, .25, '#e06b4b', -2.75, 1.38, -.65, 1, .5, 1); }
+{ cyl(null, .25, .3, 1.3, '#d0895f', -1.3, 0, -2.3); cyl(null, .3, .24, .4, '#e9d5bd', -1.3, 1.3, -2.3); for (let i = 0; i < 6; i++) { const m = sph(null, .3, '#7fa95a', -1.3 + Math.cos(i) * .3, 2.0, -2.3 + Math.sin(i) * .2, 1.1, .4, .6); m.rotation.z = Math.cos(i) * .6; } }
+{ const g = group(-.35, 0, -1.05);
+  cyl(g, .07, .1, .85, '#b26d47', 0, 0, 0); cyl(g, .7, .7, .08, '#c98559', 0, .85, 0, 40);
+  sph(g, .27, '#b9d3df', -.1, 1.17, 0, 1, .85, 1); cyl(g, .07, .09, .12, '#b9d3df', -.1, 1.38, 0);
+  cyl(g, .1, .08, .15, '#e07a52', .38, .93, .2); cyl(g, .1, .08, .15, '#f0d7a8', .3, .93, -.25); }
+{ cyl(null, .22, .26, .1, '#b26d47', -1.2, 0, .55); cyl(null, .03, .03, .5, '#b26d47', -1.2, .1, .55, 6); sph(null, .38, '#7fb0c6', -1.2, .95, .55); sph(null, .2, '#9fbf74', -1.05, 1.05, .78, 1, .8, .5); }
+{ cyl(null, .3, .24, .5, '#e07a52', -1.55, 0, 3.0); for (let i = 0; i < 7; i++) sph(null, .12, '#f6ead9', -1.55 + Math.cos(i) * .17, .58, 3.0 + Math.sin(i) * .17); }
+{ const g = group(.35, 0, -4.6);
+  box(g, 2.6, 1.55, .9, '#f2e2c8', 0, 0, 0, .06); box(g, 2.7, .1, 1.0, '#c98559', 0, 1.55, 0, .03);
+  cyl(g, .32, .3, .32, '#e8714b', .5, 1.65, .05); box(g, .7, .12, .06, '#e8714b', .5, 1.88, .05, .03);
+  box(g, .9, .7, .25, '#c98559', -.6, 1.65, -.2, .04);
+  for (let i = 0; i < 3; i++) for (let k = 0; k < 2; k++) cyl(g, .07, .07, .17, ['#e07a52', '#9fbf74', '#f0d7a8'][i], -.85 + i * .25, 1.73 + k * .3, -.05);
+  for (let i = 0; i < 2; i++) box(g, 1.0, .6, .04, '#f8ecda', -.6 + i * 1.2, .35, .46, .05); }
+{ const g = group(2.75, 0, -3.65, -.38);
+  box(g, 2.7, 1.75, .9, '#d0875c', 0, 0, 0, .08); box(g, 2.5, .12, .5, '#f8ecda', 0, 1.05, .55, .03); box(g, 2.8, .14, 1.0, '#b86f49', 0, 1.75, 0, .04);
+  box(g, .2, .9, .2, '#b86f49', -1.1, 0, .65, .04); box(g, .2, .9, .2, '#b86f49', 1.1, 0, .65, .04); }
+{ const g = group(1.55, 0, -.55, -.15);
+  box(g, 1.0, 1.75, .8, '#c77149', 0, 0, 0, .14);
+  for (const [y, r] of [[1.25, .25], [.62, .34]]) { const c = cyl(g, r, r, .1, '#d8dde0', 0, y - .05, .42, 32); c.rotation.x = Math.PI / 2; c.position.y = y; const c2 = cyl(g, r * .55, r * .55, .12, '#b8c2c7', 0, y, .44, 32); c2.rotation.x = Math.PI / 2; c2.position.y = y; } }
+{ const g = group(3.05, 0, -1.05, -.35);
+  box(g, 1.3, .38, 3.0, '#e86a42', 0, 0, .3, .1); box(g, 1.1, .1, 2.6, '#a5aeb2', 0, .38, .35, .04);
+  box(g, .22, 2.5, .22, '#e86a42', -.55, .2, -1.05, .08).rotation.x = -.18; box(g, .22, 2.5, .22, '#e86a42', .55, .2, -1.05, .08).rotation.x = -.18;
+  box(g, 1.4, .42, .55, '#e86a42', 0, 2.55, -1.35, .12); }
+{ const g = group(3.75, 0, -2.65, -.6);
+  for (const x of [-.45, .45]) box(g, .1, 3.0, .1, '#c98559', x, 0, 0, .03).rotation.z = x > 0 ? -.08 : .08;
+  box(g, 1.25, 1.35, .08, '#f8ecda', 0, 1.6, .12, .03); box(g, .9, .5, .02, '#9fbf74', .05, 1.75, .17, .02); sph(g, .16, '#f0c868', .25, 2.3, .17, 1, 1, .2); }
+{ const g = group(3.05, 0, 2.1, -.18, .8);
+  box(g, 2.0, .85, 1.25, '#e86a42', 0, 0, 0, .1); box(g, 1.85, .78, 1.15, '#a9bcc4', 0, .86, -.02, .1);
+  for (const y of [.42, 1.28]) box(g, .7, .12, .1, '#8fae5c', 0, y, .64, .04);
+  for (const x of [-.95, .95]) for (const y of [0, .86]) box(g, .14, .78, .14, '#f4eadd', x, y + .03, .58, .03); }
+{ const g = group(1.75, 0, 3.3, .2, .75);
+  box(g, .75, .55, .55, '#a9bcc4', 0, 0, 0, .08);
+  for (const x of [-.3, .3]) { const t = torus(g, .26, .1, '#e86a42', x, .95, 0); t.rotation.x = Math.PI / 2; }
+  const c = cyl(g, .12, .14, .3, '#7c6d66', .5, .15, 0); c.rotation.z = Math.PI / 2; c.position.y = .3; }
+{ const g = group(4.75, 0, -.6, -.5);
+  for (let i = 0; i < 3; i++) { const a = i * 2.09; const l = B.MeshBuilder.CreateCylinder('leg', { diameterTop: .08, diameterBottom: .1, height: 3.3, tessellation: 8 }, scene); l.material = clay('#c27a52'); add(at(l, Math.cos(a) * .45, 1.6, Math.sin(a) * .45), g); l.rotation.set(Math.sin(a) * .28, 0, -Math.cos(a) * .28); }
+  box(g, .65, .45, .38, '#a9bcc4', 0, 3.15, 0, .07);
+  const c = cyl(g, .14, .14, .25, '#7c6d66', 0, 3.37, .25); c.rotation.x = Math.PI / 2; c.position.y = 3.37; }
+{ const g = group(4.35, 3.6, -2.4, -.75);
+  box(g, 1.2, .12, .45, '#b26d47', 0, 0, 0, .03);
+  [['#9fbf74', .55], ['#b9d3df', .42], ['#f0d7a8', .65], ['#e9c25f', .5]].forEach(([c, h], i) => cyl(g, .09, .1, h, c, -.4 + i * .27, .12, 0)); }
+{ const g = group(5.05, 2.4, -1.95, -1.0); box(g, 1.2, 1.4, .07, '#e5b98a', 0, 0, 0, .03); for (let i = 0; i < 5; i++) box(g, .2, .25, .02, ['#f8ecda', '#f0d7a8', '#b9d3df'][i % 3], -.35 + (i % 3) * .33, .3 + Math.floor(i / 3) * .45, .05, .01); }
+{ const g = group(4.45, .3, 3.2, .5, .8);
+  const m = cyl(g, .38, .38, 1.15, '#8fae5c', 0, 0, 0); m.position.y = 0; m.rotation.z = Math.PI / 2;
+  const s = cyl(g, .39, .39, .25, '#f4eadd', 0, 0, 0); s.position.y = 0; s.rotation.z = Math.PI / 2;
+  box(null, .85, .55, .6, '#e86a42', 4.85, 0, 1.0, .08, -.4); box(null, .35, .1, .1, '#f8ecda', 4.85, .58, 1.0, .03, -.4); }
+box(null, .8, .35, .5, '#f2e6d4', -1.5, 0, 3.9, .1, .15);
+
+/* ---------- 두더지 (밭 장면과 같은 캐릭터, 굴 안이라 조금 더 진한 갈색) ---------- */
+function makeMole(root) {
+  const H = 1.43, RB = 0.61, ZS = 0.84;
+  const rAt = y => {
+    const base = RB * (1 - 0.09 * (y / H)), yc = H * 0.36;
+    if (y <= yc) return y < .06 ? base - (0.06 - y) * (0.06 - y) * 6 : base;
+    const t = (y - yc) / (H - yc); return base * Math.pow(Math.max(0, 1 - Math.pow(t, 2.15)), 1 / 2.15);
+  };
+  const shape = [V3(0, 0, 0)]; for (let i = 0; i <= 60; i++) { const y = H * i / 60; shape.push(V3(rAt(y), y, 0)); } shape.push(V3(0, H, 0));
+  const t = canvasTex(512, 512, (g) => {
+    const gr = g.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, '#87695c'); gr.addColorStop(1, '#977669'); g.fillStyle = gr; g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 200; i++) { const x = rnd() * 512, y = 60 + rnd() * 380, r = 8 + rnd() * 30, light = rnd() < .6;
+      const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, light ? 'rgba(160,130,115,.18)' : 'rgba(70,50,42,.1)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = rg; for (const ox of [-512, 0, 512]) { g.save(); g.translate(ox, 0); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.restore(); } }
+  });
+  const body = B.MeshBuilder.CreateLathe('moleBody', { shape, tessellation: 72 }, scene);
+  const bm = new B.StandardMaterial('moleM', scene); bm.diffuseTexture = t; bm.specularColor = B.Color3.Black();
+  body.material = bm; body.scaling.z = ZS; add(body, root);
+  const surf = (y, phi, out = 0) => { const r = rAt(y) + out; return V3(Math.sin(phi) * r, y, Math.cos(phi) * r * ZS); };
+  const nrm = (y, phi) => { const d = 0.01, slope = (rAt(y - d) - rAt(y + d)) / (2 * d); return V3(Math.sin(phi), slope, Math.cos(phi) / ZS).normalize(); };
+  const ball = (hex, pos, sc, o) => { const s = B.MeshBuilder.CreateSphere('mp', { segments: 24, diameter: 1 }, scene); s.position.copyFrom(pos); s.scaling.copyFrom(sc); s.material = clay(hex, { flat: true, ...o }); s.parent = root; return s; };
+  const eyeY = H * 0.765, eyePhi = Math.asin(0.22 / rAt(eyeY));
+  for (const s of [-1, 1]) {
+    const p = surf(eyeY, s * eyePhi, -0.012), n = nrm(eyeY, s * eyePhi);
+    const e = ball('#1d1411', p, V3(.075, .095, .05)); e.material = (() => { const m = clay('#1d1411', { flat: true, eye: 1 }); m.specularColor = new B.Color3(.9, .9, .9); m.specularPower = 60; return m; })(); e.lookAt(p.add(n));
+    ball('#ffffff', p.add(n.scale(.026)).add(V3(.012, .026, 0)), V3(.026, .03, .012), { emis: '#ffffff' });
+  }
+  const bt = canvasTex(128, 128, (g) => { const rg = g.createRadialGradient(64, 64, 0, 64, 64, 64); rg.addColorStop(0, 'rgba(245,160,160,.55)'); rg.addColorStop(.45, 'rgba(245,160,160,.3)'); rg.addColorStop(1, 'rgba(245,160,160,0)'); g.fillStyle = rg; g.fillRect(0, 0, 128, 128); });
+  bt.hasAlpha = true;
+  const blm = new B.StandardMaterial('blushM', scene); blm.diffuseTexture = bt; blm.useAlphaFromDiffuseTexture = true; blm.specularColor = B.Color3.Black(); blm.emissiveColor = new B.Color3(.2, .1, .1);
+  const ckY = H * 0.655, ckPhi = Math.asin(0.36 / rAt(ckY));
+  if (0) for (const s of [-1, 1]) { const p = surf(ckY, s * ckPhi, 0.006), n = nrm(ckY, s * ckPhi); const d = B.MeshBuilder.CreatePlane('blush', { size: .27, sideOrientation: B.Mesh.DOUBLESIDE }, scene); d.material = blm; d.position.copyFrom(p); d.parent = root; d.lookAt(p.add(n)); d.scaling.y = .8; }
+  const noseY = H * 0.645, front = rAt(noseY) * ZS;
+  ball('#e58c7c', V3(0, noseY, front + .02), V3(.42, .25, .3));
+  ball('#d86f66', V3(0, noseY - .025, front + .16), V3(.07, .065, .045));
+  const hY = H * 0.34;
+  for (const s of [-1, 1]) {
+    const p = surf(hY, s * 1.32, -.01); ball('#f0a7a3', p, V3(.15, .19, .14));
+    for (let k = 0; k < 3; k++) { const c = B.MeshBuilder.CreateCylinder('claw', { height: .07, diameterTop: 0, diameterBottom: .03, tessellation: 6 }, scene); c.material = clay('#fbf4ec', { flat: true }); c.parent = root; c.position = p.add(V3(-s * .03 + (k - 1) * .025 * s, -.09, .04 + k * .012)); c.rotation.x = Math.PI; }
+  }
+  for (const s of [-1, 1]) add(ball('#f3d6cf', V3(s * .19, .03, RB * ZS * .82), V3(.24, .08, .2)));
+}
+const moleRoot = group(.05, 0, 3.4, 0, 1.36);
+makeMole(moleRoot);
+
+/* ---------- 후처리 ---------- */
+let pipe;
+if (!NOPOST) {
+  const ssao = new B.SSAO2RenderingPipeline('ssao', scene, { ssaoRatio: 0.75, blurRatio: 1 }, [camera]);
+  ssao.radius = 1.2; ssao.totalStrength = 1.1; ssao.base = 0.12; ssao.samples = 16; ssao.maxZ = 60; ssao.minZAspect = 0.4; ssao.expensiveBlur = true;
+  pipe = new B.DefaultRenderingPipeline('dp', true, scene, [camera]);
+  pipe.samples = 4;
+  const ip = pipe.imageProcessing;
+  ip.toneMappingEnabled = false; ip.contrast = 1.0; ip.exposure = 1.0;
+  ip.colorCurvesEnabled = true; const cc = new B.ColorCurves(); cc.globalSaturation = -10; ip.colorCurves = cc;
+  ip.vignetteEnabled = true; ip.vignetteWeight = 0.8; ip.vignetteColor = new B.Color4(0.25, 0.1, 0.05, 0); ip.vignetteCameraFov = FOV;
+  pipe.grainEnabled = true; pipe.grain.intensity = 9; pipe.grain.animated = false;
+}
+document.getElementById('post').addEventListener('change', e => {
+  const M = scene.postProcessRenderPipelineManager, f = e.target.checked ? 'attachCamerasToRenderPipeline' : 'detachCamerasFromRenderPipeline';
+  if (!NOPOST) { M[f]('ssao', camera); M[f]('dp', camera); } dirty = 3;
+});
+
+/* ---------- 그리기 ---------- */
+let dirty = 3;
+engine.resize();
+new ResizeObserver(() => { engine.resize(); dirty = 3; }).observe(stage);
+camera.onViewMatrixChangedObservable.add(() => dirty = 2);
+scene.executeWhenReady(() => {
+  let n = 0;
+  const kick = () => { scene.render(); if (++n < 8) setTimeout(kick, 60); else { document.getElementById('loading')?.remove(); window.__ready = true; engine.runRenderLoop(() => { if (dirty > 0) { dirty--; scene.render(); } }); } };
+  kick();
+});
+
+/* ---------- 비교 UI ---------- */
+const handle = document.getElementById('handle'), wipe = document.getElementById('wipe');
+const tagL = document.getElementById('tagL'), tagR = document.getElementById('tagR'), hint = document.getElementById('hint'), wipeRow = document.getElementById('wipeRow');
+let mode = 'wipe';
+function apply() {
+  const p = +wipe.value;
+  refEl.hidden = mode === '3d'; handle.hidden = wipeRow.hidden = mode !== 'wipe';
+  tagL.hidden = mode === 'ref'; tagR.hidden = mode === '3d';
+  refEl.style.clipPath = mode === 'wipe' ? `inset(0 0 0 ${p}%)` : 'none';
+  handle.style.left = p + '%';
+  if (mode === '3d' && !BARE) camera.attachControl(canvas, true); else { camera.detachControl(); camera.alpha = home.a; camera.beta = home.b; }
+  hint.textContent = mode === 'wipe' ? '슬라이더로 경계를 옮겨 보세요. 왼쪽이 Babylon.js, 오른쪽이 Figma 원본입니다.' : mode === '3d' ? '드래그해서 살짝 돌려 볼 수 있어요.' : 'Figma에 있는 원본 렌더입니다.';
+  dirty = 2;
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b)); apply();
+}));
+wipe.addEventListener('input', apply);
+const startMode = BARE ? '3d' : { '#3d': '3d', '#ref': 'ref' }[hash];
+if (startMode) document.querySelector(`.seg button[data-mode="${startMode}"]`).click(); else apply();
+})();
+</script>

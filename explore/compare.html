@@ -1,0 +1,124 @@
+<title>땅굴 3D 엔진 비교</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 장면별로 원본 + 엔진 셋을 2×2 격자, 두더지는 4칸 한 줄, 맨 아래 엔진 표와 추천 */
+:root{
+  --bg:#f6efe6; --surface:#fffaf3; --ink:#3b2a20; --muted:#8a6f5e;
+  --line:#e6d6c4; --accent:#c4643c; --figma:#5f8a46;
+  --f-display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e; --line:#43342a; --accent:#e58a5e; --figma:#8fbf6f;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e; --line:#43342a; --accent:#e58a5e; --figma:#8fbf6f;}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+header{display:flex;flex-direction:column;gap:8px}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,4.5vw,40px);margin:0;line-height:1.15;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:400;font-size:18px;margin:0}
+.lead{margin:0;color:var(--muted);max-width:66ch}
+section{display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.grid{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figure img{display:block;width:100%;max-width:100%;height:auto;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+figcaption{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:14px}
+figcaption b{font-weight:600}
+figcaption a{color:var(--accent);font-size:13px;text-decoration:none;white-space:nowrap}
+figcaption a:hover{text-decoration:underline}
+figcaption a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.ref b{color:var(--figma)}
+.tag{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+.note{margin:0;font-size:14px;color:var(--muted);max-width:72ch}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--f-display);font-weight:400;font-size:16px}
+tbody th{font-weight:500;color:var(--muted);white-space:nowrap}
+tr:last-child th,tr:last-child td{border-bottom:0}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.best{color:var(--accent);font-weight:600}
+
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.verdict p{margin:0;max-width:72ch}
+.verdict strong{color:var(--accent)}
+.verdict ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>땅굴 3D, 엔진 세 개로 따라 그려 보기</h1>
+    <p class="lead">Figma "03. Screens"의 탐색하기 화면과 땅굴 방 렌더를 three.js, Babylon.js, PlayCanvas로 각각 다시 만들었습니다. 셋 다 모델 파일 없이 코드 도형만 썼고, 같은 과제로 원본과 비교하며 6~10번씩 고쳤습니다. 각 그림 옆 링크를 누르면 원본과 밀어서 비교할 수 있는 실제 3D 페이지가 열립니다.</p>
+  </header>
+
+  <section aria-labelledby="s-field">
+    <h2 id="s-field">탐색하기 (땅 위)</h2>
+    <div class="grid">
+      <figure class="ref"><img src="img/ref-field.png" alt="Figma 원본: 잔디밭 위 흙 둔덕 세 개와 나무 표지판, 가운데 두더지" loading="lazy"><figcaption><b>Figma 원본</b><span class="tag">기준</span></figcaption></figure>
+      <figure><img src="img/three-field.png" alt="three.js로 만든 탐색하기 장면" loading="lazy"><figcaption><b>three.js</b><a href="https://claude.ai/artifact/1GfvgcExFAX7zM7a3cSDUw">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/babylon-field.png" alt="Babylon.js로 만든 탐색하기 장면" loading="lazy"><figcaption><b>Babylon.js</b><a href="https://claude.ai/artifact/DpsJvbrGwM9JT4mY2WCuXY">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/playcanvas-field.png" alt="PlayCanvas로 만든 탐색하기 장면" loading="lazy"><figcaption><b>PlayCanvas</b><a href="https://claude.ai/artifact/WPX6grY8GRbDNLAZdW3ty2">비교 페이지 열기</a></figcaption></figure>
+    </div>
+    <h3>두더지만 크게</h3>
+    <div class="grid4">
+      <figure class="ref"><img src="img/ref-mole.png" alt="Figma 원본 두더지 확대" loading="lazy"><figcaption><b>원본</b></figcaption></figure>
+      <figure><img src="img/three-mole.png" alt="three.js 두더지 확대" loading="lazy"><figcaption><b>three.js</b></figcaption></figure>
+      <figure><img src="img/babylon-mole.png" alt="Babylon.js 두더지 확대" loading="lazy"><figcaption><b>Babylon.js</b></figcaption></figure>
+      <figure><img src="img/playcanvas-mole.png" alt="PlayCanvas 두더지 확대" loading="lazy"><figcaption><b>PlayCanvas</b></figcaption></figure>
+    </div>
+    <p class="note">세 두더지 모두 아래가 넓은 젤리형 몸, 반짝이는 눈, 큰 분홍 코와 튀어나온 코끝, 볼터치, 분홍 손과 흰 발톱, 납작한 발까지 맞췄습니다. 원본만큼 보송한 털 질감과 부드러운 빛 번짐은 셋 다 내지 못했습니다.</p>
+  </section>
+
+  <section aria-labelledby="s-room">
+    <h2 id="s-room">방 안 (땅굴)</h2>
+    <div class="grid">
+      <figure class="ref"><img src="img/ref-room.png" alt="Figma 원본: 반쪽 돔 모양 땅굴 방 안의 가구와 두더지" loading="lazy"><figcaption><b>Figma 원본</b><span class="tag">기준</span></figcaption></figure>
+      <figure><img src="img/three-room.png" alt="three.js로 만든 땅굴 방" loading="lazy"><figcaption><b>three.js</b><a href="https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/babylon-room.png" alt="Babylon.js로 만든 땅굴 방" loading="lazy"><figcaption><b>Babylon.js</b><a href="https://claude.ai/artifact/Viz6rAUEqJibEnmPggYKjv">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/playcanvas-room.png" alt="PlayCanvas로 만든 땅굴 방" loading="lazy"><figcaption><b>PlayCanvas</b><a href="https://claude.ai/artifact/XMFLp58CJ9SjJdYMuevAme">비교 페이지 열기</a></figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-table">
+    <h2 id="s-table">엔진별로 써 본 결과</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">three.js 0.165</th><th scope="col">Babylon.js 9.31</th><th scope="col">PlayCanvas 2.23</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">라이브러리 크기</th><td class="num best">약 170KB</td><td class="num">약 8.7MB (UMD 전체)</td><td class="num">약 2.5MB (gzip 640KB)</td></tr>
+          <tr><th scope="row">두 장면 코드</th><td class="num best">약 67KB</td><td class="num">약 72KB</td><td class="num">약 86KB</td></tr>
+          <tr><th scope="row">후처리</th><td>패스를 골라 직접 조립. 색보정·그레인 셰이더는 직접 작성</td><td class="best">파이프라인 하나에 그레인·비네트·색 커브·MSAA, SSAO2 따로</td><td>CameraFrame 하나에 SSAO·톤매핑·비네트·색보정 (그레인 없음)</td></tr>
+          <tr><th scope="row">구석 그림자(AO)</th><td>GTAO가 확대 시점과 충돌해서 탐색하기에서는 끔</td><td>SSAO2 몇 줄</td><td>SSAO 기본 제공. 반경이 월드 단위라 맞추는 데 3회 소모</td></tr>
+          <tr><th scope="row">둥근 상자·회전체·튜브</th><td class="best">모두 기본 제공</td><td>회전체·튜브는 있음, 둥근 상자는 직접</td><td>셋 다 직접 작성 (약 10KB)</td></tr>
+          <tr><th scope="row">꽃·덤불 대량 배치</th><td>InstancedMesh</td><td>thin instance, 1,800개를 메시 9개로</td><td>setInstancing 한 줄</td></tr>
+          <tr><th scope="row">잘 나온 부분</th><td>원본 좌표를 땅 위치로 역산해서 배치가 가장 정확</td><td>둔덕 구멍이 가장 원본처럼 보임</td><td>환경광 덕에 점토 느낌이 가장 부드러움</td></tr>
+          <tr><th scope="row">아쉬운 부분</th><td>표면이 매끈해서 장난감 같음</td><td>방이 붉고 대비가 강함, 톤매핑 끔</td><td>잔디·덤불이 조금 밝은 연두</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-verdict">
+    <h2 id="s-verdict">결론</h2>
+    <div class="verdict">
+      <p>세 엔진의 결과가 <strong>비슷한 수준에서 멈췄습니다</strong>. 원본과 남은 차이(보송한 털, 말랑한 곡면, 빛 번짐)는 엔진이 아니라 "코드 도형 + 실시간 조명"이라는 방식의 한계입니다. 그래서 엔진은 앱에 붙이기 쉬운 쪽으로 고르고, 그림체는 에셋과 구운 조명으로 올리는 게 맞습니다.</p>
+      <p>추천은 <strong>three.js</strong>입니다. 라이브러리가 가장 가볍고, 지금 만든 React 앱에 React Three Fiber로 바로 붙일 수 있습니다. Babylon.js의 후처리 묶음과 PlayCanvas의 환경광 방식은 three.js에서도 같은 효과를 낼 수 있습니다.</p>
+      <ol>
+        <li>디자이너에게 원본을 렌더한 Blender 파일이 있는지 확인</li>
+        <li>있으면 두더지와 둔덕·가구를 glb로 내보내고, 조명을 텍스처에 구워서 three.js에 올리기</li>
+        <li>없으면 지금 두더지 코드를 기준으로 Blender에서 다듬은 모델 만들기</li>
+      </ol>
+    </div>
+  </section>
+</div>

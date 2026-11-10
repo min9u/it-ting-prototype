@@ -1,6 +1,8 @@
 node_modules/
 *.log
-shots/
+**/shots/*
+!explore/*/shots/final-*
+!explore/*/shots/ref-*
 edge-prof/
 app/node_modules/
 app/dist/
