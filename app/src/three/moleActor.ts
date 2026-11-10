@@ -40,7 +40,14 @@ const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
 let cached: Promise<GLTF> | null = null
 export function loadMoleGltf() {
-  if (!cached) cached = new GLTFLoader().loadAsync(moleUrl).catch((e) => { cached = null; throw e })
+  if (!cached) {
+    const loader = new GLTFLoader()
+    // 공유 빌드는 glb가 data URL로 들어옴 (vite.config.ts). fetch 대신 직접 풀어서 parse (아티팩트 CSP 대비)
+    cached = (moleUrl.startsWith('data:')
+      ? loader.parseAsync(Uint8Array.from(atob(moleUrl.slice(moleUrl.indexOf(',') + 1)), (c) => c.charCodeAt(0)).buffer, '')
+      : loader.loadAsync(moleUrl)
+    ).catch((e) => { cached = null; throw e })
+  }
   return cached
 }
 
