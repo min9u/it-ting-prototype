@@ -1,0 +1,480 @@
+<title>디굴디굴 밭 3D 실험</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 위에 비교 무대(1440:897) 하나, 아래에 판정 노트. 무대가 주인공 */
+:root{
+  --bg:#f6efe6; --surface:#fffaf3; --ink:#3b2a20; --muted:#8a6f5e;
+  --line:#e6d6c4; --accent:#c4643c; --stage:#cfe7f5;
+  --ok:#5f8a46; --warn:#b7791f; --no:#b0473a;
+  --f-display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;
+    --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+    --line:#43342a; --accent:#e58a5e; --stage:#2f3a40;
+    --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#1f1712; --surface:#2a201a; --ink:#f3e6d8; --muted:#bba28e;
+  --line:#43342a; --accent:#e58a5e; --stage:#2f3a40;
+  --ok:#8fbf6f; --warn:#e0a84a; --no:#e07a6c;}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,4vw,36px);margin:0;line-height:1.2;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:64ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+.seg button{font:500 14px var(--f-body);color:var(--muted);background:none;border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,.tog input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.togs{display:flex;gap:16px;flex-wrap:wrap}
+.tog{font:500 13px var(--f-body);color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+
+.stage{position:relative;width:100%;aspect-ratio:1440/897;max-width:100%;background:var(--stage);border-radius:18px;overflow:hidden}
+.stage.zoom{aspect-ratio:310/330;max-width:560px;margin-inline:auto}
+.stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+.stage .ref{position:absolute;inset:0;background-image:url(ref-field.png);background-repeat:no-repeat;pointer-events:none}
+.stage .tag{position:absolute;top:12px;font:500 12px var(--f-mono);letter-spacing:.04em;background:rgba(40,28,20,.72);color:#fbeee0;padding:3px 9px;border-radius:6px}
+.stage .tag.l{left:12px}.stage .tag.r{right:12px}
+.stage .handle{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);pointer-events:none}
+.stage .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+#wipe{width:100%;accent-color:var(--accent)}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 10px}
+.card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.card li{display:grid;grid-template-columns:52px 1fr;gap:10px;font-size:14px;align-items:baseline}
+.card p{margin:0 0 8px;font-size:15px;max-width:68ch}.card p:last-child{margin:0}
+.card strong{color:var(--accent)}
+.pill{font:500 11px var(--f-mono);letter-spacing:.04em;text-align:center;border-radius:6px;padding:1px 0;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.no{color:var(--no)}
+
+/* 스크린샷용: 장면만 창에 꽉 차게 */
+body.bare{padding:0;background:#000}
+body.bare .wrap>*:not(.stage){display:none!important}
+body.bare .wrap{max-width:none;gap:0}
+body.bare .stage{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;max-width:none;border-radius:0}
+body.bare .tag,body.bare .handle{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>두더지 밭, three.js로 따라 그리기</h1>
+    <p>Figma "탐색하기" 화면의 땅 위 장면을 코드 도형만으로 다시 만들었습니다. 둔덕·표지판·꽃은 원본 그림의 화면 좌표를 땅 위 위치로 바꿔서 같은 자리에 놓았습니다.</p>
+  </header>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="보기 방식">
+      <button type="button" data-mode="3d" aria-pressed="false">3D만</button>
+      <button type="button" data-mode="wipe" aria-pressed="true">밀어서 비교</button>
+      <button type="button" data-mode="ref" aria-pressed="false">Figma 원본</button>
+    </div>
+    <div class="togs">
+      <label class="tog"><input type="checkbox" id="zoom"> 두더지 확대</label>
+      <label class="tog"><input type="checkbox" id="post" checked> 후처리</label>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="loading" id="loading">밭을 일구는 중…</div>
+    <div class="ref" id="ref" role="img" aria-label="Figma 원본 탐색하기 화면"></div>
+    <div class="handle" id="handle"></div>
+    <span class="tag l" id="tagL">three.js</span>
+    <span class="tag r" id="tagR">Figma</span>
+  </div>
+  <div id="wipeRow"><input type="range" id="wipe" min="0" max="100" value="50" aria-label="비교 경계 위치"></div>
+  <p class="hint" id="hint"></p>
+  <div class="notes" id="notes">
+    <section class="card">
+      <h2>판정</h2>
+      <p>구도, 둔덕·표지판·꽃 위치, 하늘과 잔디 색은 <strong>원본과 거의 겹칩니다</strong>. 원본 그림의 화면 좌표를 땅 위 위치로 바꿔 놓았기 때문입니다.</p><p>두더지는 비율, 눈 위치, 코, 볼터치, 손발까지 맞췄습니다. 원본에 비해 <strong>표면이 매끈하고 빛 번짐이 약해서</strong> 조금 더 장난감처럼 보입니다. 이 차이는 실시간 렌더링의 한계라 모델 파일과 구운 조명이 필요합니다.</p>
+    </section>
+    <section class="card">
+      <h2>항목별 비교</h2>
+      <ul id="items"><li><span class="pill ok">가까움</span><span>카메라 구도, 지평선 높이, 하늘 그라데이션</span></li><li><span class="pill ok">가까움</span><span>둔덕 3개 위치와 크기, 어두운 구멍</span></li><li><span class="pill ok">가까움</span><span>두더지 실루엣(아래가 넓은 젤리형), 눈·코·볼·손·발 위치</span></li><li><span class="pill warn">부분</span><span>두더지 털 질감과 부드러운 빛 번짐 (원본이 더 보송보송)</span></li><li><span class="pill warn">부분</span><span>표지판 나무결, 둔덕의 울퉁불퉁한 가장자리</span></li><li><span class="pill warn">부분</span><span>먼 곳 꽃·덤불 밀도와 흐려짐</span></li><li><span class="pill no">차이 큼</span><span>구석 그림자(AO): 확대 시점과 충돌해서 이 장면에서는 끔</span></li></ul>
+    </section>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+const HASH = location.hash;
+const BARE = HASH.startsWith('#bare');
+if (BARE) document.body.classList.add('bare');
+const stage = document.getElementById('stage');
+const SW = 1440, SH = 897;                       // 원본 장면 좌표계
+const MOLE = { x: 560, y: 470, w: 310, h: 330 };  // 두더지 확대 영역
+// 원본 캡처(2000폭 표시 기준)의 좌표 → 장면 좌표
+const D = (dx, dy) => [dx * 0.72, (dy - 87) * 0.72];
+
+/* ---------- 렌더러 ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(BARE ? 1 : Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.25;
+
+// 하늘: 화면에 고정된 세로 그라데이션
+{
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#a3d3f7'); gr.addColorStop(0.6, '#c2e2f8'); gr.addColorStop(1, '#dbeff9');
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; scene.background = t;
+}
+scene.fog = new THREE.Fog('#c4e3a4', 30, 150);
+
+const camera = new THREE.PerspectiveCamera(40, SW / SH, 0.1, 400);
+camera.position.set(0, 2.7, 8);
+camera.rotation.set(-THREE.MathUtils.degToRad(10.7), 0, 0);
+camera.updateMatrixWorld(); camera.updateProjectionMatrix();
+
+// 장면 좌표(px) → 땅(y=h) 위의 3D 점
+const ray = new THREE.Raycaster();
+function P(sx, sy, h = 0) {
+  ray.setFromCamera(new THREE.Vector2(sx / SW * 2 - 1, -(sy / SH * 2 - 1)), camera);
+  const o = ray.ray.origin, d = ray.ray.direction, t = (h - o.y) / d.y;
+  return new THREE.Vector3(o.x + d.x * t, h, o.z + d.z * t);
+}
+const PD = (dx, dy, h) => P(...D(dx, dy), h);
+// 3D 점이 화면에서 어느 y에 오는지
+const screenY = v => (1 - (v.clone().project(camera).y + 1) / 2) * SH;
+// 바닥 점 base에서 위로 몇 높이여야 화면 y가 sy가 되는지
+function heightTo(base, sy) { let lo = 0, hi = 30; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (screenY(base.clone().setY(m)) > sy) lo = m; else hi = m; } return (lo + hi) / 2; }
+
+/* ---------- 재질 ---------- */
+function noiseTex(size = 256, lo = 118, span = 20, rep = 3) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), d = g.createImageData(size, size);
+  for (let i = 0; i < d.data.length; i += 4) { const v = lo + Math.random() * span; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); return t;
+}
+const NOISE = noiseTex();
+const clay = (hex, o = {}) => new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0, ...o });
+function add(m, p = scene) { m.castShadow = true; m.receiveShadow = true; p.add(m); return m; }
+
+/* ---------- 조명 ---------- */
+scene.add(new THREE.HemisphereLight('#eef6ff', '#6f9e45', 1.3));
+const sun = new THREE.DirectionalLight('#fff6e8', 2.1);
+sun.position.set(-6, 14, 12); sun.target.position.set(0, 0, -6);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 8; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
+scene.add(sun, sun.target);
+
+/* ---------- 땅 ---------- */
+{
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#88c24c'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 900; i++) { g.fillStyle = Math.random() < .5 ? 'rgba(170,225,95,.18)' : 'rgba(95,165,45,.14)'; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 14, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 30);
+  const geo = new THREE.PlaneGeometry(600, 600, 240, 240); geo.rotateX(-Math.PI / 2);
+  const pa = geo.attributes.position;
+  for (let i = 0; i < pa.count; i++) {
+    const x = pa.getX(i), z = pa.getZ(i) - 8, r = Math.hypot(x, z);
+    // 멀리 갈수록 완만한 언덕, 양옆이 조금 더 높음
+    const far = THREE.MathUtils.smoothstep(r, 70, 200);
+    pa.setY(i, far * (2.2 + 3.2 * Math.abs(x) / Math.max(r, 1) + 1.2 * Math.sin(x * 0.03)));
+  }
+  geo.computeVertexNormals();
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 1 }));
+  ground.receiveShadow = true; scene.add(ground);
+}
+
+/* ---------- 인스턴스 모음 (꽃·덤불·돌) ---------- */
+class Inst {
+  constructor(geo, mat) { this.geo = geo; this.mat = mat; this.m = []; this.c = []; }
+  push(matrix, color) { this.m.push(matrix.clone()); this.c.push(new THREE.Color(color)); }
+  build() {
+    if (!this.m.length) return;
+    const im = new THREE.InstancedMesh(this.geo, this.mat, this.m.length);
+    this.m.forEach((mm, i) => { im.setMatrixAt(i, mm); im.setColorAt(i, this.c[i]); });
+    im.castShadow = true; im.receiveShadow = true; scene.add(im);
+  }
+}
+const white = o => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85, ...o });
+const SPH = new THREE.SphereGeometry(1, 20, 14);
+const I = {
+  ball: new Inst(SPH, white({ bumpMap: NOISE, bumpScale: .3 })),
+  petal: new Inst(new THREE.SphereGeometry(1, 12, 8), white()),
+  core: new Inst(new THREE.SphereGeometry(1, 14, 10), white()),
+  stem: new Inst(new THREE.CylinderGeometry(1, 1, 1, 6), white()),
+  leaf: new Inst(new THREE.SphereGeometry(1, 10, 6), white()),
+};
+const tmpP = new THREE.Object3D(), tmpC = new THREE.Object3D(); tmpP.add(tmpC);
+function place(inst, color, parentFn, childFn) {
+  tmpP.position.set(0, 0, 0); tmpP.rotation.set(0, 0, 0); tmpP.scale.set(1, 1, 1);
+  tmpC.position.set(0, 0, 0); tmpC.rotation.set(0, 0, 0); tmpC.scale.set(1, 1, 1);
+  parentFn(tmpP); childFn(tmpC); tmpP.updateMatrixWorld(true); inst.push(tmpC.matrixWorld, color);
+}
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+// 꽃: kind = 'daisy' | 'coral'
+function flower(pos, s, kind = 'daisy') {
+  const h = s * rnd(1.4, 1.9), tilt = rnd(-.25, .25);
+  place(I.stem, '#5fae3a', p => p.position.copy(pos), c => { c.position.y = h / 2; c.scale.set(s * .06, h, s * .06); });
+  for (const side of [-1, 1]) place(I.leaf, '#6dbb3f', p => { p.position.copy(pos); p.rotation.y = rnd(0, 3); }, c => { c.position.set(side * s * .28, s * .25, 0); c.rotation.z = side * .9; c.scale.set(s * .32, s * .08, s * .14); });
+  const face = p => { p.position.copy(pos).add(new THREE.Vector3(0, h, 0)); p.rotation.set(-0.75 + tilt, rnd(-.4, .4), tilt * .5); };
+  const n = kind === 'daisy' ? 9 : 6, petalC = kind === 'daisy' ? '#fff6e9' : (Math.random() < .5 ? '#f5837a' : '#f39a8c');
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; place(I.petal, petalC, face, c => { c.position.set(Math.cos(a) * s * .42, Math.sin(a) * s * .42, 0); c.rotation.z = a; c.scale.set(s * (kind === 'daisy' ? .36 : .4), s * (kind === 'daisy' ? .16 : .26), s * .07); }); }
+  place(I.core, kind === 'daisy' ? '#f7b52c' : '#f9c33a', face, c => { c.position.z = s * .05; c.scale.set(s * .22, s * .22, s * .12); });
+}
+// 덤불: 연두 공 여러 개
+function bush(pos, s) {
+  const n = 3 + Math.floor(Math.random() * 4);
+  const cols = ['#5aae36', '#6abb40', '#7fc64e', '#97d062'];
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * 6.28, d = rnd(0, .7) * s, r = s * rnd(.45, .8);
+    place(I.ball, cols[Math.floor(Math.random() * cols.length)], p => p.position.copy(pos), c => { c.position.set(Math.cos(a) * d, r * .75, Math.sin(a) * d * .7); c.scale.set(r, r * .9, r); });
+  }
+  place(I.ball, '#a9dc6e', p => p.position.copy(pos), c => { c.position.set(-s * .2, s * 1.0, s * .1); c.scale.setScalar(s * .45); });
+}
+function pebble(pos, s, col) { place(I.ball, col, p => p.position.copy(pos), c => { c.position.y = s * .25; c.rotation.y = rnd(0, 3); c.scale.set(s, s * .45, s * .75); }); }
+
+/* ---------- 흙 둔덕 ---------- */
+function holeTex() {
+  const c = document.createElement('canvas'); c.width = 8; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  // v=0 바깥 아래 → v=1 구멍 바닥
+  gr.addColorStop(1, '#d4783e'); gr.addColorStop(.8, '#e58c4c'); gr.addColorStop(.6, '#f1a061'); gr.addColorStop(.52, '#e08848');
+  gr.addColorStop(.47, '#9a4f27'); gr.addColorStop(.42, '#4e2814'); gr.addColorStop(.35, '#1c0e07'); gr.addColorStop(0, '#0d0604');
+  g.fillStyle = gr; g.fillRect(0, 0, 8, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const HOLE = holeTex();
+function mound(center, rx, rz, hgt) {
+  // 반지름 1, 높이 1 기준 단면 (바깥 → 꼭대기 → 안쪽 → 구멍 바닥)
+  const prof = [[1.0, 0], [.97, .22], [.91, .58], [.82, .86], [.7, .99], [.6, 1.0], [.53, .92], [.48, .7], [.45, .4], [.43, 0], [.4, -.6], [.3, -1.2], [0, -1.4]];
+  const pts = prof.map(([r, y]) => new THREE.Vector2(r, y));
+  const geo = new THREE.LatheGeometry(pts, 72);
+  const m = add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: HOLE, roughness: .95, bumpMap: NOISE, bumpScale: .5 })));
+  m.position.copy(center); m.scale.set(rx, hgt, rz);
+  return m;
+}
+
+/* ---------- 나무 표지판 ---------- */
+function rbox(w, h, d, hex, r = .06) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: true, bevelSize: r * .6, bevelThickness: r * .6, bevelSegments: 3 }); g.translate(0, 0, -d / 2);
+  return new THREE.Mesh(g, clay(hex, { bumpMap: NOISE, bumpScale: .4 }));
+}
+function sign(base, topY, boardW, boardH, ry = 0, rz = 0) {
+  const total = heightTo(base, topY);
+  const g = new THREE.Group(); g.position.copy(base); g.rotation.set(0, ry, rz); scene.add(g);
+  const pw = boardW * .13;
+  const post = add(rbox(pw, total - boardH * .2, pw * .9, '#b0602f', pw * .3), g); post.position.y = (total - boardH * .2) / 2;
+  const board = add(rbox(boardW, boardH, boardW * .12, '#d9824a', boardH * .16), g); board.position.y = total - boardH / 2; board.position.z = pw * .5;
+  const cap = add(rbox(pw * .7, boardH * .18, pw * .6, '#b8612e', pw * .2), g); cap.position.y = total + boardH * .02;
+  return g;
+}
+
+/* ---------- 두더지 ---------- */
+function makeMole() {
+  const H = 1, W = .76;           // 높이 1 기준 비율 (높이:폭 ≈ 1.3:1)
+  const R = W / 2;
+  // 단면: 평평한 바닥 → 살짝 넓은 아랫부분 → 거의 수직 옆면 → 둥근 머리
+  const pts = [new THREE.Vector2(0, 0)];
+  pts.push(new THREE.Vector2(R * .82, 0), new THREE.Vector2(R * .96, .018), new THREE.Vector2(R * 1.03, .055), new THREE.Vector2(R * 1.06, .11));
+  for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .13 * Math.pow(i / 10, 1.2)), y)); }
+  const capH = H - .6, r0 = R * .93;
+  for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .85)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
+  const rAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) { const a = pts[i - 1], b = pts[i]; return a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y || 1); } return 0; };
+  const vAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) return (i - 1 + (y - pts[i - 1].y) / (pts[i].y - pts[i - 1].y || 1)) / (pts.length - 1); return 1; };
+  const ZS = .84; // 앞뒤로 약간 납작
+
+  // 몸 텍스처: 회갈색 + 은은한 얼룩 + 볼터치
+  const TW = 1024, TH = 512;
+  const c = document.createElement('canvas'); c.width = TW; c.height = TH; const g = c.getContext('2d');
+  g.fillStyle = '#7f695d'; g.fillRect(0, 0, TW, TH);
+  g.filter = 'blur(6px)'; for (let i = 0; i < 260; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(165,142,126,.08)' : 'rgba(80,58,48,.05)'; g.beginPath(); g.ellipse(Math.random() * TW, Math.random() * TH, 20 + Math.random() * 60, 14 + Math.random() * 40, Math.random() * 3, 0, 7); g.fill(); } g.filter = 'none';
+  // 아래쪽은 살짝 어둡게, 머리 쪽은 살짝 밝게
+  const vg = g.createLinearGradient(0, 0, 0, TH); vg.addColorStop(0, 'rgba(40,25,18,.25)'); vg.addColorStop(.35, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(255,235,220,.06)');
+  g.fillStyle = vg; g.fillRect(0, 0, TW, TH);
+  // 볼터치 (u: 0.5가 정면, v: 단면 위치)
+  const cheekY = .6, cheekPhi = .78;
+  for (const s of [-1, 1]) {
+    const u = .5 + s * cheekPhi / (Math.PI * 2), v = vAt(cheekY);
+    const cx = u * TW, cy = v * TH;  // 캔버스 y는 flipY로 뒤집힘
+    const cyy = TH - cy;
+    const gr = g.createRadialGradient(cx, cyy, 0, cx, cyy, 46);
+    gr.addColorStop(0, 'rgba(246,160,160,.6)'); gr.addColorStop(.55, 'rgba(244,160,160,.28)'); gr.addColorStop(1, 'rgba(240,140,140,0)');
+    g.save(); g.translate(cx, cyy); g.scale(1, 1.05); g.translate(-cx, -cyy); g.fillStyle = gr; g.beginPath(); g.arc(cx, cyy, 46, 0, 7); g.fill(); g.restore();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+
+  const mole = new THREE.Group();
+  const bodyGeo = new THREE.LatheGeometry(pts, 96, -Math.PI, Math.PI * 2);
+  const body = add(new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, bumpMap: noiseTex(256, 110, 30, 6), bumpScale: .8 })), mole);
+  body.scale.z = ZS;
+  // 몸 표면 위의 점 (angle 0 = 정면)
+  const surf = (y, ang, out = 0) => { const r = rAt(y) + out; return new THREE.Vector3(r * Math.sin(ang), y, r * Math.cos(ang) * ZS); };
+
+  // 눈: 까맣고 반짝이는 작은 타원 + 흰 하이라이트
+  const eyeM = new THREE.MeshStandardMaterial({ color: '#1c1310', roughness: .25, metalness: 0 });
+  const hiM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  for (const s of [-1, 1]) {
+    const ang = s * .5, p = surf(.735, ang, -.01);
+    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.038, .055, .03); e.rotation.y = ang;
+    const h = new THREE.Mesh(SPH, hiM); h.position.copy(surf(.75, ang - .03, .012)); h.scale.setScalar(.011); mole.add(h);
+  }
+  // 코: 크고 넓적한 연분홍 주둥이
+  const noseM = new THREE.MeshStandardMaterial({ color: '#f5a4a0', roughness: .6 });
+  const nose = add(new THREE.Mesh(SPH, noseM), mole);
+  nose.position.copy(surf(.6, 0, -.03)); nose.position.z += .045; nose.scale.set(.15, .095, .1);
+  const nos = add(new THREE.Mesh(SPH, clay('#e8707a', { roughness: .5 })), mole);
+  nos.position.copy(nose.position).add(new THREE.Vector3(0, -.025, .09)); nos.scale.set(.042, .04, .035);
+  // 손: 양옆 분홍 앞발 + 흰 발톱
+  const pawM = clay('#f2a9a3');
+  for (const s of [-1, 1]) {
+    const p = surf(.38, s * 1.35, -.02);
+    const paw = add(new THREE.Mesh(SPH, pawM), mole); paw.position.copy(p); paw.position.x += s * .03; paw.scale.set(.042, .065, .05); paw.rotation.z = s * .35;
+    for (let k = 0; k < 3; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.012, .04, 6), clay('#fbf3ea')), mole); cl.position.set(p.x + s * .04, p.y - .07, p.z - .02 + k * .025); cl.rotation.x = Math.PI; }
+  }
+  // 발: 앞쪽 납작한 연분홍 타원
+  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, clay('#efd8d2')), mole); f.position.set(s * .12, .025, rAt(.03) * ZS * .92); f.scale.set(.085, .035, .075); }
+  return mole;
+}
+
+/* ---------- 배치: 원본 좌표 기준 ---------- */
+// 둔덕 (가운데, 왼쪽 뒤, 오른쪽 뒤)
+function moundAt(lx, rx, y, topDy, rzK = 1) {
+  const a = PD(lx, y), b = PD(rx, y), c = a.clone().lerp(b, .5), r = a.distanceTo(b) / 2;
+  const m = mound(c, r, r * rzK, 1); const h = heightTo(c.clone().add(new THREE.Vector3(0, 0, r * rzK * .58)), D(0, topDy)[1]);
+  m.scale.y = r * .36; return { c, r, rz: r * rzK };
+}
+const mounds = [moundAt(545, 1380, 845, 655, .78), moundAt(135, 700, 625, 522, .7), moundAt(1330, 1915, 680, 553, .7)];
+
+// 표지판
+sign(PD(740, 668), D(0, 478)[1], 1.7, .72, .05);
+sign(PD(1282, 700), D(0, 535)[1], 1.75, .72, -.12, .06);
+sign(PD(1488, 962), D(0, 708)[1], 1.3, .5, -.05);
+
+// 두더지: 발 위치와 머리 꼭대기를 원본에 맞춤
+{
+  const base = PD(986, 1148);
+  const mole = makeMole(); mole.position.copy(base); scene.add(mole);
+  const h = heightTo(base, D(0, 786)[1]); mole.scale.setScalar(h);
+}
+
+// 앞쪽 손으로 놓은 것들 (원본 위치)
+bush(PD(165, 1150), .45); bush(PD(1610, 1250), .42); bush(PD(1875, 905), .5); bush(PD(25, 905), .45); bush(PD(60, 735), .4);
+bush(PD(1065, 570), .45); bush(PD(1700, 505), .4);
+[[80, 1265, .32], [150, 1215, .26], [1945, 1260, .3], [440, 765, .32], [1370, 940, .33], [790, 615, .22], [1215, 685, .25], [1300, 712, .22], [1930, 560, .2]].forEach(([x, y, s]) => flower(PD(x, y), s, 'daisy'));
+[[165, 1265, .24], [1800, 1085, .22], [1890, 1100, .22], [1975, 775, .28], [10, 660, .25]].forEach(([x, y, s]) => flower(PD(x, y), s, 'coral'));
+pebble(PD(435, 1235), .2, '#7a5a4b'); pebble(PD(630, 1212), .14, '#f1e3c8'); pebble(PD(52, 993), .2, '#f1e3c8'); pebble(PD(590, 1218), .1, '#8a6a5a');
+[[480, 795, .32], [413, 853, .3], [540, 975, .34], [75, 655, .2], [1960, 722, .22], [612, 710, .14]].forEach(([x, y, s]) => pebble(PD(x, y), s, '#df7f43'));
+
+// 멀리 흩뿌리기
+function blocked(p) {
+  for (const m of mounds) { const dx = (p.x - m.c.x) / (m.r * 1.15), dz = (p.z - m.c.z) / (m.rz * 1.15); if (dx * dx + dz * dz < 1) return true; }
+  if (Math.abs(p.x) < 1.6 && p.z > -3.5) return true;  // 두더지 주변
+  return false;
+}
+for (let i = 0; i < 900; i++) {
+  const z = -rnd(4, 95), dist = 8 - z, half = dist * .62;
+  const p = new THREE.Vector3(rnd(-half, half), 0, z);
+  if (blocked(p)) continue;
+  const near = dist < 18;
+  if (near && Math.random() < .6) continue;
+  if (dist > 45 && Math.random() < .55) continue;
+  const r = Math.random();
+  if (r < .4) bush(p, rnd(.22, .42));
+  else if (r < .72) flower(p, rnd(.18, .28), 'daisy');
+  else if (r < .87) flower(p, rnd(.18, .26), 'coral');
+  else pebble(p, rnd(.08, .18), Math.random() < .5 ? '#df7f43' : '#8a6a5a');
+}
+Object.values(I).forEach(i => i.build());
+
+/* ---------- 후처리 ---------- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new OutputPass());
+const grade = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(1440, 897) } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uRes; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      vec3 c = texture2D(tDiffuse,vUv).rgb;
+      float l = dot(c,vec3(.299,.587,.114));
+      c = mix(vec3(l), c, .97);
+      c = mix(c, smoothstep(0.,1.,c), .15);
+      c += (h(vUv*uRes) - .5) * .02;
+      gl_FragColor = vec4(c, 1.);
+    }`
+});
+composer.addPass(grade);
+
+/* ---------- 그리기·크기 ---------- */
+let usePost = !HASH.includes('nopost'), zoom = HASH.includes('mole');
+function draw() {
+  if (zoom) camera.setViewOffset(SW, SH, MOLE.x, MOLE.y, MOLE.w, MOLE.h); else camera.clearViewOffset();
+  camera.aspect = SW / SH; camera.updateProjectionMatrix();
+  if (usePost) composer.render(); else renderer.render(scene, camera);
+}
+const refEl = document.getElementById('ref');
+function layout() {
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); composer.setSize(w, h);
+  // 원본 PNG(2880×1920)에서 장면 부분만 같은 영역으로 잘라 보이게
+  const R = zoom ? MOLE : { x: 0, y: 0, w: SW, h: SH };
+  const k = w / R.w;
+  refEl.style.backgroundSize = `${SW * k}px auto`;
+  refEl.style.backgroundPosition = `${-R.x * k}px ${-(R.y + 63) * k}px`;
+  draw();
+}
+new ResizeObserver(layout).observe(stage);
+
+/* ---------- 비교 UI ---------- */
+const handle = document.getElementById('handle'), wipe = document.getElementById('wipe'), hint = document.getElementById('hint');
+let mode = HASH.includes('ref') ? 'ref' : (BARE || HASH === '#3d') ? '3d' : 'wipe';
+function apply() {
+  const p = +wipe.value;
+  refEl.hidden = mode === '3d';
+  handle.hidden = document.getElementById('wipeRow').hidden = mode !== 'wipe';
+  document.getElementById('tagL').hidden = mode === 'ref'; document.getElementById('tagR').hidden = mode === '3d';
+  refEl.style.clipPath = mode === 'wipe' ? `inset(0 0 0 ${p}%)` : 'none';
+  handle.style.left = p + '%';
+  hint.textContent = mode === 'wipe' ? '슬라이더로 경계를 옮겨 보세요. 왼쪽이 three.js, 오른쪽이 Figma 원본입니다.' : mode === '3d' ? 'three.js로 만든 장면입니다.' : 'Figma에 있는 원본입니다.';
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; apply(); }));
+wipe.addEventListener('input', apply);
+const zoomBox = document.getElementById('zoom'); zoomBox.checked = zoom;
+zoomBox.addEventListener('change', () => { zoom = zoomBox.checked; stage.classList.toggle('zoom', zoom); layout(); });
+stage.classList.toggle('zoom', zoom && !BARE);
+document.getElementById('post').addEventListener('change', e => { usePost = e.target.checked; draw(); });
+apply();
+layout();
+document.getElementById('loading').remove();
+window.__ready = true;
+</script>

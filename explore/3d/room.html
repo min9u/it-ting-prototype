@@ -57,6 +57,12 @@ header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
 .verdict p{margin:0 0 8px;font-size:15px;max-width:68ch}
 .verdict p:last-child{margin:0}
 .verdict strong{color:var(--accent)}
+/* 스크린샷용: 장면만 창에 꽉 차게 */
+body.bare{padding:0;background:#000}
+body.bare .wrap>*:not(.stage){display:none!important}
+body.bare .wrap{max-width:none;gap:0}
+body.bare .stage{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;max-width:none;border-radius:0}
+body.bare .tag,body.bare .handle{display:none!important}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
@@ -132,6 +138,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
+if (location.hash.startsWith('#bare')) document.body.classList.add('bare');
 const stage = document.getElementById('stage');
 const W = () => stage.clientWidth, H = () => stage.clientHeight;
 
@@ -439,25 +446,75 @@ sph(scene, .5, '#a7c879', -2.0, 1.15, 1.25, 1.1, .5, .9);
 // 바닥 위 작은 가방(앞 가운데)
 box(scene, .8, .35, .5, '#f2e6d4', -1.2, 0, 3.1, .1, .15);
 
-/* ---------- 두더지 ---------- */
-{
-  const g = group(.05, 0, .85);
-  // 얼룩덜룩한 점토 털: 갈색 위에 밝고 어두운 얼룩을 흐리게 칠한 텍스처
-  const c = document.createElement('canvas'); c.width = c.height = 512; const x2 = c.getContext('2d');
-  x2.fillStyle = '#7a5646'; x2.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 260; i++) { x2.fillStyle = Math.random() < .5 ? 'rgba(150,110,90,.10)' : 'rgba(60,38,30,.12)'; x2.beginPath(); x2.arc(Math.random() * 512, Math.random() * 512, 8 + Math.random() * 30, 0, 7); x2.fill(); }
-  const furTex = new THREE.CanvasTexture(c); furTex.colorSpace = THREE.SRGBColorSpace;
-  // 아래가 넓은 달걀 모양
-  const egg = new THREE.SphereGeometry(1, 64, 40), pa = egg.attributes.position;
-  for (let i = 0; i < pa.count; i++) { const y = pa.getY(i), k = 1 + (y < 0 ? .1 : -.12) * Math.abs(y); pa.setX(i, pa.getX(i) * k); pa.setZ(i, pa.getZ(i) * k); }
-  egg.computeVertexNormals();
-  const body = add(new THREE.Mesh(egg, new THREE.MeshStandardMaterial({ map: furTex, roughness: 1, bumpMap: NOISE, bumpScale: 1.4 })), g);
-  body.position.y = 1.15; body.scale.set(.95, 1.15, .85);
-  sph(g, .3, '#e88a7c', 0, 1.3, .8, 1.15, .82, .8, { roughness: .7 });   // 코
-  sph(g, .05, '#2d1f19', -.33, 1.62, .72); sph(g, .05, '#2d1f19', .33, 1.62, .72); // 눈
-  for (const x of [-.35, .35]) sph(g, .17, '#f0b9a8', x, .07, .58, 1.2, .5, 1);   // 발
-  for (const x of [-.9, .9]) sph(g, .15, '#f0b9a8', x, .85, .35, .7, 1, .8);       // 손
+/* ---------- 두더지 (탐색하기 장면과 같은 캐릭터) ---------- */
+const SPH = new THREE.SphereGeometry(1, 32, 20);
+function makeMole() {
+  const H = 1, W = .76;           // 높이 1 기준 비율 (높이:폭 ≈ 1.3:1)
+  const R = W / 2;
+  // 단면: 평평한 바닥 → 살짝 넓은 아랫부분 → 거의 수직 옆면 → 둥근 머리
+  const pts = [new THREE.Vector2(0, 0)];
+  pts.push(new THREE.Vector2(R * .82, 0), new THREE.Vector2(R * .96, .018), new THREE.Vector2(R * 1.03, .055), new THREE.Vector2(R * 1.06, .11));
+  for (let i = 1; i <= 10; i++) { const y = .11 + (.6 - .11) * i / 10; pts.push(new THREE.Vector2(R * (1.06 - .13 * Math.pow(i / 10, 1.2)), y)); }
+  const capH = H - .6, r0 = R * .93;
+  for (let i = 1; i <= 24; i++) { const a = i / 24 * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, r0 * Math.pow(Math.cos(a), .85)), .6 + capH * Math.pow(Math.sin(a), 1.1))); }
+  const rAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) { const a = pts[i - 1], b = pts[i]; return a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y || 1); } return 0; };
+  const vAt = y => { for (let i = 1; i < pts.length; i++) if (pts[i].y >= y) return (i - 1 + (y - pts[i - 1].y) / (pts[i].y - pts[i - 1].y || 1)) / (pts.length - 1); return 1; };
+  const ZS = .84; // 앞뒤로 약간 납작
+
+  // 몸 텍스처: 회갈색 + 은은한 얼룩 + 볼터치
+  const TW = 1024, TH = 512;
+  const c = document.createElement('canvas'); c.width = TW; c.height = TH; const g = c.getContext('2d');
+  g.fillStyle = '#7f695d'; g.fillRect(0, 0, TW, TH);
+  g.filter = 'blur(6px)'; for (let i = 0; i < 260; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(165,142,126,.08)' : 'rgba(80,58,48,.05)'; g.beginPath(); g.ellipse(Math.random() * TW, Math.random() * TH, 20 + Math.random() * 60, 14 + Math.random() * 40, Math.random() * 3, 0, 7); g.fill(); } g.filter = 'none';
+  // 아래쪽은 살짝 어둡게, 머리 쪽은 살짝 밝게
+  const vg = g.createLinearGradient(0, 0, 0, TH); vg.addColorStop(0, 'rgba(40,25,18,.25)'); vg.addColorStop(.35, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(255,235,220,.06)');
+  g.fillStyle = vg; g.fillRect(0, 0, TW, TH);
+  // 볼터치 (u: 0.5가 정면, v: 단면 위치)
+  const cheekY = .6, cheekPhi = .78;
+  for (const s of [-1, 1]) {
+    const u = .5 + s * cheekPhi / (Math.PI * 2), v = vAt(cheekY);
+    const cx = u * TW, cy = v * TH;  // 캔버스 y는 flipY로 뒤집힘
+    const cyy = TH - cy;
+    const gr = g.createRadialGradient(cx, cyy, 0, cx, cyy, 46);
+    gr.addColorStop(0, 'rgba(246,160,160,.6)'); gr.addColorStop(.55, 'rgba(244,160,160,.28)'); gr.addColorStop(1, 'rgba(240,140,140,0)');
+    g.save(); g.translate(cx, cyy); g.scale(1, 1.05); g.translate(-cx, -cyy); g.fillStyle = gr; g.beginPath(); g.arc(cx, cyy, 46, 0, 7); g.fill(); g.restore();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+
+  const mole = new THREE.Group();
+  const bodyGeo = new THREE.LatheGeometry(pts, 96, -Math.PI, Math.PI * 2);
+  const body = add(new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, bumpMap: noiseTex(256, 110, 30, 6), bumpScale: .8 })), mole);
+  body.scale.z = ZS;
+  // 몸 표면 위의 점 (angle 0 = 정면)
+  const surf = (y, ang, out = 0) => { const r = rAt(y) + out; return new THREE.Vector3(r * Math.sin(ang), y, r * Math.cos(ang) * ZS); };
+
+  // 눈: 까맣고 반짝이는 작은 타원 + 흰 하이라이트
+  const eyeM = new THREE.MeshStandardMaterial({ color: '#1c1310', roughness: .25, metalness: 0 });
+  const hiM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  for (const s of [-1, 1]) {
+    const ang = s * .5, p = surf(.735, ang, -.01);
+    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.038, .055, .03); e.rotation.y = ang;
+    const h = new THREE.Mesh(SPH, hiM); h.position.copy(surf(.75, ang - .03, .012)); h.scale.setScalar(.011); mole.add(h);
+  }
+  // 코: 크고 넓적한 연분홍 주둥이
+  const noseM = new THREE.MeshStandardMaterial({ color: '#f5a4a0', roughness: .6 });
+  const nose = add(new THREE.Mesh(SPH, noseM), mole);
+  nose.position.copy(surf(.6, 0, -.03)); nose.position.z += .045; nose.scale.set(.15, .095, .1);
+  const nos = add(new THREE.Mesh(SPH, clay('#e8707a', { roughness: .5 })), mole);
+  nos.position.copy(nose.position).add(new THREE.Vector3(0, -.025, .09)); nos.scale.set(.042, .04, .035);
+  // 손: 양옆 분홍 앞발 + 흰 발톱
+  const pawM = clay('#f2a9a3');
+  for (const s of [-1, 1]) {
+    const p = surf(.38, s * 1.35, -.02);
+    const paw = add(new THREE.Mesh(SPH, pawM), mole); paw.position.copy(p); paw.position.x += s * .03; paw.scale.set(.042, .065, .05); paw.rotation.z = s * .35;
+    for (let k = 0; k < 3; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.012, .04, 6), clay('#fbf3ea')), mole); cl.position.set(p.x + s * .04, p.y - .07, p.z - .02 + k * .025); cl.rotation.x = Math.PI; }
+  }
+  // 발: 앞쪽 납작한 연분홍 타원
+  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, clay('#efd8d2')), mole); f.position.set(s * .12, .025, rAt(.03) * ZS * .92); f.scale.set(.085, .035, .075); }
+  return mole;
 }
+
+{ const m = makeMole(); m.position.set(.05, 0, .95); m.scale.setScalar(2.35); scene.add(m); }
 
 /* ---------- 후처리 ---------- */
 const composer = new EffectComposer(renderer);
@@ -526,7 +583,7 @@ document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click'
   mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b)); apply();
 }));
 wipe.addEventListener('input', apply);
-const startMode = { '#3d': '3d', '#ref': 'ref' }[location.hash];
+const startMode = { '#3d': '3d', '#ref': 'ref', '#bare': '3d', '#bare-ref': 'ref' }[location.hash];
 if (startMode) document.querySelector(`.seg button[data-mode="${startMode}"]`).click(); else apply();
 window.__ready = true;
 </script>
