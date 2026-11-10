@@ -147,7 +147,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserv
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(W(), H());
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.NeutralToneMapping;
 renderer.toneMappingExposure = 0.92;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -155,8 +155,16 @@ stage.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.35;
+// PlayCanvas 버전과 같은 방식: 크림(위) → 살구 → 테라코타(아래) 그라데이션을 환경광으로
+{
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#fff4ea'); gr.addColorStop(.5, '#f2ddd0'); gr.addColorStop(1, '#b88a70');
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.mapping = THREE.EquirectangularReflectionMapping;
+  scene.environment = pmrem.fromEquirectangular(t).texture;
+}
+scene.environmentIntensity = 0.7;
 
 const camera = new THREE.PerspectiveCamera(30, W() / H(), 0.1, 200);
 camera.position.set(0, 4.4, 21.5);
@@ -200,7 +208,7 @@ function profilePts(scale = 1, n = 64) {
   for (let i = 0; i <= n; i++) { const y = DH * scale * (i / n); pts.push(new THREE.Vector2(prof(y / scale) * scale, y)); }
   return pts;
 }
-const WALL = '#e29b80', WALL_D = '#b8704c', RIB = '#cf8a69', WOOD = '#c98663';
+const WALL = '#e6b092', WALL_D = '#b8744c', RIB = '#d49a74', WOOD = '#d09a70';
 
 // 안쪽 벽 (뒤쪽 반구)
 const inner = new THREE.Mesh(new THREE.LatheGeometry(profilePts(1), 72, Math.PI / 2, Math.PI), clay(WALL, { side: THREE.DoubleSide, bumpScale: 0.9 }));
@@ -262,14 +270,14 @@ cyl(scene, 0.035, 0.035, 2.2, '#efe2d0', 0, DH - 2.6, -0.5, 8);
 }
 
 /* ---------- 조명 ---------- */
-scene.add(new THREE.HemisphereLight('#ffe4cc', '#a85a3c', 0.8));
+scene.add(new THREE.HemisphereLight('#ffe4cc', '#a85a3c', 0.25));
 const key = new THREE.DirectionalLight('#ffe2c4', 1.5);
 key.position.set(-2, 16, 15); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.03;
 Object.assign(key.shadow.camera, { left: -10, right: 10, top: 12, bottom: -4, near: 1, far: 40 });
 scene.add(key);
-const bulb = new THREE.PointLight('#ffc98a', 22, 14, 1.6); bulb.position.set(0, DH - 3.2, -0.5); scene.add(bulb);
-const fill = new THREE.PointLight('#ffb38a', 10, 16, 1.5); fill.position.set(0, 2.5, 6); scene.add(fill);
+const bulb = new THREE.PointLight('#ffdcb0', 14, 14, 1.6); bulb.position.set(0, DH - 3.2, -0.5); scene.add(bulb);
+const fill = new THREE.PointLight('#ffe0cc', 6, 16, 1.5); fill.position.set(0, 2.5, 6); scene.add(fill);
 
 /* ---------- 천장 장식 ---------- */
 // 펜던트 조명
@@ -534,7 +542,7 @@ const grade = new ShaderPass({
       vec3 c = texture2D(tDiffuse,vUv).rgb;
       float l = dot(c,vec3(.299,.587,.114));
       c = mix(vec3(l), c, .86);                         // 채도 살짝 낮춤
-      c = c*vec3(1.03,.97,.9) + vec3(.025,.012,.0);    // 따뜻하게, 검정 살짝 들어올림
+      c = c*vec3(1.0,.985,.96) + vec3(.02,.012,.006);   // 아주 살짝 따뜻하게, 검정 살짝 들어올림
       c = mix(c, smoothstep(0.,1.,c), .25);             // 부드러운 S커브
       float d = distance(vUv, vec2(.5,.45));
       c *= 1. - smoothstep(.45,.95,d)*.22;               // 비네트

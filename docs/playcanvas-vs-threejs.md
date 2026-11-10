@@ -79,3 +79,10 @@
 - 번들 크기: jsDelivr에서 받은 three@0.165.0 `three.module.min.js`, playcanvas@2.23.3 `playcanvas.min.mjs`를 gzip -9로 측정
 - [PlayCanvas Editor Plans](https://playcanvas.com/plans)
 - [PlayCanvas CameraFrame](https://developer.playcanvas.com/user-manual/graphics/posteffects/cameraframe/)
+
+## 6. 후속: three.js에 PlayCanvas 조명 옮기기 (2026-11-10)
+- 요청: "조명을 바꿔줘봐"
+- 한 것: 반구광 대신 그라데이션 환경광(PMREM), 해 방향을 옮기고 반경 블러 그림자, 구석 그림자는 **N8AO**(three.js 내장 GTAO는 두더지 뒤 사각 얼룩 버그) 사용. 방은 벽·바닥 색을 PlayCanvas 값으로, 주황 점광원·색보정 틴트를 줄이고 Neutral 톤매핑
+- 결과: **PlayCanvas 버전과 거의 같은 느낌**. 탐색하기 페이지의 "PlayCanvas식 조명" 체크박스로 전후 비교 가능 (https://claude.ai/artifact/1GfvgcExFAX7zM7a3cSDUw)
+- 비용: 조명 코드 약 40줄 + 라이브러리 2개(n8ao, postprocessing). 엔진 교체 없이 해결됨 → 3장의 결론(앱은 three.js) 유지
+- 다음 단계: 엔진을 three.js로 확정하면, 이 조명 설정을 `app/`의 `<RoomView>`에 React Three Fiber로 옮기기

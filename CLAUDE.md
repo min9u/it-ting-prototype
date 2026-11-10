@@ -118,7 +118,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-10 [3D 땅굴 그래픽 기술 조사](docs/3d-tech-research.md): Figma 시안(점토 재질, 간접광, AO)은 한 장짜리 PNG라 그대로 쓸 수 없음. **three.js 조명·재질·후처리 강화(A)로 시작하고, 두더지와 땅굴 껍데기만 glb 모델(B)로 교체** 추천. 다음 단계는 땅굴 하나에 1단계를 적용한 시험판
 - 2026-11-10 [Figma 땅굴 three.js 재현 시험판](docs/3d-figma-reproduction.md): 코드만으로 구도·돔·색감·배치는 꽤 가깝게 됨. 두더지 털·곡면·간접광은 한계 → **두더지와 주요 가구만 glb, 껍데기는 간접광 굽기** 추천. 원본 Blender 파일 유무 확인이 다음 단계
 - 2026-11-10 [3D 엔진 비교: three.js · Babylon.js · PlayCanvas](docs/3d-engine-candidates.md): 같은 두 장면을 세 엔진으로 만들어 비교. 결과가 비슷한 수준에서 멈춤(한계는 방식 탓) → **three.js 추천**(가볍고 React 앱에 붙이기 쉬움). 두더지 캐릭터는 세 엔진 모두 원본 비율·얼굴까지 맞춤
-- 2026-11-10 [PlayCanvas vs three.js 실무 분석](docs/playcanvas-vs-threejs.md): 사용자는 PlayCanvas 결과가 가장 좋다고 봄. 차이 대부분은 조명 기법(그라데이션 환경광·PCSS·SSAO)이라 three.js로 옮길 수 있음. 앱에는 three.js(R3F)가 유리(gzip 167KB vs 655KB, React 생태계). 다음: three.js에 PlayCanvas 조명을 옮겨 나란히 비교 후 엔진 확정
+- 2026-11-10 [PlayCanvas vs three.js 실무 분석](docs/playcanvas-vs-threejs.md): 사용자는 PlayCanvas 결과가 가장 좋다고 봄. 차이 대부분은 조명 기법(그라데이션 환경광·PCSS·SSAO)이라 three.js로 옮길 수 있음. 앱에는 three.js(R3F)가 유리(gzip 167KB vs 655KB, React 생태계). → 조명을 옮겨 보니 three.js로도 거의 같은 느낌(N8AO 사용). 다음: 엔진 확정 후 `app/` RoomView에 R3F로 이식
 
 ## 남은 아이디어 / 미확인
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

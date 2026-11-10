@@ -66,7 +66,7 @@ tr:last-child th,tr:last-child td{border-bottom:0}
     <h2 id="s-field">탐색하기 (땅 위)</h2>
     <div class="grid">
       <figure class="ref"><img src="img/ref-field.png" alt="Figma 원본: 잔디밭 위 흙 둔덕 세 개와 나무 표지판, 가운데 두더지" loading="lazy"><figcaption><b>Figma 원본</b><span class="tag">기준</span></figcaption></figure>
-      <figure><img src="img/three-field.png" alt="three.js로 만든 탐색하기 장면" loading="lazy"><figcaption><b>three.js</b><a href="https://claude.ai/artifact/1GfvgcExFAX7zM7a3cSDUw">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/three-field.png" alt="three.js로 만든 탐색하기 장면" loading="lazy"><figcaption><b>three.js <span class="tag">PlayCanvas식 조명</span></b><a href="https://claude.ai/artifact/1GfvgcExFAX7zM7a3cSDUw">비교 페이지 열기</a></figcaption></figure>
       <figure><img src="img/babylon-field.png" alt="Babylon.js로 만든 탐색하기 장면" loading="lazy"><figcaption><b>Babylon.js</b><a href="https://claude.ai/artifact/DpsJvbrGwM9JT4mY2WCuXY">비교 페이지 열기</a></figcaption></figure>
       <figure><img src="img/playcanvas-field.png" alt="PlayCanvas로 만든 탐색하기 장면" loading="lazy"><figcaption><b>PlayCanvas</b><a href="https://claude.ai/artifact/WPX6grY8GRbDNLAZdW3ty2">비교 페이지 열기</a></figcaption></figure>
     </div>
@@ -84,7 +84,7 @@ tr:last-child th,tr:last-child td{border-bottom:0}
     <h2 id="s-room">방 안 (땅굴)</h2>
     <div class="grid">
       <figure class="ref"><img src="img/ref-room.png" alt="Figma 원본: 반쪽 돔 모양 땅굴 방 안의 가구와 두더지" loading="lazy"><figcaption><b>Figma 원본</b><span class="tag">기준</span></figcaption></figure>
-      <figure><img src="img/three-room.png" alt="three.js로 만든 땅굴 방" loading="lazy"><figcaption><b>three.js</b><a href="https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n">비교 페이지 열기</a></figcaption></figure>
+      <figure><img src="img/three-room.png" alt="three.js로 만든 땅굴 방" loading="lazy"><figcaption><b>three.js <span class="tag">PlayCanvas식 조명</span></b><a href="https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n">비교 페이지 열기</a></figcaption></figure>
       <figure><img src="img/babylon-room.png" alt="Babylon.js로 만든 땅굴 방" loading="lazy"><figcaption><b>Babylon.js</b><a href="https://claude.ai/artifact/Viz6rAUEqJibEnmPggYKjv">비교 페이지 열기</a></figcaption></figure>
       <figure><img src="img/playcanvas-room.png" alt="PlayCanvas로 만든 땅굴 방" loading="lazy"><figcaption><b>PlayCanvas</b><a href="https://claude.ai/artifact/XMFLp58CJ9SjJdYMuevAme">비교 페이지 열기</a></figcaption></figure>
     </div>
@@ -99,7 +99,7 @@ tr:last-child th,tr:last-child td{border-bottom:0}
           <tr><th scope="row">라이브러리 크기</th><td class="num best">약 170KB</td><td class="num">약 8.7MB (UMD 전체)</td><td class="num">약 2.5MB (gzip 640KB)</td></tr>
           <tr><th scope="row">두 장면 코드</th><td class="num best">약 67KB</td><td class="num">약 72KB</td><td class="num">약 86KB</td></tr>
           <tr><th scope="row">후처리</th><td>패스를 골라 직접 조립. 색보정·그레인 셰이더는 직접 작성</td><td class="best">파이프라인 하나에 그레인·비네트·색 커브·MSAA, SSAO2 따로</td><td>CameraFrame 하나에 SSAO·톤매핑·비네트·색보정 (그레인 없음)</td></tr>
-          <tr><th scope="row">구석 그림자(AO)</th><td>GTAO가 확대 시점과 충돌해서 탐색하기에서는 끔</td><td>SSAO2 몇 줄</td><td>SSAO 기본 제공. 반경이 월드 단위라 맞추는 데 3회 소모</td></tr>
+          <tr><th scope="row">구석 그림자(AO)</th><td>내장 GTAO는 두더지 뒤에 사각 얼룩이 생겨 N8AO 라이브러리로 교체</td><td>SSAO2 몇 줄</td><td>SSAO 기본 제공. 반경이 월드 단위라 맞추는 데 3회 소모</td></tr>
           <tr><th scope="row">둥근 상자·회전체·튜브</th><td class="best">모두 기본 제공</td><td>회전체·튜브는 있음, 둥근 상자는 직접</td><td>셋 다 직접 작성 (약 10KB)</td></tr>
           <tr><th scope="row">꽃·덤불 대량 배치</th><td>InstancedMesh</td><td>thin instance, 1,800개를 메시 9개로</td><td>setInstancing 한 줄</td></tr>
           <tr><th scope="row">잘 나온 부분</th><td>원본 좌표를 땅 위치로 역산해서 배치가 가장 정확</td><td>둔덕 구멍이 가장 원본처럼 보임</td><td>환경광 덕에 점토 느낌이 가장 부드러움</td></tr>
@@ -113,6 +113,7 @@ tr:last-child th,tr:last-child td{border-bottom:0}
     <h2 id="s-verdict">결론</h2>
     <div class="verdict">
       <p>세 엔진의 결과가 <strong>비슷한 수준에서 멈췄습니다</strong>. 원본과 남은 차이(보송한 털, 말랑한 곡면, 빛 번짐)는 엔진이 아니라 "코드 도형 + 실시간 조명"이라는 방식의 한계입니다. 그래서 엔진은 앱에 붙이기 쉬운 쪽으로 고르고, 그림체는 에셋과 구운 조명으로 올리는 게 맞습니다.</p>
+      <p>실제로 PlayCanvas 버전의 조명 방식(그라데이션 환경광, 부드러운 그림자, 구석 그림자)을 three.js에 옮겨 보니 <strong>거의 같은 느낌</strong>이 났습니다. 위 three.js 그림이 옮긴 뒤 모습입니다.</p>
       <p>추천은 <strong>three.js</strong>입니다. 라이브러리가 가장 가볍고, 지금 만든 React 앱에 React Three Fiber로 바로 붙일 수 있습니다. Babylon.js의 후처리 묶음과 PlayCanvas의 환경광 방식은 three.js에서도 같은 효과를 낼 수 있습니다.</p>
       <ol>
         <li>디자이너에게 원본을 렌더한 Blender 파일이 있는지 확인</li>
