@@ -160,3 +160,23 @@
 .phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .phrase { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--surface-item); font-size: 13px; color: var(--ink-700); }
 .phrase:hover { background: #f1dfcd; }
+
+.online { color: var(--green); font-size: 12px; font-family: var(--font-body); }
+.introRead { height: auto; min-height: 104px; cursor: default; }
+.introP { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--ink-800); }
+.sharedLegend { float: right; font-size: 11px; }
+.sharedLegend::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 4px; border: 1.5px solid var(--ink-500); border-radius: 2px; vertical-align: -1px; }
+.chipWrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.enter { margin-top: auto; flex: none; }
+.qna + .enter, .details + .enter { margin-top: 18px; }
+.walk {
+  position: absolute; top: 50%; z-index: 5; width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(251, 248, 244, .85); color: var(--brown-600);
+  box-shadow: var(--shadow-card);
+}
+.walk:hover { background: #fff; }
+.walkL { left: 24px; }
+.reqSent { margin: 10px 0 20px; color: var(--ink-500); }
+.reqField { margin-top: 14px; }
+.quickLabel { margin-top: 16px; font-size: 12px; color: var(--ink-500); }
+.reqSend { margin-top: 18px; }
