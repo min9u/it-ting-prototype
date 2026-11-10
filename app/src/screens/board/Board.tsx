@@ -93,7 +93,8 @@ export function BoardList() {
 
 /**
  * 커뮤니티 – 글 상세 A안 494:13028 (기본) / B안 494:13242 (?v=b)
- * 두 안의 차이는 "이전 글 / 다음 글"이 댓글 위(A)냐 아래(B)냐. 투표 중
+ * A안: 댓글이 본문 오른쪽 패널(419px)에 붙어 있음. 이전 글 / 다음 글은 본문 아래
+ * B안: 댓글이 본문 아래, 이전 글 / 다음 글은 댓글 아래. 투표 중 ("게시글 댓글창 투표 해주세요(왼 오)")
  */
 export function BoardPost() {
   const { postId = '' } = useParams()
@@ -110,6 +111,13 @@ export function BoardPost() {
   const prev = POSTS[idx + 1]
   const next = POSTS[idx - 1]
   const count = comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0) + (p.id === 'p1' ? 16 : 0)
+  const side = variant === 'a'
+
+  const submit = () => {
+    if (!draft.trim()) return
+    setComments((l) => [...l, { id: `c${Date.now()}`, authorId: 'me', text: draft.trim(), createdAt: '방금', likes: 0 }])
+    setDraft('')
+  }
 
   const nav = (
     <div className={s.prevNext}>
@@ -118,51 +126,81 @@ export function BoardPost() {
     </div>
   )
 
+  const article = (
+    <>
+      <span className={s.postCat}>{p.category}</span>
+      <h1 className="display">{p.title}</h1>
+      <div className={s.byline}>
+        <Avatar size={36} />
+        <Link to={`/burrow/${author.id}`}><strong>{author.nickname}</strong></Link>
+        <span>{p.createdAt}</span><span>·</span><span><EyeIcon size={14} /> {p.views}</span>
+      </div>
+      <div className={s.content}>
+        <p>{p.body[0]}</p>
+        {p.hasPhoto && <div className={s.photo} style={{ background: `var(--tone-${toneOf(p.interest)}-bg)` }}>사진 영역 · 글쓴이가 올린 사진</div>}
+        {p.body.slice(1).map((b, i) => <p key={i}>{b}</p>)}
+      </div>
+      <div className={s.reactions}>
+        <button className={liked ? s.reactOn : s.react} onClick={() => setLiked((v) => !v)} aria-pressed={liked}><HeartIcon size={16} /> 좋아요 {p.likes + (liked ? 1 : 0)}</button>
+        <button className={saved ? s.reactOn : s.react} onClick={() => setSaved((v) => !v)} aria-pressed={saved}>저장</button>
+        <button className={s.react}>공유</button>
+      </div>
+    </>
+  )
+
+  const commentSection = (
+    <section className={side ? `${s.comments} ${s.commentsSide}` : s.comments} aria-label="댓글">
+      <h2 className={`display ${s.cHead}`}><ChatIcon size={18} /> 댓글 <span>{count}</span></h2>
+      {comments.length > 0 ? (
+        <ul className={s.cList}>
+          {comments.map((c) => (
+            <li key={c.id}>
+              <CommentRow c={c} />
+              {c.replies?.map((r) => <div key={r.id} className={s.reply}><CommentRow c={r} /></div>)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className={s.cEmpty}>
+          <span className={s.cHole} aria-hidden />
+          <strong className="display">아직 댓글이 없어요</strong>
+          <p>글 속 이야기 하나를 골라 첫 댓글로 말을 걸어보세요.</p>
+        </div>
+      )}
+      <form className={s.commentForm} onSubmit={(e) => { e.preventDefault(); submit() }}>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } }}
+          placeholder="따뜻한 댓글을 남겨주세요"
+          aria-label="댓글 입력"
+        />
+        <button className="btn btn-primary btn-sm" disabled={!draft.trim()}>등록</button>
+      </form>
+    </section>
+  )
+
   return (
     <div className={s.wrap}>
-      <article className={s.article}>
-        <Link to="/board" className={s.backLink}>&lt; 게시판 돌아가기</Link>
-        <span className={s.postCat}>{p.category}</span>
-        <h1 className="display">{p.title}</h1>
-        <div className={s.byline}>
-          <Avatar size={36} />
-          <Link to={`/burrow/${author.id}`}><strong>{author.nickname}</strong></Link>
-          <span>{p.createdAt}</span><span>·</span><span><EyeIcon size={14} /> {p.views}</span>
+      {side ? (
+        <div className={s.detailA}>
+          <Link to="/board" className={s.backLink}>&lt; 게시판 돌아가기</Link>
+          <div className={s.detailCols}>
+            <div className={s.mainA}>
+              <article className={s.articleCard}>{article}</article>
+              {nav}
+            </div>
+            {commentSection}
+          </div>
         </div>
-        <div className={s.content}>
-          <p>{p.body[0]}</p>
-          {p.hasPhoto && <div className={s.photo} style={{ background: `var(--tone-${toneOf(p.interest)}-bg)` }}>사진 영역 · 글쓴이가 올린 사진</div>}
-          {p.body.slice(1).map((b, i) => <p key={i}>{b}</p>)}
-        </div>
-        <div className={s.reactions}>
-          <button className={liked ? s.reactOn : s.react} onClick={() => setLiked((v) => !v)} aria-pressed={liked}><HeartIcon size={16} /> 좋아요 {p.likes + (liked ? 1 : 0)}</button>
-          <button className={saved ? s.reactOn : s.react} onClick={() => setSaved((v) => !v)} aria-pressed={saved}>저장</button>
-          <button className={s.react}>공유</button>
-        </div>
-        {variant === 'a' && nav}
-
-        <section className={s.comments}>
-          <h2 className="display">댓글 <span>{count}</span></h2>
-          <ul>
-            {comments.map((c) => (
-              <li key={c.id}>
-                <CommentRow c={c} />
-                {c.replies?.map((r) => <div key={r.id} className={s.reply}><CommentRow c={r} /></div>)}
-              </li>
-            ))}
-          </ul>
-          <form className={s.commentForm} onSubmit={(e) => {
-            e.preventDefault()
-            if (!draft.trim()) return
-            setComments((l) => [...l, { id: `c${Date.now()}`, authorId: 'me', text: draft.trim(), createdAt: '방금', likes: 0 }])
-            setDraft('')
-          }}>
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="따뜻한 댓글을 남겨주세요" />
-            <button className="btn btn-primary btn-sm" disabled={!draft.trim()}>등록</button>
-          </form>
-        </section>
-        {variant === 'b' && nav}
-      </article>
+      ) : (
+        <article className={s.article}>
+          <Link to="/board" className={s.backLink}>&lt; 게시판 돌아가기</Link>
+          {article}
+          {commentSection}
+          {nav}
+        </article>
+      )}
       <Footer />
     </div>
   )
