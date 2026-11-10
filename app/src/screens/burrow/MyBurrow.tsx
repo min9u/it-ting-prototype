@@ -34,7 +34,7 @@ export default function MyBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={me.id} focusX={focusX} label="내 땅굴">
+      <RoomView ownerId={me.id} interests={me.interests} focusX={focusX} label="내 땅굴">
         <div className={s.sceneTools}>
           <SceneButton tone="cream" onClick={() => setDecorOpen(true)}>땅굴 꾸미기</SceneButton>
           <SceneButton tone="mint" onClick={() => setVisitorsOpen(true)} aria-label={`지금 방문자 ${me.visitorsNow}명`}>

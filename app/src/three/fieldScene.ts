@@ -1,0 +1,325 @@
+import * as THREE from 'three'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
+import { N8AOPass } from 'n8ao'
+import { noiseTex } from './clay'
+import { makeMole, createMoleMotion, bindMoleKeys } from './mole'
+import { gradientEnv, FIELD_ENV } from './lighting'
+import { fieldGradePass } from './post'
+import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
+
+/*
+ * 탐색하기 밭 장면. explore/3d/field.html 을 옮김 ("PlayCanvas식 조명" 버전만, 비교 UI는 뺌).
+ * 둔덕·표지판·꽃은 Figma 원본(1440×897 장면) 화면 좌표를 땅 위 위치로 바꿔 놓은 것.
+ * 캔버스 비율이 달라도 object-fit: cover 처럼 잘라 보여 주고, 가로 가운데는 focusX.
+ */
+
+export interface FieldSceneOptions {
+  focusX?: number
+}
+
+const SW = 1440, SH = 897 // 원본 장면 좌표계
+// 원본 캡처(2000폭 표시 기준)의 좌표 → 장면 좌표
+const D = (dx: number, dy: number): [number, number] => [dx * 0.72, (dy - 87) * 0.72]
+const rnd = (a: number, b: number) => a + Math.random() * (b - a)
+
+/** 땅 높이: 가까운 곳은 평평, 멀리 갈수록 완만한 언덕, 양옆이 조금 더 높음 */
+export function groundHeight(x: number, z0: number) {
+  const z = z0 - 8, r = Math.hypot(x, z)
+  const far = THREE.MathUtils.smoothstep(r, 70, 200)
+  return far * (2.2 + 3.2 * Math.abs(x) / Math.max(r, 1) + 1.2 * Math.sin(x * 0.03))
+}
+
+/** 꽃·덤불·돌을 InstancedMesh 하나로 모아 그림 */
+class Inst {
+  m: THREE.Matrix4[] = []
+  c: THREE.Color[] = []
+  constructor(public geo: THREE.BufferGeometry, public mat: THREE.Material) {}
+  push(matrix: THREE.Matrix4, color: string) { this.m.push(matrix.clone()); this.c.push(new THREE.Color(color)) }
+  build(scene: THREE.Object3D) {
+    if (!this.m.length) return
+    const im = new THREE.InstancedMesh(this.geo, this.mat, this.m.length)
+    this.m.forEach((mm, i) => { im.setMatrixAt(i, mm); im.setColorAt(i, this.c[i]) })
+    im.castShadow = true; im.receiveShadow = true; scene.add(im)
+  }
+}
+
+function holeTex() {
+  const c = document.createElement('canvas'); c.width = 8; c.height = 256
+  const g = c.getContext('2d')!
+  const gr = g.createLinearGradient(0, 0, 0, 256)
+  // v=0 바깥 아래 → v=1 구멍 바닥
+  gr.addColorStop(1, '#d4783e'); gr.addColorStop(.8, '#e58c4c'); gr.addColorStop(.6, '#f1a061'); gr.addColorStop(.52, '#e08848')
+  gr.addColorStop(.47, '#9a4f27'); gr.addColorStop(.42, '#4e2814'); gr.addColorStop(.35, '#1c0e07'); gr.addColorStop(0, '#0d0604')
+  g.fillStyle = gr; g.fillRect(0, 0, 8, 256)
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
+export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions = {}): SceneHandle {
+  const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap })
+  const scene = new THREE.Scene()
+  scene.environment = gradientEnv(renderer, FIELD_ENV)
+  scene.environmentIntensity = .85
+
+  // 하늘: 화면에 고정된 세로 그라데이션
+  {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 256
+    const g = c.getContext('2d')!
+    const gr = g.createLinearGradient(0, 0, 0, 256)
+    gr.addColorStop(0, '#a3d3f7'); gr.addColorStop(0.6, '#c2e2f8'); gr.addColorStop(1, '#dbeff9')
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256)
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; scene.background = t
+  }
+  scene.fog = new THREE.Fog('#c4e3a4', 30, 150)
+
+  // 배치 계산용 카메라: 원본 비율 그대로 (화면 구도는 렌더할 때 view offset 으로 맞춤)
+  const camera = new THREE.PerspectiveCamera(40, SW / SH, 0.1, 400)
+  camera.position.set(0, 2.7, 8)
+  camera.rotation.set(-THREE.MathUtils.degToRad(10.7), 0, 0)
+  camera.updateMatrixWorld(); camera.updateProjectionMatrix()
+
+  // 장면 좌표(px) → 땅(y=h) 위의 3D 점
+  const ray = new THREE.Raycaster()
+  const P = (sx: number, sy: number, h = 0) => {
+    ray.setFromCamera(new THREE.Vector2(sx / SW * 2 - 1, -(sy / SH * 2 - 1)), camera)
+    const o = ray.ray.origin, d = ray.ray.direction, t = (h - o.y) / d.y
+    return new THREE.Vector3(o.x + d.x * t, h, o.z + d.z * t)
+  }
+  const PD = (dx: number, dy: number, h?: number) => P(...D(dx, dy), h)
+  // 3D 점이 화면에서 어느 y에 오는지
+  const screenY = (v: THREE.Vector3) => (1 - (v.clone().project(camera).y + 1) / 2) * SH
+  // 바닥 점 base에서 위로 몇 높이여야 화면 y가 sy가 되는지
+  const heightTo = (base: THREE.Vector3, sy: number) => { let lo = 0, hi = 30; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (screenY(base.clone().setY(m)) > sy) lo = m; else hi = m } return (lo + hi) / 2 }
+
+  const NOISE = noiseTex()
+  const clay = (hex: string, o: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0, ...o })
+  const add = <T extends THREE.Object3D>(m: T, p: THREE.Object3D = scene): T => { m.castShadow = true; m.receiveShadow = true; p.add(m); return m }
+
+  /* ---------- 조명 (PlayCanvas식: 환경광 + 부드러운 그림자) ---------- */
+  const sun = new THREE.DirectionalLight('#fff6e8', 2.3)
+  sun.position.set(-11, 13, 4); sun.target.position.set(0, 0, -6)
+  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 5; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.06
+  Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 })
+  scene.add(sun, sun.target)
+
+  /* ---------- 땅 ---------- */
+  let ground: THREE.Mesh
+  {
+    const c = document.createElement('canvas'); c.width = c.height = 512
+    const g = c.getContext('2d')!
+    g.fillStyle = '#9ccc58'; g.fillRect(0, 0, 512, 512)
+    for (let i = 0; i < 900; i++) { g.fillStyle = Math.random() < .5 ? 'rgba(170,225,95,.18)' : 'rgba(95,165,45,.14)'; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 14, 0, 7); g.fill() }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 30)
+    const geo = new THREE.PlaneGeometry(600, 600, 240, 240); geo.rotateX(-Math.PI / 2)
+    const pa = geo.attributes.position
+    for (let i = 0; i < pa.count; i++) pa.setY(i, groundHeight(pa.getX(i), pa.getZ(i)))
+    geo.computeVertexNormals()
+    ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 1, color: '#f4f8e4' }))
+    ground.name = 'ground'
+    ground.receiveShadow = true; scene.add(ground)
+  }
+
+  /* ---------- 인스턴스 모음 (꽃·덤불·돌) ---------- */
+  const white = (o: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85, ...o })
+  const I = {
+    ball: new Inst(new THREE.SphereGeometry(1, 20, 14), white({ bumpMap: NOISE, bumpScale: .3 })),
+    petal: new Inst(new THREE.SphereGeometry(1, 12, 8), white()),
+    core: new Inst(new THREE.SphereGeometry(1, 14, 10), white()),
+    stem: new Inst(new THREE.CylinderGeometry(1, 1, 1, 6), white()),
+    leaf: new Inst(new THREE.SphereGeometry(1, 10, 6), white()),
+  }
+  const tmpP = new THREE.Object3D(), tmpC = new THREE.Object3D(); tmpP.add(tmpC)
+  const place = (inst: Inst, color: string, parentFn: (o: THREE.Object3D) => void, childFn: (o: THREE.Object3D) => void) => {
+    tmpP.position.set(0, 0, 0); tmpP.rotation.set(0, 0, 0); tmpP.scale.set(1, 1, 1)
+    tmpC.position.set(0, 0, 0); tmpC.rotation.set(0, 0, 0); tmpC.scale.set(1, 1, 1)
+    parentFn(tmpP); childFn(tmpC); tmpP.updateMatrixWorld(true); inst.push(tmpC.matrixWorld, color)
+  }
+  // 꽃: kind = 'daisy' | 'coral'
+  const flower = (pos: THREE.Vector3, s: number, kind: 'daisy' | 'coral' = 'daisy') => {
+    const h = s * rnd(1.4, 1.9), tilt = rnd(-.25, .25)
+    place(I.stem, '#5fae3a', (p) => p.position.copy(pos), (c) => { c.position.y = h / 2; c.scale.set(s * .06, h, s * .06) })
+    for (const side of [-1, 1]) place(I.leaf, '#6dbb3f', (p) => { p.position.copy(pos); p.rotation.y = rnd(0, 3) }, (c) => { c.position.set(side * s * .28, s * .25, 0); c.rotation.z = side * .9; c.scale.set(s * .32, s * .08, s * .14) })
+    const face = (p: THREE.Object3D) => { p.position.copy(pos).add(new THREE.Vector3(0, h, 0)); p.rotation.set(-0.75 + tilt, rnd(-.4, .4), tilt * .5) }
+    const n = kind === 'daisy' ? 9 : 6, petalC = kind === 'daisy' ? '#fff6e9' : (Math.random() < .5 ? '#f5837a' : '#f39a8c')
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; place(I.petal, petalC, face, (c) => { c.position.set(Math.cos(a) * s * .42, Math.sin(a) * s * .42, 0); c.rotation.z = a; c.scale.set(s * (kind === 'daisy' ? .36 : .4), s * (kind === 'daisy' ? .16 : .26), s * .07) }) }
+    place(I.core, kind === 'daisy' ? '#f7b52c' : '#f9c33a', face, (c) => { c.position.z = s * .05; c.scale.set(s * .22, s * .22, s * .12) })
+  }
+  // 덤불: 연두 공 여러 개
+  const bush = (pos: THREE.Vector3, s: number) => {
+    const n = 3 + Math.floor(Math.random() * 4)
+    const cols = ['#5aae36', '#6abb40', '#7fc64e', '#97d062']
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * 6.28, d = rnd(0, .7) * s, r = s * rnd(.45, .8)
+      place(I.ball, cols[Math.floor(Math.random() * cols.length)], (p) => p.position.copy(pos), (c) => { c.position.set(Math.cos(a) * d, r * .75, Math.sin(a) * d * .7); c.scale.set(r, r * .9, r) })
+    }
+    place(I.ball, '#a9dc6e', (p) => p.position.copy(pos), (c) => { c.position.set(-s * .2, s * 1.0, s * .1); c.scale.setScalar(s * .45) })
+  }
+  const pebble = (pos: THREE.Vector3, s: number, col: string) => place(I.ball, col, (p) => p.position.copy(pos), (c) => { c.position.y = s * .25; c.rotation.y = rnd(0, 3); c.scale.set(s, s * .45, s * .75) })
+
+  /* ---------- 흙 둔덕 ---------- */
+  const HOLE = holeTex()
+  const moundMat = new THREE.MeshStandardMaterial({ map: HOLE, roughness: .95, bumpMap: NOISE, bumpScale: .5 })
+  const mound = (center: THREE.Vector3, rx: number, rz: number, hgt: number) => {
+    // 반지름 1, 높이 1 기준 단면 (바깥 → 꼭대기 → 안쪽 → 구멍 바닥)
+    const prof = [[1.0, 0], [.97, .22], [.91, .58], [.82, .86], [.7, .99], [.6, 1.0], [.53, .92], [.48, .7], [.45, .4], [.43, 0], [.4, -.6], [.3, -1.2], [0, -1.4]]
+    const m = add(new THREE.Mesh(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 72), moundMat))
+    m.position.copy(center); m.scale.set(rx, hgt, rz)
+    return m
+  }
+
+  /* ---------- 나무 표지판 ---------- */
+  const rbox = (w: number, h: number, d: number, hex: string, r = .06) => {
+    const s = new THREE.Shape(), x = -w / 2, y = -h / 2
+    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r)
+    s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y)
+    const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: true, bevelSize: r * .6, bevelThickness: r * .6, bevelSegments: 3 }); g.translate(0, 0, -d / 2)
+    return new THREE.Mesh(g, clay(hex, { bumpMap: NOISE, bumpScale: .4 }))
+  }
+  const sign = (base: THREE.Vector3, topY: number, boardW: number, boardH: number, ry = 0, rz = 0) => {
+    const total = heightTo(base, topY)
+    const g = new THREE.Group(); g.position.copy(base); g.rotation.set(0, ry, rz); scene.add(g)
+    const pw = boardW * .13
+    const post = add(rbox(pw, total - boardH * .2, pw * .9, '#b0602f', pw * .3), g); post.position.y = (total - boardH * .2) / 2
+    const board = add(rbox(boardW, boardH, boardW * .12, '#d9824a', boardH * .16), g); board.position.y = total - boardH / 2; board.position.z = pw * .5
+    const cap = add(rbox(pw * .7, boardH * .18, pw * .6, '#b8612e', pw * .2), g); cap.position.y = total + boardH * .02
+    return g
+  }
+
+  /* ---------- 배치: 원본 좌표 기준 ---------- */
+  const moundAt = (lx: number, rx: number, y: number, rzK = 1) => {
+    const a = PD(lx, y), b = PD(rx, y), c = a.clone().lerp(b, .5), r = a.distanceTo(b) / 2
+    const m = mound(c, r, r * rzK, 1)
+    m.scale.y = r * .36
+    return { c, r, rz: r * rzK }
+  }
+  const mounds = [moundAt(545, 1380, 845, .78), moundAt(135, 700, 625, .7), moundAt(1330, 1915, 680, .7)]
+
+  sign(PD(740, 668), D(0, 478)[1], 1.7, .72, .05)
+  sign(PD(1282, 700), D(0, 535)[1], 1.75, .72, -.12, .06)
+  sign(PD(1488, 962), D(0, 708)[1], 1.3, .5, -.05)
+
+  // 두더지: 발 위치와 머리 꼭대기를 원본에 맞춤
+  const mole = makeMole()
+  {
+    const base = PD(986, 1128)
+    mole.position.copy(base)
+    mole.scale.setScalar(heightTo(base, D(0, 786)[1]))
+    scene.add(mole)
+  }
+  // 다닐 수 있는 곳: 둔덕 안쪽은 밖으로 밀어내고, 화면 밖으로 너무 멀리 가지 않게
+  const home = mole.position.clone()
+  const clampWalk = (p: THREE.Vector3) => {
+    p.x = THREE.MathUtils.clamp(p.x, home.x - 4.2, home.x + 4.2)
+    p.z = THREE.MathUtils.clamp(p.z, home.z - 6, home.z + 1.6)
+    for (const m of mounds) {
+      const dx = (p.x - m.c.x) / (m.r * 1.08), dz = (p.z - m.c.z) / (m.rz * 1.08), d = Math.hypot(dx, dz)
+      if (d < 1) { p.x = m.c.x + dx / (d || 1) * m.r * 1.08; p.z = m.c.z + dz / (d || 1) * m.rz * 1.08 }
+    }
+    return p
+  }
+  const motion = createMoleMotion(mole, { ground: groundHeight, startRest: 4, clamp: clampWalk, wander: { center: home.clone(), radius: 1.6, rest: [3, 6] } })
+  const unbindKeys = bindMoleKeys(motion, window, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
+
+  // 앞쪽 손으로 놓은 것들 (원본 위치)
+  bush(PD(165, 1150), .45); bush(PD(1610, 1250), .42); bush(PD(1875, 905), .5); bush(PD(25, 905), .45); bush(PD(60, 735), .4)
+  bush(PD(1065, 570), .45); bush(PD(1700, 505), .4)
+  ;[[80, 1265, .32], [150, 1215, .26], [1945, 1260, .3], [440, 765, .32], [1370, 940, .33], [790, 615, .22], [1215, 685, .25], [1300, 712, .22], [1930, 560, .2]].forEach(([x, y, s]) => flower(PD(x, y), s, 'daisy'))
+  ;[[165, 1265, .24], [1800, 1085, .22], [1890, 1100, .22], [1975, 775, .28], [10, 660, .25]].forEach(([x, y, s]) => flower(PD(x, y), s, 'coral'))
+  pebble(PD(435, 1235), .2, '#7a5a4b'); pebble(PD(630, 1212), .14, '#f1e3c8'); pebble(PD(52, 993), .2, '#f1e3c8'); pebble(PD(590, 1218), .1, '#8a6a5a')
+  ;[[480, 795, .32], [413, 853, .3], [540, 975, .34], [75, 655, .2], [1960, 722, .22], [612, 710, .14]].forEach(([x, y, s]) => pebble(PD(x, y), s, '#df7f43'))
+
+  // 멀리 흩뿌리기
+  const blocked = (p: THREE.Vector3) => {
+    for (const m of mounds) { const dx = (p.x - m.c.x) / (m.r * 1.15), dz = (p.z - m.c.z) / (m.rz * 1.15); if (dx * dx + dz * dz < 1) return true }
+    if (Math.abs(p.x) < 1.6 && p.z > -3.5) return true // 두더지 주변
+    return false
+  }
+  for (let i = 0; i < 900; i++) {
+    const z = -rnd(4, 95), dist = 8 - z, half = dist * .62
+    const p = new THREE.Vector3(rnd(-half, half), 0, z)
+    if (blocked(p)) continue
+    const near = dist < 18
+    if (near && Math.random() < .6) continue
+    if (dist > 45 && Math.random() < .55) continue
+    const r = Math.random()
+    if (r < .4) bush(p, rnd(.22, .42))
+    else if (r < .72) flower(p, rnd(.18, .28), 'daisy')
+    else if (r < .87) flower(p, rnd(.18, .26), 'coral')
+    else pebble(p, rnd(.08, .18), Math.random() < .5 ? '#df7f43' : '#8a6a5a')
+  }
+  Object.values(I).forEach((i) => i.build(scene))
+
+  /* ---------- 후처리: N8AO 구석 그림자 + 색보정 ---------- */
+  const composer = new EffectComposer(renderer)
+  composer.setPixelRatio(renderer.getPixelRatio())
+  composer.addPass(new RenderPass(scene, camera))
+  const ao = new N8AOPass(scene, camera, SW, SH)
+  Object.assign(ao.configuration, { aoRadius: .9, distanceFalloff: .6, intensity: 2.2, aoSamples: 16, denoiseSamples: 8, denoiseRadius: 10, halfRes: false, gammaCorrection: false })
+  composer.addPass(ao)
+  const output = new OutputPass()
+  composer.addPass(output)
+  const grade = fieldGradePass()
+  composer.addPass(grade)
+
+  let W = 1, H = 1
+  let focusTarget = opts.focusX ?? 0.5, focus = focusTarget
+  const applyFrame = () => {
+    // cover: 원본 1440×897 장면이 캔버스를 꽉 채우게 키우고, 가로 가운데를 focusX에
+    const k = Math.max(W / SW, H / SH), bw = SW * k, bh = SH * k
+    frameCamera(camera, W, H, { left: focus * W - bw / 2, top: (H - bh) / 2, w: bw, h: bh })
+  }
+
+  const loop = startLoop(container, {
+    resize(w, h) {
+      W = w; H = h
+      renderer.setSize(w, h, false)
+      composer.setSize(w, h)
+      ao.setSize(w, h)
+      grade.uniforms.uRes.value.set(w, h)
+      applyFrame()
+    },
+    frame(dt, t) {
+      if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
+      motion.update(dt, t)
+      composer.render(dt)
+    },
+  })
+
+  // 땅을 누르면 그 자리로 걸어감 (드래그는 무시)
+  const el = renderer.domElement
+  const ndc = new THREE.Vector2()
+  let down: { x: number; y: number } | null = null
+  const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY } }
+  const onUp = (e: PointerEvent) => {
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
+    down = null
+    const rect = el.getBoundingClientRect()
+    ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height * 2 - 1))
+    ray.setFromCamera(ndc, camera)
+    const hit = ray.intersectObject(ground, false)[0]
+    if (hit) motion.walkTo?.(hit.point.clone())
+  }
+  el.addEventListener('pointerdown', onDown)
+  el.addEventListener('pointerup', onUp)
+  el.style.cursor = 'pointer'
+
+  return {
+    resize: () => loop.resize(),
+    setFocusX(x) {
+      focusTarget = x
+      if (document.hidden) { focus = x; applyFrame() }
+    },
+    dispose() {
+      loop.stop()
+      unbindKeys()
+      el.removeEventListener('pointerdown', onDown)
+      el.removeEventListener('pointerup', onUp)
+      disposeObject(scene)
+      ;(ao as unknown as { dispose?: () => void }).dispose?.()
+      output.dispose(); grade.dispose(); composer.dispose()
+      destroyRenderer(renderer)
+    },
+  }
+}

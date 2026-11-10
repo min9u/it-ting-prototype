@@ -9,3 +9,7 @@
   aspect-ratio: 636 / 477;
 }
 .room { width: 100%; height: 100%; object-fit: contain; user-select: none; }
+/* 3D 캔버스 (src/three/). 캔버스는 장면 전체를 덮고, 구도는 카메라 view offset 으로 맞춤 */
+.canvas { position: absolute; inset: 0; }
+/* 탐색하기 밭: 3D 준비 전 하늘 → 풀빛 */
+.field { background: linear-gradient(#a3d3f7 0%, #c2e2f8 30%, #dbeff9 34%, #9ccc58 34.5%, #8fc24e 100%); }

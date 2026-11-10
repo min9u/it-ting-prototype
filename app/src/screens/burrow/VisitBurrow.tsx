@@ -44,7 +44,7 @@ export default function VisitBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
+      <RoomView ownerId={owner.id} interests={owner.interests} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
         <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => { setSent(false); setReqOpen(true) }}>
           💬 대화 요청하기

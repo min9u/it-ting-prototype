@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import RoomView from '../../components/RoomView'
+import { Link, useSearchParams } from 'react-router-dom'
+import FieldView from '../../components/FieldView'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import Avatar from '../../components/Avatar'
 import { ChipList } from '../../components/InterestChip'
@@ -12,12 +12,14 @@ const NEIGHBORS = ['yerin', 'ha', 'seoyeon', 'mingu', 'yejin']
 
 /**
  * 땅굴 메인 – 탐색하기 (돌아다니는 화면) 477:12524 · 사이드바 접힘 493:12616
+ * 데모용 쿼리: ?panel=closed (사이드바 접힘)
  * 메타데이터 기반 — 스크린샷 대조 필요.
- * 3D가 붙기 전까지는 ← / → 로 이웃 땅굴을 넘겨 본다.
+ * 3D 밭(FieldView)을 걸어 다니고, ← / → 로 오른쪽 패널의 이웃 땅굴을 넘겨 본다.
  */
 export default function ExploreBurrow() {
   const [idx, setIdx] = useState(0)
-  const [panelOpen, setPanelOpen] = useState(true)
+  const [params] = useSearchParams()
+  const [panelOpen, setPanelOpen] = useState(params.get('panel') !== 'closed')
   const owner = USERS[NEIGHBORS[idx]]
   const me = USERS[ME_ID]
   const shared = owner.interests.filter((i) => me.interests.includes(i))
@@ -37,12 +39,12 @@ export default function ExploreBurrow() {
   const cx = panelOpen ? 0.403 : 0.5
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} focusX={cx} label={`${owner.nickname}의 땅굴`}>
-        <p className={s.exploreHint} style={{ left: `${cx * 100}%` }}>← → 키로 옆 땅굴로 걸어가요 · {idx + 1} / {NEIGHBORS.length}</p>
+      <FieldView focusX={cx} label="두더지가 사는 밭">
+        <p className={s.exploreHint} style={{ left: `${cx * 100}%` }}>땅을 누르거나 WASD로 두더지를 움직여요 · ← → 키로 이웃 땅굴 보기 {idx + 1} / {NEIGHBORS.length}</p>
         <button className={`${s.walk} ${s.walkL}`} onClick={() => go(-1)} aria-label="이전 땅굴"><ChevronLeft size={26} /></button>
         <button className={`${s.walk} ${s.walkR}`} style={{ left: `calc(${cx * 200}% - 160px)` }} onClick={() => go(1)} aria-label="다음 땅굴"><ChevronRight size={26} /></button>
         <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.5) * 100}%` }} />
-      </RoomView>
+      </FieldView>
 
       {panelOpen ? (
         <aside className={s.roomInfo} aria-label="방 정보">

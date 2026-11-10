@@ -83,3 +83,15 @@ PlayCanvas 버전이 더 좋아 보인 이유가 조명이라 같은 방식을 �
 - 방 안: 러그 위 빈자리만 돌아다님
 - `prefers-reduced-motion`이면 깜빡임만, 걸음은 미끄러지듯
 - 헤드리스는 rAF가 거의 안 돌아서 `#bare-sim<프레임수>`로 걷는 자세를 미리 계산해 확인
+
+### 정리 2차 (사용자 피드백: "벽에 붙이고 깔끔하게, 가구 2/3만, 캐릭터를 직접 움직이게")
+- 가구 26 → 17개. 빠진 것: 스피커(→피아노만), 지구본 받침 외 소품, 팝콘, 작은 버섯, 버섯 스탠드, 빈백, 러닝머신, 여행가방, 캠핑 매트 등
+- 모든 가구를 뒤쪽 반원 벽을 따라 각도(slot.a)로 배치하고 방 가운데를 보게. 벽까지 거리는 높이별 돔 반지름(wallAt)으로 계산해 가구 키 전체가 벽 안에 들어오게
+- 벽걸이(레트로 TV, 찻병 선반, 사진 보드, 배낭)는 벽 높이에 걸음
+- 가운데 러그는 비워 두더지 길로. 가구마다 바닥 발자리(foot) 반경이 있어 두더지가 뚫고 지나가지 않음
+- 직접 조종: 방향키·WASD(), 바닥을 누르면 그쪽으로. 조종하는 동안·직후 6초는 혼자 돌아다니지 않음. 막히면 0.6초 뒤 목표 포기
+- 앱 탐색하기는 ←/→가 이웃 땅굴 넘기기라서 WASD만
+
+### 앱과 합치기
+- 원본은 explore/3d/lib. wrote C:UsersSSAFYDesktopminguit-ting-prototypeappsrc	hreemole.ts C:UsersSSAFYDesktopminguit-ting-prototypeappsrc	hreeurniture.ts가 app/src/three/mole.ts, furniture.ts를 만듦 (직접 고치지 말 것)
+- app/src/three/roomScene.ts: wallAt·가구 발자리 clamp·키보드·바닥 클릭 연결. fieldScene.ts: 둔덕 clamp·돌아다니기·WASD
