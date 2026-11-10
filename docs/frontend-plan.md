@@ -210,9 +210,39 @@ interface ChatRequest { id; kind: 'dm'|'meetup'; fromId; toId; message; createdA
 ```
 cd app
 npm install
-npm run dev      # http://localhost:5173  (/burrow 가 내 땅굴)
+npm run dev      # http://localhost:5173  (/burrow 가 내 땅굴, /screens 는 화면 목록)
 npm run build
 ```
+
+데모·스크린샷용 쿼리 (클릭 없이 상태를 바로 보기):
+
+| 주소 | 상태 |
+|---|---|
+| `/burrow?panel=closed` | 사이드바 접힘 |
+| `/burrow?guestbook=0` | 방명록 0개 |
+| `/burrow?modal=guestbook` | 방명록 전체보기 모달 |
+| `/burrow/yerin?modal=request` | 대화 요청 팝업 |
+| `/meetups?modal=calendar` | 캘린더 팝업 |
+| `/meetups/m4?modal=apply` | 참여 신청 팝업 |
+| `/meetups/new?modal=done` | 모임 생성 완료 팝업 |
+| `/board/p1?v=b` | 글 상세 B안 |
+| `/#s1` ~ `/#s4` | 랜딩 구간 바로 보기 (스크롤하면 원래대로) |
+
+## 구현 결과 (2026-11-10 1차)
+
+- 구조: `app/src/styles/tokens.css`(토큰) · `components/`(공용) · `screens/<묶음>/`(화면) · `data/mock.ts`(목 데이터)
+- 내 땅굴은 스크린샷과 겹쳐 보며 맞췄다: 헤더(로고·메뉴·알림·설정 위치), 장면 버튼 2개, 오른쪽 카드 340×811 (자기소개 224 높이, 칩 2줄, 방명록 3개 + 전체 보기), 하단 토글 170×42, 방 그림 위치·크기.
+- 로고·두더지 프로필 사진은 스크린샷에서 잘라 쓴 임시 이미지 (`assets/logo.png`, `logo-clear.png`, `mole-avatar.png`). 원본 에셋으로 바꿔야 함.
+- `room-cutout.png`는 배경(#f5f5f5)을 흘려 채우기로 투명하게 만들어 `assets/`에 넣었다. 636px 짜리라 크게 띄우면 흐리다.
+
+### 디자인과 다르게 한 점 / 임의로 정한 점
+- 방문자 뷰·탐색의 오른쪽 패널 제목은 "○○이의 땅굴", 접힌 버튼은 "방 정보"로 둠 (메타데이터에 이름만 있고 문구 없음)
+- 탐색하기는 3D가 없어 ←/→ 버튼·키로 이웃 땅굴을 넘기는 방식으로 대신함
+- 땅굴 꾸미기·방문자 버튼은 자리표시 팝업만 띄움 (꾸미기 화면 디자인 없음)
+- 온보딩·로그인 화면 배치(왼쪽 방 그림 + 오른쪽 카드 등)와 문구 대부분은 지어 넣음 (텍스트 노드 이름이 자리표시)
+- 모임 ↔ 내 모임 모션은 "들어오는 박스"만 구현 (나가는 박스 160ms는 라우트 전환 구조상 생략)
+- 랜딩의 01·02·04 장면은 3D 대신 CSS 그림(하늘·풀밭·구멍)으로 대신함
+- 헤드리스 Edge에서는 CSS 애니메이션이 거의 안 돌아서 온보딩 3b 결과 목록이 흐리게 찍힘. 실제 브라우저에서 확인 필요
 
 ## 열린 질문
 
