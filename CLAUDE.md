@@ -28,7 +28,8 @@
 - 새 앱: `app/` (Vite + React + TS), 계획은 `docs/frontend-plan.md`. 3D는 `app/src/three/` (three.js 0.165, 지연 로딩). **두더지·가구 원본은 `explore/3d/lib/`** → `node explore/3d/lib/build-app.js`로 `app/src/three/mole.ts`, `furniture.ts` 생성 (앱 쪽 두 파일은 직접 고치지 말 것)
 - **팀 공유용 앱 배포 (아티팩트)**: https://claude.ai/artifact/Fd1hfXP3T6nzY2Zg4QXYAS (비공개로 시작, 공유는 페이지 Share 메뉴)
   - 저장소가 비공개이고 gh 로그인이 없어 GitHub Pages 대신 아티팩트로 올림
-  - 갱신: `cd app && npm run build:share` (# 라우팅·상대 경로, `.env.share`) → `dist-share/index.html`의 js·css 파일명으로 `dist-share/share-page.html`을 다시 쓰고 → Artifact publish(같은 url, root=dist-share, files=assets/*). 파일명 해시가 바뀌므로 옛 assets는 null로 지워도 됨
+  - 갱신: `cd app && npm run build:share` (# 라우팅·상대 경로, `.env.share`, 끝에 `scripts/share-page.mjs`가 `dist-share/share-page.html`과 `files.json`을 만듦) → Artifact publish(같은 url, root=dist-share, 바뀐 assets만 보내고 옛 해시 파일은 null)
+  - 공유 빌드는 첫 화면이 로그인된 내 땅굴(`#/burrow`). 시작 화면은 `#/start`
   - Pretendard는 CDN 대신 npm `pretendard`로 번들 (아티팩트는 외부 CSS 차단)
 - 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n), 탐색하기 `explore/3d/field.html`
 - 3D 엔진 비교: `explore/{3d,babylon,playcanvas}/` 같은 과제(`explore/BRIEF.md`), 미리보기 `node explore/serve.js <포트>`. 비교 페이지 https://claude.ai/artifact/7saUop5kLtVnDDXCdU8UDT

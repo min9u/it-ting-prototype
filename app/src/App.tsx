@@ -29,8 +29,9 @@ function AppLayout() {
 }
 
 export const router = createRouter([
-  // 시작하기 v2
-  { path: '/', element: <Landing /> },
+  // 시작하기 v2. 팀 공유용 빌드는 로그인된 상태로 보이게 첫 화면을 내 땅굴로 (시작 화면은 /start)
+  { path: '/', element: import.meta.env.VITE_HASH_ROUTER ? <Navigate to="/burrow" replace /> : <Landing /> },
+  { path: '/start', element: <Landing /> },
   { path: '/look', element: <LookAround /> },
   { path: '/login', element: <Login /> },
   { path: '/signup', element: <SignupEmail /> },

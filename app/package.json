@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "build:share": "tsc -b && vite build --base=./ --outDir dist-share --mode share"
+    "build:share": "tsc -b && vite build --base=./ --outDir dist-share --mode share && node scripts/share-page.mjs"
   },
   "dependencies": {
     "n8ao": "1.10.1",

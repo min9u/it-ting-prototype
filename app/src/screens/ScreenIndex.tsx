@@ -4,7 +4,7 @@ import logo from '../assets/logo.png'
 /** 개발용: Figma 03. Screens 화면 ↔ 경로 목록 (docs/frontend-plan.md 와 같은 내용) */
 const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] = [
   { title: '시작하기 v2', items: [
-    ['랜딩 01–04 (스크롤)', '/', '408:19697 · 19721 · 19384 · 19542'],
+    ['랜딩 01–04 (스크롤)', '/start', '408:19697 · 19721 · 19384 · 19542'],
     ['둘러보기 · 땅 (비로그인) / 4번째 방 로그인 필요', '/look', '408:19989 · 408:20104'],
     ['로그인', '/login', '408:20248'],
     ['회원가입 1 · 이메일', '/signup', '408:20403'],
