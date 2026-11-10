@@ -125,6 +125,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-10 [3D 엔진 비교: three.js · Babylon.js · PlayCanvas](docs/3d-engine-candidates.md): 같은 두 장면을 세 엔진으로 만들어 비교. 결과가 비슷한 수준에서 멈춤(한계는 방식 탓) → **three.js 추천**(가볍고 React 앱에 붙이기 쉬움). 두더지 캐릭터는 세 엔진 모두 원본 비율·얼굴까지 맞춤
 - 2026-11-10 [PlayCanvas vs three.js 실무 분석](docs/playcanvas-vs-threejs.md): 사용자는 PlayCanvas 결과가 가장 좋다고 봄. 차이 대부분은 조명 기법(그라데이션 환경광·PCSS·SSAO)이라 three.js로 옮길 수 있음. 앱에는 three.js(R3F)가 유리(gzip 167KB vs 655KB, React 생태계). → 조명을 옮겨 보니 three.js로도 거의 같은 느낌(N8AO 사용). 두더지는 펠트 질감(섬유 노멀맵 + sheen + 잔털 셸 12겹)으로 9회 다듬음 (explore/3d/NOTES.md). 2026-11-10 이 three.js 두더지로 임시 고정, 가구 17개를 벽 따라 정리, 방향키·WASD·클릭으로 조종, 앱에 합침. 다음: 엔진 확정 후 `app/` RoomView에 R3F로 이식
 
+- 2026-11-10 [프론트엔드 기술 가이드](docs/frontend-guide.md): 사용자 학습용. 앱 구조, React 상태, 라우팅(브라우저 vs 해시), 토큰·CSS Modules, TS 타입, 3D를 React에 넣는 법(경계·정리·루프·지연 로딩·레이캐스트), 빌드·배포, 공부 순서. README도 현재 상태로 다시 씀
 ## 남은 아이디어 / 미확인
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
 - 썸네일 생성이 느린 문제 (필요하면 지연 생성)
