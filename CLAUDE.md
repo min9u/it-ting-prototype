@@ -24,6 +24,9 @@
 - 새 디자인 기준은 **Figma 파일의 "03. Screens" 페이지**. 방향과 디자인이 완전히 바뀌었음
 - 그 전에 만든 단일 HTML 프로토타입(v1~v3, 두더지, 밤티 두더지)은 전부 **`legacy/`** 폴더로 옮김. 아래 "파일" 표부터 끝까지의 설명은 legacy 기준이고, 경로는 `legacy/` 아래에 있음 (예: `legacy/itting-mole.html`, `legacy/tools/serve.js`)
 - legacy 실행: `cd legacy && node tools/serve.js <파일>`
+- Figma: https://www.figma.com/design/HMFoyhSV5kc70UkFYUxspg (03. Screens = node 408:7577). **Figma MCP는 View 시트라 호출 한도가 매우 적음** → 받아 둔 자료는 `design/figma/` (스크린샷 3장 + 페이지 구조 `screens-metadata.xml`). 화면 PNG는 Figma에서 직접 내보내 이 폴더에 넣는 게 현실적
+- 새 앱: `app/` (Vite + React + TS), 계획은 `docs/frontend-plan.md`
+- 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n)
 
 ## 파일 (legacy/ 기준)
 | 경로 | 내용 |
@@ -111,6 +114,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 
 ## 조사·결정 기록
 - 2026-11-10 [3D 땅굴 그래픽 기술 조사](docs/3d-tech-research.md): Figma 시안(점토 재질, 간접광, AO)은 한 장짜리 PNG라 그대로 쓸 수 없음. **three.js 조명·재질·후처리 강화(A)로 시작하고, 두더지와 땅굴 껍데기만 glb 모델(B)로 교체** 추천. 다음 단계는 땅굴 하나에 1단계를 적용한 시험판
+- 2026-11-10 [Figma 땅굴 three.js 재현 시험판](docs/3d-figma-reproduction.md): 코드만으로 구도·돔·색감·배치는 꽤 가깝게 됨. 두더지 털·곡면·간접광은 한계 → **두더지와 주요 가구만 glb, 껍데기는 간접광 굽기** 추천. 원본 Blender 파일 유무 확인이 다음 단계
 
 ## 남은 아이디어 / 미확인
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
