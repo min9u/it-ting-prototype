@@ -1,0 +1,82 @@
+.wrap { min-height: calc(100vh - var(--header-h)); }
+.layout {
+  max-width: 1440px; margin: 0 auto; padding: 28px 68px 0 32px;
+  display: grid; grid-template-columns: minmax(0, 950px) 340px; gap: 50px; justify-content: space-between; align-items: start;
+}
+.board { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 30px 30px 24px; }
+.board h1 { font-size: 32px; }
+.filterBar { margin-top: 26px; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.cats { display: flex; gap: 4px; }
+.cat, .catOn { height: 36px; padding: 0 14px; border-radius: 8px; font-family: var(--font-display); font-size: 16px; color: var(--ink-500); }
+.cat:hover { background: var(--surface-item); }
+.catOn { background: var(--brown-700); color: var(--on-brown); }
+.clearInterest { font-size: 13px; color: var(--accent); }
+.sort { margin-left: auto; height: 34px; border-radius: 8px; border: 1px solid var(--line-strong); background: #fff; padding: 0 8px; font-size: 13px; }
+.posts { display: flex; flex-direction: column; }
+.post { display: flex; gap: 20px; align-items: center; padding: 20px 4px; min-height: 140px; border-bottom: 1px solid var(--line); }
+.post:hover strong { color: var(--accent); }
+.postBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.postCat { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-500); }
+.postBody strong { font-family: var(--font-display); font-weight: 400; font-size: 20px; color: var(--ink-900); }
+.postBody p { font-size: 13px; color: var(--ink-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.postMeta { display: flex; gap: 12px; font-size: 12px; color: var(--ink-400); }
+.postMeta span { display: inline-flex; align-items: center; gap: 3px; }
+.thumb { width: 120px; height: 100px; border-radius: 10px; flex: none; display: grid; place-items: center; font-size: 40px; }
+.none { padding: 50px 0; text-align: center; color: var(--ink-400); }
+.pager { margin-top: 22px; }
+
+.side { display: flex; flex-direction: column; gap: 20px; position: sticky; top: calc(var(--header-h) + 20px); padding-top: 80px; }
+.search { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink-400); }
+.search input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink-900); }
+.widget { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 22px; }
+.widget h2 { font-size: 19px; margin-bottom: 12px; }
+.hot { display: flex; flex-direction: column; gap: 10px; }
+.hot li { display: flex; gap: 10px; font-size: 14px; }
+.hot li span { font-family: var(--font-display); color: var(--accent); width: 14px; }
+.hot a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hot a:hover { text-decoration: underline; }
+.interestGrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.i, .iOn { padding: 2px; border-radius: 8px; border: 2px solid transparent; }
+.iOn { border-color: var(--brown-700); }
+
+/* 글 상세 */
+.article { max-width: 820px; margin: 0 auto; padding: 36px 0 0; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 880px) { .article { padding-left: 20px; padding-right: 20px; } }
+.backLink { font-size: 14px; color: var(--ink-500); margin-bottom: 12px; }
+.backLink:hover { color: var(--accent); }
+.article h1 { font-size: 34px; line-height: 1.25; }
+.byline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-400); padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.byline strong { color: var(--ink-900); }
+.byline span { display: inline-flex; align-items: center; gap: 3px; }
+.content { display: flex; flex-direction: column; gap: 18px; padding: 14px 0; font-size: 16px; line-height: 1.85; color: var(--ink-800); }
+.photo { height: 360px; border-radius: var(--radius-lg); display: grid; place-items: center; color: var(--ink-500); font-size: 13px; }
+.reactions { display: flex; gap: 8px; justify-content: center; padding: 12px 0 20px; }
+.react, .reactOn { height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line-strong); display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-700); }
+.react:hover { background: var(--surface-item); }
+.reactOn { background: var(--brown-700); color: var(--on-brown); border-color: var(--brown-700); }
+.prevNext { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.prevNext a { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; }
+.prevNext a span { font-size: 11px; color: var(--ink-400); }
+.prevNext a:hover { color: var(--accent); }
+.next { text-align: right; }
+.comments { margin-top: 18px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
+.comments h2 { font-size: 21px; }
+.comments h2 span { color: var(--accent); }
+.comments ul { display: flex; flex-direction: column; gap: 16px; }
+.comment { display: flex; gap: 10px; }
+.reply { margin: 12px 0 0 42px; padding: 12px; border-radius: var(--radius-md); background: var(--surface-item); }
+.cMeta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-400); }
+.cMeta strong { font-size: 14px; color: var(--ink-900); }
+.cMeta em { font-style: normal; font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--tone-clay-bg); color: var(--tone-clay-fg); }
+.cText { margin-top: 3px; font-size: 14px; line-height: 1.55; }
+.cActions { margin-top: 4px; display: flex; gap: 12px; font-size: 12px; color: var(--ink-400); }
+.cActions button { display: inline-flex; align-items: center; gap: 3px; }
+.cActions button:hover { color: var(--accent); }
+.commentForm { display: flex; gap: 8px; margin-top: 6px; }
+.commentForm input { flex: 1; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--line-strong); padding: 0 14px; background: #fff; outline: 0; }
+.commentForm button { height: 44px; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr; padding: 20px; }
+  .side { position: static; padding-top: 0; }
+}

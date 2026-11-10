@@ -1,0 +1,148 @@
+/* ===== 시작하기 v2 공용 ===== */
+.header {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  height: 72px; display: flex; align-items: center; padding: 0 48px;
+}
+.headerDark { color: #fbf4ec; }
+.logo { width: 92px; height: 48px; object-fit: contain; }
+.headerNav { margin-left: auto; display: flex; align-items: center; gap: 28px; }
+.headerLink { font-family: var(--font-display); font-size: 16px; opacity: .9; }
+.headerLink:hover { opacity: 1; text-decoration: underline; }
+.headerCta {
+  height: 38px; padding: 0 16px; border-radius: 8px; border: 1.5px solid currentColor;
+  display: inline-flex; align-items: center; font-family: var(--font-display); font-size: 16px;
+}
+.headerCta:hover { background: rgba(255, 255, 255, .12); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ===== 랜딩 (sticky 3D 자리) ===== */
+.track { height: 420vh; background: var(--bg-dark); }
+.stage {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  background: linear-gradient(90deg, #412d1d 0%, #5d412b 50%, #7b5639 100%);
+  color: #fbf4ec;
+}
+.layer { position: absolute; inset: 0; transition: opacity .5s ease; }
+.ground { background: linear-gradient(#bfe0f2 0%, #e9f1df 45%, #b5c98d 46%, #8fae66 100%); overflow: hidden; }
+.groundInner { position: absolute; inset: 0; transform-origin: 62% 70%; transition: transform .2s linear; }
+.grass {
+  position: absolute; left: 0; right: 0; top: 46%; bottom: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.18) 0 2px, transparent 3px) 0 0 / 40px 40px,
+    linear-gradient(#a6c27a, #7e9e55);
+}
+.hole {
+  position: absolute; left: 62%; top: 70%; width: 150px; height: 56px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: radial-gradient(ellipse at 50% 60%, #2a1a10 0 55%, #6e4a30 56% 70%, #8a6040 71%);
+}
+.mole {
+  position: absolute; left: 50%; bottom: 40%; width: 56px; height: 62px; transform: translateX(-50%);
+  border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 40% 35%, #8a6450, #5b3d2e);
+  animation: breathe 3s ease-in-out infinite;
+}
+.mole::after { content: ''; position: absolute; left: 50%; top: 52%; width: 18px; height: 12px; margin-left: -9px; border-radius: 50%; background: #e98d7b; }
+@keyframes breathe { 50% { transform: translateX(-50%) scaleY(1.04); } }
+.darken { position: absolute; inset: 0; background: #1d120a; pointer-events: none; }
+.roomLayer { display: grid; place-items: center; }
+.roomBox { position: absolute; left: 50%; top: -5.9vh; height: 110vh; aspect-ratio: 636 / 477; transform: translateX(-50%); }
+.roomBox img { width: 100%; height: 100%; }
+.pin { position: absolute; transition: opacity .3s ease; }
+.pinDot { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #5d412b; }
+.pinLine { position: absolute; overflow: visible; }
+.pinLine line { stroke: rgba(255, 255, 255, .85); stroke-width: 1.2; }
+.pinLabel {
+  position: absolute; transform: translateX(-50%);
+  padding: 6px 9px; border-radius: 6px; background: rgba(62, 42, 31, .82);
+  font-family: var(--font-display); font-size: 15px; line-height: 1.15; color: #fbf4ec; white-space: nowrap;
+  display: flex; flex-direction: column;
+}
+.pinLabel small { font-size: 10px; opacity: .75; }
+.neighborLayer { background: linear-gradient(#cfe5ee 0%, #eef3e2 35%, #a9c17c 36%, #7f9f58 100%); }
+.nb { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.nbCard { padding: 8px 12px; border-radius: 10px; background: rgba(251, 248, 244, .95); color: var(--ink-900); display: flex; flex-direction: column; box-shadow: var(--shadow-card); }
+.nbCard strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.nbCard span { font-size: 12px; color: var(--ink-500); }
+.nbMound { width: 80px; height: 30px; border-radius: 50% 50% 10px 10px; background: radial-gradient(circle at 50% 30%, #8a5a3c, #5e3d29); }
+.copy {
+  position: absolute; left: 72px; top: 150px; z-index: 10; max-width: 460px;
+  animation: copyIn .45s var(--ease-out);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .25);
+}
+@keyframes copyIn { from { opacity: 0; transform: translateY(16px); } }
+.copy h1 { font-size: 44px; line-height: 1.25; }
+.copy p { margin-top: 20px; font-family: var(--font-display); font-size: 16px; line-height: 1.65; opacity: .92; }
+.stage[data-sec='0'] .copy, .stage[data-sec='3'] .copy { color: var(--ink-900); text-shadow: none; }
+.stage[data-sec='0'] .headerDark, .stage[data-sec='3'] .headerDark { color: var(--ink-900); }
+.scrollHint { display: inline-block; margin-top: 40px; font-size: 13px; opacity: .7; animation: hint 1.6s ease-in-out infinite; }
+@keyframes hint { 50% { transform: translateY(4px); } }
+.ctaRow { margin-top: 28px; display: flex; gap: 10px; }
+.ctaMain, .ctaSub { height: 52px; padding: 0 24px; border-radius: 10px; display: inline-flex; align-items: center; font-family: var(--font-display); font-size: 17px; }
+.ctaMain { background: var(--brown-700); color: var(--on-brown); }
+.ctaSub { border: 1.5px solid var(--brown-700); color: var(--brown-700); background: rgba(255,255,255,.6); }
+.progress { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); z-index: 10; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.progress li { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.progress span { width: 2px; height: 14px; background: currentColor; opacity: .5; border-radius: 1px; }
+.progOn span { height: 28px; opacity: 1; }
+.progress em { font-style: normal; font-size: 10px; opacity: .8; }
+
+/* ===== 둘러보기 (비로그인) ===== */
+.lookPage { position: relative; height: 100vh; overflow: hidden; background: var(--bg-cream); }
+.lookPage .header { background: transparent; }
+.seenPill { padding: 6px 12px; border-radius: 16px; background: rgba(255, 255, 255, .8); font-size: 13px; color: var(--ink-700); }
+.field {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,255,255,.25) 0 2px, transparent 3px) 0 0 / 46px 46px,
+    linear-gradient(#cfe5ee 0%, #eaf1dd 18%, #b4cb8a 19%, #8daa62 100%);
+}
+.fieldBurrow { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.fieldCard { padding: 12px 14px; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-card); display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 150px; }
+.fieldCard strong { font-size: 19px; font-weight: 400; }
+.fieldCard span { font-size: 12px; color: var(--ink-500); }
+.enterBtn { margin-top: 6px; height: 30px; padding: 0 12px; border-radius: 8px; background: var(--brown-700); color: var(--on-brown); font-family: var(--font-display); font-size: 14px; }
+.fieldHole { width: 96px; height: 34px; border-radius: 50% 50% 12px 12px; background: radial-gradient(circle at 50% 30%, #8a5a3c, #5e3d29); }
+.fieldHint { position: absolute; left: 48px; bottom: 32px; padding: 10px 16px; border-radius: 10px; background: rgba(251,248,244,.9); font-size: 13px; color: var(--ink-700); }
+.lookRoom { position: absolute; inset: 0; }
+.lookTag { position: absolute; left: 48px; top: 96px; z-index: 5; padding: 10px 16px; border-radius: 10px; background: var(--scene-btn-cream); font-family: var(--font-display); font-size: 17px; color: var(--brown-600); }
+.lookUp { position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 5; }
+.gate { padding: 30px 28px 22px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.gate h2 { font-size: 24px; }
+.gate p { color: var(--ink-500); line-height: 1.6; }
+.gateActions { display: flex; gap: 8px; width: 100%; margin-top: 6px; }
+.gateActions > * { flex: 1; }
+.gateBack { font-size: 13px; color: var(--ink-400); }
+.gateBack:hover { color: var(--accent); }
+
+/* ===== 로그인 · 회원가입 ===== */
+.authPage { min-height: 100vh; background: var(--bg-cream); }
+.authBody { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; padding: 72px 48px 24px; gap: 40px; max-width: 1440px; margin: 0 auto; }
+.authVisual { display: grid; place-items: center; }
+.authVisual img { width: 100%; max-width: 620px; filter: drop-shadow(0 20px 40px rgba(80, 50, 30, .18)); }
+.authCard { justify-self: center; width: 100%; max-width: 400px; background: var(--surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-card); padding: 36px 32px 30px; display: flex; flex-direction: column; gap: 6px; }
+.authCard h1 { font-size: 28px; }
+.lead { color: var(--ink-500); font-size: 13px; }
+.form { margin-top: 20px; display: flex; flex-direction: column; gap: 16px; }
+.authLinks { margin-top: 18px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-500); }
+.authLinks a:hover { color: var(--accent); }
+.strong { color: var(--accent); font-weight: 600; margin-left: 6px; }
+.backTo { align-self: flex-start; padding: 6px 12px; border-radius: 14px; background: var(--tone-sage-bg); color: var(--tone-sage-fg); font-size: 12px; margin-bottom: 10px; }
+.step { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-400); margin-bottom: 8px; }
+.stepBar { width: 32px; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.stepBar i { display: block; height: 100%; background: var(--brown-700); }
+.inline { display: flex; gap: 8px; }
+.inline .btn { height: auto; white-space: nowrap; }
+.codeWrap { position: relative; }
+.timer { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--alert); }
+.terms { display: flex; flex-direction: column; gap: 10px; font-size: 13px; padding: 14px; border-radius: var(--radius-md); background: var(--surface-item); }
+.terms label { display: flex; align-items: center; gap: 6px; }
+.terms em { font-style: normal; font-size: 11px; color: var(--accent); }
+.terms a { margin-left: auto; font-size: 11px; color: var(--ink-400); text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .authBody { grid-template-columns: 1fr; padding: 88px 16px 24px; }
+  .authVisual { display: none; }
+  .copy { left: 20px; right: 20px; top: 110px; }
+  .copy h1 { font-size: 32px; }
+  .header { padding: 0 16px; }
+  .headerNav { gap: 12px; }
+}
