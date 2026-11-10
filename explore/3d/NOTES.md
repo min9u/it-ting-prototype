@@ -59,3 +59,27 @@ PlayCanvas 버전이 더 좋아 보인 이유가 조명이라 같은 방식을 �
 - 새 단면: 높이 0.2에서 가장 넓고, 그 위는 초타원(n=2.6) x 선형 테이퍼(12%)로 꾸준히 좁아짐. 눈 각도 0.44→0.55, 볼 0.6→0.73 (머리가 좁아져서 원본 간격 유지)
 - 결과: 높이별 폭이 원본과 3% 안쪽 (눈 높이 0.80, 이마 0.71). `MOLE_FELT.shape` = taper(기본) / cyl(이전, 해시 `cyl`), 탐색하기 페이지에 "머리 좁게(원본형)" 체크박스
 - 스크린샷: `shots/final-mole.png`(원본형), `shots/final-mole-cyl.png`(이전)
+
+## 가구 정리 + 두더지 움직임 (2026-11-10)
+두더지는 이 three.js 버전으로 임시 고정. 원본 코드는 `lib/`로 옮김 (페이지에는 `node lib/splice.js <html>`, `node lib/splice-furniture.js <html>`로 끼워 넣음).
+
+| 파일 | 내용 |
+|---|---|
+| `lib/mole-felt-cfg.js` | 펠트 재료(섬유 노멀맵, 잔털 알파맵)와 `MOLE_FELT` 설정 |
+| `lib/mole.js` | `makeMole()` — 부위를 `mole.userData.parts`(rig, eyes, highs, paws, feet)로 노출 |
+| `lib/mole-motion.js` | `createMoleMotion(mole, opts)` → `{ update(dt, t), walkTo(p), setWander(o) }` |
+| `lib/furniture.js` | `FURNITURE` 카탈로그 + `furnishRoom(root, { interests })` |
+
+### 가구 정리
+- 가구 26개를 카탈로그로: 항목마다 `id`, `label`, `cat`(Figma 온보딩 11개 분야 + 기본), 이름표 위치 `tag`, `build(root)`
+- 자리는 원본 렌더 배치 그대로. 고른 분야의 가구만 놓고 나머지 자리는 비움
+- 원본에 없던 **반려동물** 가구(방석 + 밥그릇)를 앞 왼쪽 빈자리에 추가, 앞쪽 잡동사니(작은 가방)는 뺌
+- 방 페이지: 관심 분야 칩으로 켜고 끄기, "가구 이름표"(랜딩 03처럼 분야 + 이름). 확인용 해시 `only=음악,책·글`
+
+### 두더지 움직임
+- 대기: 숨쉬기, 2.5~4.5초마다 깜빡임(가끔 두 번), 앞발 살랑 (Figma 모션 메모 "두더지 숨쉬기·깜빡임 3초 루프")
+- 걷기: 목표 쪽으로 몸을 돌린 뒤 뒤뚱(좌우 기울기 + 통통), 발 번갈아 들기, 앞발 흔들기. 도착하면 살짝 눌렸다 펴짐
+- 탐색하기: 땅을 누르면 그쪽으로 걸어감(둔덕 안은 못 들어감), 가만히 두면 근처를 돌아다님
+- 방 안: 러그 위 빈자리만 돌아다님
+- `prefers-reduced-motion`이면 깜빡임만, 걸음은 미끄러지듯
+- 헤드리스는 rAF가 거의 안 돌아서 `#bare-sim<프레임수>`로 걷는 자세를 미리 계산해 확인

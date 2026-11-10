@@ -402,7 +402,10 @@ function makeMole() {
     ...o.base,
   });
 
-  const mole = new THREE.Group();
+  // mole(발 위치 기준) ┬ rig: 몸통·얼굴·손 (뒤뚱거림·숨쉬기·점프)
+  //                   └ 발 두 개 (걸을 때 번갈아 들림)
+  const mole = new THREE.Group(), rig = new THREE.Group(); mole.add(rig);
+  const parts = { rig, eyes: [], highs: [], paws: [], feet: [] };
   const bodyGeo = new THREE.LatheGeometry(pts, 128, -Math.PI, Math.PI * 2);
   const bodyMat = feltMat({ base: { map: tex } });
   // 정수리(회전체 극점)에서는 노멀맵 방향 계산이 불안정해 밝은 줄이 생김 → 위로 갈수록 노멀맵 세기를 0으로
@@ -410,7 +413,7 @@ function makeMole() {
     sh.vertexShader = 'varying float vPole;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPole = 1.0 - smoothstep(0.84, 0.97, position.y);');
     sh.fragmentShader = 'varying float vPole;\n' + sh.fragmentShader.replace('mapN.xy *= normalScale;', 'mapN.xy *= normalScale * vPole;');
   };
-  const body = add(new THREE.Mesh(bodyGeo, bodyMat), mole);
+  const body = add(new THREE.Mesh(bodyGeo, bodyMat), rig);
   body.scale.z = ZS;
 
   // 보송한 잔털 막: 몸을 법선 방향으로 조금씩 부풀린 껍질을 여러 겹, 바깥으로 갈수록 털이 드문드문
@@ -427,7 +430,7 @@ function makeMole() {
       }
       geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
       const m = new THREE.MeshStandardMaterial({ map: tex, alphaMap: FELT.fuzzTex, alphaTest: .25 + t * .6, roughness: 1, vertexColors: true });
-      const sh = new THREE.Mesh(geo, m); sh.scale.z = ZS; sh.receiveShadow = true; mole.add(sh);
+      const sh = new THREE.Mesh(geo, m); sh.scale.z = ZS; sh.receiveShadow = true; rig.add(sh);
     }
   }
   // 몸 표면 위의 점 (angle 0 = 정면)
@@ -440,25 +443,123 @@ function makeMole() {
   // 하이라이트는 두 눈 모두 같은 자리(오른쪽 위)에 둬서 같은 곳을 보는 것처럼.
   for (const s of [-1, 1]) {
     const ang = s * (TAPER ? .55 : .44), p = surf(.765, ang, -.014);
-    const e = add(new THREE.Mesh(SPH, eyeM), mole); e.position.copy(p); e.scale.set(.036, .052, .036); e.rotation.y = ang * .2;
-    const h = new THREE.Mesh(SPH, hiM); h.position.set(p.x + .011, p.y + .017, p.z + .03); h.scale.set(.011, .013, .006); mole.add(h);
+    const e = add(new THREE.Mesh(SPH, eyeM), rig); e.position.copy(p); e.scale.set(.036, .052, .036); e.rotation.y = ang * .2;
+    const h = new THREE.Mesh(SPH, hiM); h.position.set(p.x + .011, p.y + .017, p.z + .03); h.scale.set(.011, .013, .006); rig.add(h);
+    parts.eyes.push(e); parts.highs.push(h);
   }
   // 코: 넓적한 연분홍 펠트 주둥이 + 튀어나온 코끝
-  const nose = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.nose }, sheenColor: '#fff0ec' })), mole);
+  const nose = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.nose }, sheenColor: '#fff0ec' })), rig);
   nose.position.copy(surf(.645, 0, -.03)); nose.position.z += .045; nose.scale.set(.15, .092, .1);
-  const nos = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.tip }, sheenColor: '#ffd6d6' })), mole);
+  const nos = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.tip }, sheenColor: '#ffd6d6' })), rig);
   nos.position.copy(nose.position).add(new THREE.Vector3(0, -.022, .092)); nos.scale.set(.048, .045, .04);
   // 손: 양옆 분홍 앞발 + 흰 발톱
   const pawM = feltMat({ base: { color: FELT.paw }, sheenColor: '#fff0ec' });
   for (const s of [-1, 1]) {
     const p = surf(.38, s * 1.35, -.02);
-    const paw = add(new THREE.Mesh(SPH, pawM), mole); paw.position.copy(p); paw.position.x += s * .03; paw.scale.set(.042, .065, .05); paw.rotation.z = s * .35;
-    for (let k = 0; k < 2; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.01, .045, 6), clay('#fbf3ea')), mole); cl.position.set(p.x + s * .045, p.y - .075, p.z - .005 + k * .022); cl.rotation.set(Math.PI, 0, -s * .3); }
+    const pg = new THREE.Group(); pg.position.set(p.x, p.y + .05, p.z); rig.add(pg); pg.userData.side = s; parts.paws.push(pg);
+    const paw = add(new THREE.Mesh(SPH, pawM), pg); paw.position.set(s * .03, -.05, 0); paw.scale.set(.042, .065, .05); paw.rotation.z = s * .35;
+    for (let k = 0; k < 2; k++) { const cl = add(new THREE.Mesh(new THREE.ConeGeometry(.01, .045, 6), clay('#fbf3ea')), pg); cl.position.set(s * .045, -.125, -.005 + k * .022); cl.rotation.set(Math.PI, 0, -s * .3); }
   }
   // 발: 앞쪽 납작한 연분홍 타원
-  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.foot } })), mole); f.position.set(s * .12, .022, rAt(.03) * ZS * .88); f.scale.set(.074, .03, .062); }
+  for (const s of [-1, 1]) { const f = add(new THREE.Mesh(SPH, feltMat({ base: { color: FELT.foot } })), mole); f.userData.side = s; f.userData.home = null; parts.feet.push(f); f.position.set(s * .12, .022, rAt(.03) * ZS * .88); f.scale.set(.074, .03, .062); }
+  mole.userData.parts = parts;
   return mole;
 }
+/* ---------- 두더지 움직임 ---------- */
+// createMoleMotion(mole, opts) → { update(dt, t), walkTo(p), setWander(o) }
+//  - 대기: 숨쉬기(몸이 살짝 부풀었다 줄어듦), 2.5~4.5초마다 눈 깜빡임(가끔 두 번), 앞발 살랑
+//  - 걷기: 목표 쪽으로 몸을 돌린 뒤 뒤뚱뒤뚱(좌우 기울기 + 통통 튀기), 발 번갈아 들기, 앞발 흔들기
+//  - 도착: 살짝 눌렸다 펴지기
+//  - opts.wander = { center: Vector3, radius, rest: [최소, 최대]초 } 이면 가만히 있다가 근처를 돌아다님
+//  - opts.ground(x, z) = 그 자리 땅 높이, opts.clamp(p) = 갈 수 없는 곳이면 고친 점을 돌려줌
+//  - prefers-reduced-motion이면 깜빡임만 하고 걸음은 미끄러지듯
+function createMoleMotion(mole, opts = {}) {
+  const P = mole.userData.parts;
+  const ground = opts.ground || (() => 0);
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let wander = opts.wander || null;
+  const SPEED = opts.speed || 1.05;   // 초당 몸 높이의 몇 배
+  let target = null, phase = 0, walkAmt = 0, settle = 0, restUntil = 0;
+  let nextBlink = 1.2 + Math.random() * 2, blinkT = -1, doubleBlink = false;
+  const tmp = new THREE.Vector3();
+  P.eyes.forEach(e => e.userData.sy = e.scale.y);
+  P.feet.forEach(f => f.userData.home = f.position.clone());
+
+  function pickWander(t) {
+    if (!wander) return;
+    const a = Math.random() * Math.PI * 2, r = wander.radius * Math.sqrt(Math.random());
+    walkTo(tmp.set(wander.center.x + Math.cos(a) * r, 0, wander.center.z + Math.sin(a) * r));
+  }
+  function walkTo(p) {
+    target = p.clone(); target.y = 0;
+    if (opts.clamp) target = opts.clamp(target) || target;
+  }
+  function angleDiff(a, b) { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; }
+
+  let started = false;
+  function update(dt, t) {
+    dt = Math.min(dt, .05);
+    if (!started) { started = true; restUntil = t + (opts.startRest || 0); nextBlink = t + 1.2 + Math.random() * 2; }
+    const s = mole.scale.x;                       // 몸 높이 = 월드 길이
+    const R = P.rig;
+
+    /* 눈 깜빡임 */
+    if (blinkT < 0 && t > nextBlink) { blinkT = 0; doubleBlink = Math.random() < .25; }
+    let lid = 0;
+    if (blinkT >= 0) {
+      blinkT += dt;
+      const d = .16, k = blinkT / d;
+      lid = k < 1 ? Math.sin(k * Math.PI) : 0;
+      if (k >= 1) { if (doubleBlink) { doubleBlink = false; blinkT = -0.0001; nextBlink = t + .12; } else { blinkT = -1; nextBlink = t + 2.5 + Math.random() * 2; } }
+    }
+    P.eyes.forEach(e => e.scale.y = e.userData.sy * (1 - .88 * lid));
+    P.highs.forEach(h => h.visible = lid < .45);
+
+    /* 걷기 */
+    let moving = false;
+    if (target) {
+      const dx = target.x - mole.position.x, dz = target.z - mole.position.z, dist = Math.hypot(dx, dz);
+      if (dist < .04 * s) { target = null; settle = 1; restUntil = t + (wander ? wander.rest[0] + Math.random() * (wander.rest[1] - wander.rest[0]) : 0); }
+      else {
+        const want = Math.atan2(dx, dz), diff = angleDiff(mole.rotation.y, want);
+        mole.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), 5 * dt);
+        const facing = Math.max(0, Math.cos(diff));            // 몸을 다 돌려야 앞으로 감
+        const step = Math.min(dist, SPEED * s * dt * facing * (.35 + .65 * walkAmt));
+        mole.position.x += Math.sin(mole.rotation.y) * step;
+        mole.position.z += Math.cos(mole.rotation.y) * step;
+        moving = true;
+      }
+    } else if (wander && t > restUntil && !settle) pickWander(t);
+    mole.position.y = ground(mole.position.x, mole.position.z);
+
+    walkAmt += ((moving ? 1 : 0) - walkAmt) * Math.min(1, dt * 8);
+    if (moving) phase += dt * (reduce ? 0 : 10.5);
+    const w = reduce ? 0 : walkAmt, sw = Math.sin(phase);
+
+    /* 몸통: 숨쉬기 + 뒤뚱 + 통통 + 도착할 때 눌림 */
+    settle = Math.max(0, settle - dt * 3.2);
+    const breathe = reduce ? 0 : Math.sin(t * 2.2) * .016 * (1 - w);
+    const squash = Math.sin(settle * Math.PI) * .07;
+    R.scale.set(1 - breathe * .5 + squash * .6, 1 + breathe - squash, 1 - breathe * .5 + squash * .6);
+    R.rotation.z = sw * .085 * w;
+    R.rotation.x = .07 * w;
+    R.position.y = Math.abs(sw) * .03 * w;
+
+    /* 발: 번갈아 들고 앞으로 */
+    P.feet.forEach(f => {
+      const h = f.userData.home, side = f.userData.side, ph = Math.sin(phase + (side > 0 ? 0 : Math.PI));
+      f.position.set(h.x, h.y + Math.max(0, ph) * .045 * w, h.z + ph * .035 * w);
+    });
+    /* 앞발: 걸을 땐 흔들고, 쉴 땐 살랑 */
+    P.paws.forEach(g => {
+      const side = g.userData.side;
+      g.rotation.x = Math.sin(phase + (side > 0 ? Math.PI : 0)) * .55 * w + (reduce ? 0 : Math.sin(t * 1.4 + side) * .06 * (1 - w));
+      g.rotation.z = -side * .12 * w;
+    });
+  }
+  return { update, walkTo, setWander(o) { wander = o; }, get walking() { return !!target; } };
+}
+/* ---------- 두더지 움직임 끝 ---------- */
 
 /* ---------- 배치: 원본 좌표 기준 ---------- */
 // 둔덕 (가운데, 왼쪽 뒤, 오른쪽 뒤)
@@ -475,12 +576,24 @@ sign(PD(1282, 700), D(0, 535)[1], 1.75, .72, -.12, .06);
 sign(PD(1488, 962), D(0, 708)[1], 1.3, .5, -.05);
 
 // 두더지: 발 위치와 머리 꼭대기를 원본에 맞춤
-let moleObj = null;
+let moleObj = null, moleMotion = null;
+// 두더지가 갈 수 있는 곳: 둔덕 안쪽은 밖으로 밀어내고, 화면 밖으로 너무 멀리 가지 않게
+function clampWalk(p) {
+  const home = PD(986, 1128);
+  p.x = THREE.MathUtils.clamp(p.x, home.x - 4.2, home.x + 4.2);
+  p.z = THREE.MathUtils.clamp(p.z, home.z - 6, home.z + 1.6);
+  for (const m of mounds) {
+    const dx = (p.x - m.c.x) / (m.r * 1.08), dz = (p.z - m.c.z) / (m.rz * 1.08), d = Math.hypot(dx, dz);
+    if (d < 1) { p.x = m.c.x + dx / (d || 1) * m.r * 1.08; p.z = m.c.z + dz / (d || 1) * m.rz * 1.08; }
+  }
+  return p;
+}
 function placeMole() {
   if (moleObj) scene.remove(moleObj);
   const base = PD(986, 1128);
   moleObj = makeMole(); moleObj.position.copy(base); scene.add(moleObj);
   moleObj.scale.setScalar(heightTo(base, D(0, 786)[1]));
+  moleMotion = createMoleMotion(moleObj, { startRest: 4, wander: { center: base.clone(), radius: 1.6, rest: [3, 6] }, clamp: clampWalk });
 }
 placeMole();
 
@@ -588,7 +701,7 @@ function apply() {
   document.getElementById('tagL').hidden = mode === 'ref'; document.getElementById('tagR').hidden = mode === '3d';
   refEl.style.clipPath = mode === 'wipe' ? `inset(0 0 0 ${p}%)` : 'none';
   handle.style.left = p + '%';
-  hint.textContent = mode === 'wipe' ? '슬라이더로 경계를 옮겨 보세요. 왼쪽이 three.js, 오른쪽이 Figma 원본입니다.' : mode === '3d' ? 'three.js로 만든 장면입니다.' : 'Figma에 있는 원본입니다.';
+  hint.textContent = mode === 'wipe' ? '슬라이더로 경계를 옮겨 보세요. 왼쪽이 three.js, 오른쪽이 Figma 원본입니다. 땅을 누르면 두더지가 걸어가요.' : mode === '3d' ? '땅을 누르면 두더지가 그쪽으로 뒤뚱뒤뚱 걸어가요. 가만히 두면 혼자 돌아다녀요.' : 'Figma에 있는 원본입니다.';
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
 }
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; apply(); }));
@@ -605,4 +718,24 @@ apply();
 layout();
 document.getElementById('loading').remove();
 window.__ready = true;
+
+/* ---------- 움직이기: 땅을 누르면 걸어가고, 가만히 두면 근처를 돌아다님 ---------- */
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (mode === 'ref' || zoom || !moleMotion) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1));
+  ray.setFromCamera(ndc, camera);
+  const o = ray.ray.origin, d = ray.ray.direction; if (d.y >= 0) return;
+  const t = -o.y / d.y; moleMotion.walkTo(new THREE.Vector3(o.x + d.x * t, 0, o.z + d.z * t));
+});
+// 확인용: #...sim<프레임수> 이면 오른쪽 앞으로 걷는 중간 자세를 미리 계산해서 그림 (헤드리스는 rAF가 거의 안 돌아서)
+{ const m = /sim(d+)/.exec(location.hash); if (m && moleMotion) { const p0 = moleObj.position.clone(); moleMotion.walkTo(new THREE.Vector3(p0.x + 3, 0, p0.z + .6)); for (let i = 0; i < +m[1]; i++) moleMotion.update(1 / 60, 10 + i / 60); draw(); } }
+let lastT = performance.now();
+(function tick(now) {
+  requestAnimationFrame(tick);
+  if (document.hidden) { lastT = now; return; }
+  const dt = (now - lastT) / 1000; lastT = now;
+  moleMotion?.update(dt, now / 1000);
+  draw();
+})(lastT);
 </script>
