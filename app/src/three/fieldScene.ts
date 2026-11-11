@@ -13,6 +13,7 @@ import { fieldGradePass } from './post'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, quality, startLoop, type SceneHandle } from './engine'
 import { createBackdrop, toDynamicLayer, type Backdrop } from './staticBackdrop'
+import { bakeMoleSprites, type MoleSprites } from './moleSprites'
 
 /*
  * 탐색하기 밭 장면. explore/3d/field.html 을 옮김 ("PlayCanvas식 조명" 버전만, 비교 UI는 뺌).
@@ -80,6 +81,13 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   const scissorOk = useBackdrop()
   const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q, preserve: scissorOk })
   let backdrop: Backdrop | null = useBackdrop() ? createBackdrop(renderer) : null
+  /*
+   * E 2D 두더지 (시험판, moleSprites.ts): 두더지를 그림으로 한 번 찍어 두고, 밭은 바뀔 때만 3D로 그리고
+   * 매 프레임은 위에 얹은 2D 캔버스에 두더지 그림만 붙임 (3D 그리기 0). 가림(꽃 뒤로 지나가기)은 없어짐
+   */
+  const useSprite = q.level === 'low' && !!q.lab?.E
+  let sprites: MoleSprites | null = null
+  let overlay: HTMLCanvasElement | null = null
   const scene = new THREE.Scene()
   scene.environment = gradientEnv(renderer, FIELD_ENV)
   scene.environmentIntensity = .85
@@ -266,6 +274,22 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     moleBlob.scale.set(moleH * .95, 1, moleH * .95); moleBlob.visible = true
     fullNext = true
     loop.ready()
+    if (useSprite) {
+      const simple = q.level === 'low' && !!q.lab?.F
+      bakeMoleSprites(renderer, moleG, { acc: simple ? undefined : acc, worn: opts.worn ?? getMyWorn(), environment: scene.environment, envIntensity: scene.environmentIntensity, sun, pitchDeg: 10.7 })
+        .then((sp) => {
+          if (disposed || !mole) return
+          sprites = sp
+          mole.object.visible = false; moleBlob.visible = false
+          overlay = document.createElement('canvas')
+          overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none'
+          overlay.width = W; overlay.height = H
+          container.appendChild(overlay)
+          fullNext = true
+          loop.wake()
+        })
+        .catch((err) => console.warn('[3D] 2D 두더지를 못 만들었어요', err))
+    }
   }).catch((err) => console.warn('[3D] 두더지를 못 불러왔어요', err))
   const unbindKeys = bindDriveKeys((x, z) => { mole?.drive(x, z); loop.wake() }, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
 
@@ -389,6 +413,33 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   }
   camera.layers.enable(1) // 평소(고사양·A 끔)에는 두 층 모두 그림
 
+  /* ---------- E: 2D 두더지 그리기 ---------- */
+  const footV = new THREE.Vector3(), headV = new THREE.Vector3(), lastPos = new THREE.Vector3()
+  let spriteT = 0
+  const drawSprite = (dt: number) => {
+    if (!sprites || !overlay || !mole) return
+    if (overlay.width !== W || overlay.height !== H) { overlay.width = W; overlay.height = H }
+    const ctx = overlay.getContext('2d')!
+    ctx.clearRect(0, 0, W, H)
+    const p = mole.object.position
+    footV.copy(p).project(camera); headV.set(p.x, p.y + moleH, p.z).project(camera)
+    const fx = (footV.x * .5 + .5) * W, fy = (1 - (footV.y * .5 + .5)) * H, hy = (1 - (headV.y * .5 + .5)) * H
+    const drawH = (fy - hy) / sprites.heightFrac
+    // 발밑 그림자 (해 쪽 반대로 조금 밀림)
+    ctx.fillStyle = 'rgba(44,74,23,.3)'
+    ctx.beginPath(); ctx.ellipse(fx + drawH * .05, fy - drawH * .01, (fy - hy) * .42, (fy - hy) * .1, 0, 0, Math.PI * 2); ctx.fill()
+    // 방향 (yaw 0 = 카메라 쪽) 과 걷는지
+    const yaw = mole.object.rotation.y
+    const dir = ((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4
+    const speed = dt > 0 ? lastPos.distanceTo(p) / dt : 0
+    lastPos.copy(p)
+    spriteT += dt
+    const walk = speed > moleH * .05
+    const i = walk ? Math.floor(spriteT * 9) % 6 : Math.floor(spriteT * 2) % 4
+    const c = sprites.cell(dir, walk, i)
+    ctx.drawImage(sprites.atlas, c.sx, c.sy, sprites.S, sprites.S, fx - drawH / 2, fy - sprites.footY * drawH, drawH, drawH)
+  }
+
   const loop = startLoop(container, {
     resize(w, h) {
       W = w; H = h
@@ -403,7 +454,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); full = true }
       mole?.update(dt)
       if (mole) moleBlob.position.set(mole.object.position.x + moleH * .1, groundHeight(mole.object.position.x, mole.object.position.z) + .025, mole.object.position.z - moleH * .08)
-      if (post) post.composer.render(dt)
+      if (sprites) { if (full) renderer.render(scene, camera); drawSprite(dt) }
+      else if (post) post.composer.render(dt)
       else if (backdrop) drawBackdrop(full)
       else renderer.render(scene, camera)
     },
@@ -457,6 +509,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       Object.values(I).forEach((i) => { i.geo.dispose(); i.low.dispose() })
       post?.dispose()
       backdrop?.dispose()
+      overlay?.remove()
       destroyRenderer(renderer)
     },
   }
