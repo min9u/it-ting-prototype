@@ -35,6 +35,7 @@
 - **3D 핸드오프 v1** (`design/digul_3d_handoff_v1/`, 문서 `docs/HANDOFF_v1.md`): 디자이너가 만든 두더지 glb(동작 19개)·굴 입구 소품. 영상은 gitignore(디자이너 zip에 있음). 방·가구 glb는 아직 작업 중
   - 땅굴 방 두더지는 이 glb로 교체: `app/src/assets/models/mole.glb`(원본에서 텍스처만 1024 WebP, Draco 없음) + `app/src/three/moleActor.ts`(동작 순서). 탐색하기 밭은 아직 예전 코드 두더지(`mole.ts`)
   - 가구 클릭: 방석·빈백 앉기, 부엌·찻병 선반 커피. 리액션 버튼 👋👀🐾☕. 남의 땅굴엔 집주인 두더지가 있고 인사하면 마주 보고 인사. 엉덩이 씰룩은 굴 입구 전용 자세라 방에서 뺌
+- **온보딩 새 디자인**: 시안 PNG는 `design/figma/onboarding/`, 2D 아바타는 `app/src/components/MoleAvatar.tsx`, `#/onboarding?demo`로 열면 예시 값이 채워짐
 - 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n), 탐색하기 `explore/3d/field.html`
 - 3D 엔진 비교: `explore/{3d,babylon,playcanvas}/` 같은 과제(`explore/BRIEF.md`), 미리보기 `node explore/serve.js <포트>`. 비교 페이지 https://claude.ai/artifact/7saUop5kLtVnDDXCdU8UDT
 - 회차별 스크린샷은 gitignore (`shots/final-*`, `shots/ref-*`만 커밋)
@@ -131,5 +132,6 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 
 - 2026-11-10 [프론트엔드 기술 가이드](docs/frontend-guide.md): 사용자 학습용. 앱 구조, React 상태, 라우팅(브라우저 vs 해시), 토큰·CSS Modules, TS 타입, 3D를 React에 넣는 법(경계·정리·루프·지연 로딩·레이캐스트), 빌드·배포, 공부 순서. README도 현재 상태로 다시 씀
 ## 남은 아이디어 / 미확인
+- **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)** (온보딩·시작 화면은 커밋만 하고 아직 아티팩트에 배포 안 함)
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
 - 썸네일 생성이 느린 문제 (필요하면 지연 생성)

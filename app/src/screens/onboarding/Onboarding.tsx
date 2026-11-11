@@ -1,357 +1,543 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import logo from '../../assets/logo.png'
-import roomCutout from '../../assets/room-cutout.png'
-import Avatar from '../../components/Avatar'
-import InterestChip from '../../components/InterestChip'
-import Modal from '../../components/Modal'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import logo from '../../assets/logo-clear.png'
+import MoleAvatar, { ACCESSORIES, AccessoryIcon, MOLE_COLORS, SLOTS, findAcc, type Outfit, type Slot } from '../../components/MoleAvatar'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import type { Category } from '../../data/types'
 import s from './Onboarding.module.css'
 
+/*
+ * 온보딩 (design/figma/onboarding/*.png 시안 기준, 2026-11-10)
+ *  1 이름 408:18310 → 2 관심사 "A · 좌측 분류 전환" 408:22173 → 3 자기소개 408:18828
+ *  → 4 땅굴 만들기: 3a 방 만드는 중 408:19036 → (3b 없음) → 3c 땅굴 미리보기 408:19306
+ * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
+ */
+
 const STEPS = [
   { key: 'name', label: '나를 부르는 이름' },
-  { key: 'interests', label: '내 관심사 선택' },
+  { key: 'interests', label: '관심사 선택' },
   { key: 'intro', label: '자기소개' },
-  { key: 'building', label: '방 만들기' },
+  { key: 'building', label: '땅굴 만들기' },
 ] as const
 
+const NAME_MAX = 12
 const MIN_PICK = 3
-const FREE_MAX = 150
+const MAX_PICK = 10
+const ANSWER_MAX = 50
 
-/** 관심사 → 땅굴 가구 (랜딩 03 "고른 관심사가 가구가 돼요" 규칙을 목 데이터로) */
-const FURNITURE: Record<string, { item: string; desc: string; kind: '가구' | '벽 꾸미기' }> = {
-  게임: { item: '오락기', desc: '한 판 하고 가요', kind: '가구' },
-  보드게임: { item: '보드게임 선반', desc: '상자가 차곡차곡', kind: '가구' },
-  독서: { item: '책장', desc: '읽던 책이 꽂혀 있어요', kind: '가구' },
-  음악: { item: '스피커', desc: '은은하게 흘러나와요', kind: '가구' },
-  피아노: { item: '업라이트 피아노', desc: '벽에 붙여 두었어요', kind: '가구' },
-  그림: { item: '이젤', desc: '그리다 만 그림 한 장', kind: '가구' },
-  사진: { item: '카메라 삼각대', desc: '창가를 보고 있어요', kind: '가구' },
-  캠핑: { item: '배낭', desc: '언제든 떠날 수 있게', kind: '가구' },
-  요리: { item: '작은 주방', desc: '냄비가 보글보글', kind: '가구' },
-  운동: { item: '러닝머신', desc: '오늘도 3km', kind: '가구' },
-  여행: { item: '여행 가방', desc: '스티커가 덕지덕지', kind: '가구' },
-  시티팝: { item: 'LP 포스터', desc: '80년대 바이브', kind: '벽 꾸미기' },
-  공연: { item: '공연 티켓 액자', desc: '다녀온 공연들', kind: '벽 꾸미기' },
-  테라리움: { item: '유리병 정원', desc: '선반 위 작은 숲', kind: '가구' },
-  필름카메라: { item: '필름 사진 줄', desc: '집게로 걸어 둔 사진', kind: '벽 꾸미기' },
-  독립서점: { item: '서점 도장 포스터', desc: '모은 도장들', kind: '벽 꾸미기' },
+const DEMO = {
+  name: '새벽산책',
+  outfit: { hat: 'beret', glasses: 'round', scarf: 'stripe' } as Outfit,
+  picks: ['시티팝', '필름카메라', '테라리움', '체스', '공연', '독립서점', '요리', '반려식물', '캠핑', '홈카페'],
+  answers: ['엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.', '창문부터 열고 이불 속에서 한참 뒹굴어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.'],
 }
-const furnitureOf = (tag: string) => FURNITURE[tag] ?? { item: `${tag} 소품`, desc: '취향이 담긴 물건', kind: '벽 꾸미기' as const }
+
+const catName = (c: Category) => c.name.replace(/\s·\s/g, '·')
 const countOf = (tag: string) => CATEGORIES.flatMap((c) => c.tags).find((t) => t.name === tag)?.count ?? 9999
+const catOf = (tag: string) => CATEGORIES.find((c) => c.tags.some((t) => t.name === tag))
 
-const DEFAULT_PICKS = ['캠핑', '게임', '독서', '음악', '피아노', '그림', '사진', '운동', '여행', '요리']
-
-/**
- * 설정(계정 설정) / 온보딩 — 메타데이터 기반, 스크린샷 대조 필요
- * name 408:18310 · interests 408:18482 (+ 분야 팝업 408:18656) · intro 408:18828
- * building 408:19036 → 끝나면 가구 매칭 완료 408:21319 · preview 408:19306
- * 텍스트 노드 이름이 자리표시(Title, Lead, Hint…)라 문구는 지어 넣었다.
- */
 export default function Onboarding() {
   const { step = 'name' } = useParams()
   const nav = useNavigate()
-  const [name, setName] = useState('')
-  const [gen, setGen] = useState('16기')
-  const [region, setRegion] = useState('서울')
-  const [cls, setCls] = useState('0반')
-  const [picks, setPicks] = useState<string[]>(DEFAULT_PICKS)
-  const [free, setFree] = useState('따뜻한 조명 아래서 LP를 듣는 시간이 좋아요')
-  const [intro, setIntro] = useState('')
-  const [qna, setQna] = useState(['', '', ''])
+  // ?demo 로 들어오면 시안과 같은 예시 값으로 채움 (단계별 화면을 바로 보여 줄 때)
+  const [params] = useSearchParams()
+  const [demo] = useState(() => params.has('demo'))
+  const [name, setName] = useState(demo ? DEMO.name : '')
+  const [color, setColor] = useState<string>(MOLE_COLORS[0].hex)
+  const [outfit, setOutfit] = useState<Outfit>(demo ? DEMO.outfit : {})
+  const [picks, setPicks] = useState<string[]>(demo ? DEMO.picks : [])
+  const [qs, setQs] = useState<number[]>([0, 0, 0])       // 칸마다 몇 번째 질문인지 (0 = 기본, 1 = 바꾼 질문)
+  const [answers, setAnswers] = useState(demo ? DEMO.answers : ['', '', ''])
 
   const idx = STEPS.findIndex((x) => x.key === step || (x.key === 'building' && step === 'preview'))
   if (idx < 0) return <Navigate to="/onboarding/name" replace />
-  const go = (k: string) => nav(`/onboarding/${k}`)
+  const go = (k: string) => { nav(`/onboarding/${k}`); window.scrollTo(0, 0) }
+  const nick = name.trim() || '새벽산책'
+  const qna = QUESTION_SLOTS.map((slot, i) => ({ q: slot[qs[i]].q, a: answers[i].trim() }))
 
   return (
     <div className={s.page}>
       <header className={s.header}>
-        <Link to="/"><img src={logo} alt="디굴디굴" className={s.logo} /></Link>
-        <Link to="/burrow" className={s.skip}>나중에 할게요</Link>
+        <Link to="/" aria-label="디굴디굴 처음으로"><img src={logo} alt="디굴디굴" className={s.logo} /></Link>
       </header>
-      <nav className={s.progress} aria-label="진행 단계">
+      <nav className={s.steps} aria-label="진행 단계">
         <ol>
           {STEPS.map((x, i) => (
-            <li key={x.key} className={i < idx ? s.done : i === idx ? s.now : ''} aria-current={i === idx ? 'step' : undefined}>
-              <span>{i < idx ? '✓' : i + 1}</span>{x.label}
+            <li key={x.key} aria-current={i === idx ? 'step' : undefined}>
+              {i > 0 && <span className={s.joint} aria-hidden />}
+              <span className={i < idx ? s.stepDone : i === idx ? s.stepNow : s.step}>
+                <span className={s.stepNum}>{i < idx ? <Check /> : i + 1}</span><span className={s.stepLabel}>{x.label}</span>
+              </span>
             </li>
           ))}
         </ol>
       </nav>
-      <main className={s.body}>
+      <main className={step === 'preview' ? s.bodyWide : s.body}>
         {step === 'name' && (
-          <NameStep name={name} setName={setName} gen={gen} setGen={setGen} region={region} setRegion={setRegion} cls={cls} setCls={setCls} onNext={() => go('interests')} />
+          <NameStep name={name} setName={setName} color={color} setColor={setColor} outfit={outfit} setOutfit={setOutfit} onNext={() => go('interests')} />
         )}
-        {step === 'interests' && (
-          <InterestStep picks={picks} setPicks={setPicks} free={free} setFree={setFree} onPrev={() => go('name')} onNext={() => go('intro')} />
-        )}
+        {step === 'interests' && <InterestStep picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => go('intro')} />}
         {step === 'intro' && (
-          <IntroStep name={name || '닉네임'} affiliation={`SSAFY ${gen} · ${region} · ${cls}`} picks={picks} intro={intro} setIntro={setIntro} qna={qna} setQna={setQna} onPrev={() => go('interests')} onNext={() => go('building')} />
+          <IntroStep name={nick} color={color} outfit={outfit} picks={picks} qs={qs} setQs={setQs} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
         )}
-        {step === 'building' && <BuildStep name={name || '닉네임'} picks={picks} onNext={() => go('preview')} />}
-        {step === 'preview' && <PreviewStep name={name || '닉네임'} picks={picks} intro={intro} qna={qna} />}
+        {step === 'building' && <BuildStep name={nick} picks={picks} qna={qna} onDone={() => go('preview')} />}
+        {step === 'preview' && <PreviewStep name={nick} color={color} outfit={outfit} picks={picks} qna={qna} onRepick={() => go('interests')} />}
       </main>
     </div>
   )
 }
 
+function Check({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden><path d="M2.2 6.3 4.9 8.9 9.8 3.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
+
 /* ---------- 1. 나를 부르는 이름 ---------- */
-function NameStep(p: { name: string; setName: (v: string) => void; gen: string; setGen: (v: string) => void; region: string; setRegion: (v: string) => void; cls: string; setCls: (v: string) => void; onNext: () => void }) {
-  const bad = p.name.length > 0 && !/^[가-힣a-zA-Z0-9]{2,10}$/.test(p.name)
+function NameStep(p: { name: string; setName: (v: string) => void; color: string; setColor: (v: string) => void; outfit: Outfit; setOutfit: (o: Outfit) => void; onNext: () => void }) {
+  const [slot, setSlot] = useState<Slot>('hat')
+  const trimmed = p.name.trim()
+  const bad = trimmed.length > 0 && trimmed.length < 2
+  const randomize = () => {
+    const o: Outfit = {}
+    for (const sl of SLOTS) {
+      const open = ACCESSORIES[sl].items.filter((a) => !a.lockedLv)
+      const pick = Math.floor(Math.random() * (open.length + 1))   // 마지막 = 없음
+      if (pick < open.length) o[sl] = open[pick].id
+    }
+    p.setOutfit(o)
+    p.setColor(MOLE_COLORS[Math.floor(Math.random() * MOLE_COLORS.length)].hex)
+  }
+  const worn = SLOTS.map((sl) => findAcc(sl, p.outfit[sl])).filter(Boolean)
+
   return (
     <>
       <div className={s.intro}>
-        <h1 className="display">뭐라고 불러드릴까요?</h1>
-        <p>땅굴 문패와 방명록에 보이는 이름이에요.</p>
+        <h1>어떻게 불러드릴까요?</h1>
+        <p>실명이나 사진은 받지 않아요.</p>
       </div>
-      <div className={s.card}>
+      <section className={s.card}>
         <div className={s.form}>
-          <div className="field">
-            <label htmlFor="nick">닉네임</label>
-            <input id="nick" className="input" value={p.name} maxLength={10} onChange={(e) => p.setName(e.target.value)} placeholder="2–10자, 한글·영문·숫자" />
-            <span className={bad ? 'error' : 'hint'}>{bad ? '한글·영문·숫자 2–10자로 적어주세요' : `${p.name.length} / 10`}</span>
+          <div className={s.field}>
+            <label htmlFor="ob-nick">닉네임</label>
+            <div className={s.inputWrap}>
+              <input id="ob-nick" value={p.name} maxLength={NAME_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="땅굴 문패에 적힐 이름" autoComplete="off" />
+              <span className={s.counter}>{p.name.length} / {NAME_MAX}</span>
+            </div>
+            {bad && <span className={s.error}>두 글자 이상 적어 주세요</span>}
           </div>
-          <div className="field">
-            <span className="field-label">소속</span>
-            <div className={s.selects}>
-              <select className="input" value={p.gen} onChange={(e) => p.setGen(e.target.value)} aria-label="기수">{['13기', '14기', '15기', '16기'].map((x) => <option key={x}>{x}</option>)}</select>
-              <select className="input" value={p.region} onChange={(e) => p.setRegion(e.target.value)} aria-label="지역">{['서울', '대전', '구미', '광주', '부울경'].map((x) => <option key={x}>{x}</option>)}</select>
-              <select className="input" value={p.cls} onChange={(e) => p.setCls(e.target.value)} aria-label="반">{['0반', '1반', '2반', '3반', '4반', '5반', '6반'].map((x) => <option key={x}>{x}</option>)}</select>
+
+          <div className={s.field}>
+            <span className={s.label}>두더지 색</span>
+            <div className={s.swatches} role="radiogroup" aria-label="두더지 색">
+              {MOLE_COLORS.map((c) => (
+                <button key={c.id} role="radio" aria-checked={p.color === c.hex} aria-label={c.name} title={c.name}
+                  className={p.color === c.hex ? s.swatchOn : s.swatch} style={{ ['--sw' as string]: c.hex }} onClick={() => p.setColor(c.hex)} />
+              ))}
+            </div>
+          </div>
+
+          <div className={s.field}>
+            <div className={s.accHead}>
+              <span className={s.label}>액세서리 <small>부위마다 하나씩 고를 수 있어요 · 나중에 바꿀 수 있어요</small></span>
+              <button className={s.randomBtn} onClick={randomize}><Dice /> 랜덤으로 꾸미기</button>
+            </div>
+            <div className={s.slotTabs} role="tablist" aria-label="액세서리 부위">
+              {SLOTS.map((sl) => (
+                <button key={sl} role="tab" aria-selected={slot === sl} className={slot === sl ? s.slotTabOn : s.slotTab} onClick={() => setSlot(sl)}>
+                  {ACCESSORIES[sl].label}{p.outfit[sl] && <i className={s.dot} aria-label="고름" />}
+                </button>
+              ))}
+            </div>
+            <div className={s.tiles} role="tabpanel" aria-label={`${ACCESSORIES[slot].label} 고르기`}>
+              <button className={!p.outfit[slot] ? s.tileOn : s.tile} aria-pressed={!p.outfit[slot]} onClick={() => p.setOutfit({ ...p.outfit, [slot]: undefined })}>
+                <None /><span>없음</span>
+              </button>
+              {ACCESSORIES[slot].items.map((a) => a.lockedLv ? (
+                <span key={a.id} className={s.tileLocked} title={`${a.name} · 레벨 ${a.lockedLv}부터`}><Lock /><span>Lv.{a.lockedLv}</span></span>
+              ) : (
+                <button key={a.id} className={p.outfit[slot] === a.id ? s.tileOn : s.tile} aria-pressed={p.outfit[slot] === a.id} onClick={() => p.setOutfit({ ...p.outfit, [slot]: a.id })}>
+                  <AccessoryIcon slot={slot} id={a.id} /><span>{a.name}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
-        <div className={s.avatarPreview}>
-          <Avatar size={120} />
-          <strong className="display">{p.name || '닉네임'}</strong>
-          <span>SSAFY {p.gen} · {p.region} · {p.cls}</span>
-        </div>
-      </div>
+
+        <aside className={s.avatarSide} aria-live="polite">
+          <MoleAvatar size={150} color={p.color} outfit={p.outfit} label={`${trimmed || '내'} 두더지`} />
+          <strong>{trimmed || '닉네임'}</strong>
+          <p>다른 사람 땅굴에 놀러 가면 이 모습으로 보여요</p>
+          {worn.length > 0 && <div className={s.wornChips}>{worn.map((a) => <span key={a!.id}>{a!.full ?? a!.name}</span>)}</div>}
+        </aside>
+      </section>
       <div className={s.actions}>
         <span />
-        <button className="btn btn-primary" disabled={!p.name || bad} onClick={p.onNext}>다음</button>
+        <button className={s.next} disabled={trimmed.length < 2} onClick={p.onNext}>다음</button>
       </div>
     </>
   )
 }
 
-/* ---------- 2. 관심 분야 고르기 + 분야 팝업 ---------- */
-function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => string[]) => void; free: string; setFree: (v: string) => void; onPrev: () => void; onNext: () => void }) {
-  const [openCat, setOpenCat] = useState<Category | null>(null)
-  const toggle = (t: string) => p.setPicks((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t]))
+/* ---------- 2. 관심사 선택 (A · 좌측 분류 전환) ---------- */
+function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => string[]) => void; onPrev: () => void; onNext: () => void }) {
+  const [catId, setCatId] = useState(CATEGORIES[0].id)
+  const [full, setFull] = useState(false)
+  const cat = CATEGORIES.find((c) => c.id === catId)!
   const pickedIn = (c: Category) => c.tags.filter((t) => p.picks.includes(t.name)).length
+  const toggle = (t: string) => {
+    if (!p.picks.includes(t) && p.picks.length >= MAX_PICK) { setFull(true); return }
+    setFull(false)
+    p.setPicks((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t]))
+  }
   return (
     <>
       <div className={s.intro}>
-        <p className={s.eyebrow}>2 / 3 · 관심사</p>
-        <h1 className="display">요즘 마음이 가는 것들</h1>
-        <p>먼저 큰 분야를 골라보세요. 분야를 누르면 그 안에서 좋아하는 걸 고를 수 있어요.</p>
+        <h1>요즘 마음이 가는 것들</h1>
+        <p className={s.pickRule}>최소 {MIN_PICK}개 · 최대 {MAX_PICK}개를 골라주세요</p>
       </div>
-      <div className={`${s.card} ${s.col}`}>
-        <p className={s.pickCount}><strong>{p.picks.length}개 골랐어요</strong> · {MIN_PICK}개 이상이면 충분해요</p>
-        <div className={s.catGrid}>
+      <div className={s.pickCols}>
+        <nav className={s.catList} aria-label="관심 분야">
           {CATEGORIES.map((c) => {
             const n = pickedIn(c)
             return (
-              <button key={c.id} className={n ? s.catTileOn : s.catTile} onClick={() => setOpenCat(c)} style={{ ['--tile-bg' as string]: `var(--tone-${c.tone}-bg)`, ['--tile-fg' as string]: `var(--tone-${c.tone}-fg)` }}>
-                <span className={s.catIcon} aria-hidden>{c.emoji}</span>
-                <span className="display">{c.name}</span>
-                {n > 0 && <em>{n}</em>}
+              <button key={c.id} className={c.id === catId ? s.catOn : s.cat} aria-current={c.id === catId ? 'true' : undefined} onClick={() => setCatId(c.id)}>
+                {catName(c)}
+                {n > 0 ? <em>{n}개</em> : <Chevron />}
               </button>
             )
           })}
-        </div>
-        <hr className={s.divider} />
-        <div className={s.tray}>
-          <p className={s.trayHead}>내가 고른 취향 <span>{p.picks.length}</span><small>× 를 누르면 뺄 수 있어요</small></p>
-          <div className={s.trayChips}>
-            {p.picks.map((t) => (
-              <button key={t} className={s.picked} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }} onClick={() => toggle(t)} aria-label={`${t} 빼기`}>{t} ×</button>
-            ))}
+        </nav>
+        <section className={s.tagPanel} aria-label={`${catName(cat)} 관심사`}>
+          <h2>{catName(cat)}</h2>
+          <div className={s.tags}>
+            {cat.tags.map((t) => {
+              const on = p.picks.includes(t.name)
+              return (
+                <button key={t.name} className={on ? s.tagOn : s.tag} aria-pressed={on} onClick={() => toggle(t.name)}
+                  style={{ ['--tag-bg' as string]: `var(--tone-${cat.tone}-bg)`, ['--tag-fg' as string]: `var(--tone-${cat.tone}-fg)` }}>
+                  {on && <Check />}{t.name}<small>{t.count.toLocaleString()}</small>
+                </button>
+              )
+            })}
           </div>
-        </div>
-        <div className="field">
-          <label htmlFor="free">태그에 없는 취향을 자유롭게 적어 주세요</label>
-          <textarea id="free" className="textarea" maxLength={FREE_MAX} value={p.free} onChange={(e) => p.setFree(e.target.value)} />
-          <span className="hint">{p.free.length} / {FREE_MAX} · 나중에 내 땅굴에서 언제든 바꿀 수 있어요.</span>
-        </div>
+          <p className={s.tagNote}>숫자는 같은 관심사를 고른 두더지 수예요. 적을수록 나와 꼭 맞는 이웃을 찾기 쉬워요.</p>
+          <div className={s.tray}>
+            <p>선택한 관심사 <b>{p.picks.length}</b>{full && <span className={s.error}> · 최대 {MAX_PICK}개까지 고를 수 있어요</span>}</p>
+            {p.picks.length === 0 ? <span className={s.trayEmpty}>왼쪽에서 분야를 고르고 마음 가는 걸 눌러 보세요</span> : (
+              <div className={s.trayChips}>
+                {p.picks.map((t) => (
+                  <button key={t} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }} onClick={() => toggle(t)} aria-label={`${t} 빼기`}>
+                    {t}<span aria-hidden>✕</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
       <div className={s.actions}>
-        <button className="btn btn-ghost" onClick={p.onPrev}>이전</button>
-        <span className={s.ready}>{p.picks.length >= MIN_PICK ? `✓ 관심사 ${p.picks.length}개 선택 완료 · 취향에 맞는 땅굴 소품이 만들어져요` : `최소 ${MIN_PICK}개 선택`}</span>
-        <button className="btn btn-primary" disabled={p.picks.length < MIN_PICK} onClick={p.onNext}>다음</button>
+        <span />
+        <div className={s.btnRow}>
+          <button className={s.prev} onClick={p.onPrev}>이전</button>
+          <button className={s.next} disabled={p.picks.length < MIN_PICK} onClick={p.onNext}>다음</button>
+        </div>
       </div>
-
-      <Modal open={!!openCat} onClose={() => setOpenCat(null)} width={560} labelledBy="cat-title">
-        {openCat && (
-          <div className={s.catModal}>
-            <span className={s.catIconLg} style={{ background: `var(--tone-${openCat.tone}-bg)` }} aria-hidden>{openCat.emoji}</span>
-            <h2 id="cat-title" className="display">{openCat.name}</h2>
-            <p className={s.catLead}>마음 가는 걸 모두 골라주세요. 여러 개 골라도 좋아요.</p>
-            <p className={s.catNote}>태그 옆 숫자는 같은 취향을 고른 사람 수예요</p>
-            {[
-              { title: '많이 고르는 취향', tags: openCat.tags.filter((t) => t.count >= 1000) },
-              { title: '아는 사람끼리 통하는 취향', tags: openCat.tags.filter((t) => t.count < 1000) },
-            ].filter((g) => g.tags.length).map((g) => (
-              <section key={g.title} className={s.tagGroup}>
-                <h3>{g.title}</h3>
-                <div className={s.tagChips}>
-                  {g.tags.map((t) => {
-                    const on = p.picks.includes(t.name)
-                    return (
-                      <button key={t.name} className={on ? s.tagOn : s.tag} onClick={() => toggle(t.name)} aria-pressed={on}>
-                        {on && '✓ '}{t.name} <small>{t.count.toLocaleString()}</small>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            ))}
-            <div className={s.catFoot}>
-              <span>{openCat.name}에서 <strong>{pickedIn(openCat)}개</strong> 골랐어요</span>
-              <button className="btn btn-primary" onClick={() => setOpenCat(null)}>다 골랐어요</button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </>
   )
 }
 
-/* ---------- 3. 자기소개 ---------- */
-const QUESTIONS = ['Q1. 쉬는 날에는 주로 무엇을 하나요?', 'Q2. 어떤 사람과 친해지고 싶나요?', 'Q3. 내 방에 놀러 온 사람들에게 한마디!']
-function IntroStep(p: { name: string; affiliation: string; picks: string[]; intro: string; setIntro: (v: string) => void; qna: string[]; setQna: (v: string[]) => void; onPrev: () => void; onNext: () => void }) {
+/* ---------- 3. 자기소개: 오직 나를 위한 질문 ---------- */
+// 칸마다 [기본 질문, 바꿀 질문]. 다른 두더지와 잘 겹치지 않는 답이 나오도록 고름
+const QUESTION_SLOTS = [
+  [
+    { q: '가장 좋아하는 음식은 뭐예요?', ex: '엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.' },
+    { q: '요즘 가장 자주 듣는 노래는?', ex: '출근길마다 같은 시티팝 한 곡만 들어요.' },
+  ],
+  [
+    { q: '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', ex: '창문부터 열고 이불 속에서 한참 뒹굴어요.' },
+    { q: '가방 속에 늘 들어 있는 물건은?', ex: '필름카메라랑 반쯤 남은 껌이요.' },
+  ],
+  [
+    { q: '하루 동안 투명 인간이 된다면 뭐 해볼래요?', ex: '유명한 맛집 주방을 몰래 구경해 볼래요.' },
+    { q: '비 오는 날 꼭 하고 싶은 일은?', ex: '창가에서 라면 끓여 먹으면서 영화 보기요.' },
+  ],
+]
+
+function IntroStep(p: { name: string; color: string; outfit: Outfit; picks: string[]; qs: number[]; setQs: (v: number[]) => void; answers: string[]; setAnswers: (v: string[]) => void; onPrev: () => void; onNext: () => void }) {
   return (
     <>
       <div className={s.intro}>
-        <h1 className="display">나를 조금 소개해 볼까요?</h1>
-        <p>비워 둬도 괜찮아요. 땅굴에 놀러 온 두더지가 먼저 읽는 글이에요.</p>
+        <h1>오직 나를 위한 질문</h1>
+        <p>다른 두더지와 잘 겹치지 않는 질문을 골랐어요. 답 한 줄이 첫 대화의 실마리가 돼요.</p>
       </div>
-      <div className={s.card}>
-        <div className={s.form}>
-          <div className="field">
-            <label htmlFor="intro">자기소개 <span className="hint">선택</span></label>
-            <textarea id="intro" className="textarea" maxLength={150} value={p.intro} onChange={(e) => p.setIntro(e.target.value)} placeholder="좋아하는 것, 요즘 빠져 있는 것을 편하게 적어주세요" />
-            <span className="hint">{p.intro.length} / 150</span>
-          </div>
-          {QUESTIONS.map((q, i) => (
-            <div className="field" key={q}>
-              <label htmlFor={`q${i}`}>{q}</label>
-              <input id={`q${i}`} className="input" maxLength={60} value={p.qna[i]} onChange={(e) => { const n = [...p.qna]; n[i] = e.target.value; p.setQna(n) }} placeholder="한 줄이면 충분해요" />
+      <section className={s.card}>
+        <div className={s.qForm}>
+          {QUESTION_SLOTS.map((slot, i) => {
+            const cur = slot[p.qs[i]]
+            return (
+              <div key={i} className={s.field}>
+                <div className={s.qHead}>
+                  <label htmlFor={`ob-q${i}`}>Q{i + 1}. {cur.q}</label>
+                  <button className={s.swap} disabled={p.qs[i] > 0} onClick={() => { const n = [...p.qs]; n[i] = 1; p.setQs(n); const a = [...p.answers]; a[i] = ''; p.setAnswers(a) }}>
+                    {p.qs[i] > 0 ? '질문을 바꿨어요' : '다른 질문으로 바꾸기 (1회)'}
+                  </button>
+                </div>
+                <div className={s.areaWrap}>
+                  <textarea id={`ob-q${i}`} maxLength={ANSWER_MAX} value={p.answers[i]} placeholder={`예) ${cur.ex}`}
+                    onChange={(e) => { const a = [...p.answers]; a[i] = e.target.value; p.setAnswers(a) }} />
+                  <span className={s.counter}>{p.answers[i].length} / {ANSWER_MAX}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <aside className={s.cardSide}>
+          <p className={s.sideLabel}>내 땅굴에선 이렇게 보여요</p>
+          <div className={s.profileCard}>
+            <div className={s.profileTop}>
+              <MoleAvatar size={52} radius={12} color={p.color} outfit={p.outfit} />
+              <div><strong>{p.name}</strong><span>관심사 {p.picks.length}개</span></div>
             </div>
-          ))}
-          <p className="hint">말 걸기 어려운 분도 이 답을 보고 먼저 인사할 수 있어요.</p>
-        </div>
-        <div className={s.profilePreview}>
-          <p className={s.previewLabel}>이렇게 보여요</p>
-          <div className={s.miniPanel}>
-            <div className={s.miniProfile}><Avatar size={52} /><div><strong className="display">{p.name}</strong><span>{p.affiliation}</span></div></div>
-            <div className={s.miniIntro}><strong>자기소개</strong><p>{p.intro || '아직 작성한 자기소개가 없어요.'}</p></div>
-            <p className={s.miniLabel}>관심사 {p.picks.length}</p>
-            <div className={s.trayChips}>{p.picks.slice(0, 8).map((t) => <InterestChip key={t} label={t} />)}{p.picks.length > 8 && <span className="hint">+{p.picks.length - 8}</span>}</div>
+            <dl className={s.qnaBox}>
+              {QUESTION_SLOTS.map((slot, i) => (
+                <div key={i}><dt>Q{i + 1}. {slot[p.qs[i]].q}</dt>{p.answers[i].trim() && <dd>{p.answers[i].trim()}</dd>}</div>
+              ))}
+            </dl>
+            <div className={s.chipRow}>
+              {p.picks.slice(0, 4).map((t) => <span key={t} className={s.chip} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>{t}</span>)}
+              {p.picks.length > 4 && <span className={s.more}>+{p.picks.length - 4}</span>}
+            </div>
           </div>
-        </div>
-      </div>
+          <p className={s.sideNote}>방문한 두더지는 이 카드를 보고 말을 걸어요.</p>
+        </aside>
+      </section>
       <div className={s.actions}>
-        <button className="btn btn-ghost" onClick={p.onPrev}>이전</button>
-        <span />
-        <button className="btn btn-primary" onClick={p.onNext}>땅굴 만들기</button>
+        <span className={s.footNote}>답변은 나중에 내 땅굴에서 언제든 수정할 수 있어요.</span>
+        <div className={s.btnRow}>
+          <button className={s.prev} onClick={p.onPrev}>이전</button>
+          <button className={s.next} onClick={p.onNext}>다음</button>
+        </div>
       </div>
     </>
   )
 }
 
-/* ---------- 3a 방 만드는 중 → 3b 가구 매칭 완료 ---------- */
-const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '방에 배치하고 벽 꾸미는 중']
-function BuildStep({ name, picks, onNext }: { name: string; picks: string[]; onNext: () => void }) {
-  const [phase, setPhase] = useState(0)
+/* ---------- 4a. 땅굴 만들기: 방 만드는 중 ---------- */
+// 관심사 → 가구. keys 는 답변에서 찾을 단어 (있으면 "내 답변"을 근거로 보여 줌)
+const FURNITURE: Record<string, { item: string; keys: string[] }> = {
+  시티팝: { item: 'LP 플레이어', keys: ['시티팝', 'LP', '레코드'] },
+  'LP 수집': { item: 'LP 선반', keys: ['LP', '레코드', '음반'] },
+  재즈: { item: '재즈 포스터', keys: ['재즈'] },
+  인디밴드: { item: '밴드 포스터', keys: ['밴드', '인디'] },
+  공연: { item: '공연 티켓 액자', keys: ['공연', '콘서트', '티켓'] },
+  작곡: { item: '작은 신디사이저', keys: ['작곡', '건반'] },
+  플레이리스트: { item: '블루투스 스피커', keys: ['노래', '음악', '플레이리스트'] },
+  클래식: { item: '축음기', keys: ['클래식'] },
+  '뮤직 페스티벌': { item: '페스티벌 손목띠 액자', keys: ['페스티벌'] },
+  피아노: { item: '업라이트 피아노', keys: ['피아노'] },
+  음악: { item: '스피커', keys: ['음악', '노래'] },
+  사진: { item: '카메라 삼각대', keys: ['사진', '카메라'] },
+  필름카메라: { item: '필름카메라', keys: ['필름', '카메라'] },
+  폴라로이드: { item: '폴라로이드 줄', keys: ['폴라로이드'] },
+  '풍경 사진': { item: '풍경 사진 액자', keys: ['풍경'] },
+  '인물 사진': { item: '사진 보드', keys: ['인물'] },
+  테라리움: { item: '이끼 테라리움', keys: ['이끼', '테라리움'] },
+  반려식물: { item: '화분 선반', keys: ['식물', '화분'] },
+  텃밭: { item: '상자 텃밭', keys: ['텃밭', '상추'] },
+  꽃꽂이: { item: '꽃병', keys: ['꽃'] },
+  산책: { item: '산책 지도', keys: ['산책', '걷'] },
+  게임: { item: '오락기', keys: ['게임'] },
+  보드게임: { item: '보드게임 선반', keys: ['보드게임'] },
+  체스: { item: '체스판', keys: ['체스'] },
+  '레트로 게임': { item: '레트로 TV', keys: ['레트로', '오락'] },
+  방탈출: { item: '자물쇠 상자', keys: ['방탈출'] },
+  그림: { item: '이젤', keys: ['그림', '그리'] },
+  뜨개질: { item: '털실 바구니', keys: ['뜨개', '털실'] },
+  도자기: { item: '물레', keys: ['도자기', '그릇'] },
+  레고: { item: '레고 선반', keys: ['레고'] },
+  다꾸: { item: '스티커 서랍', keys: ['다꾸', '스티커', '다이어리'] },
+  독서: { item: '책장', keys: ['책', '읽'] },
+  독립서점: { item: '서점 도장 포스터', keys: ['서점'] },
+  필사: { item: '필사 책상', keys: ['필사', '만년필'] },
+  'SF 소설': { item: '우주선 북엔드', keys: ['SF', '소설'] },
+  에세이: { item: '책 더미', keys: ['에세이'] },
+  '별 보기': { item: '별자리 조명', keys: ['별'] },
+  '천체 사진': { item: '천체망원경', keys: ['천체', '망원경'] },
+  '과학 유튜브': { item: '지구본', keys: ['과학', '유튜브'] },
+  요리: { item: '작은 주방', keys: ['요리', '김치볶음밥', '라면', '맛집', '음식'] },
+  홈카페: { item: '홈카페 선반', keys: ['카페', '커피'] },
+  베이킹: { item: '오븐', keys: ['빵', '베이킹', '쿠키'] },
+  핸드드립: { item: '드립 주전자', keys: ['드립', '커피'] },
+  전통차: { item: '찻병 선반', keys: ['차', '다도'] },
+  운동: { item: '러닝머신', keys: ['운동', '헬스'] },
+  캠핑: { item: '캠핑 배낭', keys: ['캠핑', '텐트'] },
+  여행: { item: '여행 가방', keys: ['여행', '비행기'] },
+  등산: { item: '등산 지팡이', keys: ['등산', '산'] },
+  클라이밍: { item: '클라이밍 홀드 벽', keys: ['클라이밍'] },
+  러닝: { item: '러닝화 선반', keys: ['러닝', '달리'] },
+  영화: { item: '영사기', keys: ['영화'] },
+  지브리: { item: '숲 속 포스터', keys: ['지브리'] },
+  독립영화: { item: '필름 릴', keys: ['독립영화'] },
+  애니메이션: { item: '피규어 선반', keys: ['애니'] },
+  강아지: { item: '강아지 방석', keys: ['강아지', '산책'] },
+  고양이: { item: '캣타워', keys: ['고양이', '냥'] },
+  파충류: { item: '사육장', keys: ['파충류', '도마뱀'] },
+}
+const furnitureOf = (tag: string) => FURNITURE[tag] ?? { item: `${tag} 소품`, keys: [tag] }
+
+// 분류별 땅굴 무드 (가장 무거운 분류로 정함. 무게는 legacy 의 tasteWeights 와 같은 Σ(1 + 1000/인원))
+const MOODS: Record<string, { name: string; desc: string; wall: string; floor: string }> = {
+  music: { name: '레코드 가게 무드', desc: '라일락 벽 · 체크 러그', wall: '#e6ddeb', floor: '#9a7aa6' },
+  photo: { name: '작은 암실 무드', desc: '민트 벽 · 원목 마루', wall: '#d5e8df', floor: '#b98a5e' },
+  nature: { name: '작은 온실 무드', desc: '세이지 벽 · 테라코타 타일', wall: '#cfddc6', floor: '#c98a62' },
+  game: { name: '동네 오락실 무드', desc: '하늘색 벽 · 격자 타일', wall: '#d9e6ec', floor: '#6b7fa0' },
+  craft: { name: '작업실 무드', desc: '점토색 벽 · 물감 묻은 마루', wall: '#f1dccb', floor: '#b8744c' },
+  book: { name: '다락 서재 무드', desc: '버터색 벽 · 짙은 원목', wall: '#f3e6be', floor: '#8a5a3a' },
+  space: { name: '별 관측소 무드', desc: '밤하늘 벽 · 별무늬 러그', wall: '#3b4466', floor: '#c9b98a' },
+  cafe: { name: '골목 카페 무드', desc: '크림 벽 · 체크 타일', wall: '#f3e6be', floor: '#c98a62' },
+  outdoor: { name: '캠핑장 무드', desc: '모래색 벽 · 나무 데크', wall: '#eadfc6', floor: '#8fae5c' },
+  movie: { name: '작은 극장 무드', desc: '장밋빛 벽 · 벨벳 러그', wall: '#f2d9d9', floor: '#8a3a3f' },
+  pet: { name: '포근한 둥지 무드', desc: '점토색 벽 · 폭신한 러그', wall: '#f1dccb', floor: '#d9a046' },
+}
+
+type QnA = { q: string; a: string }
+
+function buildPlan(picks: string[], qna: QnA[]) {
+  const weight = new Map<string, number>()
+  for (const t of picks) { const c = catOf(t); if (c) weight.set(c.id, (weight.get(c.id) ?? 0) + 1 + 1000 / countOf(t)) }
+  const topId = [...weight.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'nature'
+  const top = CATEGORIES.find((c) => c.id === topId)!
+  const inTop = picks.filter((t) => catOf(t)?.id === topId)
+  const rarest = [...inTop].sort((a, b) => countOf(a) - countOf(b))[0]
+  const rows = picks.map((tag) => {
+    const f = furnitureOf(tag)
+    const hit = qna.find((x) => x.a && f.keys.some((k) => x.a.includes(k)))
+    return { tag, item: f.item, quote: hit?.a, tone: toneOf(tag) }
+  })
+  // 답변을 근거로 한 줄을 위로 (시안처럼 "내 답변"이 먼저 보이게)
+  rows.sort((a, b) => Number(!!b.quote) - Number(!!a.quote))
+  return { mood: MOODS[topId] ?? MOODS.nature, top, rarest, topCount: inTop.length, rows }
+}
+
+const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '땅굴에 배치하고 벽 꾸미는 중']
+
+function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]; qna: QnA[]; onDone: () => void }) {
+  const plan = useMemo(() => buildPlan(picks, qna), [picks, qna])
+  const answered = qna.filter((x) => x.a).length
+  // 시간표: 0 관심사 읽기 → 1 무드 → 가구가 0.45초마다 한 줄씩 → 2 배치 → 끝나면 미리보기
+  const [t, setT] = useState(0)
+  const rowsAt = (n: number) => 1.6 + n * 0.45
+  const end = rowsAt(plan.rows.length) + 1.4
   useEffect(() => {
-    if (phase >= GEN_STEPS.length) return
-    const t = setTimeout(() => setPhase((x) => x + 1), 900)
-    return () => clearTimeout(t)
-  }, [phase])
-  const done = phase >= GEN_STEPS.length
-  const rare = useMemo(() => [...picks].sort((a, b) => countOf(a) - countOf(b)).slice(0, 5), [picks])
-  const matches = picks.map((t) => ({ tag: t, ...furnitureOf(t) }))
-  const furniture = matches.filter((m) => m.kind === '가구')
-  const wall = matches.filter((m) => m.kind === '벽 꾸미기')
-  const mood = rare[0] ? `${rare[0]} 무드` : '포근한 흙 무드'
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+    // 모션 줄이기: 다 채운 상태를 바로 보여 주고 잠시 뒤 넘어감
+    if (reduce) { setT(end); const id = setTimeout(() => setT(end + 0.9), 2200); return () => clearTimeout(id) }
+    const start = performance.now()
+    let raf = 0
+    const tick = () => { const v = (performance.now() - start) / 1000; setT(v); if (v < end + 0.9) raf = requestAnimationFrame(tick) }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [end])
+  const left = useRef(false)
+  useEffect(() => { if (t >= end + 0.9 && !left.current) { left.current = true; onDone() } }, [t, end, onDone])
+
+  const phase = t < 0.8 ? 0 : t < rowsAt(plan.rows.length) ? 1 : t < end ? 2 : 3
+  const shown = Math.max(0, Math.min(plan.rows.length, Math.floor((t - 1.6) / 0.45) + 1))
+  const placeholders = Math.min(3, plan.rows.length - shown)
 
   return (
-    <div className={s.buildCols}>
-      <div className={`${s.card} ${s.col} ${s.genCard}`}>
-        <div>
-          <p className={s.eyebrow}>{done ? '완성!' : '방 만드는 중'}</p>
-          <h1 className="display">{done ? `${name}님의 땅굴이 생겼어요` : '고른 관심사로 땅굴을 파고 있어요'}</h1>
-          <p className={s.lead}>{done ? '관심사마다 어울리는 가구를 골라 놓았어요. 드문 취향일수록 눈에 띄는 자리에 두었어요.' : '잠깐만 기다려 주세요. 관심사 하나하나를 가구로 바꾸는 중이에요.'}</p>
-        </div>
-        <ol className={s.genSteps}>
-          {GEN_STEPS.map((g, i) => (
-            <li key={g} className={i < phase ? s.genDone : i === phase ? s.genNow : ''}><span>{i < phase ? '✓' : i === phase ? '…' : ''}</span>{g}</li>
-          ))}
-        </ol>
-        {done && (
-          <div className={s.matchList}>
-            <h3>방 무드</h3>
-            <MatchRow kind="무드" source={`가장 드문 취향 "${rare[0] ?? '-'}"`} item={mood} desc="벽지·조명·바닥 색을 정했어요" />
-            <h3>가구 <span>{furniture.length}</span></h3>
-            {furniture.map((m) => <MatchRow key={m.tag} kind="가구" source={m.tag} item={m.item} desc={m.desc} />)}
-            <h3>벽 꾸미기 <span>{wall.length}</span></h3>
-            {wall.length === 0 && <p className="hint">벽에 걸 만한 취향이 없어서 시계를 걸어 두었어요.</p>}
-            {wall.map((m) => <MatchRow key={m.tag} kind="벽" source={m.tag} item={m.item} desc={m.desc} />)}
-            <p className={s.storage}><em>보관함</em>자리가 모자란 소품은 보관함에 넣어 두었어요. 땅굴 꾸미기에서 꺼낼 수 있어요.</p>
+    <section className={s.buildCard} aria-live="polite">
+      <p className={s.eyebrow}>땅굴 만들기</p>
+      <h1>{name}님의 땅굴을 꾸미고 있어요</h1>
+      <p className={s.buildLead}>고른 관심사와 적어 주신 답변을 읽고, 어울리는 물건을 고르는 중이에요.</p>
+
+      <ol className={s.genList}>
+        {GEN_STEPS.map((g, i) => (
+          <li key={g} className={i < phase ? s.genDone : i === phase ? s.genNow : s.genTodo}>
+            <span className={s.genMark}>{i < phase ? <Check /> : null}</span>
+            {g}
+            {i === 1 && i === phase && <small>관심사 {picks.length}개 · 답변 {answered}개</small>}
+          </li>
+        ))}
+      </ol>
+
+      <h2 className={s.secLabel}>땅굴 무드</h2>
+      {phase >= 1 ? (
+        <div className={s.moodRow}>
+          <div>
+            <span className={s.moodBadge}>가장 큰 취향</span>
+            <p>#{plan.rarest} · {catName(plan.top)} 태그 {plan.topCount}개</p>
           </div>
-        )}
-        <div className={s.actions}>
-          <span className="hint">{done ? '마음에 안 들면 땅굴 꾸미기에서 언제든 바꿀 수 있어요.' : '보통 3초 안에 끝나요.'}</span>
-          <button className="btn btn-primary" disabled={!done} onClick={onNext}>{done ? '땅굴 미리보기' : '만드는 중…'}</button>
+          <Arrow />
+          <div className={s.moodResult}>
+            <span className={s.moodSwatch} style={{ background: `linear-gradient(${plan.mood.wall} 55%, ${plan.mood.floor} 55%)` }} aria-hidden />
+            <div><strong>{plan.mood.name}</strong><small>{plan.mood.desc}</small></div>
+          </div>
         </div>
-      </div>
-      <aside className={`${s.card} ${s.col} ${s.roomPreview}`}>
-        <p className={s.previewLabel}>내 땅굴</p>
-        <div className={s.roomImg}><img src={roomCutout} alt="만들어진 땅굴 미리보기" className={done ? s.roomIn : s.roomLoading} /></div>
-        <div>
-          <strong className="display">{name}이의 땅굴</strong>
-          <p className="hint">가구 {furniture.length} · 벽 꾸미기 {wall.length} · {mood}</p>
+      ) : <div className={s.skelRow} aria-hidden />}
+
+      <h2 className={s.secLabel}>가구 <small>{shown < plan.rows.length ? '고르는 중…' : `${plan.rows.length}개 골랐어요`}</small></h2>
+      <ul className={s.furnList}>
+        {plan.rows.slice(0, shown).map((r) => (
+          <li key={r.tag} className={s.furnRow}>
+            <div>
+              <span className={s.srcTag}>{r.quote ? '내 답변' : '내 관심사'}</span>
+              <p>{r.quote ? `"${r.quote}"` : `#${r.tag}`}</p>
+            </div>
+            <Arrow />
+            <div className={s.furnResult}>
+              <span className={s.cube} style={{ background: `var(--tone-${r.tone}-bg)`, color: `var(--tone-${r.tone}-fg)` }}><Cube /></span>
+              <strong>{r.item}</strong>
+            </div>
+          </li>
+        ))}
+        {Array.from({ length: placeholders }).map((_, i) => <li key={`sk${i}`} className={s.furnSkel} aria-hidden><span /><span /><span /><span /></li>)}
+      </ul>
+      {phase === 3 && <p className={s.doneNote}>다 됐어요! 땅굴로 데려갈게요…</p>}
+    </section>
+  )
+}
+
+/* ---------- 4c. 땅굴 미리보기 ---------- */
+function PreviewStep({ name, color, outfit, picks, qna, onRepick }: { name: string; color: string; outfit: Outfit; picks: string[]; qna: QnA[]; onRepick: () => void }) {
+  return (
+    <div className={s.previewCols}>
+      <section className={s.previewCard}>
+        <div className={s.previewHead}>
+          <h1>{name}님의 땅굴 미리보기</h1>
+          <div className={s.btnRow}>
+            <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
+            <Link to="/burrow" className={s.next}>관심사 확정</Link>
+          </div>
         </div>
-        <div className={s.trayChips}>{rare.map((t) => <InterestChip key={t} label={t} size="lg" />)}</div>
-        <p className="hint">드문 취향 순서예요. 같은 취향을 가진 두더지에게 먼저 소개돼요.</p>
+        <div className={s.roomBox}>
+          <RoomView ownerId="me" interests={picks} focusX={0.5} label={`${name}님의 땅굴 미리보기`}>
+            <span className={s.roomBadge}>관심사 가구 {picks.length}개</span>
+          </RoomView>
+        </div>
+      </section>
+      <aside className={s.infoCard}>
+        <h2>땅굴 정보</h2>
+        <div className={s.profileTop}>
+          <MoleAvatar size={88} radius={16} color={color} outfit={outfit} />
+          <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {picks.length}개</span></div>
+        </div>
+        <dl className={s.qnaFull}>
+          {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}
+        </dl>
+        <p className={s.sideLabel}>관심사 <span>{picks.length}</span></p>
+        <div className={s.chipRow}>
+          {picks.map((t) => <span key={t} className={s.chip} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>{t}</span>)}
+        </div>
       </aside>
     </div>
   )
 }
 
-function MatchRow({ kind, source, item, desc }: { kind: string; source: string; item: string; desc: string }) {
-  return (
-    <div className={s.match}>
-      <div><span className={s.kind}>{kind}</span><p className={s.source}>{source}</p></div>
-      <span className={s.arrow} aria-hidden>→</span>
-      <div><strong>{item}</strong><p className="hint">{desc}</p></div>
-    </div>
-  )
-}
-
-/* ---------- 3c 땅굴 미리보기 ---------- */
-function PreviewStep({ name, picks, intro, qna }: { name: string; picks: string[]; intro: string; qna: string[] }) {
-  return (
-    <div className={s.previewWrap}>
-      <div className={s.previewScene}>
-        <RoomView ownerId="me" focusX={0.4} label="내 땅굴 미리보기">
-          <span className={s.roomTitle}>{name}이의 땅굴</span>
-        </RoomView>
-        <aside className={s.previewSide}>
-          <h2 className="display">질문·답변 <small>(읽기 전용)</small></h2>
-          {intro && <p className={s.miniIntro}>{intro}</p>}
-          <dl className={s.qnaList}>
-            {QUESTIONS.map((q, i) => <div key={q}><dt>{q}</dt><dd>{qna[i] || '—'}</dd></div>)}
-          </dl>
-          <p className={s.miniLabel}>관심사 {picks.length}</p>
-          <div className={s.trayChips}>{picks.map((t) => <InterestChip key={t} label={t} />)}</div>
-          <Link to="/burrow" className="btn btn-primary btn-block">만나러 가기</Link>
-        </aside>
-      </div>
-    </div>
-  )
-}
+/* ---------- 작은 아이콘 ---------- */
+const Chevron = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+const Arrow = () => <svg className={s.arrow} width="20" height="20" viewBox="0 0 20 20" aria-hidden><path d="M3.5 10h12M11 5.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+const Cube = () => <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M12 2.8 20 7.2v9.6L12 21.2 4 16.8V7.2Z M4 7.2l8 4.4 8-4.4 M12 11.6v9.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+const Dice = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><rect x="2" y="2" width="12" height="12" rx="3" fill="none" stroke="currentColor" strokeWidth="1.4" /><circle cx="5.5" cy="5.5" r="1" fill="currentColor" /><circle cx="10.5" cy="10.5" r="1" fill="currentColor" /><circle cx="8" cy="8" r="1" fill="currentColor" /></svg>
+const None = () => <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M9 23 23 9" stroke="currentColor" strokeWidth="2" /></svg>
+const Lock = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
