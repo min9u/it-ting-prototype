@@ -24,5 +24,7 @@ await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: t
 if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
 await send('Page.navigate', { url })
 await sleep(Number(secs) * 1000)
+// CLICK="x,y" 면 그 자리를 한 번 누르고 1초 기다림 (패널 열기 확인용)
+if (process.env.CLICK) { const [x, y] = process.env.CLICK.split(',').map(Number); for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 }); await sleep(1000) }
 const shot = await send('Page.captureScreenshot', { format: 'png' }); if (process.env.SHOT) fs.writeFileSync(process.env.SHOT, Buffer.from(shot.result.data, 'base64'))
 ws.close(); chrome.kill(); await sleep(800); try { fs.rmSync(prof, { recursive: true, force: true }) } catch {}; process.exit(0)

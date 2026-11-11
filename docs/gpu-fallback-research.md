@@ -258,6 +258,11 @@
 - low에서는 쉬는 중 두더지가 완전히 멈춘다 (숨쉬기·두리번·탐색하기 혼자 돌아다니기 없음). 누르거나 키를 누르면 다시 움직임
 - 부분 그리기는 low로 **시작한** 경우만 (자동 내리기는 preserveDrawingBuffer를 바꿀 수 없어서 전체 그리기 + 15fps + 쉬면 멈춤만)
 
+### 이어서: 저사양 실험실 (2026-11-11 밤 ~ 11-12)
+- 남은 아이디어 9개를 모두 만들고 켜고 끌 수 있게 함 → [gpu-lowspec-ideas.md](gpu-lowspec-ideas.md) "구현 결과"
+- **이 윈도우 PC(16코어)에서 실제 WARP로 다시 잼**: 지금 저사양 모드만으로도 걷기 15fps·페이지 60fps라 충분. CPU 2코어로 묶으면(약한 PC 흉내) 탐색하기 걷는 동안 페이지 8.7fps로 막힘 → A(배경 한 번 + 두더지만)로 60fps
+- 측정 도구 `explore/gpu/cdp-move.mjs`에 윈도우 경로, `AFF`(코어 제한), `LAB`(실험실 선택), `sceneFps` 추가. 결과 `explore/gpu/results/win/`. Worker 콘솔까지 보는 `explore/gpu/cdp-console.mjs`
+
 ## 재현 방법
 ```
 # 벤치 페이지 빌드 (app 폴더에서)
