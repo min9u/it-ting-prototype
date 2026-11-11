@@ -1,0 +1,37 @@
+{
+  "name": "roomB-2c",
+  "mode": "hwoff",
+  "url": "http://localhost:5302/burrow",
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 36.1,
+    "renderFps": 30.9,
+    "rafP50": 17,
+    "worstGap": 83,
+    "longTasks": 60,
+    "longTaskMs": 3931,
+    "sceneFps": 10
+  },
+  "moving": {
+    "sec": 8,
+    "rafFps": 44.4,
+    "renderFps": 28.9,
+    "rafP50": 17,
+    "worstGap": 67,
+    "longTasks": 40,
+    "longTaskMs": 2846,
+    "sceneFps": 10
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60.1,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 0
+  },
+  "twoFramesMs": 32
+}
