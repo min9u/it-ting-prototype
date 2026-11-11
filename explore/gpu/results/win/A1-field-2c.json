@@ -1,0 +1,37 @@
+{
+  "name": "A1-field-2c",
+  "mode": "hwoff",
+  "url": "http://localhost:5302/burrow/explore",
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 59.9,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 0
+  },
+  "moving": {
+    "sec": 8,
+    "rafFps": 59.9,
+    "renderFps": 20.6,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 15
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 0
+  },
+  "twoFramesMs": 19
+}

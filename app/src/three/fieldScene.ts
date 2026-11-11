@@ -12,6 +12,7 @@ import { gradientEnv, FIELD_ENV } from './lighting'
 import { fieldGradePass } from './post'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, quality, startLoop, type SceneHandle } from './engine'
+import { createBackdrop, toDynamicLayer, type Backdrop } from './staticBackdrop'
 
 /*
  * 탐색하기 밭 장면. explore/3d/field.html 을 옮김 ("PlayCanvas식 조명" 버전만, 비교 UI는 뺌).
@@ -70,7 +71,15 @@ function holeTex() {
 export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions = {}): SceneHandle {
   // 품질 (engine.ts). 저사양: 후처리(N8AO·색보정) 없이 renderer.render, 해 그림자 맵 대신 발밑 그림자 판, 해상도 0.55배, 15fps, 쉬면 멈춤
   const q = quality()
-  const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q })
+  /*
+   * A 배경 한 번 + 두더지만 (lib/lowLab.ts, staticBackdrop.ts): 저사양이고 실험실 A 가 켜져 있으면
+   * 밭(움직이지 않는 것 전부)은 렌더 타깃에 한 번만 그리고, 매 프레임은 그것을 붙인 뒤 두더지 층만 그림.
+   * 저사양으로 시작했으면 지난 그림을 남겨 두고(preserveDrawingBuffer) 두더지 둘레 사각형만 다시 그림 (땅굴 부분 그리기와 같은 방식)
+   */
+  const useBackdrop = () => q.level === 'low' && !!q.lab?.A
+  const scissorOk = useBackdrop()
+  const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q, preserve: scissorOk })
+  let backdrop: Backdrop | null = useBackdrop() ? createBackdrop(renderer) : null
   const scene = new THREE.Scene()
   scene.environment = gradientEnv(renderer, FIELD_ENV)
   scene.environmentIntensity = .85
@@ -112,6 +121,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   /* ---------- 조명 (PlayCanvas식: 환경광 + 부드러운 그림자) ---------- */
   const sun = new THREE.DirectionalLight('#fff6e8', 2.3)
   sun.position.set(-11, 13, 4); sun.target.position.set(0, 0, -6)
+  sun.layers.enable(1) // 두더지 층(layer 1)도 해를 받음
   sun.castShadow = q.shadows; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 5; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.06
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 })
   scene.add(sun, sun.target)
@@ -251,7 +261,9 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       wander: { center: home.clone(), radius: 1.6, rest: [3, 6] }, acc, worn: opts.worn ?? getMyWorn(),
     })
     scene.add(mole.object)
+    toDynamicLayer(mole.object)
     moleBlob.scale.set(moleH * .95, 1, moleH * .95); moleBlob.visible = true
+    fullNext = true
     loop.ready()
   }).catch((err) => console.warn('[3D] 두더지를 못 불러왔어요', err))
   const unbindKeys = bindDriveKeys((x, z) => { mole?.drive(x, z); loop.wake() }, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
@@ -302,6 +314,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     blobs.add(im)
   }
   const moleBlob = new THREE.Mesh(blobGeo, blobMat); moleBlob.renderOrder = 1; moleBlob.visible = false; blobs.add(moleBlob)
+  moleBlob.layers.set(1) // 두더지와 같이 움직이는 층
   blobs.visible = !q.shadows
 
   /* ---------- 후처리: N8AO 구석 그림자 + 색보정 ---------- */
@@ -331,7 +344,49 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     // cover: 원본 1440×897 장면이 캔버스를 꽉 채우게 키우고, 가로 가운데를 focusX에
     const k = Math.max(W / SW, H / SH), bw = SW * k, bh = SH * k
     frameCamera(camera, W, H, { left: focus * W - bw / 2, top: (H - bh) / 2, w: bw, h: bh })
+    backdrop?.invalidate()
   }
+
+  /* ---------- A: 배경 한 번 + 두더지 둘레만 ---------- */
+  let fullNext = true
+  type Rect = { x0: number; y0: number; x1: number; y1: number }
+  let prevRect: Rect | null = null
+  const corner = new THREE.Vector3()
+  const moleRect = (): Rect | null => {
+    if (!mole) return null
+    const p = mole.object.position, h = moleH * .75, r: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
+    for (let i = 0; i < 8; i++) {
+      corner.set(p.x + (i & 1 ? h : -h) + moleH * .1, p.y + (i & 2 ? moleH * 1.45 : -.05), p.z + (i & 4 ? h : -h)).project(camera)
+      const x = (corner.x * .5 + .5) * W, y = (corner.y * .5 + .5) * H
+      r.x0 = Math.min(r.x0, x); r.x1 = Math.max(r.x1, x); r.y0 = Math.min(r.y0, y); r.y1 = Math.max(r.y1, y)
+    }
+    return r
+  }
+  const drawBackdrop = (full: boolean) => {
+    const bd = backdrop!
+    if (bd.isDirty()) { bd.capture(scene, camera); full = true }
+    const cur = moleRect(), prev = prevRect
+    prevRect = cur
+    let scissor = false
+    if (scissorOk && !full && cur && prev) {
+      const pad = 12
+      const x0 = Math.max(0, Math.floor(Math.min(cur.x0, prev.x0) - pad)), x1 = Math.min(W, Math.ceil(Math.max(cur.x1, prev.x1) + pad))
+      const y0 = Math.max(0, Math.floor(Math.min(cur.y0, prev.y0) - pad)), y1 = Math.min(H, Math.ceil(Math.max(cur.y1, prev.y1) + pad))
+      if (x1 <= x0 || y1 <= y0) return
+      renderer.setScissorTest(true); renderer.setScissor(x0, y0, x1 - x0, y1 - y0); scissor = true
+    }
+    renderer.autoClear = false
+    bd.blit()
+    const bg = scene.background
+    scene.background = null
+    camera.layers.set(1)
+    renderer.render(scene, camera)
+    camera.layers.set(0); camera.layers.enable(1)
+    scene.background = bg
+    renderer.autoClear = true
+    if (scissor) renderer.setScissorTest(false)
+  }
+  camera.layers.enable(1) // 평소(고사양·A 끔)에는 두 층 모두 그림
 
   const loop = startLoop(container, {
     resize(w, h) {
@@ -339,12 +394,16 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       renderer.setSize(w, h, false)
       post?.setSize(w, h)
       applyFrame()
+      fullNext = true
     },
     frame(dt) {
-      if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
+      let full = fullNext || dt === 0
+      fullNext = false
+      if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); full = true }
       mole?.update(dt)
       if (mole) moleBlob.position.set(mole.object.position.x + moleH * .1, groundHeight(mole.object.position.x, mole.object.position.z) + .025, mole.object.position.z - moleH * .08)
       if (post) post.composer.render(dt)
+      else if (backdrop) drawBackdrop(full)
       else renderer.render(scene, camera)
     },
     busy: () => (!!mole && !mole.isResting()) || focus !== focusTarget,
@@ -355,6 +414,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       blobs.visible = true
       Object.values(I).forEach((i) => i.useLow())
       const g = ground.geometry; ground.geometry = groundGeo(96); g.dispose()
+      // 자동으로 저사양이 됐을 때도 A 는 켬 (부분 사각형은 preserveDrawingBuffer 가 없어서 전체 붙이기만)
+      if (useBackdrop() && !backdrop) backdrop = createBackdrop(renderer)
     },
   }, q)
 
@@ -378,6 +439,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
 
   return {
     resize: () => loop.resize(),
+    setFrozen: (on) => loop.setFrozen(on),
     setFocusX(x) {
       focusTarget = x
       if (document.hidden) { focus = x; applyFrame() }
@@ -393,6 +455,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       disposeObject(scene)
       Object.values(I).forEach((i) => { i.geo.dispose(); i.low.dispose() })
       post?.dispose()
+      backdrop?.dispose()
       destroyRenderer(renderer)
     },
   }

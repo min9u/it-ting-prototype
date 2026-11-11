@@ -2,15 +2,20 @@
 // 모드: gpu | hwoff(Local State 가속 끔 + unsafe-swiftshader) | swsh(--use-angle=swiftshader). 맥에는 WARP가 없어 둘 다 SwiftShader
 // node explore/gpu/cdp-move.mjs <name> <gpu|hwoff> <url> [keys=d,a]
 // phases: warm 8s -> idle 6s -> hold keys 8s -> release, settle 3s -> idle 6s
-import { spawn } from 'node:child_process'; import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'
+import { spawn } from 'node:child_process'; import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { fileURLToPath } from 'node:url'
 const [name, mode, url, keys = 'KeyD,KeyA'] = process.argv.slice(2)
-const out = process.env.OUT || path.join(path.dirname(new URL(import.meta.url).pathname), 'results')
+const out = process.env.OUT || path.join(path.dirname(fileURLToPath(import.meta.url)), 'results')
 fs.mkdirSync(out, { recursive: true })
 const port = 9300 + Math.floor(Math.random() * 500)
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'cdpprof-'))
 if (mode === 'hwoff') fs.writeFileSync(path.join(prof, 'Local State'), JSON.stringify({ hardware_acceleration_mode: { enabled: false } }))
-const extra = mode === 'hwoff' ? ['--enable-unsafe-swiftshader'] : mode === 'swsh' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : []
-const chrome = spawn(process.env.CHROME || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'), [`--user-data-dir=${prof}`, `--remote-debugging-port=${port}`, '--headless=new', '--no-first-run', '--window-size=1920,1080', ...extra, 'about:blank'], { stdio: 'ignore' })
+const extra = mode === 'hwoff' ? (process.platform === 'win32' ? [] : ['--enable-unsafe-swiftshader']) : mode === 'swsh' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : []
+const exe = process.env.CHROME || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+const args = [`--user-data-dir=${prof}`, `--remote-debugging-port=${port}`, '--headless=new', '--no-first-run', '--window-size=1920,1080', ...extra, 'about:blank']
+// AFF=0xF 처럼 주면 (윈도우) CPU 코어를 그만큼만 쓰게 해서 느린 PC를 흉내 냄. 자식 프로세스(GPU·렌더러)도 물려받음
+const chrome = process.env.AFF && process.platform === 'win32'
+  ? spawn('cmd', ['/c', 'start', '""', '/wait', '/affinity', process.env.AFF.replace(/^0x/i, ''), exe, ...args], { stdio: 'ignore' })
+  : spawn(exe, args, { stdio: 'ignore' })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let targets; for (let i = 0; i < 50; i++) { try { targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (targets.length) break } catch {} await sleep(200) }
 const ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl); await new Promise((r) => ws.addEventListener('open', r))
@@ -21,25 +26,31 @@ await send('Page.enable')
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__f=[];window.__lt=[];(function loop(t){window.__f.push(t);requestAnimationFrame(loop)})(0);
  const _gc=HTMLCanvasElement.prototype.getContext; window.__draws=[]; HTMLCanvasElement.prototype.getContext=function(...a){const c=_gc.apply(this,a); if(c&&/webgl/.test(a[0])&&!c.__w){c.__w=1; for (const fn of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){ const o=c[fn]; if(!o) continue; c[fn]=function(...b){ const n=performance.now(); if(!window.__lastDraw||n-window.__lastDraw>4) window.__draws.push(n); window.__lastDraw=n; return o.apply(this,b)} }} return c};
  try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push([e.startTime,e.duration]))).observe({type:'longtask',buffered:true})}catch(e){}` })
+// LAB='{"A":false}' 처럼 주면 저사양 실험실(app/src/lib/lowLab.ts) 선택을 미리 넣음
+if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
 await send('Page.navigate', { url })
 await sleep(8000)
 const ev = async (x) => (await send('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true })).result?.result?.value
 const stat = (s, e) => ev(`(()=>{const s=${s},e=${e};const f=__f.filter(t=>t>=s&&t<e),d=__draws.filter(t=>t>=s&&t<e),lt=__lt.filter(x=>x[0]>=s&&x[0]<e);const sec=(e-s)/1000;
  const gaps=f.slice(1).map((t,i)=>t-f[i]).sort((a,b)=>a-b);return{sec:+sec.toFixed(1),rafFps:+(f.length/sec).toFixed(1),renderFps:+(d.length/sec).toFixed(1),rafP50:Math.round(gaps[gaps.length>>1]||0),worstGap:Math.round(gaps[gaps.length-1]||0),longTasks:lt.length,longTaskMs:Math.round(lt.reduce((a,x)=>a+x[1],0))}})()`)
 const now = () => ev('performance.now()')
+// 앱이 장면을 실제로 그린 횟수 (engine.ts countFrame). 없으면 null
+const sf = () => ev('window.__sceneFrames ?? null')
+const withScene = async (st, f0, f1) => ({ ...st, sceneFps: f0 === null || f1 === null ? null : +((f1 - f0) / st.sec).toFixed(1) })
 const r = { name, mode, url, renderer: await ev(`(()=>{const c=document.createElement('canvas').getContext('webgl');const x=c&&c.getExtension('WEBGL_debug_renderer_info');return x?c.getParameter(x.UNMASKED_RENDERER_WEBGL):null})()`) }
-let a = await now(); await sleep(6000); let b = await now(); r.idle1 = await stat(a, b)
+let f0 = await sf(); let a = await now(); await sleep(6000); let b = await now(); r.idle1 = await withScene(await stat(a, b), f0, await sf())
 const shot1 = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(out, name + '.png'), Buffer.from(shot1.result.data, 'base64'))
-const ks = keys.split(','); a = await now()
+const ks = keys.split(','); f0 = await sf(); a = await now()
 for (const k of ks) {
   const key = k.replace('Key', '').toLowerCase(), vk = key.toUpperCase().charCodeAt(0)
   await send('Input.dispatchKeyEvent', { type: 'keyDown', code: k, key, windowsVirtualKeyCode: vk })
   await sleep(8000 / ks.length)
   await send('Input.dispatchKeyEvent', { type: 'keyUp', code: k, key, windowsVirtualKeyCode: vk })
 }
-b = await now(); r.moving = await stat(a, b)
-await sleep(3000); a = await now(); await sleep(6000); b = await now(); r.idle2 = await stat(a, b)
+b = await now(); r.moving = await withScene(await stat(a, b), f0, await sf())
+await sleep(3000); f0 = await sf(); a = await now(); await sleep(6000); b = await now(); r.idle2 = await withScene(await stat(a, b), f0, await sf())
 const shot2 = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(out, name + '-after.png'), Buffer.from(shot2.result.data, 'base64'))
 r.twoFramesMs = await ev(`new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>requestAnimationFrame(()=>r(Math.round(performance.now()-s))))})`)
 fs.writeFileSync(path.join(out, name + '.json'), JSON.stringify(r, null, 2)); console.log(JSON.stringify(r))
+try { const v = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json(); const bw = new WebSocket(v.webSocketDebuggerUrl); await new Promise((r) => bw.addEventListener('open', r)); bw.send(JSON.stringify({ id: 1, method: 'Browser.close' })) } catch {}
 ws.close(); chrome.kill(); await sleep(1000); try { fs.rmSync(prof, { recursive: true, force: true }) } catch {}; process.exit(0)

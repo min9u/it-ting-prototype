@@ -20,3 +20,5 @@ design/digul_3d_handoff_v2/videos/
 design/digul_3d_handoff_v2/images/
 design/*.zip
 design/digul_3d_handoff_v3/images/
+explore/gpu/results/win/*.png
+!explore/gpu/results/win/keep-*.png

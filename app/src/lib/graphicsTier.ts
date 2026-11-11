@@ -8,6 +8,8 @@
  * 시험용: 주소에 ?gpu=software (또는 gpu=gpu) 를 붙이면 강제로 바꿀 수 있다.
  */
 
+import { getLab } from './lowLab'
+
 export type GraphicsTier = 'gpu' | 'software'
 
 let cached: { tier: GraphicsTier; renderer: string } | null = null
@@ -48,7 +50,13 @@ export function detectGraphics() {
   return (cached = { tier, renderer })
 }
 
-export const graphicsTier = () => detectGraphics().tier
+/** 3D 품질을 정할 때 쓰는 값. 저사양 실험실(lib/lowLab.ts)에서 모드를 강제했으면 그것을 따름 (안내 띠는 detectGraphics 의 실제 값) */
+export const graphicsTier = (): GraphicsTier => {
+  const f = getLab().force
+  if (f === 'low') return 'software'
+  if (f === 'high') return 'gpu'
+  return detectGraphics().tier
+}
 
 /** 크롬과 엣지는 설정 주소·메뉴 이름이 다르다 */
 export function browserSettings() {

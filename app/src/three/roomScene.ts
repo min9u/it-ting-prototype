@@ -90,7 +90,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * 지우고 다시 그림 (scissor). 장면 전체를 그 사각형 안에서 그리므로 가구 뒤로 가는 가림은 그대로 맞음.
    * 지난 프레임 그림을 남겨야 해서 preserveDrawingBuffer. 시험용 ?partial=0 으로 끔
    */
-  const partial = q.level === 'low' && testParam('partial') !== '0'
+  const partial = q.level === 'low' && (q.lab?.P ?? true) && testParam('partial') !== '0'
+  // C 저사양 카메라 고정 (lib/lowLab.ts): 돌리기·휠 확대를 끔 → 부분 그리기가 거의 항상 적용됨
+  let camLock = q.level === 'low' && !!q.lab?.C
   const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial })
   renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
   renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
@@ -110,6 +112,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const damping = () => (q.maxFps ? .4 : .12)
   controls.enableDamping = true; controls.dampingFactor = damping()
   controls.rotateSpeed = .5; controls.zoomSpeed = .6
+  controls.enabled = !camLock
   controls.update()
 
   // 조명 (room_spec 3번. glTF 와트 변환 ×683 쓰지 않음)
@@ -346,6 +349,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const ZOOM_HOME = zoomGoal
   const onWheel = (e: WheelEvent) => {
     e.preventDefault()
+    if (camLock) return
     let dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1)
     if (e.ctrlKey) dy *= 4
     dy = THREE.MathUtils.clamp(dy, -300, 300)
@@ -550,6 +554,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     downgrade(nq) {
       renderer.setPixelRatio(nq.pixelRatio)
       controls.dampingFactor = damping()
+      camLock = !!nq.lab?.C
+      controls.enabled = !camLock
     },
   }, q)
 
@@ -562,6 +568,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       loop.wake()
     },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); loop.wake() },
+    setFrozen: (on) => loop.setFrozen(on),
     react(kind) {
       if (!mole) return
       loop.wake()

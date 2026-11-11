@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { graphicsTier } from '../lib/graphicsTier'
+import { getLab, type LabState } from '../lib/lowLab'
 
 /*
  * 품질 묶음 (docs/gpu-fallback-research.md "결정" 2번).
@@ -23,10 +24,25 @@ export interface Quality {
   idleStop: boolean
   /** 멈추기 전에 기다리는 시간 (초) */
   idleAfter: number
+  /** 저사양 실험실 선택 (low 일 때만 의미 있음, docs/gpu-lowspec-ideas.md) */
+  lab: LabState | null
+  /** I 가끔 숨쉬기: 쉬는 중 이 간격(초)마다 breatheFor 초 동안 깨움 (0 = 안 함) */
+  breatheEvery: number
+  breatheFor: number
 }
 
-const HIGH = (): Quality => ({ level: 'high', pixelRatio: Math.min(window.devicePixelRatio || 1, 2), antialias: true, shadows: true, post: true, maxFps: 0, idleStop: false, idleAfter: 1 })
-const LOW = (): Quality => ({ level: 'low', pixelRatio: 0.55, antialias: false, shadows: false, post: false, maxFps: 15, idleStop: true, idleAfter: 1 })
+const HIGH = (): Quality => ({ level: 'high', pixelRatio: Math.min(window.devicePixelRatio || 1, 2), antialias: true, shadows: true, post: true, maxFps: 0, idleStop: false, idleAfter: 1, lab: null, breatheEvery: 0, breatheFor: 0 })
+const LOW = (): Quality => {
+  const lab = getLab()
+  return {
+    level: 'low', pixelRatio: 0.55, antialias: false, shadows: false, post: false,
+    // B 스톱모션: 15fps 대신 lab.fps (기본 10)
+    maxFps: lab.B ? lab.fps : 15,
+    idleStop: true, idleAfter: 1, lab,
+    // I 가끔 숨쉬기: 4초마다 1.2초 깨움 (숨쉬기·깜빡임이 보일 만큼)
+    breatheEvery: lab.I ? 4 : 0, breatheFor: 1.2,
+  }
+}
 
 /** 자동으로 내렸는지 (탭이 살아 있는 동안 기억 → 다음 장면도 처음부터 low) */
 let downgraded = false
@@ -57,6 +73,8 @@ export interface SceneHandle {
   react?(kind: 'greet' | 'look' | 'scratch' | 'drink'): void
   /** 내 두더지 액세서리 갈아 끼우기 (땅굴 장면만) */
   setWorn?(ids: string[]): void
+  /** H 가볍게 보기: 3D 그리기 멈춤/다시 */
+  setFrozen?(on: boolean): void
 }
 
 /**
@@ -142,6 +160,8 @@ export interface LoopCallbacks {
 export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality) {
   let raf = 0, last = 0, t = 0, running = false, alive = true
   let awakeUntil = 0
+  // H 가볍게 보기: 얼리면 깨우지 않음. I 숨쉬기 타이머
+  let frozen = false, breathTimer = 0
   // 자동 내리기 측정: ready() 시각, 지난 rAF 시각, 모은 간격 합·개수
   let probeFrom = -1, probePrev = 0, probeSum = 0, probeN = 0
   const doResize = () => {
@@ -175,19 +195,31 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     last = now
     t += dt
     cb.frame(dt, t)
+    countFrame()
     if (q.idleStop) {
       if (cb.busy?.()) awakeUntil = Math.max(awakeUntil, now + q.idleAfter * 1000)
       else if (now > awakeUntil) pause()
     }
   }
   const play = () => {
-    if (running || !alive || document.hidden) return
+    if (running || !alive || document.hidden || frozen) return
     running = true
     last = performance.now()
     probePrev = 0
     raf = requestAnimationFrame(tick)
   }
-  const pause = () => { running = false; cancelAnimationFrame(raf) }
+  const pause = () => {
+    running = false; cancelAnimationFrame(raf)
+    // I 가끔 숨쉬기: 쉬는 동안 breatheEvery 초마다 breatheFor 초만 다시 그림
+    clearTimeout(breathTimer)
+    if (q.breatheEvery > 0 && alive && !frozen && !document.hidden) {
+      breathTimer = window.setTimeout(() => {
+        if (!alive || frozen || running) return
+        awakeUntil = performance.now() + q.breatheFor * 1000
+        play()
+      }, q.breatheEvery * 1000)
+    }
+  }
   const wake = () => {
     if (!alive) return
     awakeUntil = Math.max(awakeUntil, performance.now() + q.idleAfter * 1000)
@@ -213,11 +245,18 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     wake,
     /** 루프가 돌고 있는지 */
     isRunning: () => running,
+    /** H 가볍게 보기: true 면 지금 그림에서 멈추고 입력이 와도 다시 그리지 않음 */
+    setFrozen(on: boolean) {
+      frozen = on
+      if (on) { running = false; cancelAnimationFrame(raf); clearTimeout(breathTimer) } else wake()
+    },
+    isFrozen: () => frozen,
     /** 장면이 다 불러와졌을 때. 이때부터 자동 내리기용 프레임 시간을 잼 */
     ready() { probeFrom = performance.now(); probePrev = 0; probeSum = 0; probeN = 0; cb.frame(0, t); wake() },
     stop() {
       alive = false
       pause()
+      clearTimeout(breathTimer)
       ro.disconnect()
       document.removeEventListener('visibilitychange', onVis)
       container.removeEventListener('pointerdown', onPointer)
@@ -227,6 +266,9 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     },
   }
 }
+
+/** 측정용: 장면을 실제로 그린 횟수 (explore/gpu/cdp-move.mjs 가 읽음) */
+function countFrame() { const w = window as unknown as { __sceneFrames?: number }; w.__sceneFrames = (w.__sceneFrames ?? 0) + 1 }
 
 /** focusX를 CSS transition(.45s)처럼 부드럽게 따라가게 */
 export function approach(cur: number, target: number, dt: number, tau = 0.12) {
