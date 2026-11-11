@@ -2,12 +2,13 @@
  * 두더지 꾸미기 액세서리 41개 (3D 핸드오프 v1.1 accessories_v1.glb, 규칙은 v2 accessories.md v1.2)
  * - 부위 4곳(머리·얼굴·목·손)마다 하나씩, 최대 4개
  * - 같이 못 끼는 조합: 등 리본 + 작은 캐리어 (하나를 끼면 다른 하나는 잠김)
- * - 구분: 기본 11 / 레벨 잠금 20 (Lv.2·3·5·7, 숫자는 디자이너 제안값) / 관심사 전용 10
+ * - 구분: 기본 / 레벨 잠금 (Lv.2·3·5·7, 숫자는 디자이너 제안값) / 관심사 전용
+ *   관심사 전용은 3D 핸드오프 v3 interest_catalog.json 카테고리의 accessories 로 정함 (glb 안 userData.interest 는 옛 값이라 안 씀)
  * - 아이콘: design/digul_3d_handoff_v1_1/icons (512px) → 160px WebP (assets/mole-items/)
  * - id = glb 노드 이름. 3D 착용은 src/three/moleDress.ts
  */
 import none from '../assets/mole-items/none.png'
-import { CATEGORIES } from './mock'
+import { ACCESSORY_CATEGORY, categoriesOf } from './interests'
 
 const ICONS = import.meta.glob<string>('../assets/mole-items/*.webp', { eager: true, query: '?url', import: 'default' })
 const iconOf = (id: string) => ICONS[`../assets/mole-items/${id}.webp`] ?? none
@@ -33,11 +34,13 @@ export interface MoleItem {
   level?: number
   /** 이벤트로도 받을 수 있는 아이템 (마법소녀 세트) */
   event?: boolean
-  /** 관심사 전용: 이 관심사를 고르면 열림 */
+  /** 관심사 전용: 이 카테고리 이름 (배지·안내 문구) */
   interest?: string
+  /** 관심사 전용: 이 카테고리 id 의 세부 관심사를 하나라도 고르면 열림 */
+  interestCat?: string
 }
 
-type Row = [id: string, name: string, part: MolePart, extra?: Partial<Pick<MoleItem, 'level' | 'event' | 'interest'>>]
+type Row = [id: string, name: string, part: MolePart, extra?: Partial<Pick<MoleItem, 'level' | 'event'>>]
 const ROWS: Row[] = [
   // 머리 18
   ['hat_beret', '베레모', '머리'],
@@ -54,23 +57,23 @@ const ROWS: Row[] = [
   ['hat_crown', '작은 왕관', '머리', { level: 5 }],
   ['hair_thin_3', '얇은 세 가닥', '머리', { level: 5 }],
   ['hat_tiara', '하트 티아라', '머리', { level: 7, event: true }],
-  ['headphones', '헤드폰', '머리', { interest: '음악' }],
-  ['headband_sport', '땀 밴드', '머리', { interest: '운동' }],
-  ['hat_chef', '요리사 모자', '머리', { interest: '요리' }],
-  ['hat_sprout', '새싹', '머리', { interest: '식물' }],
+  ['headphones', '헤드폰', '머리'],
+  ['headband_sport', '땀 밴드', '머리'],
+  ['hat_chef', '요리사 모자', '머리'],
+  ['hat_sprout', '새싹', '머리'],
   // 얼굴 6
   ['glasses_round', '동그란 안경', '얼굴'],
   ['glasses_sun', '선글라스', '얼굴'],
   ['glasses_heart', '하트 안경', '얼굴', { level: 2 }],
   ['bandage', '볼 반창고', '얼굴', { level: 3 }],
   ['glasses_star', '별 안경', '얼굴', { level: 5 }],
-  ['glasses_3d', '3D 안경', '얼굴', { interest: '영화' }],
+  ['glasses_3d', '3D 안경', '얼굴'],
   // 목 5
   ['scarf_stripe', '줄무늬 목도리', '목'],
   ['bowtie', '나비넥타이', '목'],
   ['scarf_knit', '니트 목도리', '목', { level: 2 }],
   ['ribbon_back', '등 리본', '목', { level: 7, event: true }],
-  ['camera_neck', '목걸이 카메라', '목', { interest: '사진' }],
+  ['camera_neck', '목걸이 카메라', '목'],
   // 손 12
   ['prop_flower', '꽃 한 송이', '손'],
   ['prop_cup', '커피잔', '손'],
@@ -80,13 +83,16 @@ const ROWS: Row[] = [
   ['prop_balloon_star', '별 풍선', '손', { level: 5 }],
   ['prop_balloon_heart', '하트 풍선', '손', { level: 5 }],
   ['prop_wand_heart', '하트 요술봉', '손', { level: 7, event: true }],
-  ['prop_book', '작은 책', '손', { interest: '독서' }],
-  ['prop_gamepad', '게임패드', '손', { interest: '게임' }],
-  ['prop_palette', '물감 팔레트', '손', { interest: '그림' }],
-  ['prop_suitcase', '작은 캐리어', '손', { interest: '여행' }],
+  ['prop_book', '작은 책', '손'],
+  ['prop_gamepad', '게임패드', '손'],
+  ['prop_palette', '물감 팔레트', '손'],
+  ['prop_suitcase', '작은 캐리어', '손'],
 ]
 
-export const MOLE_ITEMS: MoleItem[] = ROWS.map(([id, name, part, extra]) => ({ id, name, part, icon: iconOf(id), ...extra }))
+export const MOLE_ITEMS: MoleItem[] = ROWS.map(([id, name, part, extra]) => {
+  const cat = ACCESSORY_CATEGORY[id]
+  return { id, name, part, icon: iconOf(id), ...extra, ...(cat ? { interest: cat.name_ko, interestCat: cat.id } : {}) }
+})
 export const NONE_ICON = none
 export const itemOf = (id: string) => MOLE_ITEMS.find((x) => x.id === id)
 export const partTotal = (part: MolePart) => MOLE_ITEMS.filter((x) => x.part === part).length
@@ -96,32 +102,11 @@ export const BLOCKED_PAIRS: [string, string][] = [['ribbon_back', 'prop_suitcase
 export const blockedBy = (id: string, worn: string[]) =>
   BLOCKED_PAIRS.map(([a, b]) => (a === id ? b : b === id ? a : null)).find((x) => x && worn.includes(x)) ?? null
 
-/**
- * 관심사 전용 아이템이 열리는 관심사 태그 (data/mock CATEGORIES 의 태그 이름).
- * 분류 하나가 통째로 맞는 건 분류 id 로, 일부 태그만 맞는 건 태그로 적음.
- */
-const INTEREST_UNLOCK: Record<string, { cats?: string[]; tags?: string[] }> = {
-  음악: { cats: ['music'] },
-  운동: { tags: ['운동', '러닝', '클라이밍', '등산'] },
-  요리: { tags: ['요리', '베이킹'] },
-  식물: { cats: ['nature'] },
-  영화: { cats: ['movie'] },
-  사진: { cats: ['photo'] },
-  독서: { cats: ['book'] },
-  게임: { cats: ['game'] },
-  그림: { tags: ['그림'] },
-  여행: { tags: ['여행', '캠핑'] },
-}
-
-/** 잠금 이유. null 이면 고를 수 있음. picks 가 없으면(관심사를 고르기 전, 온보딩 1단계) 관심사 아이템은 열어 둠 */
-const catOfTag = (tag: string) => CATEGORIES.find((c) => c.tags.some((t) => t.name === tag))?.id
-
+/** 잠금 이유. null 이면 고를 수 있음. picks(세부 관심사 이름 또는 id)가 없으면(관심사를 고르기 전, 온보딩 1단계) 관심사 아이템은 열어 둠 */
 export function lockOf(item: MoleItem, o: { level?: number; picks?: string[] } = {}): string | null {
   if (item.level && (o.level ?? MY_LEVEL) < item.level) return `Lv.${item.level}${item.event ? ' 또는 이벤트' : ''}에 열려요`
-  if (item.interest && o.picks) {
-    const rule = INTEREST_UNLOCK[item.interest]
-    const ok = o.picks.some((t) => rule?.tags?.includes(t) || !!rule?.cats?.includes(catOfTag(t) ?? ''))
-    if (!ok) return `관심사 '${item.interest}'을(를) 고르면 열려요`
+  if (item.interestCat && o.picks && !categoriesOf(o.picks).includes(item.interestCat)) {
+    return `'${item.interest}' 관심사를 하나라도 고르면 열려요`
   }
   return null
 }

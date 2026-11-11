@@ -1,0 +1,73 @@
+# 앉는 위치 (sit points) — HANDOFF v3 (2026-11-11)
+
+> **v3 변경**: ① `room_base_v2.glb`에 **`sit_point_cushion_02`(노란 방석)** 가 들어감. 노란 방석을 (−0.90, 0.35)로 옮기고 +90° 회전했기 때문 (아래 "노란 방석" 절) ② 빈백 `sit_point_chair_01`은 **아직 어느 glb에도 없음** (게임·놀이 가구와 같이 M3에서 전달). 빈백은 슬롯 `furniture_slot_09`에 새로 놓여 위치는 같고(−1.50, −0.60) 방향만 다름 ③ 아래 "앉는 위치를 만들지 못한 가구"는 새 슬롯 배치에서 다시 확인하지 않았음 ④ 문서 안 `room_v5.blend`는 지금 작업 파일 `room_final_v5.blend`
+
+- 원본: `room_final_v5.blend` → 컬렉션 `sit_points` (Empty). `sit_point_cushion_01`, `sit_point_cushion_02`는 `models/room_base_v2.glb`의 방석 노드 자식으로 들어 있음 (이름 `sit_point_cushion_0x`, extras `sit_point: true`)
+- 각 Empty의 위치 = 두더지가 앉았을 때 **엉덩이(루트 뼈, 발밑 중앙)가 놓이는 자리**, Empty의 -Y = 앉아서 바라보는 방향
+- 앉기/일어나기 애니메이션은 이 Empty 기준 좌표로 만들어져 있음 → **재생할 때 두더지 오브젝트(`mole`)를 sit point의 위치·회전에 그대로 두면 됨**
+- 좌표: Blender(Z-up). three.js / glTF(Y-up)로는 `(x, y, z)` → `(x, z, -y)`, 회전은 Y축 기준
+
+## 목록
+
+| 이름 | 가구 | 종류 | 앉는 높이 | 위치 Blender (x, y, z) | 위치 three.js (x, y, z) | 바라보는 방향 |
+|---|---|---|---|---|---|---|
+| `sit_point_cushion_01` | cushion_sky (하늘색 방석) | cushion | 0.13m | (0.06, 1.55, 0.13) | (0.06, 0.13, -1.55) | -Y (카메라 쪽), 회전 0° |
+| `sit_point_chair_01` | bean_bag (빈백, **glb 아직 없음**) | beanbag | 0.24m | (-1.50, -0.60, 0.24) | (-1.50, 0.24, 0.60) | -Y (카메라 쪽), 회전 0° |
+| `sit_point_cushion_02` | cushion_yellow (노란 방석) | cushion | 0.13m | (-0.95, 0.35, 0.13) | (-0.95, 0.13, -0.35) | **+X (방 가운데 쪽), 회전 +90°** (11/11 추가, 방석을 원탁 앞으로 옮김) |
+
+- `chair` 종류는 "점프해서 올라앉는" 자리(높이 0.45m 기준으로 제작)
+- `beanbag` 종류 (11/10 수정): 빈백은 겉 높이는 0.44m지만 가운데가 꺼져 실제 앉는 면이 약 0.26m. 예전엔 0.45m(의자 동작)로 앉혀서 20cm 떠 보였음 → 앉는 높이 0.24m(몸이 빈백에 살짝 묻힘)로 내리고, 점프 높이를 맞춘 전용 동작 `mole_sit_beanbag` / `mole_stand_up_beanbag` 추가. 앉아 있는 동안은 `mole_sit_idle_chair` 그대로 사용
+- 다른 가구를 추가할 때는 높이가 같으면(방석 0.13m / 의자 0.45m) 같은 동작을 그대로 쓸 수 있음
+
+## 이동 지점 (웹에서 걷기로 도착/출발할 위치)
+
+| 이름 | 도착 지점 (걷기 끝, 바닥) | 도착할 때 바라볼 방향 | 일어난 뒤 서 있는 지점 | 일어난 뒤 방향 |
+|---|---|---|---|---|
+| `sit_point_cushion_01` | (0.06, 0.85, 0) = sit point에서 앞으로 0.70m | 방석 쪽(+Y, 회전 180°) | (0.06, 1.20, 0) = 앞으로 0.35m | -Y |
+| `sit_point_chair_01` | (-1.50, -1.30, 0) = 앞으로 0.70m | 빈백 쪽(+Y, 회전 180°) | (-1.50, -1.30, 0) = 앞으로 0.70m | -Y |
+
+(위치는 Blender 좌표. 방 바닥 높이는 0, 러그 위는 0.03)
+
+## 재생 순서
+
+1. `mole_walk`(제자리 걷기 루프, 한 걸음 6프레임, 이동 속도 **0.32 m/s**)로 도착 지점까지 이동. 도착할 때 가구 쪽을 바라보게
+2. `mole` 오브젝트를 sit point 위치·회전으로 옮기고 `mole_sit_cushion` / `mole_sit_chair` / `mole_sit_beanbag` 재생 (첫 프레임 자세가 도착 지점에 서 있는 자세와 같음)
+3. 앉은 동안: `mole_sit_idle`(방석) / `mole_sit_idle_chair`(빈백·의자) 반복
+4. 일어나기: `mole_stand_up_cushion` / `mole_stand_up_chair` / `mole_stand_up_beanbag` → 끝나면 위 표의 "일어난 뒤 서 있는 지점"에 서 있음 → 그 위치로 `mole`을 옮기고 `mole_idle` 또는 `mole_walk`
+
+| Action | 길이 | 반복 |
+|---|---|---|
+| `mole_sit_cushion` | 28f (1.13s) | X |
+| `mole_sit_chair` | 31f (1.25s) | X |
+| `mole_sit_beanbag` | 31f (1.25s) | X |
+| `mole_sit_idle` | 60f (2.5s) | O |
+| `mole_sit_idle_chair` | 60f (2.5s) | O |
+| `mole_stand_up_cushion` | 19f (0.75s) | X |
+| `mole_stand_up_chair` | 19f (0.75s) | X |
+| `mole_stand_up_beanbag` | 19f (0.75s) | X |
+
+## 앉아서 커피 마시기
+
+- `mole_drink`는 **상체만**(upper_body, arm_L, arm_R, 눈, 컵) 움직이도록 정리함. root, lower_body, 발은 건드리지 않음
+- 앉아서 마실 때: `mole_sit_idle`(또는 `_chair`)을 계속 재생하면서 그 위에 `mole_drink`를 덮어 재생
+  - three.js에서는 두 클립이 상체 트랙을 함께 갖고 있으므로, 마시는 동안 sit_idle 클립에서 upper_body·arm·눈 트랙을 빼거나(subclip/트랙 필터) drink의 weight를 우선 적용
+- 서서 마실 때도 같은 `mole_drink` 그대로 사용 가능
+- 앉은 상태(방석·빈백 모두)에서 72프레임 전부 컵·몸·코·팔 겹침 0건 확인
+
+## 노란 방석 `sit_point_cushion_02` (11/11)
+
+- 노란 방석을 원탁 앞쪽(카메라 쪽)으로 옮김: (−0.70, 1.85) → **(−0.90, 0.35)**, **+90° 회전** (방 가운데를 바라보고 앉음, three.js `rotation.y = +90°`)
+- sit point = 방석의 자식, 월드 **(−0.95, 0.35, 0.13)**. 걸어오는 시작점(앞 0.7m) = **(−0.25, 0.35)**
+- 이전 막힌 점(앞 0.7m가 원탁 위)은 **해결됨**. `approach_blocked_by` 표시는 지움
+- 확인: `mole_sit_cushion`·`mole_sit_idle`·`mole_stand_up_cushion` **전 프레임**에서 두더지 몸과 다른 가구(침대, 협탁, 원탁, 하늘색 방석, 빈백, 장식 등) 최소 거리 — 걸어와 앉기 2.7cm / 앉아 있기 4.3cm / 일어나기 4.0cm (모두 2cm 이상). 방석과 다른 가구는 24cm 이상
+- 두더지 자리(0,0)와 앞쪽 통로(x ±0.7, 카메라 쪽)는 막지 않음. 하늘색 방석(−0.10, 1.50)과 겹치지 않음
+- 걸어오는 시작점은 두더지가 서 있는 자리 바로 옆이라, 웹에서는 두더지를 (−0.25, 0.35)에서 −X 방향으로 걷게 하면 됨 (방석 쪽 +90° 회전)
+
+## 앉는 위치를 만들지 못한 가구
+
+| 가구 | 이유 (11/10 기록) |
+|---|---|
+| piano_stool (피아노 의자) | 앉으면 스피커·피아노 건반과 겹침 |
+| drawing_stool (그림 의자) | 앉으면 이젤과 겹침 (러닝머신은 더 이상 방에 없음) |
+
+- ⚠ 위 판단은 **옛 배치** 기준. 관심사 v2에서 두 의자 모두 새 슬롯(`furniture_slot_03`, `furniture_slot_11`)으로 옮겨져서 지금 위치에서는 다시 확인하지 않았음. `drawing_stool`은 이번 `interest_craft_v1.glb`에 들어 있고 `piano_stool`은 M3에 들어옴. 둘 다 **지금은 앉는 위치 없음으로 취급**하고, 앉게 하고 싶으면 3D 쪽에 요청

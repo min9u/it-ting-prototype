@@ -1,0 +1,34 @@
+{
+  "name": "part-on-uncapped",
+  "mode": "swsh",
+  "url": "http://127.0.0.1:5302/burrow?maxfps=0",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 29.1,
+    "renderFps": 29.1,
+    "rafP50": 33,
+    "worstGap": 83,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "moving": {
+    "sec": 8,
+    "rafFps": 31.1,
+    "renderFps": 31.1,
+    "rafP50": 33,
+    "worstGap": 67,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "twoFramesMs": 20
+}

@@ -184,6 +184,7 @@
 .srcTag { display: inline-flex; height: 18px; padding: 0 6px; align-items: center; border-radius: 4px; background: #f3e6d8; color: #9f8a7a; font-size: 10px; }
 .furnResult { display: flex; align-items: center; gap: 12px; min-width: 150px; justify-content: flex-end; }
 .furnResult strong { font-size: 16px; font-weight: 400; }
+.notReady { display: inline-flex; height: 18px; padding: 0 6px; align-items: center; border-radius: 4px; background: #f3e6d8; color: #9f8a7a; font-size: 10px; white-space: nowrap; }
 .cube { width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center; flex: none; }
 .furnSkel { grid-template-columns: minmax(0, 1fr) 44px 96px; }
 .furnSkel span { display: block; border-radius: 4px; background: #f3e6d8; }

@@ -28,7 +28,13 @@ export const REACTIONS: { kind: Reaction; label: string; emoji: string }[] = [
 
 export interface Seat { kind: 'cushion' | 'beanbag' | 'chair'; h: number }
 /** 가구 userData.furniture. sitAt = 앉는 위치 노드 (sit_point_*: 위치 = 엉덩이 자리, 회전 0 = 카메라 쪽을 봄) */
-export interface FurnitureData { id: string; label: string; seat?: Seat; sitAt?: THREE.Object3D; act?: 'drink'; stand?: number }
+export interface FurnitureData {
+  id: string; label: string; seat?: Seat; sitAt?: THREE.Object3D; act?: 'drink'; stand?: number
+  /** 마우스를 올렸을 때 이름표 (관심사 가구) */
+  hint?: string
+  /** 눌러도 앞까지 걸어가지 않음 (벽걸이·선반 소품) */
+  noWalk?: boolean
+}
 
 const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: number }> = {
   cushion: { sit: 'mole_sit_cushion', idle: 'mole_sit_idle', up: 'mole_stand_up_cushion', upOff: .35 },
@@ -67,6 +73,8 @@ export interface MoleActor {
   greet(delay: number): void
   /** 하는 일이 없는지 */
   isIdle(): boolean
+  /** 조종·걷기·동작이 하나도 없음 (제자리 숨쉬기만). 저사양 모드에서 그리기를 멈춰도 되는지 */
+  isResting(): boolean
   /** 지금 mole_greet 를 하는 중인지 (말풍선 타이밍용) */
   isGreeting(): boolean
   /** 말풍선 붙일 머리 위 월드 좌표 */
@@ -363,6 +371,7 @@ export function createMoleActor(gltf: GLTF, opts: {
       setPlan([...standUp(), walkStep(arrive), turnStep(() => yaw + Math.PI), sitStep(new THREE.Vector3(gp.x, 0, gp.z), yaw, f.seat)])
       return true
     }
+    if (f.noWalk) return true
     // 가구 앞(방 가운데 쪽) 선 자리
     const to = new THREE.Vector3(-gp.x, 0, 1 - gp.z); to.normalize()
     const stand = new THREE.Vector3(gp.x, 0, gp.z).addScaledVector(to, f.stand ?? 1.4)
@@ -477,6 +486,7 @@ export function createMoleActor(gltf: GLTF, opts: {
     faceTowards(p) { const q = p.clone(); setPlan([...standUp(), turnStep(() => yawTo(q))]) },
     greet(delay) { setPlan([...standUp(), waitStep(delay), clipStep('mole_greet')]) },
     isIdle: () => !cur && !plan.length,
+    isResting: () => !cur && !plan.length && !driving && driveDir.lengthSq() === 0,
     isGreeting: () => current === act('mole_greet') && current.isRunning(),
     headTop(out) { return out.set(object.position.x, object.position.y + 1.2 * S, object.position.z) },
     setWorn(ids) { dress?.setWorn(ids) },

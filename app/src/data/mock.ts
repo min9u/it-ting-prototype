@@ -1,43 +1,51 @@
 import type {
   Category, ChatRequest, ChatRoom, GuestbookEntry, Meetup, Post, Tone, User,
 } from './types'
+import { INTEREST_CATS, subOf, subsIn } from './interests'
 
-/* ===== 관심 분야 11종 (Category Icon / *) ===== */
-export const CATEGORIES: Category[] = [
-  { id: 'music', name: '음악', emoji: '🎵', tone: 'lilac', tags: [
-    { name: '시티팝', count: 1240 }, { name: 'LP 수집', count: 860 }, { name: '재즈', count: 2100 },
-    { name: '인디밴드', count: 3400 }, { name: '공연', count: 1700 }, { name: '작곡', count: 640 },
-    { name: '플레이리스트', count: 2890 }, { name: '클래식', count: 3100 }, { name: '뮤직 페스티벌', count: 1950 },
-    { name: '피아노', count: 1320 }, { name: '음악', count: 5200 } ] },
-  { id: 'photo', name: '사진', emoji: '📷', tone: 'mint', tags: [
-    { name: '사진', count: 4100 }, { name: '필름카메라', count: 720 }, { name: '폴라로이드', count: 530 },
-    { name: '풍경 사진', count: 1800 }, { name: '인물 사진', count: 940 } ] },
-  { id: 'nature', name: '자연 · 식물', emoji: '🌿', tone: 'sage', tags: [
-    { name: '테라리움', count: 210 }, { name: '반려식물', count: 2300 }, { name: '텃밭', count: 480 },
-    { name: '꽃꽂이', count: 390 }, { name: '산책', count: 3600 } ] },
-  { id: 'game', name: '게임 · 놀이', emoji: '🎮', tone: 'sky', tags: [
-    { name: '게임', count: 6100 }, { name: '보드게임', count: 1900 }, { name: '체스', count: 260 },
-    { name: '레트로 게임', count: 640 }, { name: '방탈출', count: 1500 } ] },
-  { id: 'craft', name: '공예 · 만들기', emoji: '🧶', tone: 'clay', tags: [
-    { name: '그림', count: 3300 }, { name: '뜨개질', count: 420 }, { name: '도자기', count: 350 },
-    { name: '레고', count: 1100 }, { name: '다꾸', count: 980 } ] },
-  { id: 'book', name: '책 · 글', emoji: '📚', tone: 'butter', tags: [
-    { name: '독서', count: 4800 }, { name: '독립서점', count: 520 }, { name: '필사', count: 310 },
-    { name: 'SF 소설', count: 690 }, { name: '에세이', count: 1400 } ] },
-  { id: 'space', name: '우주 · 과학', emoji: '🔭', tone: 'sky', tags: [
-    { name: '별 보기', count: 450 }, { name: '천체 사진', count: 140 }, { name: '과학 유튜브', count: 1600 } ] },
-  { id: 'cafe', name: '차 · 커피 · 베이킹', emoji: '☕', tone: 'butter', tags: [
-    { name: '요리', count: 3900 }, { name: '홈카페', count: 2200 }, { name: '베이킹', count: 1700 },
-    { name: '핸드드립', count: 760 }, { name: '전통차', count: 190 } ] },
-  { id: 'outdoor', name: '운동 · 아웃도어', emoji: '🥾', tone: 'sand', tags: [
-    { name: '운동', count: 5600 }, { name: '캠핑', count: 2600 }, { name: '여행', count: 5900 },
-    { name: '등산', count: 2500 }, { name: '클라이밍', count: 880 }, { name: '러닝', count: 2100 } ] },
-  { id: 'movie', name: '영화 · 애니', emoji: '🎬', tone: 'rose', tags: [
-    { name: '영화', count: 5100 }, { name: '지브리', count: 1300 }, { name: '독립영화', count: 410 },
-    { name: '애니메이션', count: 2400 } ] },
-  { id: 'pet', name: '반려동물', emoji: '🐾', tone: 'clay', tags: [
-    { name: '강아지', count: 3100 }, { name: '고양이', count: 3300 }, { name: '파충류', count: 120 } ] },
-]
+/* ===== 관심 분야 11종 · 세부 관심사 65개 (3D 핸드오프 v3 interest_catalog.json, data/interests.ts) ===== */
+// 이름·순서는 카탈로그에서 읽고, 여기에는 화면 꾸밈(이모지·색)과 목 인원수만 둠
+const CAT_LOOK: Record<string, { emoji: string; tone: Tone }> = {
+  music: { emoji: '🎵', tone: 'lilac' }, photo: { emoji: '📷', tone: 'mint' }, nature: { emoji: '🌿', tone: 'sage' },
+  game: { emoji: '🎮', tone: 'sky' }, craft: { emoji: '🧶', tone: 'clay' }, book: { emoji: '📚', tone: 'butter' },
+  science: { emoji: '🔭', tone: 'sky' }, tea_coffee: { emoji: '☕', tone: 'butter' }, outdoor: { emoji: '🥾', tone: 'sand' },
+  movie: { emoji: '🎬', tone: 'rose' }, pet: { emoji: '🐾', tone: 'clay' },
+}
+/** 같은 관심사를 고른 사람 수 (목 데이터. 적을수록 니치 → 방 무드 가중치·온보딩 숫자) */
+const TAG_COUNTS: Record<string, number> = {
+  city_pop: 1240, lp_collecting: 860, jazz: 2100, indie_band: 3400, guitar_play: 2700, synth_compose: 640, piano: 1320, drums: 980, oldies: 1450,
+  film_camera: 720, photo_walk: 2600,
+  terrarium: 210, houseplants: 2300, tropical_fish: 380, bonsai: 170, succulents: 1500, mushroom_grow: 60,
+  retro_game: 640, mech_keyboard: 910, figures: 1300, board_game: 1900, pc_build: 1100, arcade: 450, gunpla: 820, chess: 260, speed_cube: 190, magic: 95,
+  knitting: 420, watercolor: 1600, pottery: 350, embroidery: 280, sewing: 330, model_railway: 75,
+  sf_novel: 690, poetry: 540, transcription: 310, typewriter: 120,
+  stargazing: 450, constellations: 380, fossils: 90, minerals: 140, map_globe: 230, ham_radio: 45, meteorites: 30, insect_specimens: 70, dinosaurs: 520,
+  black_tea: 680, hand_drip: 760, baking: 1700, espresso: 900, tea_ceremony: 190,
+  camping: 2600, cycling: 2400, climbing: 880, yoga: 1900, skateboard: 410,
+  classic_film: 610, animation: 2400, comics: 1800, vhs: 85,
+  cat: 3300, dog: 3100, parrot: 160, lizard: 120, ant_farm: 40,
+}
+
+export const CATEGORIES: Category[] = INTEREST_CATS.map((c) => ({
+  id: c.id, name: c.name_ko, emoji: CAT_LOOK[c.id]?.emoji ?? '🌱', tone: CAT_LOOK[c.id]?.tone ?? 'sand',
+  tags: subsIn(c.id).map((t) => ({ id: t.id, name: t.name_ko, count: TAG_COUNTS[t.id] ?? 500 })),
+}))
+
+/**
+ * 게시판·모임에 붙은 예전 주제 이름 → 카테고리 (관심사 v2 목록에 없는 말이라 따로 연결).
+ * 세부 관심사 이름이면 카탈로그로 바로 찾음
+ */
+const TOPIC_CATEGORY: Record<string, string> = {
+  독서: 'book', 에세이: 'book', 'SF 소설': 'book', 그림: 'craft', 요리: 'tea_coffee', 홈카페: 'tea_coffee',
+  러닝: 'outdoor', 운동: 'outdoor', 여행: 'outdoor', 등산: 'outdoor', 지브리: 'movie', 영화: 'movie',
+  사진: 'photo', 게임: 'game', 음악: 'music', 공연: 'music',
+}
+
+/** 관심사(세부 관심사 이름·예전 주제 이름·카테고리 이름) → 카테고리 */
+export function categoryOf(interest: string): Category | undefined {
+  const id = subOf(interest)?.category ?? TOPIC_CATEGORY[interest]
+  return CATEGORIES.find((c) => c.id === id || c.name === interest)
+}
 
 /** 스크린샷에서 확인한 칩 색. 나머지는 분류 색을 따른다 */
 const TONE_OVERRIDE: Record<string, Tone> = {
@@ -47,8 +55,7 @@ const TONE_OVERRIDE: Record<string, Tone> = {
 
 export function toneOf(interest: string): Tone {
   if (TONE_OVERRIDE[interest]) return TONE_OVERRIDE[interest]
-  const cat = CATEGORIES.find((c) => c.tags.some((t) => t.name === interest) || c.name === interest)
-  return cat?.tone ?? 'sand'
+  return categoryOf(interest)?.tone ?? 'sand'
 }
 
 /* ===== 사람 ===== */
@@ -57,14 +64,14 @@ export const ME_ID = 'me'
 export const USERS: Record<string, User> = {
   me: {
     id: 'me', nickname: '닉네임', affiliation: 'SSAFY 16기 · 지역 · 0반', intro: '',
-    interests: ['캠핑', '게임', '독서', '음악', '피아노', '그림', '사진', '운동', '여행', '요리'],
+    interests: ['캠핑', '레트로게임', 'SF소설', '시티팝', '피아노', '수채화', '필름카메라', '고전영화', '핸드드립', '자전거'],
     visitorsNow: 2,
   },
-  seobeok: { id: 'seobeok', nickname: '서벅이', affiliation: 'SSAFY 16기 · 서울 · 3반', intro: '', interests: ['그림', '보드게임'], worn: ['hat_beret', 'glasses_round', 'scarf_stripe', 'prop_palette'] },
+  seobeok: { id: 'seobeok', nickname: '서벅이', affiliation: 'SSAFY 16기 · 서울 · 3반', intro: '', interests: ['수채화', '보드게임'], worn: ['hat_beret', 'glasses_round', 'scarf_stripe', 'prop_palette'] },
   yerin: {
     id: 'yerin', nickname: '예린', affiliation: 'SSAFY 서울 2반', online: true,
     intro: '안녕하세요. 저는 먹는 것을 좋아하는 개발자입니다. 제 방에 놀러오세요~~',
-    interests: ['캠핑', '요리', '그림', '게임', '고양이'],
+    interests: ['캠핑', '베이킹', '수채화', '레트로게임', '고양이'],
     worn: ['hat_chef', 'glasses_round', 'scarf_knit', 'prop_cup'],
     qna: [
       { q: 'Q1. 쉬는 날에는 주로 무엇을 하나요?', a: '낮잠 자고 오후 늦게 일어납니다... 그리고 뒹굴 뒹굴' },
@@ -72,14 +79,14 @@ export const USERS: Record<string, User> = {
       { q: 'Q3. 내 방에 놀러 온 사람들에게 한마디!', a: '방 구경하시고 편하게 연락주세요!!!' },
     ],
   },
-  seoyeon: { id: 'seoyeon', nickname: '서연', affiliation: 'SSAFY 16기 · 서울 · 5반', intro: '', interests: ['독서', '에세이'], online: true, worn: ['hat_straw', 'glasses_sun', 'camera_neck', 'prop_book'] },
-  mingu: { id: 'mingu', nickname: '민구', affiliation: 'SSAFY 16기 · 서울 · 1반', intro: '', interests: ['독서', '게임'], worn: ['headphones', 'glasses_sun', 'bowtie', 'prop_gamepad'] },
-  yejin: { id: 'yejin', nickname: '예진', affiliation: 'SSAFY 16기 · 서울 · 4반', intro: '', interests: ['독서', '홈카페'] },
-  kim: { id: 'kim', nickname: '김OO', affiliation: 'SSAFY 13기 · 서울', intro: '', interests: ['독서', 'SF 소설', '캠핑'] },
-  lee: { id: 'lee', nickname: '이OO', affiliation: 'SSAFY 16기 · 서울', intro: '', interests: ['독서'] },
-  park: { id: 'park', nickname: '박OO', affiliation: 'SSAFY 16기 · 대전', intro: '', interests: ['독서', '그림'] },
-  choi: { id: 'choi', nickname: '최OO', affiliation: 'SSAFY 16기 · 구미', intro: '', interests: ['에세이'] },
-  ha: { id: 'ha', nickname: '하늘', affiliation: 'SSAFY 서울 6반', intro: '', interests: ['캠핑', '사진'] },
+  seoyeon: { id: 'seoyeon', nickname: '서연', affiliation: 'SSAFY 16기 · 서울 · 5반', intro: '', interests: ['시집', '필사', '필름카메라'], online: true, worn: ['hat_straw', 'glasses_sun', 'camera_neck', 'prop_book'] },
+  mingu: { id: 'mingu', nickname: '민구', affiliation: 'SSAFY 16기 · 서울 · 1반', intro: '', interests: ['SF소설', '레트로게임'], worn: ['headphones', 'glasses_sun', 'bowtie', 'prop_gamepad'] },
+  yejin: { id: 'yejin', nickname: '예진', affiliation: 'SSAFY 16기 · 서울 · 4반', intro: '', interests: ['시집', '핸드드립'] },
+  kim: { id: 'kim', nickname: '김OO', affiliation: 'SSAFY 13기 · 서울', intro: '', interests: ['SF소설', '시집', '캠핑'] },
+  lee: { id: 'lee', nickname: '이OO', affiliation: 'SSAFY 16기 · 서울', intro: '', interests: ['SF소설'] },
+  park: { id: 'park', nickname: '박OO', affiliation: 'SSAFY 16기 · 대전', intro: '', interests: ['SF소설', '수채화'] },
+  choi: { id: 'choi', nickname: '최OO', affiliation: 'SSAFY 16기 · 구미', intro: '', interests: ['필사'] },
+  ha: { id: 'ha', nickname: '하늘', affiliation: 'SSAFY 서울 6반', intro: '', interests: ['캠핑', '사진산책'] },
 }
 
 export const userOf = (id: string): User => USERS[id] ?? USERS.seobeok

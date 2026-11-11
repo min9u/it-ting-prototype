@@ -17,6 +17,8 @@ function stripAvifProbe(): Plugin {
 export default defineConfig(({ mode }) => ({
   plugins: [react(), stripAvifProbe()],
   server: { port: 5173 },
+  // public/ 은 Draco wasm 해독기(일반 빌드용)뿐. 공유 빌드는 JS 해독기를 번들에 넣으므로 복사하지 않음 (three/glb.ts)
+  publicDir: mode === 'share' ? false : 'public',
   build: {
     // three.js 청크(약 530kB)는 땅굴·밭 화면에서만 따로 불러오므로 경고 기준을 조금 올림
     chunkSizeWarningLimit: 600,

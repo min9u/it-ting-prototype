@@ -18,7 +18,7 @@ const LABELS = [
   { cat: '사진', item: '카메라', x: 1080, y: 482, bx: 40, by: -131, w: 54 },
   { cat: '캠핑', item: '배낭', x: 318, y: 575, bx: -121, by: -81, w: 43 },
 ]
-const ROOM_INTERESTS = ['게임', '독서', '음악', '그림', '사진', '캠핑']
+const ROOM_INTERESTS = ['레트로게임', 'SF소설', '시티팝', '수채화', '필름카메라', '캠핑']
 
 /** 랜딩 04 이웃 태그 (Neighbour Tag, 1440×900 기준 왼쪽 위) */
 const NEIGHBORS = [

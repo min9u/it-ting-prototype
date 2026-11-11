@@ -1,4 +1,49 @@
 import * as THREE from 'three'
+import { graphicsTier } from '../lib/graphicsTier'
+
+/*
+ * 품질 묶음 (docs/gpu-fallback-research.md "결정" 2번).
+ * - high: GPU. 원래 품질 그대로 (해상도 기기 배율 최대 2, 안티앨리어싱, 그림자, 후처리, fps 제한 없음, 계속 그림)
+ * - low: 그래픽 가속이 꺼져 CPU로 그리는 PC(WARP·SwiftShader). 해상도 0.55배를 CSS로 늘림, 안티앨리어싱·그림자·후처리 끔,
+ *   움직일 때 15fps 제한, 가만히 1초 지나면 그리기를 멈춤 (메인 스레드가 놀아서 버튼·스크롤이 정상)
+ * - 'gpu'로 감지돼도 처음 2초 평균 프레임 시간이 50ms를 넘으면 low로 내리고, 이 탭에서는 계속 low (startLoop)
+ */
+export interface Quality {
+  level: 'high' | 'low'
+  /** renderer.setPixelRatio 값 (CSS 픽셀당 그리는 픽셀 수) */
+  pixelRatio: number
+  antialias: boolean
+  /** 실시간 그림자 맵 (끄면 장면이 발밑 그림자 판으로 대신) */
+  shadows: boolean
+  /** EffectComposer 후처리 (N8AO·색보정) */
+  post: boolean
+  /** 움직이는 동안 최대 fps (0 = 제한 없음) */
+  maxFps: number
+  /** 바쁜 일이 없고 입력이 없으면 루프를 멈춤 */
+  idleStop: boolean
+  /** 멈추기 전에 기다리는 시간 (초) */
+  idleAfter: number
+}
+
+const HIGH = (): Quality => ({ level: 'high', pixelRatio: Math.min(window.devicePixelRatio || 1, 2), antialias: true, shadows: true, post: true, maxFps: 0, idleStop: false, idleAfter: 1 })
+const LOW = (): Quality => ({ level: 'low', pixelRatio: 0.55, antialias: false, shadows: false, post: false, maxFps: 15, idleStop: true, idleAfter: 1 })
+
+/** 자동으로 내렸는지 (탭이 살아 있는 동안 기억 → 다음 장면도 처음부터 low) */
+let downgraded = false
+const AUTO_AVG_MS = 50, AUTO_SKIP_MS = 500, AUTO_WINDOW_MS = 2000
+
+/** 장면마다 새 객체를 받음 (자동으로 내릴 때 그 장면의 객체를 low 값으로 덮어씀) */
+export function quality(): Quality {
+  const q = graphicsTier() === 'software' || downgraded ? LOW() : HIGH()
+  const f = testParam('maxfps')
+  if (f !== null) q.maxFps = +f
+  return q
+}
+
+/** 측정용 주소 손잡이 (?maxfps=0 → fps 제한 없음, ?partial=0 → 땅굴 부분 그리기 끔) */
+export function testParam(name: string): string | null {
+  try { return (location.search + location.hash).match(new RegExp(`[?&]${name}=(\\w+)`))?.[1] ?? null } catch { return null }
+}
 
 /** 각 장면이 React 쪽에 돌려주는 손잡이 */
 export interface SceneHandle {
@@ -19,13 +64,15 @@ export interface SceneHandle {
  * 캔버스를 매번 새로 만드는 이유: React StrictMode가 effect를 두 번 돌릴 때
  * 같은 캔버스에 forceContextLoss() 뒤 다시 붙으면 잃어버린 컨텍스트를 그대로 받게 됨.
  */
-export function createRenderer(container: HTMLElement, o: { alpha?: boolean; exposure: number; shadowType: THREE.ShadowMapType }) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: !!o.alpha, powerPreference: 'high-performance' })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+export function createRenderer(container: HTMLElement, o: { alpha?: boolean; exposure: number; shadowType: THREE.ShadowMapType; quality: Quality; preserve?: boolean }) {
+  const q = o.quality
+  // preserve: 지난 프레임 그림을 남겨 둠 (땅굴 저사양의 부분 그리기용)
+  const renderer = new THREE.WebGLRenderer({ antialias: q.antialias, alpha: !!o.alpha, powerPreference: 'high-performance', preserveDrawingBuffer: !!o.preserve })
+  renderer.setPixelRatio(q.pixelRatio)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.NeutralToneMapping
   renderer.toneMappingExposure = o.exposure
-  renderer.shadowMap.enabled = true
+  renderer.shadowMap.enabled = q.shadows
   renderer.shadowMap.type = o.shadowType
   if (o.alpha) renderer.setClearColor(0x000000, 0)
   const el = renderer.domElement
@@ -75,48 +122,108 @@ export function frameCamera(cam: THREE.PerspectiveCamera, W: number, H: number, 
   cam.setViewOffset(box.w, box.h, -box.left, -box.top, W, H)
 }
 
+export interface LoopCallbacks {
+  resize(w: number, h: number): void
+  frame(dt: number, t: number): void
+  /** 지금 움직이는 게 있는지 (두더지 동작·떨어지기·줌·카메라 감속 등). 없으면 idleStop 일 때 루프가 멈춤 */
+  busy?(): boolean
+  /** 자동으로 low 로 내려갔을 때 (q 는 이미 low 값). 해상도·후처리·그림자를 바로 바꿀 것 */
+  downgrade?(q: Quality): void
+}
+
 /**
  * requestAnimationFrame 루프. 마운트하자마자 첫 프레임은 동기로 그린다
  * (헤드리스 브라우저에서는 rAF가 거의 안 돌아서). 탭이 숨으면 멈춘다.
+ * - q.maxFps: 그 간격보다 빨리 온 rAF는 건너뜀 (사이 시간에 메인 스레드가 입력·UI를 처리)
+ * - q.idleStop: busy() 가 거짓이고 입력이 없는 상태가 q.idleAfter 초 지나면 멈춤.
+ *   캔버스 위 누르기·끌기·휠, wake() 호출(키 조종·리액션·액세서리·focusX), 크기 변경, 탭 다시 보임에 다시 시작
+ * - high 품질이면 ready() 뒤 2초 평균 프레임 간격을 재서 50ms가 넘으면 low 로 내림 (cb.downgrade)
  */
-export function startLoop(container: HTMLElement, cb: { resize(w: number, h: number): void; frame(dt: number, t: number): void }) {
+export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality) {
   let raf = 0, last = 0, t = 0, running = false, alive = true
+  let awakeUntil = 0
+  // 자동 내리기 측정: ready() 시각, 지난 rAF 시각, 모은 간격 합·개수
+  let probeFrom = -1, probePrev = 0, probeSum = 0, probeN = 0
   const doResize = () => {
     const w = container.clientWidth, h = container.clientHeight
     if (!w || !h) return false
     cb.resize(w, h)
     return true
   }
+  const probe = (now: number) => {
+    if (probeFrom < 0 || q.level !== 'high' || !cb.downgrade) return
+    if (now - probeFrom < AUTO_SKIP_MS) { probePrev = now; return } // 셰이더 컴파일·텍스처 올리기 구간은 뺌
+    if (probePrev) { probeSum += now - probePrev; probeN++ }
+    probePrev = now
+    if (probeSum < AUTO_WINDOW_MS) return
+    const avg = probeSum / probeN
+    probeFrom = -1
+    if (avg > AUTO_AVG_MS) {
+      downgraded = true
+      Object.assign(q, LOW())
+      console.info(`[3D] 프레임이 느려서(평균 ${avg.toFixed(0)}ms) 저사양 모드로 바꿔요`)
+      cb.downgrade(q)
+      doResize()
+    }
+  }
   const tick = (now: number) => {
     if (!running) return
     raf = requestAnimationFrame(tick)
+    probe(now)
+    if (q.maxFps && now - last < 1000 / q.maxFps - 4) return // fps 제한 (rAF 간격 흔들림 4ms 여유)
     const dt = Math.min((now - last) / 1000, 0.1)
     last = now
     t += dt
     cb.frame(dt, t)
+    if (q.idleStop) {
+      if (cb.busy?.()) awakeUntil = Math.max(awakeUntil, now + q.idleAfter * 1000)
+      else if (now > awakeUntil) pause()
+    }
   }
   const play = () => {
     if (running || !alive || document.hidden) return
     running = true
     last = performance.now()
+    probePrev = 0
     raf = requestAnimationFrame(tick)
   }
   const pause = () => { running = false; cancelAnimationFrame(raf) }
-  const onVis = () => (document.hidden ? pause() : play())
-  const ro = new ResizeObserver(() => { if (alive && doResize()) cb.frame(0, t) })
+  const wake = () => {
+    if (!alive) return
+    awakeUntil = Math.max(awakeUntil, performance.now() + q.idleAfter * 1000)
+    play()
+  }
+  const onVis = () => (document.hidden ? pause() : wake())
+  const ro = new ResizeObserver(() => { if (alive && doResize()) { cb.frame(0, t); wake() } })
   ro.observe(container)
   document.addEventListener('visibilitychange', onVis)
+  // 캔버스 위 입력 → 다시 그리기. 마우스를 그냥 움직이는 것은 끌 때(버튼 누름)만
+  const onPointer = (e: PointerEvent) => { if (e.type !== 'pointermove' || e.buttons) wake() }
+  container.addEventListener('pointerdown', onPointer)
+  container.addEventListener('pointermove', onPointer)
+  container.addEventListener('pointerup', onPointer)
+  container.addEventListener('wheel', wake, { passive: true })
   if (doResize()) cb.frame(0, 0) // 첫 프레임 동기 렌더
-  play()
+  wake()
   return {
-    resize() { if (doResize()) cb.frame(0, t) },
-    /** 다음 프레임에서 바로 다시 그리도록 (루프가 멈춰 있어도) */
+    resize() { if (doResize()) { cb.frame(0, t); wake() } },
+    /** 지금 한 번 그림 (루프가 멈춰 있어도) */
     redraw() { cb.frame(0, t) },
+    /** 루프를 다시 돌림 (idleStop 이면 idleAfter 초 동안은 바쁘지 않아도 그림) */
+    wake,
+    /** 루프가 돌고 있는지 */
+    isRunning: () => running,
+    /** 장면이 다 불러와졌을 때. 이때부터 자동 내리기용 프레임 시간을 잼 */
+    ready() { probeFrom = performance.now(); probePrev = 0; probeSum = 0; probeN = 0; cb.frame(0, t); wake() },
     stop() {
       alive = false
       pause()
       ro.disconnect()
       document.removeEventListener('visibilitychange', onVis)
+      container.removeEventListener('pointerdown', onPointer)
+      container.removeEventListener('pointermove', onPointer)
+      container.removeEventListener('pointerup', onPointer)
+      container.removeEventListener('wheel', wake)
     },
   }
 }

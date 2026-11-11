@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { CATEGORIES } from '../data/mock'
+import { categoryOf } from '../data/mock'
 import type { Meetup } from '../data/types'
 import { dateLabel } from '../lib/format'
 import InterestChip from './InterestChip'
@@ -8,7 +8,7 @@ import { CalendarIcon, PinIcon } from './Icons'
 import styles from './MeetupCard.module.css'
 
 function emojiOf(interest: string) {
-  return CATEGORIES.find((c) => c.tags.some((t) => t.name === interest))?.emoji ?? '🌱'
+  return categoryOf(interest)?.emoji ?? '🌱'
 }
 
 /** 모집 상태: 모집 중 / 마감 임박(1자리) / 모집 완료 */

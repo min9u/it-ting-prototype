@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { createRenderer, destroyRenderer, disposeObject, startLoop } from './engine'
+import { createRenderer, destroyRenderer, disposeObject, quality, startLoop } from './engine'
 import { loadMoleGltf } from './moleActor'
 import { createMoleDress, loadAccessories, type MoleDress } from './moleDress'
 import { blobShadow } from './roomLook'
@@ -14,7 +14,9 @@ import { blobShadow } from './roomLook'
 interface Handle { setWorn(ids: string[]): void; setSpin(on: boolean): void; dispose(): void }
 
 function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onReady(): void }): Handle {
-  const renderer = createRenderer(el, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap })
+  // 저사양(engine.ts)이면 해상도를 낮추고 15fps. 돌리기를 멈춘 뒤 1초 지나면 그리기도 멈춤
+  const q = quality()
+  const renderer = createRenderer(el, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q })
   renderer.toneMapping = THREE.AgXToneMapping
   renderer.shadowMap.enabled = false
   const scene = new THREE.Scene()
@@ -42,7 +44,7 @@ function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onRea
     dress = createMoleDress(model, acc)
     dress.setWorn(worn)
     mixer.update(0); dress.update(0, 'mole_showcase')
-    loop.redraw()
+    loop.ready()
     o.onReady()
   }).catch((e) => console.warn('[3D] 미리 보기 두더지를 못 불러왔어요', e))
 
@@ -55,10 +57,12 @@ function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onRea
       dress?.update(dt, 'mole_showcase')
       renderer.render(scene, camera)
     },
-  })
+    busy: () => spin && !reduce,
+    downgrade(nq) { renderer.setPixelRatio(nq.pixelRatio) },
+  }, q)
   return {
-    setWorn(ids) { worn = ids; dress?.setWorn(ids); dress?.update(0, 'mole_showcase'); loop.redraw() },
-    setSpin(on) { spin = on },
+    setWorn(ids) { worn = ids; dress?.setWorn(ids); dress?.update(0, 'mole_showcase'); loop.redraw(); loop.wake() },
+    setSpin(on) { spin = on; loop.wake() },
     dispose() {
       dead = true; loop.stop(); dress?.dispose(); mixer?.stopAllAction()
       disposeObject(scene); destroyRenderer(renderer)

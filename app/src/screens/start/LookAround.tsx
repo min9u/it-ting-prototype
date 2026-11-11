@@ -12,9 +12,9 @@ import s from './Start.module.css'
  *  - tag: Burrow Tag 왼쪽 위 (오른쪽 굴은 시안 그대로 (1120, 430))
  */
 const BURROWS = [
-  { id: 'mingu', name: '민구굴', tags: '독서 · 게임 · 캠핑', interests: ['독서', '게임', '캠핑'], hot: [1177, 395, 220, 65], tag: [1120, 430] },
-  { id: 'seoyeon', name: '서연굴', tags: '독서 · 에세이 · 홈카페', interests: ['독서', '에세이', '홈카페'], hot: [678, 515, 295, 105], tag: [235, 470] },
-  { id: 'yerin', name: '예린굴', tags: '요리 · 캠핑 · 그림', interests: ['요리', '캠핑', '그림'], hot: [292, 360, 210, 55], tag: [150, 205] },
+  { id: 'mingu', name: '민구굴', tags: '독서 · 게임 · 캠핑', interests: ['SF소설', '레트로게임', '캠핑'], hot: [1177, 395, 220, 65], tag: [1120, 430] },
+  { id: 'seoyeon', name: '서연굴', tags: '독서 · 에세이 · 홈카페', interests: ['시집', '필사', '핸드드립'], hot: [678, 515, 295, 105], tag: [235, 470] },
+  { id: 'yerin', name: '예린굴', tags: '요리 · 캠핑 · 그림', interests: ['베이킹', '캠핑', '수채화'], hot: [292, 360, 210, 55], tag: [150, 205] },
 ] as const
 const FREE = 3
 

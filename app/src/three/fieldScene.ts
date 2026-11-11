@@ -10,7 +10,8 @@ import { bindDriveKeys } from './keys'
 import { getMyWorn } from '../data/moleItems'
 import { gradientEnv, FIELD_ENV } from './lighting'
 import { fieldGradePass } from './post'
-import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
+import { blobShadow } from './roomLook'
+import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, quality, startLoop, type SceneHandle } from './engine'
 
 /*
  * 탐색하기 밭 장면. explore/3d/field.html 을 옮김 ("PlayCanvas식 조명" 버전만, 비교 UI는 뺌).
@@ -40,14 +41,18 @@ export function groundHeight(x: number, z0: number) {
 class Inst {
   m: THREE.Matrix4[] = []
   c: THREE.Color[] = []
-  constructor(public geo: THREE.BufferGeometry, public mat: THREE.Material) {}
+  im: THREE.InstancedMesh | null = null
+  /** low = 저사양용 거친 지오메트리 (CPU 렌더러는 정점 수가 병목이라 꽃·덤불 구 분할을 줄임) */
+  constructor(public geo: THREE.BufferGeometry, public mat: THREE.Material, public low: THREE.BufferGeometry) {}
   push(matrix: THREE.Matrix4, color: string) { this.m.push(matrix.clone()); this.c.push(new THREE.Color(color)) }
-  build(scene: THREE.Object3D) {
+  build(scene: THREE.Object3D, lite: boolean) {
     if (!this.m.length) return
-    const im = new THREE.InstancedMesh(this.geo, this.mat, this.m.length)
+    const im = this.im = new THREE.InstancedMesh(lite ? this.low : this.geo, this.mat, this.m.length)
     this.m.forEach((mm, i) => { im.setMatrixAt(i, mm); im.setColorAt(i, this.c[i]) })
     im.castShadow = true; im.receiveShadow = true; scene.add(im)
   }
+  /** 자동으로 저사양이 됐을 때 지오메트리만 바꿔 끼움 */
+  useLow() { if (this.im && this.im.geometry !== this.low) { this.im.geometry = this.low; this.geo.dispose() } }
 }
 
 function holeTex() {
@@ -63,7 +68,9 @@ function holeTex() {
 }
 
 export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions = {}): SceneHandle {
-  const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap })
+  // 품질 (engine.ts). 저사양: 후처리(N8AO·색보정) 없이 renderer.render, 해 그림자 맵 대신 발밑 그림자 판, 해상도 0.55배, 15fps, 쉬면 멈춤
+  const q = quality()
+  const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q })
   const scene = new THREE.Scene()
   scene.environment = gradientEnv(renderer, FIELD_ENV)
   scene.environmentIntensity = .85
@@ -105,11 +112,19 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   /* ---------- 조명 (PlayCanvas식: 환경광 + 부드러운 그림자) ---------- */
   const sun = new THREE.DirectionalLight('#fff6e8', 2.3)
   sun.position.set(-11, 13, 4); sun.target.position.set(0, 0, -6)
-  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 5; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.06
+  sun.castShadow = q.shadows; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 5; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.06
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 })
   scene.add(sun, sun.target)
 
   /* ---------- 땅 ---------- */
+  // 분할 수: 원래 240 (정점 5.8만). 저사양은 96 (먼 언덕만 굴곡이 있어서 차이가 거의 안 보임)
+  const groundGeo = (seg: number) => {
+    const geo = new THREE.PlaneGeometry(600, 600, seg, seg); geo.rotateX(-Math.PI / 2)
+    const pa = geo.attributes.position
+    for (let i = 0; i < pa.count; i++) pa.setY(i, groundHeight(pa.getX(i), pa.getZ(i)))
+    geo.computeVertexNormals()
+    return geo
+  }
   let ground: THREE.Mesh
   {
     const c = document.createElement('canvas'); c.width = c.height = 512
@@ -117,11 +132,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     g.fillStyle = '#9ccc58'; g.fillRect(0, 0, 512, 512)
     for (let i = 0; i < 900; i++) { g.fillStyle = Math.random() < .5 ? 'rgba(170,225,95,.18)' : 'rgba(95,165,45,.14)'; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 14, 0, 7); g.fill() }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 30)
-    const geo = new THREE.PlaneGeometry(600, 600, 240, 240); geo.rotateX(-Math.PI / 2)
-    const pa = geo.attributes.position
-    for (let i = 0; i < pa.count; i++) pa.setY(i, groundHeight(pa.getX(i), pa.getZ(i)))
-    geo.computeVertexNormals()
-    ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 1, color: '#f4f8e4' }))
+    ground = new THREE.Mesh(groundGeo(q.post ? 240 : 96), new THREE.MeshStandardMaterial({ map: t, roughness: 1, color: '#f4f8e4' }))
     ground.name = 'ground'
     ground.receiveShadow = true; scene.add(ground)
   }
@@ -129,11 +140,11 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   /* ---------- 인스턴스 모음 (꽃·덤불·돌) ---------- */
   const white = (o: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85, ...o })
   const I = {
-    ball: new Inst(new THREE.SphereGeometry(1, 20, 14), white({ bumpMap: NOISE, bumpScale: .3 })),
-    petal: new Inst(new THREE.SphereGeometry(1, 12, 8), white()),
-    core: new Inst(new THREE.SphereGeometry(1, 14, 10), white()),
-    stem: new Inst(new THREE.CylinderGeometry(1, 1, 1, 6), white()),
-    leaf: new Inst(new THREE.SphereGeometry(1, 10, 6), white()),
+    ball: new Inst(new THREE.SphereGeometry(1, 20, 14), white({ bumpMap: NOISE, bumpScale: .3 }), new THREE.SphereGeometry(1, 8, 6)),
+    petal: new Inst(new THREE.SphereGeometry(1, 12, 8), white(), new THREE.SphereGeometry(1, 6, 3)),
+    core: new Inst(new THREE.SphereGeometry(1, 14, 10), white(), new THREE.SphereGeometry(1, 7, 5)),
+    stem: new Inst(new THREE.CylinderGeometry(1, 1, 1, 6), white(), new THREE.CylinderGeometry(1, 1, 1, 4, 1, true)),
+    leaf: new Inst(new THREE.SphereGeometry(1, 10, 6), white(), new THREE.SphereGeometry(1, 5, 3)),
   }
   const tmpP = new THREE.Object3D(), tmpC = new THREE.Object3D(); tmpP.add(tmpC)
   const place = (inst: Inst, color: string, parentFn: (o: THREE.Object3D) => void, childFn: (o: THREE.Object3D) => void) => {
@@ -144,6 +155,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   // 꽃: kind = 'daisy' | 'coral'
   const flower = (pos: THREE.Vector3, s: number, kind: 'daisy' | 'coral' = 'daisy') => {
     const h = s * rnd(1.4, 1.9), tilt = rnd(-.25, .25)
+    spot(pos, s * .7, h * .6)
     place(I.stem, '#5fae3a', (p) => p.position.copy(pos), (c) => { c.position.y = h / 2; c.scale.set(s * .06, h, s * .06) })
     for (const side of [-1, 1]) place(I.leaf, '#6dbb3f', (p) => { p.position.copy(pos); p.rotation.y = rnd(0, 3) }, (c) => { c.position.set(side * s * .28, s * .25, 0); c.rotation.z = side * .9; c.scale.set(s * .32, s * .08, s * .14) })
     const face = (p: THREE.Object3D) => { p.position.copy(pos).add(new THREE.Vector3(0, h, 0)); p.rotation.set(-0.75 + tilt, rnd(-.4, .4), tilt * .5) }
@@ -153,6 +165,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   }
   // 덤불: 연두 공 여러 개
   const bush = (pos: THREE.Vector3, s: number) => {
+    spot(pos, s * 1.5, s)
     const n = 3 + Math.floor(Math.random() * 4)
     const cols = ['#5aae36', '#6abb40', '#7fc64e', '#97d062']
     for (let i = 0; i < n; i++) {
@@ -161,7 +174,13 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     }
     place(I.ball, '#a9dc6e', (p) => p.position.copy(pos), (c) => { c.position.set(-s * .2, s * 1.0, s * .1); c.scale.setScalar(s * .45) })
   }
-  const pebble = (pos: THREE.Vector3, s: number, col: string) => place(I.ball, col, (p) => p.position.copy(pos), (c) => { c.position.y = s * .25; c.rotation.y = rnd(0, 3); c.scale.set(s, s * .45, s * .75) })
+  /*
+   * 발밑 그림자 판 자리 (저사양에서 해 그림자 대신). 해가 왼쪽 위 뒤(-11, 13, 4 → 과녁 (0,0,-6))에 있어서
+   * 그림자는 오른쪽 앞으로 조금 밀림: 높이 h 의 물체면 (+0.42h, -0.38h) 정도
+   */
+  const spots: { x: number; z: number; r: number }[] = []
+  const spot = (pos: THREE.Vector3, r: number, h: number) => { if (groundHeight(pos.x, pos.z) < .05) spots.push({ x: pos.x + h * .42, z: pos.z - h * .38, r }) }
+  const pebble = (pos: THREE.Vector3, s: number, col: string) => (spot(pos, s * 1.1, s * .3), place(I.ball, col, (p) => p.position.copy(pos), (c) => { c.position.y = s * .25; c.rotation.y = rnd(0, 3); c.scale.set(s, s * .45, s * .75) }))
 
   /* ---------- 흙 둔덕 ---------- */
   const HOLE = holeTex()
@@ -184,6 +203,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   }
   const sign = (base: THREE.Vector3, topY: number, boardW: number, boardH: number, ry = 0, rz = 0) => {
     const total = heightTo(base, topY)
+    spot(base, boardW * .6, total * .5)
     const g = new THREE.Group(); g.position.copy(base); g.rotation.set(0, ry, rz); scene.add(g)
     const pw = boardW * .13
     const post = add(rbox(pw, total - boardH * .2, pw * .9, '#b0602f', pw * .3), g); post.position.y = (total - boardH * .2) / 2
@@ -231,9 +251,10 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       wander: { center: home.clone(), radius: 1.6, rest: [3, 6] }, acc, worn: opts.worn ?? getMyWorn(),
     })
     scene.add(mole.object)
-    loop.redraw()
+    moleBlob.scale.set(moleH * .95, 1, moleH * .95); moleBlob.visible = true
+    loop.ready()
   }).catch((err) => console.warn('[3D] 두더지를 못 불러왔어요', err))
-  const unbindKeys = bindDriveKeys((x, z) => mole?.drive(x, z), { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
+  const unbindKeys = bindDriveKeys((x, z) => { mole?.drive(x, z); loop.wake() }, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
 
   // 앞쪽 손으로 놓은 것들 (원본 위치)
   bush(PD(165, 1150), .45); bush(PD(1610, 1250), .42); bush(PD(1875, 905), .5); bush(PD(25, 905), .45); bush(PD(60, 735), .4)
@@ -256,25 +277,53 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     const near = dist < 18
     if (near && Math.random() < .6) continue
     if (dist > 45 && Math.random() < .55) continue
+    // 저사양으로 시작하면 먼 곳(안개 속)은 절반만 (삼각형 수가 CPU 렌더러의 병목)
+    if (!q.post && dist > 26 && Math.random() < .5) continue
     const r = Math.random()
     if (r < .4) bush(p, rnd(.22, .42))
     else if (r < .72) flower(p, rnd(.18, .28), 'daisy')
     else if (r < .87) flower(p, rnd(.18, .26), 'coral')
     else pebble(p, rnd(.08, .18), Math.random() < .5 ? '#df7f43' : '#8a6a5a')
   }
-  Object.values(I).forEach((i) => i.build(scene))
+  Object.values(I).forEach((i) => i.build(scene, !q.post))
+
+  // 발밑 그림자 판: 소품은 InstancedMesh 하나, 두더지는 따라다니는 판 하나. 해 그림자가 켜져 있으면 숨김
+  const blobs = new THREE.Group(); blobs.name = 'blob-shadows'; scene.add(blobs)
+  const blobSrc = blobShadow(1)
+  const blobMat = (blobSrc.material as THREE.MeshBasicMaterial).clone()
+  blobSrc.geometry.dispose(); (blobSrc.material as THREE.Material).dispose()
+  blobMat.color.set('#2c4a17'); blobMat.opacity = .3
+  const blobGeo = new THREE.PlaneGeometry(1, .8).rotateX(-Math.PI / 2)
+  {
+    const im = new THREE.InstancedMesh(blobGeo, blobMat, Math.max(spots.length, 1))
+    const m = new THREE.Matrix4()
+    spots.forEach((p, i) => im.setMatrixAt(i, m.makeScale(p.r * 2, 1, p.r * 2).setPosition(p.x, groundHeight(p.x, p.z) + .02, p.z)))
+    im.count = spots.length; im.renderOrder = 1; im.frustumCulled = false
+    blobs.add(im)
+  }
+  const moleBlob = new THREE.Mesh(blobGeo, blobMat); moleBlob.renderOrder = 1; moleBlob.visible = false; blobs.add(moleBlob)
+  blobs.visible = !q.shadows
 
   /* ---------- 후처리: N8AO 구석 그림자 + 색보정 ---------- */
-  const composer = new EffectComposer(renderer)
-  composer.setPixelRatio(renderer.getPixelRatio())
-  composer.addPass(new RenderPass(scene, camera))
-  const ao = new N8AOPass(scene, camera, SW, SH)
-  Object.assign(ao.configuration, { aoRadius: .9, distanceFalloff: .6, intensity: 2.2, aoSamples: 16, denoiseSamples: 8, denoiseRadius: 10, halfRes: false, gammaCorrection: false })
-  composer.addPass(ao)
-  const output = new OutputPass()
-  composer.addPass(output)
-  const grade = fieldGradePass()
-  composer.addPass(grade)
+  // 저사양이면 만들지 않음 (그때는 renderer.render 가 톤매핑·sRGB 까지 해서 색은 거의 같고 AO·그레인만 빠짐)
+  const makePost = () => {
+    const composer = new EffectComposer(renderer)
+    composer.setPixelRatio(renderer.getPixelRatio())
+    composer.addPass(new RenderPass(scene, camera))
+    const ao = new N8AOPass(scene, camera, SW, SH)
+    Object.assign(ao.configuration, { aoRadius: .9, distanceFalloff: .6, intensity: 2.2, aoSamples: 16, denoiseSamples: 8, denoiseRadius: 10, halfRes: false, gammaCorrection: false })
+    composer.addPass(ao)
+    const output = new OutputPass()
+    composer.addPass(output)
+    const grade = fieldGradePass()
+    composer.addPass(grade)
+    return {
+      composer,
+      setSize(w: number, h: number) { composer.setSize(w, h); ao.setSize(w, h); grade.uniforms.uRes.value.set(w, h) },
+      dispose() { (ao as unknown as { dispose?: () => void }).dispose?.(); output.dispose(); grade.dispose(); composer.dispose() },
+    }
+  }
+  let post = q.post ? makePost() : null
 
   let W = 1, H = 1
   let focusTarget = opts.focusX ?? 0.5, focus = focusTarget
@@ -288,17 +337,26 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     resize(w, h) {
       W = w; H = h
       renderer.setSize(w, h, false)
-      composer.setSize(w, h)
-      ao.setSize(w, h)
-      grade.uniforms.uRes.value.set(w, h)
+      post?.setSize(w, h)
       applyFrame()
     },
     frame(dt) {
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
       mole?.update(dt)
-      composer.render(dt)
+      if (mole) moleBlob.position.set(mole.object.position.x + moleH * .1, groundHeight(mole.object.position.x, mole.object.position.z) + .025, mole.object.position.z - moleH * .08)
+      if (post) post.composer.render(dt)
+      else renderer.render(scene, camera)
     },
-  })
+    busy: () => (!!mole && !mole.isResting()) || focus !== focusTarget,
+    downgrade(nq) {
+      renderer.setPixelRatio(nq.pixelRatio)
+      post?.dispose(); post = null
+      sun.castShadow = false; renderer.shadowMap.enabled = false
+      blobs.visible = true
+      Object.values(I).forEach((i) => i.useLow())
+      const g = ground.geometry; ground.geometry = groundGeo(96); g.dispose()
+    },
+  }, q)
 
   // 땅을 누르면 그 자리로 걸어감 (드래그는 무시)
   const el = renderer.domElement
@@ -323,6 +381,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     setFocusX(x) {
       focusTarget = x
       if (document.hidden) { focus = x; applyFrame() }
+      loop.wake()
     },
     dispose() {
       disposed = true
@@ -332,8 +391,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointerup', onUp)
       disposeObject(scene)
-      ;(ao as unknown as { dispose?: () => void }).dispose?.()
-      output.dispose(); grade.dispose(); composer.dispose()
+      Object.values(I).forEach((i) => { i.geo.dispose(); i.low.dispose() })
+      post?.dispose()
       destroyRenderer(renderer)
     },
   }

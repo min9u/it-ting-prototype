@@ -1,0 +1,34 @@
+{
+  "name": "after-room-hwoff2",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5302/burrow",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 44.9,
+    "renderFps": 15,
+    "rafP50": 17,
+    "worstGap": 83,
+    "longTasks": 3,
+    "longTaskMs": 248
+  },
+  "moving": {
+    "sec": 8,
+    "rafFps": 49.8,
+    "renderFps": 15,
+    "rafP50": 17,
+    "worstGap": 50,
+    "longTasks": 2,
+    "longTaskMs": 121
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "twoFramesMs": 21
+}

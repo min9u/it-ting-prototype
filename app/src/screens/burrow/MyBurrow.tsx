@@ -12,6 +12,7 @@ import { EmptyMole, Toast } from '../../components/Feedback'
 import { ChevronLeft, CloseIcon, PlusIcon } from '../../components/Icons'
 import { GUESTBOOK, ME_ID, USERS } from '../../data/mock'
 import { getMyWorn, setMyWorn } from '../../data/moleItems'
+import { getMyInterests, setMyInterests } from '../../data/interests'
 import { liveGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
 import s from './Burrow.module.css'
@@ -33,7 +34,7 @@ export default function MyBurrow() {
   const me = USERS[ME_ID]
   const [panelOpen, setPanelOpen] = useState(params.get('panel') !== 'closed')
   const [mode, setMode] = useState<Mode>(() => (params.get('mode') === 'edit' ? 'edit' : params.get('mode') === 'decor' ? 'decor' : 'info'))
-  const [profile, setProfile] = useState({ nickname: me.nickname, intro: me.intro, interests: me.interests })
+  const [profile, setProfile] = useState(() => ({ nickname: me.nickname, intro: me.intro, interests: getMyInterests(me.interests) }))
   const [worn, setWorn] = useState<string[]>(getMyWorn)
   const [draft, setDraft] = useState<string[]>(worn)   // 꾸미는 중인 모습 (방 두더지에 바로 보임)
   const [entries, setEntries] = useState(() => (params.get('guestbook') === '0' ? [] : liveGuestbook(GUESTBOOK)))
@@ -67,7 +68,7 @@ export default function MyBurrow() {
           affiliation={me.affiliation}
           onCancel={() => setMode('info')}
           onDecorate={() => { setDraft(worn); setMode('decor') }}
-          onSave={(p) => { setProfile(p); setMode('info'); setToast('내 정보를 저장했어요') }}
+          onSave={(p) => { setProfile(p); setMyInterests(p.interests); setMode('info'); setToast('내 정보를 저장했어요') }}
         />
       )}
 

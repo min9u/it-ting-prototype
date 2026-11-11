@@ -1,0 +1,34 @@
+{
+  "name": "before-room-hwoff",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5301/burrow",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 6.7,
+    "renderFps": 6.7,
+    "rafP50": 150,
+    "worstGap": 233,
+    "longTasks": 40,
+    "longTaskMs": 5987
+  },
+  "moving": {
+    "sec": 8.7,
+    "rafFps": 6.3,
+    "renderFps": 6.3,
+    "rafP50": 150,
+    "worstGap": 183,
+    "longTasks": 55,
+    "longTaskMs": 8664
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 5.3,
+    "renderFps": 5.3,
+    "rafP50": 167,
+    "worstGap": 350,
+    "longTasks": 32,
+    "longTaskMs": 6015
+  },
+  "twoFramesMs": 175
+}

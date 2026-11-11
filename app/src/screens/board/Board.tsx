@@ -6,7 +6,7 @@ import InterestChip from '../../components/InterestChip'
 import Pagination from '../../components/Pagination'
 import { ChatIcon, ChevronRight, EyeIcon, HeartIcon, PenIcon, PlusIcon, SearchIcon } from '../../components/Icons'
 import { ConfirmDialog, ReportDialog, Toast } from '../../components/Feedback'
-import { CATEGORIES, POSTS, toneOf, userOf } from '../../data/mock'
+import { POSTS, categoryOf, toneOf, userOf } from '../../data/mock'
 import type { Comment, PostCategory } from '../../data/types'
 import s from './Board.module.css'
 
@@ -70,7 +70,7 @@ export function BoardList({ saved }: { saved?: boolean } = {}) {
                     </span>
                   </div>
                   <div className={s.postRight}>
-                    {p.hasPhoto && <div className={s.thumb} style={{ background: `var(--tone-${toneOf(p.interest)}-bg)` }} aria-hidden>{CATEGORIES.find((c) => c.tags.some((t) => t.name === p.interest))?.emoji}</div>}
+                    {p.hasPhoto && <div className={s.thumb} style={{ background: `var(--tone-${toneOf(p.interest)}-bg)` }} aria-hidden>{categoryOf(p.interest)?.emoji}</div>}
                     <span className={s.counts}><span><ChatIcon size={13} /> {p.comments.length}</span><span><HeartIcon size={13} /> {p.likes}</span>{sort === '조회수순' && <span><EyeIcon size={13} /> {p.views}</span>}</span>
                   </div>
                 </Link>

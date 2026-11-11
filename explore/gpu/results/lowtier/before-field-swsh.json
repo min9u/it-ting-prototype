@@ -1,0 +1,34 @@
+{
+  "name": "before-field-swsh",
+  "mode": "swsh",
+  "url": "http://127.0.0.1:5301/burrow/explore",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 1,
+    "renderFps": 0.8,
+    "rafP50": 17,
+    "worstGap": 4417,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "moving": {
+    "sec": 9.2,
+    "rafFps": 0.9,
+    "renderFps": 0.9,
+    "rafP50": 1283,
+    "worstGap": 2633,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 0.7,
+    "renderFps": 0.7,
+    "rafP50": 1300,
+    "worstGap": 1300,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "twoFramesMs": 1295
+}

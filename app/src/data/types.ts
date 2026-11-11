@@ -1,6 +1,8 @@
 export type Tone = 'sage' | 'clay' | 'butter' | 'sky' | 'lilac' | 'rose' | 'mint' | 'sand'
 
 export interface Tag {
+  /** 세부 관심사 id (interest_catalog.json) */
+  id: string
   name: string
   /** 같은 취향을 고른 사람 수. 적을수록 니치 */
   count: number

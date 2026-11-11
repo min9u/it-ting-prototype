@@ -1,0 +1,34 @@
+{
+  "name": "before-field-hwoff",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5301/burrow/explore",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6.2,
+    "rafFps": 0.8,
+    "renderFps": 0.8,
+    "rafP50": 1233,
+    "worstGap": 1283,
+    "longTasks": 5,
+    "longTaskMs": 6134
+  },
+  "moving": {
+    "sec": 13.2,
+    "rafFps": 0.8,
+    "renderFps": 0.8,
+    "rafP50": 1267,
+    "worstGap": 1383,
+    "longTasks": 10,
+    "longTaskMs": 13196
+  },
+  "idle2": {
+    "sec": 6.3,
+    "rafFps": 0.8,
+    "renderFps": 0.8,
+    "rafP50": 1267,
+    "worstGap": 1283,
+    "longTasks": 5,
+    "longTaskMs": 6299
+  },
+  "twoFramesMs": 1285
+}

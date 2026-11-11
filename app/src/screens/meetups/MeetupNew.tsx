@@ -5,7 +5,7 @@ import Modal from '../../components/Modal'
 import MonthCalendar from '../../components/MonthCalendar'
 import InterestChip from '../../components/InterestChip'
 import MoleAvatar from '../../components/MoleAvatar'
-import { ME_ID, USERS } from '../../data/mock'
+import { ME_ID, USERS, categoryOf } from '../../data/mock'
 import { dateParts } from '../../lib/format'
 import s from './Meetups.module.css'
 
@@ -21,7 +21,8 @@ export default function MeetupNew() {
   const me = USERS[ME_ID]
   const [title, setTitle] = useState('주말의 작은 독서 모임')
   const [intro, setIntro] = useState('한 주에 한 권씩. 각자 읽은 책을 들고 모입니다. 발제나 독후감은 없어요.\n처음 오시는 분은 다 못 읽고 오셔도 괜찮아요.')
-  const [interest, setInterest] = useState('독서')
+  // 예시 제목이 독서 모임이라 책·글 관심사를 먼저 고름 (관심사 v2: 세부 관심사 중에서)
+  const [interest, setInterest] = useState(() => me.interests.find((i) => categoryOf(i)?.id === 'book') ?? me.interests[0] ?? '')
   const [day, setDay] = useState(8)
   const [start, setStart] = useState('오후 2:00')
   const [end, setEnd] = useState('오후 4:00')

@@ -5,6 +5,8 @@ import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../compon
 import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy, lockOf } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
+import { MAX_PICK, interestCatOf, setMyInterests, subOf } from '../../data/interests'
+import { planRoom } from '../../data/roomPlan'
 import type { Category } from '../../data/types'
 import s from './Onboarding.module.css'
 
@@ -15,6 +17,8 @@ import s from './Onboarding.module.css'
  *  1 이름 408:18310 → 2 관심사 "A · 좌측 분류 전환" 408:22173 → 3 자기소개 408:18828
  *  → 4 땅굴 만들기: 3a 방 만드는 중 408:19036 → (3b 없음) → 3c 땅굴 미리보기 408:19306
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
+ *  2026-11-11 3D 핸드오프 v3: 관심사는 interest_catalog.json 의 카테고리 11 · 세부 관심사 65, 최대 10개 (data/interests.ts).
+ *  고른 관심사로 가구 배치는 data/roomPlan.ts (미리보기 땅굴과 /burrow 가 같은 계산)
  */
 
 const STEPS = [
@@ -26,13 +30,12 @@ const STEPS = [
 
 const NAME_MAX = 12
 const MIN_PICK = 3
-const MAX_PICK = 10
 const ANSWER_MAX = 50
 
 const DEMO = {
   name: '새벽산책',
   worn: DEFAULT_WORN,
-  picks: ['시티팝', '필름카메라', '테라리움', '체스', '공연', '독립서점', '요리', '반려식물', '캠핑', '홈카페'],
+  picks: ['시티팝', '필름카메라', '테라리움', '체스', '수채화', 'SF소설', '베이킹', '식물키우기', '캠핑', '고전영화'],
   answers: ['엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.', '창문부터 열고 이불 속에서 한참 뒹굴어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.'],
 }
 
@@ -298,67 +301,8 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: numbe
 }
 
 /* ---------- 4a. 땅굴 만들기: 방 만드는 중 ---------- */
-// 관심사 → 가구. keys 는 답변에서 찾을 단어 (있으면 "내 답변"을 근거로 보여 줌)
-const FURNITURE: Record<string, { item: string; keys: string[] }> = {
-  시티팝: { item: 'LP 플레이어', keys: ['시티팝', 'LP', '레코드'] },
-  'LP 수집': { item: 'LP 선반', keys: ['LP', '레코드', '음반'] },
-  재즈: { item: '재즈 포스터', keys: ['재즈'] },
-  인디밴드: { item: '밴드 포스터', keys: ['밴드', '인디'] },
-  공연: { item: '공연 티켓 액자', keys: ['공연', '콘서트', '티켓'] },
-  작곡: { item: '작은 신디사이저', keys: ['작곡', '건반'] },
-  플레이리스트: { item: '블루투스 스피커', keys: ['노래', '음악', '플레이리스트'] },
-  클래식: { item: '축음기', keys: ['클래식'] },
-  '뮤직 페스티벌': { item: '페스티벌 손목띠 액자', keys: ['페스티벌'] },
-  피아노: { item: '업라이트 피아노', keys: ['피아노'] },
-  음악: { item: '스피커', keys: ['음악', '노래'] },
-  사진: { item: '카메라 삼각대', keys: ['사진', '카메라'] },
-  필름카메라: { item: '필름카메라', keys: ['필름', '카메라'] },
-  폴라로이드: { item: '폴라로이드 줄', keys: ['폴라로이드'] },
-  '풍경 사진': { item: '풍경 사진 액자', keys: ['풍경'] },
-  '인물 사진': { item: '사진 보드', keys: ['인물'] },
-  테라리움: { item: '이끼 테라리움', keys: ['이끼', '테라리움'] },
-  반려식물: { item: '화분 선반', keys: ['식물', '화분'] },
-  텃밭: { item: '상자 텃밭', keys: ['텃밭', '상추'] },
-  꽃꽂이: { item: '꽃병', keys: ['꽃'] },
-  산책: { item: '산책 지도', keys: ['산책', '걷'] },
-  게임: { item: '오락기', keys: ['게임'] },
-  보드게임: { item: '보드게임 선반', keys: ['보드게임'] },
-  체스: { item: '체스판', keys: ['체스'] },
-  '레트로 게임': { item: '레트로 TV', keys: ['레트로', '오락'] },
-  방탈출: { item: '자물쇠 상자', keys: ['방탈출'] },
-  그림: { item: '이젤', keys: ['그림', '그리'] },
-  뜨개질: { item: '털실 바구니', keys: ['뜨개', '털실'] },
-  도자기: { item: '물레', keys: ['도자기', '그릇'] },
-  레고: { item: '레고 선반', keys: ['레고'] },
-  다꾸: { item: '스티커 서랍', keys: ['다꾸', '스티커', '다이어리'] },
-  독서: { item: '책장', keys: ['책', '읽'] },
-  독립서점: { item: '서점 도장 포스터', keys: ['서점'] },
-  필사: { item: '필사 책상', keys: ['필사', '만년필'] },
-  'SF 소설': { item: '우주선 북엔드', keys: ['SF', '소설'] },
-  에세이: { item: '책 더미', keys: ['에세이'] },
-  '별 보기': { item: '별자리 조명', keys: ['별'] },
-  '천체 사진': { item: '천체망원경', keys: ['천체', '망원경'] },
-  '과학 유튜브': { item: '지구본', keys: ['과학', '유튜브'] },
-  요리: { item: '작은 주방', keys: ['요리', '김치볶음밥', '라면', '맛집', '음식'] },
-  홈카페: { item: '홈카페 선반', keys: ['카페', '커피'] },
-  베이킹: { item: '오븐', keys: ['빵', '베이킹', '쿠키'] },
-  핸드드립: { item: '드립 주전자', keys: ['드립', '커피'] },
-  전통차: { item: '찻병 선반', keys: ['차', '다도'] },
-  운동: { item: '러닝머신', keys: ['운동', '헬스'] },
-  캠핑: { item: '캠핑 배낭', keys: ['캠핑', '텐트'] },
-  여행: { item: '여행 가방', keys: ['여행', '비행기'] },
-  등산: { item: '등산 지팡이', keys: ['등산', '산'] },
-  클라이밍: { item: '클라이밍 홀드 벽', keys: ['클라이밍'] },
-  러닝: { item: '러닝화 선반', keys: ['러닝', '달리'] },
-  영화: { item: '영사기', keys: ['영화'] },
-  지브리: { item: '숲 속 포스터', keys: ['지브리'] },
-  독립영화: { item: '필름 릴', keys: ['독립영화'] },
-  애니메이션: { item: '피규어 선반', keys: ['애니'] },
-  강아지: { item: '강아지 방석', keys: ['강아지', '산책'] },
-  고양이: { item: '캣타워', keys: ['고양이', '냥'] },
-  파충류: { item: '사육장', keys: ['파충류', '도마뱀'] },
-}
-const furnitureOf = (tag: string) => FURNITURE[tag] ?? { item: `${tag} 소품`, keys: [tag] }
+// 관심사 → 놓이는 물건은 카탈로그(interest_catalog 의 prop, furniture_catalog 의 이름)에서. 답변에서 찾을 단어 = 관심사·물건 이름 조각
+const keysOf = (...names: string[]) => [...new Set(names.flatMap((n) => n.split(/[·\s]+/)).filter((k) => k.length >= 2))]
 
 // 분류별 땅굴 무드 (가장 무거운 분류로 정함. 무게는 legacy 의 tasteWeights 와 같은 Σ(1 + 1000/인원))
 const MOODS: Record<string, { name: string; desc: string; wall: string; floor: string }> = {
@@ -368,8 +312,8 @@ const MOODS: Record<string, { name: string; desc: string; wall: string; floor: s
   game: { name: '동네 오락실 무드', desc: '하늘색 벽 · 격자 타일', wall: '#d9e6ec', floor: '#6b7fa0' },
   craft: { name: '작업실 무드', desc: '점토색 벽 · 물감 묻은 마루', wall: '#f1dccb', floor: '#b8744c' },
   book: { name: '다락 서재 무드', desc: '버터색 벽 · 짙은 원목', wall: '#f3e6be', floor: '#8a5a3a' },
-  space: { name: '별 관측소 무드', desc: '밤하늘 벽 · 별무늬 러그', wall: '#3b4466', floor: '#c9b98a' },
-  cafe: { name: '골목 카페 무드', desc: '크림 벽 · 체크 타일', wall: '#f3e6be', floor: '#c98a62' },
+  science: { name: '별 관측소 무드', desc: '밤하늘 벽 · 별무늬 러그', wall: '#3b4466', floor: '#c9b98a' },
+  tea_coffee: { name: '골목 카페 무드', desc: '크림 벽 · 체크 타일', wall: '#f3e6be', floor: '#c98a62' },
   outdoor: { name: '캠핑장 무드', desc: '모래색 벽 · 나무 데크', wall: '#eadfc6', floor: '#8fae5c' },
   movie: { name: '작은 극장 무드', desc: '장밋빛 벽 · 벨벳 러그', wall: '#f2d9d9', floor: '#8a3a3f' },
   pet: { name: '포근한 둥지 무드', desc: '점토색 벽 · 폭신한 러그', wall: '#f1dccb', floor: '#d9a046' },
@@ -384,14 +328,28 @@ function buildPlan(picks: string[], qna: QnA[]) {
   const top = CATEGORIES.find((c) => c.id === topId)!
   const inTop = picks.filter((t) => catOf(t)?.id === topId)
   const rarest = [...inTop].sort((a, b) => countOf(a) - countOf(b))[0]
-  const rows = picks.map((tag) => {
-    const f = furnitureOf(tag)
-    const hit = qna.find((x) => x.a && f.keys.some((k) => x.a.includes(k)))
-    return { tag, item: f.item, quote: hit?.a, tone: toneOf(tag) }
-  })
+  const room = planRoom(picks)
+  // 한 줄 = 카테고리 가구 묶음(그 카테고리를 처음 고른 관심사가 근거) 또는 관심사 소품
+  const rows: { key: string; tag: string; item: string; quote?: string; tone: ReturnType<typeof toneOf>; ready: boolean }[] = []
+  for (const c of room.categories) {
+    const furn = room.items.filter((it) => it.category === c && !it.sub)
+    if (!furn.length) continue
+    const tag = picks.find((t) => subOf(t)?.category === c)!
+    const names = furn.map((it) => it.row.name_ko)
+    const hit = qna.find((x) => x.a && keysOf(interestCatOf(c)?.name_ko ?? '', ...names).some((k) => x.a.includes(k)))
+    rows.push({ key: `cat:${c}`, tag: interestCatOf(c)?.name_ko ?? tag, item: names.join(' · '), quote: hit?.a, tone: toneOf(tag), ready: furn.every((it) => it.built) })
+  }
+  for (const t of picks) {
+    const sub = subOf(t)
+    const props = room.items.filter((it) => it.sub === sub?.id)
+    if (!sub || !props.length) continue
+    const names = props.map((it) => it.row.name_ko)
+    const hit = qna.find((x) => x.a && keysOf(sub.name_ko, ...names).some((k) => x.a.includes(k)))
+    rows.push({ key: sub.id, tag: t, item: names.join(' · '), quote: hit?.a, tone: toneOf(t), ready: props.every((it) => it.built) })
+  }
   // 답변을 근거로 한 줄을 위로 (시안처럼 "내 답변"이 먼저 보이게)
   rows.sort((a, b) => Number(!!b.quote) - Number(!!a.quote))
-  return { mood: MOODS[topId] ?? MOODS.nature, top, rarest, topCount: inTop.length, rows }
+  return { mood: MOODS[topId] ?? MOODS.nature, top, rarest, topCount: inTop.length, rows, count: room.items.length }
 }
 
 const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '땅굴에 배치하고 벽 꾸미는 중']
@@ -401,7 +359,9 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
   const answered = qna.filter((x) => x.a).length
   // 시간표: 0 관심사 읽기 → 1 무드 → 가구가 0.45초마다 한 줄씩 → 2 배치 → 끝나면 미리보기
   const [t, setT] = useState(0)
-  const rowsAt = (n: number) => 1.6 + n * 0.45
+  // 한 줄씩 0.45초 (줄이 많으면 전체가 6초 안에 끝나게 빨리)
+  const gap = Math.min(0.45, 6 / Math.max(1, plan.rows.length))
+  const rowsAt = (n: number) => 1.6 + n * gap
   const end = rowsAt(plan.rows.length) + 1.4
   useEffect(() => {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -417,7 +377,7 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
   useEffect(() => { if (t >= end + 0.9 && !left.current) { left.current = true; onDone() } }, [t, end, onDone])
 
   const phase = t < 0.8 ? 0 : t < rowsAt(plan.rows.length) ? 1 : t < end ? 2 : 3
-  const shown = Math.max(0, Math.min(plan.rows.length, Math.floor((t - 1.6) / 0.45) + 1))
+  const shown = Math.max(0, Math.min(plan.rows.length, Math.floor((t - 1.6) / gap) + 1))
   const placeholders = Math.min(3, plan.rows.length - shown)
 
   return (
@@ -451,10 +411,10 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
         </div>
       ) : <div className={s.skelRow} aria-hidden />}
 
-      <h2 className={s.secLabel}>가구 <small>{shown < plan.rows.length ? '고르는 중…' : `${plan.rows.length}개 골랐어요`}</small></h2>
+      <h2 className={s.secLabel}>가구 <small>{shown < plan.rows.length ? '고르는 중…' : `${plan.count}개 골랐어요`}</small></h2>
       <ul className={s.furnList}>
         {plan.rows.slice(0, shown).map((r) => (
-          <li key={r.tag} className={s.furnRow}>
+          <li key={r.key} className={s.furnRow}>
             <div>
               <span className={s.srcTag}>{r.quote ? '내 답변' : '내 관심사'}</span>
               <p>{r.quote ? `"${r.quote}"` : `#${r.tag}`}</p>
@@ -462,7 +422,7 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
             <Arrow />
             <div className={s.furnResult}>
               <span className={s.cube} style={{ background: `var(--tone-${r.tone}-bg)`, color: `var(--tone-${r.tone}-fg)` }}><Cube /></span>
-              <strong>{r.item}</strong>
+              <strong>{r.item}</strong>{!r.ready && <small className={s.notReady}>모델 준비 중</small>}
             </div>
           </li>
         ))}
@@ -476,17 +436,19 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
 /* ---------- 4. 땅굴 미리보기 (메인 화면 기준, Figma 681:7764) ---------- */
 // 방이 화면 전체를 채우고, 오른쪽에 땅굴 정보 카드 + 확정 카드가 떠 있음 (내 땅굴 메인과 같은 구도)
 function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
+  const room = useMemo(() => planRoom(picks), [picks])
+  const total = room.items.length, todo = room.items.filter((it) => !it.built).length
   return (
     <div className={s.previewStage}>
       <RoomView ownerId="me" interests={picks} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
-        <span className={s.roomBadge}>관심사 가구 {picks.length}개 · 3D 모델 준비 중</span>
+        <span className={s.roomBadge}>관심사 가구 {total}개{todo > 0 && ` · ${todo}개는 3D 모델 준비 중(블록)`}</span>
       </RoomView>
       <aside className={s.previewSide}>
         <section className={s.infoCard}>
           <h2>땅굴 정보</h2>
           <div className={s.profileTop}>
             <MoleWithItems size={64} radius={12} worn={worn} />
-            <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {picks.length}개</span></div>
+            <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {total}개</span></div>
           </div>
           <dl className={s.qnaFull}>
             {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}
@@ -497,10 +459,10 @@ function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn:
           </div>
         </section>
         <section className={s.confirmCard}>
-          <p>관심사 가구 {picks.length}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
+          <p>관심사 가구 {total}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
           <div className={s.confirmBtns}>
             <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
-            <Link to="/burrow" className={s.next} onClick={() => setMyWorn(worn)}>관심사 확정</Link>
+            <Link to="/burrow" className={s.next} onClick={() => { setMyWorn(worn); setMyInterests(picks) }}>관심사 확정</Link>
           </div>
           <small>관심사는 나중에 내 정보에서 바꿀 수 있어요.</small>
         </section>

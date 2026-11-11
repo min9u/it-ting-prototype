@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import MeetupCard from '../../components/MeetupCard'
 import Pagination from '../../components/Pagination'
 import { SearchIcon } from '../../components/Icons'
-import { ME_ID, MEETUPS, USERS, dday, toneOf } from '../../data/mock'
+import { ME_ID, MEETUPS, USERS, categoryOf, dday, toneOf } from '../../data/mock'
 import type { Meetup } from '../../data/types'
 import s from './Meetups.module.css'
 
@@ -19,14 +19,17 @@ const FILTER_TAGS = ['독서', '캠핑', '보드게임', '그림', '러닝', '�
 export function MeetupList() {
   const me = USERS[ME_ID]
   const [scope, setScope] = useState<'전체' | '내 관심사'>('내 관심사')
-  const [tags, setTags] = useState<string[]>(FILTER_TAGS.filter((t) => me.interests.includes(t)))
+  // 내 관심사 = 내가 고른 세부 관심사의 카테고리 (모임 주제는 더 넓은 말이라 카테고리로 맞춤, 관심사 v2)
+  const myCats = useMemo(() => new Set(me.interests.map((i) => categoryOf(i)?.id)), [me.interests])
+  const mine = (topic: string) => me.interests.includes(topic) || myCats.has(categoryOf(topic)?.id)
+  const [tags, setTags] = useState<string[]>(FILTER_TAGS.filter(mine))
   const [sort, setSort] = useState<(typeof SORTS)[number]>('최신순')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
 
   const list = useMemo(() => {
     let l = [...MEETUPS]
-    if (scope === '내 관심사' && tags.length) l = l.filter((m) => tags.includes(m.interest) || me.interests.includes(m.interest))
+    if (scope === '내 관심사' && tags.length) l = l.filter((m) => tags.includes(m.interest) || mine(m.interest))
     if (scope === '전체' && tags.length) l = l.filter((m) => tags.includes(m.interest))
     if (q) l = l.filter((m) => m.title.includes(q) || m.interest.includes(q))
     if (sort === '마감임박순') l.sort((a, b) => (a.capacity - a.memberIds.length) - (b.capacity - b.memberIds.length))
@@ -34,7 +37,7 @@ export function MeetupList() {
     else l.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }))
     const full = (m: Meetup) => m.memberIds.length >= m.capacity || !!m.past
     return [...l.filter((m) => !full(m)), ...l.filter(full)]
-  }, [scope, tags, sort, q, me.interests])
+  }, [scope, tags, sort, q]) // eslint-disable-line react-hooks/exhaustive-deps
   const total = Math.max(1, Math.ceil(list.length / PAGE))
   const toggle = (t: string) => { setTags((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t])); setPage(1) }
 

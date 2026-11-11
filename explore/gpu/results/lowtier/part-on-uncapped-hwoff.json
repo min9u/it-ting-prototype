@@ -1,0 +1,34 @@
+{
+  "name": "part-on-uncapped-hwoff",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5302/burrow?maxfps=0",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 26.9,
+    "renderFps": 26.9,
+    "rafP50": 33,
+    "worstGap": 100,
+    "longTasks": 7,
+    "longTaskMs": 479
+  },
+  "moving": {
+    "sec": 8.1,
+    "rafFps": 38.7,
+    "renderFps": 38.7,
+    "rafP50": 17,
+    "worstGap": 50,
+    "longTasks": 2,
+    "longTaskMs": 116
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60,
+    "renderFps": 0,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0
+  },
+  "twoFramesMs": 26
+}
