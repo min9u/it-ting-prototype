@@ -31,9 +31,10 @@
   - 갱신: `cd app && npm run build:share` (# 라우팅·상대 경로, `.env.share`, 끝에 `scripts/share-page.mjs`가 `dist-share/share-page.html`과 `files.json`을 만듦) → Artifact publish(같은 url, root=dist-share, 바뀐 assets만 보내고 옛 해시 파일은 null)
   - 공유 빌드는 첫 화면이 로그인된 내 땅굴(`#/burrow`). 시작 화면은 `#/start`
   - Pretendard는 CDN 대신 npm `pretendard`로 번들 (아티팩트는 외부 CSS 차단)
-  - 아티팩트는 `.glb` 파일을 못 올림 → 공유 빌드에서만 glb를 data URL로 JS에 넣음(`vite.config.ts`의 `assetsInlineLimit`), `moleActor.ts`가 fetch 없이 직접 풀어서 parse
+  - 아티팩트는 `.glb` 파일을 못 올림 → 공유 빌드에서만 glb를 data URL로 JS에 넣음(`vite.config.ts`의 `assetsInlineLimit`), `three/glb.ts`가 fetch 없이 직접 풀어서 parse. Draco는 안 씀(해독기 wasm을 올려야 해서) → 텍스처 WebP + 메시 양자화
 - **3D 핸드오프 v1** (`design/digul_3d_handoff_v1/`, 문서 `docs/HANDOFF_v1.md`): 디자이너가 만든 두더지 glb(동작 19개)·굴 입구 소품. 영상은 gitignore(디자이너 zip에 있음). 방·가구 glb는 아직 작업 중
   - 땅굴 방 두더지는 이 glb로 교체: `app/src/assets/models/mole.glb`(원본에서 텍스처만 1024 WebP, Draco 없음) + `app/src/three/moleActor.ts`(동작 순서). 탐색하기 밭은 아직 예전 코드 두더지(`mole.ts`)
+- **3D 핸드오프 v1.1·v2** (`design/digul_3d_handoff_v1_1/`, `design/digul_3d_handoff_v2/`, 2026-11-11): 액세서리 41개(`three/moleDress.ts`, 목록·규칙 `data/moleItems.ts`)와 땅굴 방 glb(`three/roomScene.ts`, 가구는 `data/furnitureCatalog.json`을 읽음). 변환·판단은 [docs/3d-handoff-v2-integration.md](docs/3d-handoff-v2-integration.md). 관심사 가구 31개는 아직 안 옴
   - 가구 클릭: 방석·빈백 앉기, 부엌·찻병 선반 커피. 리액션 버튼 👋👀🐾☕. 남의 땅굴엔 집주인 두더지가 있고 인사하면 마주 보고 인사. 엉덩이 씰룩은 굴 입구 전용 자세라 방에서 뺌
 - **온보딩 새 디자인**: 시안 PNG는 `design/figma/onboarding/`, 2D 아바타는 `app/src/components/MoleAvatar.tsx`, `#/onboarding?demo`로 열면 예시 값이 채워짐
 - 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n), 탐색하기 `explore/3d/field.html`
@@ -135,6 +136,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-11 [마케팅 전략: SSAFY에서 시작해 밖으로](docs/marketing-strategy.md): 사례(Facebook·Gas·BeReal·에브리타임·싸이월드·Clubhouse·Gather) 조사. **반 단위 오픈 → 캠퍼스 → 기수**, 첫 5분 안에 내 땅굴 + GPU 대응, 땅굴 공유 카드, 인싸에게는 "홍보" 대신 "먼저 써 보기·방명록", 매터모스트 공지는 소식 있을 때 2~3번. 모방 심리는 압박 대신 "반 지도에 켜지는 땅굴"로. 확장은 새 밭을 여는 방식(부트캠프·대학 → 관심사 커뮤니티). 운영 규정·SSAFY 이름 사용은 확인 필요
 - 2026-11-11 [그래픽 가속이 꺼진 PC 대응](docs/gpu-fallback-research.md): 실측 결과 크롬 157은 가속을 끄면 WARP(CPU)로 그림. 그림은 같지만 땅굴 3fps·탐색 1.1fps이고 메인 스레드가 막혀 **페이지 전체가 멈춤**. WebGL이 아예 없으면 636px 자리표시가 흐리게 늘어남(또 다른 "깨짐" 후보). 감지는 `failIfMajorPerformanceCaveat` + 렌더러 문자열로 확실하게 가능. `chrome://` 링크는 막힘(실측) → 안내는 주소 복사 방식. **추천: 감지 → 저사양 모드(해상도 0.5·후처리 끔·그림자 축소·잔털 0, 236→52ms) + 가만히 있으면 그리기 멈춤 + 안내 띠**, 자리표시 그림 고해상도로 교체. 캐릭터 만들기는 이미 2D SVG라 GPU 불필요. 다음: 실제 SSAFY PC에서 `chrome://gpu` 확인. 실험 코드 `explore/gpu/`
 - 2026-11-11 [Figma 최신 버전 반영](docs/figma-sync-2026-11-11.md): 메타데이터를 새로 받아 어제 것과 diff → 이름 변경·옛 시안 삭제·5xx~6xx 새 프레임으로 최신 버전 확정. 온보딩 1 "이름·두더지 꾸미기"·온보딩 4 땅굴 미리보기 새로 만듦, 땅굴(꾸미기·내 정보 수정·방명록 빈 상태·팝업·토스트), 게시판(글쓰기·저장한 글·삭제/신고), 모임(만들기 새 배치·대기 팝업), 채팅(1:1·요청), 알림 페이지·설정 추가. Figma 호출 5번. 못 한 것: 얼굴·목·손 아이템 실제 목록, 채팅 요청·모임 탭 대조, Figma 메모로만 있는 기능 요청
+- 2026-11-11 [3D 핸드오프 v1.1·v2 반영](docs/3d-handoff-v2-integration.md): 두더지 액세서리 41개(정식 아이콘, 부위마다 1개 최대 4개, 레벨·관심사 잠금, 리본+캐리어 불가)를 3D 두더지 소켓에 입힘(리본 흔들림·풍선 세우기·손 소품 숨김), 온보딩 1 미리 보기는 3D 회전. 땅굴을 코드로 만든 방 → 디자이너 glb 방(구운 조명, AgX, 스펙 카메라·조명, 카탈로그 기반 가구, 하늘색 방석 앉기, 천장 구멍 열림→낙하→닫힘). 후처리·그림자 맵을 없애 가벼워짐. Draco 대신 WebP + 양자화. 관심사 가구는 glb가 아직 없어 새 방에서 빠짐
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

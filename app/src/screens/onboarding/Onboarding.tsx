@@ -479,7 +479,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn:
   return (
     <div className={s.previewStage}>
       <RoomView ownerId="me" interests={picks} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
-        <span className={s.roomBadge}>관심사 가구 {picks.length}개</span>
+        <span className={s.roomBadge}>관심사 가구 {picks.length}개 · 3D 모델 준비 중</span>
       </RoomView>
       <aside className={s.previewSide}>
         <section className={s.infoCard}>

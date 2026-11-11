@@ -219,7 +219,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     }
     return p
   }
-  const motion = createMoleMotion(mole, { ground: groundHeight, startRest: 4, clamp: clampWalk, wander: { center: home.clone(), radius: 1.6, rest: [3, 6] } })
+  const motion = createMoleMotion(mole, { speed: 1.05 * 1.5 /* 기본 1.05의 1.5배 (2026-11-11 사용자 요청) */, ground: groundHeight, startRest: 4, clamp: clampWalk, wander: { center: home.clone(), radius: 1.6, rest: [3, 6] } })
   const unbindKeys = bindMoleKeys(motion, window, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
 
   // 앞쪽 손으로 놓은 것들 (원본 위치)

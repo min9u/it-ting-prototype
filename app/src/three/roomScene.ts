@@ -1,21 +1,25 @@
 import * as THREE from 'three'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
-import { add, at, clay, cyl, group, box, sph, roomNoise } from './clay'
-import { furnishRoom } from './furniture'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import shellUrl from '../assets/models/room_shell.glb?url'
+import baseUrl from '../assets/models/room_base.glb?url'
+import decoUrl from '../assets/models/room_deco.glb?url'
+import holeUrl from '../assets/models/room_ceiling_hole.glb?url'
+import catalog from '../data/furnitureCatalog.json'
+import { loadGlb } from './glb'
 import { bindMoleKeys } from './mole'
-import { createMoleActor, loadMoleGltf, REACTIONS, type MoleActor } from './moleActor'
+import { createMoleActor, loadMoleGltf, REACTIONS, type FurnitureData, type MoleActor, type Seat } from './moleActor'
 import { loadAccessories } from './moleDress'
-import { gradientEnv, ROOM_ENV } from './lighting'
-import { roomGradePass } from './post'
-import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
+import { blobShadow } from './roomLook'
+import { approach, createRenderer, destroyRenderer, frameCamera, startLoop, type SceneHandle } from './engine'
 
 /*
- * 땅굴 방 장면. explore/3d/room.html 을 옮김 (비교 UI·OrbitControls 는 뺌).
- * 구도: 4:3 "가상 화면"이 장면 높이의 106.5%, 위에서 1% 내려와 있고 가로 가운데가 focusX.
- * (Figma 내 땅굴 화면과 비교해서 돔 꼭대기·두더지 발 높이를 맞춤)
+ * 땅굴 방 장면 — 3D 핸드오프 v2 (design/digul_3d_handoff_v2, docs/room_spec.md)
+ * - 껍데기·소품: 조명을 구운 텍스처(emissive)라 실시간 조명을 받지 않음. 가구(base)·두더지만 실시간 조명
+ * - 가구는 docs/furniture_catalog.json (app/src/data/furnitureCatalog.json) 을 읽어 처리. glb 가 null 인 가구(관심사 31개)는 건너뜀
+ * - 좌표: 1 unit = 1m, 방 중심 바닥 = 원점, 방 지름 6.5m, 돔은 뒤쪽 절반만
+ * - 들어올 때: 천장 구멍 열림(0.417초) → 두더지 떨어짐 → 1.5초에 구멍 닫힘 (HANDOFF_v2 2번)
+ * - 구도: 스펙 카메라(위치 (0,1.56,6.37), target (0,2.04,0), 세로 FOV 48.5° @4:3)를 4:3 "가상 화면"에 그리고,
+ *   가상 화면 높이 = 장면 높이의 114.5%, 위로 5.4% 올림, 가로 가운데 = focusX (Figma 내 땅굴 화면과 돔 크기·위치를 맞춤)
  */
 
 export interface RoomSceneOptions {
@@ -29,218 +33,161 @@ export interface RoomSceneOptions {
   worn?: string[]
 }
 
-const R = 6.4, DH = 8.6 // 돔 반지름, 높이
-const prof = (y: number) => R * Math.pow(Math.max(0, 1 - Math.pow(y / DH, 2.1)), 0.52)
-function profilePts(scale = 1, n = 64) {
-  const pts: THREE.Vector2[] = []
-  for (let i = 0; i <= n; i++) { const y = DH * scale * (i / n); pts.push(new THREE.Vector2(prof(y / scale) * scale, y)) }
-  return pts
+interface CatalogItem {
+  id: string; name_ko: string; category: 'base' | 'deco' | 'interest'; interest: string | null
+  glb: string | null; node: string; size_m: { w: number; d: number; h: number }; sit_point: string | null
 }
-const WALL = '#e6b092', WALL_D = '#b8744c', RIB = '#d49a74', WOOD = '#d09a70'
+const CATALOG = catalog as CatalogItem[]
+/** 가구별 동작 (카탈로그에 없는 정보). 원탁엔 찻주전자·컵이 있어서 커피 */
+const ACTS: Record<string, FurnitureData['act']> = { round_table: 'drink' }
 
-/** 땅굴 껍데기: 돔 안·밖, 단면 테두리, 갈비뼈 기둥, 판벽, 바닥 */
-function buildShell(scene: THREE.Object3D) {
-  const inner = new THREE.Mesh(new THREE.LatheGeometry(profilePts(1), 72, Math.PI / 2, Math.PI), clay(WALL, { side: THREE.DoubleSide, bumpScale: 0.9 }))
-  inner.receiveShadow = true; scene.add(inner)
-  const outer = new THREE.Mesh(new THREE.LatheGeometry(profilePts(1.075), 72, Math.PI / 2, Math.PI), clay(WALL_D, { side: THREE.DoubleSide }))
-  scene.add(outer)
-  // 단면 테두리 (z=0 평면에서 안·밖 사이)
-  {
-    const s = new THREE.Shape(), o = profilePts(1.075, 64), i = profilePts(1, 64)
-    s.moveTo(-o[0].x, 0)
-    for (const p of o) s.lineTo(-p.x, p.y)
-    for (let k = o.length - 1; k >= 0; k--) s.lineTo(o[k].x, o[k].y)
-    for (const p of i) s.lineTo(p.x, p.y)
-    for (let k = i.length - 1; k >= 0; k--) s.lineTo(-i[k].x, i[k].y)
-    const rim = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 0.14, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 3, curveSegments: 1 }), clay('#dc946c'))
-    rim.position.z = -0.07; add(rim, scene)
-  }
-  // 갈비뼈 기둥
-  const ribAt = (phi: number, rad = 0.13, hex = RIB) => {
-    const pts: THREE.Vector3[] = []
-    for (let k = 0; k <= 48; k++) { const y = DH * 0.985 * k / 48, r = prof(y) - 0.06; pts.push(new THREE.Vector3(r * Math.sin(phi), y, r * Math.cos(phi))) }
-    add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, rad, 10), clay(hex)), scene)
-  }
-  ;[Math.PI * 0.72, Math.PI, Math.PI * 1.28].forEach((p) => ribAt(p))
-  // 꼭대기 고리 + 가운데 막대
-  add(at(new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.14, 12, 32), clay(RIB)), 0, DH - 0.35, -0.2), scene).rotation.x = Math.PI / 2
-  cyl(scene, 0.035, 0.035, 2.2, '#efe2d0', 0, DH - 2.6, -0.5, 8)
-
-  // 아래쪽 나무 판벽 (반원 띠)
-  {
-    const c = document.createElement('canvas'); c.width = 1024; c.height = 64
-    const g = c.getContext('2d')!
-    g.fillStyle = '#c98559'; g.fillRect(0, 0, 1024, 64)
-    for (let x = 0; x < 1024; x += 16) { g.fillStyle = 'rgba(90,40,20,.28)'; g.fillRect(x, 0, 2, 64) }
-    g.fillStyle = 'rgba(255,220,190,.25)'; g.fillRect(0, 0, 1024, 5)
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.12, R - 0.1, 1.25, 72, 1, true, Math.PI / 2, Math.PI), new THREE.MeshStandardMaterial({ map: t, roughness: .95, side: THREE.DoubleSide }))
-    band.position.y = 0.62; band.receiveShadow = true; scene.add(band)
-    const cap = new THREE.Mesh(new THREE.TorusGeometry(R - 0.14, 0.07, 8, 72, Math.PI), clay('#b8704a'))
-    cap.rotation.x = Math.PI / 2; cap.rotation.z = Math.PI; cap.position.y = 1.25; add(cap, scene)
-  }
-
-  // 바닥: 원판 + 마루 무늬
-  {
-    const c = document.createElement('canvas'); c.width = c.height = 1024
-    const g = c.getContext('2d')!
-    g.fillStyle = WOOD; g.fillRect(0, 0, 1024, 1024)
-    const rowH = 64
-    for (let y = 0; y < 1024; y += rowH) {
-      g.fillStyle = 'rgba(110,50,25,.30)'; g.fillRect(0, y, 1024, 3)
-      let x = (y / rowH % 2) * 150 - 80
-      while (x < 1024) { const w = 220 + Math.random() * 160; g.fillRect(x, y, 3, rowH); g.fillStyle = `rgba(255,${200 + Math.random() * 30},170,${Math.random() * .08})`; g.fillRect(x + 3, y + 3, w - 3, rowH - 3); g.fillStyle = 'rgba(110,50,25,.30)'; x += w }
-    }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8
-    const floor = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.55, R + 0.6, 0.4, 96), [
-      new THREE.MeshStandardMaterial({ color: '#a8603d', roughness: 1 }),
-      new THREE.MeshStandardMaterial({ map: t, roughness: .9, bumpMap: roomNoise(), bumpScale: .4 }),
-      new THREE.MeshStandardMaterial({ color: '#a8603d', roughness: 1 })])
-    floor.position.y = -0.2; floor.receiveShadow = true; scene.add(floor)
-  }
-}
-
-function catenary(a: THREE.Vector3, b: THREE.Vector3, sag: number, n: number) {
-  const pts: THREE.Vector3[] = []
-  for (let i = 0; i <= n; i++) { const t = i / n; const p = a.clone().lerp(b, t); p.y -= sag * 4 * t * (1 - t); pts.push(p) }
-  return pts
-}
-
-/** 천장 장식: 펜던트 조명, 깃발 줄, 꼬마전구, 걸이 화분, 벽 액자 */
-function buildCeiling(scene: THREE.Object3D) {
-  {
-    const g = group(scene, 0, DH - 3.15, -0.5)
-    const shade = add(new THREE.Mesh(new THREE.SphereGeometry(0.95, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2.1), clay('#d9a046', { side: THREE.DoubleSide })), g)
-    shade.scale.y = 0.5
-    add(at(new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 12), new THREE.MeshStandardMaterial({ color: '#fff4dc', emissive: '#ffd9a0', emissiveIntensity: 2.4 })), 0, -0.02, 0), g).castShadow = false
-  }
-  {
-    const pts = catenary(new THREE.Vector3(-4.6, 5.9, -1.4), new THREE.Vector3(4.6, 5.9, -1.4), 1.1, 15)
-    add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.02, 5), clay('#f3e6d6')), scene)
-    const cols = ['#e07a52', '#f0d7a8', '#9fbf74', '#f4eadd', '#b9d3df', '#eda98b']
-    const tri = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([-0.22, 0, 0, 0.22, 0, 0, 0, -0.5, 0], 3)); tri.computeVertexNormals()
-    for (let i = 1; i < pts.length - 1; i++) { const f = add(new THREE.Mesh(tri, clay(cols[i % cols.length], { side: THREE.DoubleSide })), scene); f.position.copy(pts[i]); f.castShadow = false }
-  }
-  for (const s of [-1, 1]) {
-    const a = new THREE.Vector3(s * 2.0, 7.0, -3.8), b = new THREE.Vector3(s * 5.3, 6.0, -1.4)
-    const mid = a.clone().lerp(b, .5).add(new THREE.Vector3(0, .4, 0))
-    for (const [p, q] of [[a, mid], [mid, b]]) {
-      const pts = catenary(p, q, .55, 10)
-      add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 30, .02, 5), clay('#a86a48')), scene)
-      const bc = ['#fff1cf', '#cfe7c2', '#f6c9c2', '#d9e9f2']
-      for (let i = 2; i < pts.length; i += 3) { const m = new THREE.Mesh(new THREE.SphereGeometry(.08, 12, 8), new THREE.MeshStandardMaterial({ color: bc[i % 4], emissive: bc[i % 4], emissiveIntensity: .7 })); m.position.copy(pts[i]); m.position.y -= .1; scene.add(m) }
-    }
-  }
-  {
-    const g = group(scene, -1.55, 5.55, -1.6)
-    cyl(g, .38, .3, .38, '#df7a57', 0, 0, 0)
-    sph(g, .36, '#7fa95a', 0, .42, 0, 1, .55, 1)
-    for (let i = 0; i < 4; i++) { const x = -.25 + i * .17; for (let k = 0; k < 4; k++) sph(g, .07, '#7fa95a', x + Math.sin(k + i) * .05, -.1 - k * .22 - (i % 2) * .15, .25) }
-    for (const a of [0, 2.1, 4.2]) add(new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, 1.2, 4), clay('#c9a27e')), g).position.set(Math.cos(a) * .3, .95, Math.sin(a) * .3)
-  }
-  const frame = (x: number, y: number, z: number, w: number, h: number, pic: string, ry: number) => {
-    const g = group(scene, x, y, z, ry)
-    box(g, w, h, .07, '#c97c55', 0, 0, 0, .03); box(g, w * .74, h * .74, .03, pic, 0, h * .13, .05, .01)
-  }
-  frame(-1.3, 4.0, -5.15, .62, .62, '#9fbf74', .2)
-  frame(1.5, 4.25, -5.1, .55, .7, '#b9d3df', -.2)
-  frame(-2.8, 3.4, -4.6, .45, .58, '#f0d7a8', .55)
-}
+const ROOM_R = 3.25            // 방 반지름
+const FLOOR_Y = .03            // 러그 위 (두더지 기본 자리)
+const MOLE_R = .36             // 두더지 몸 반지름 (폭 약 0.8m)
+const HOLE_OPEN = .417, HOLE_CLOSE = 1.5
 
 export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = {}): SceneHandle {
-  const renderer = createRenderer(container, { alpha: true, exposure: 0.92, shadowType: THREE.PCFSoftShadowMap })
+  const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap })
+  renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
+  renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
   const scene = new THREE.Scene()
-  scene.environment = gradientEnv(renderer, ROOM_ENV)
-  scene.environmentIntensity = 0.7
+  // 배경은 투명 (페이지 흙색이 보임. 스펙 배경 0x805B38 대신 Figma 화면색을 따름)
 
-  const camera = new THREE.PerspectiveCamera(30, 4 / 3, 0.1, 200)
-  camera.position.set(0, 4.4, 21.5)
-  camera.lookAt(0, 3.45, 0)
+  const camera = new THREE.PerspectiveCamera(48.5, 4 / 3, 0.1, 100)
+  camera.position.set(0, 1.56, 6.37)
+  const controls = new OrbitControls(camera, renderer.domElement)
+  controls.target.set(0, 2.04, 0)
+  controls.minDistance = 3.2; controls.maxDistance = 6.37
+  controls.minAzimuthAngle = THREE.MathUtils.degToRad(-15); controls.maxAzimuthAngle = THREE.MathUtils.degToRad(15)
+  controls.minPolarAngle = THREE.MathUtils.degToRad(75); controls.maxPolarAngle = THREE.MathUtils.degToRad(94.3)
+  controls.enablePan = false
+  controls.enableDamping = true; controls.dampingFactor = .12
+  controls.rotateSpeed = .5; controls.zoomSpeed = .6
+  controls.update()
 
-  buildShell(scene)
+  // 조명 (room_spec 3번. glTF 와트 변환 ×683 쓰지 않음)
+  scene.add(new THREE.AmbientLight(0xF0B47A, 0.785))
+  const bulb = new THREE.PointLight(0xFFDDB3, 48.4, 0, 2); bulb.position.set(0, 2.436, -0.455); scene.add(bulb)
+  const fill = new THREE.DirectionalLight(0xFFE7CB, 1.8); fill.position.set(0, 2.86, 4.55); fill.target.position.set(0, 1, 0); scene.add(fill, fill.target)
 
-  // 조명
-  scene.add(new THREE.HemisphereLight('#ffe4cc', '#a85a3c', 0.25))
-  const key = new THREE.DirectionalLight('#ffe2c4', 1.5)
-  key.position.set(-2, 16, 15); key.castShadow = true
-  key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.03
-  Object.assign(key.shadow.camera, { left: -10, right: 10, top: 12, bottom: -4, near: 1, far: 40 })
-  scene.add(key)
-  const bulb = new THREE.PointLight('#ffdcb0', 14, 14, 1.6); bulb.position.set(0, DH - 3.2, -0.5); scene.add(bulb)
-  const fill = new THREE.PointLight('#ffe0cc', 6, 16, 1.5); fill.position.set(0, 2.5, 6); scene.add(fill)
+  const furniture = new THREE.Group(); furniture.name = 'furniture'; scene.add(furniture)
+  /** 두더지가 못 들어가는 가구 바닥 영역 (월드 xz 사각형, 두더지 반지름만큼 넓힘) */
+  const feet: { x0: number; x1: number; z0: number; z1: number }[] = []
 
-  buildCeiling(scene)
-
-  // 가구 (관심사별로 바뀌는 부분)
-  const furniture = new THREE.Group()
-  furniture.name = 'furniture'
-  // 가구는 뒤쪽 반원 벽을 따라 붙음. 높이별 안쪽 벽 반지름(아래 1.25까지는 나무 판벽)
-  const wallAt = (y: number) => Math.min(prof(y) - .08, y < 1.3 ? R - .16 : 99)
-  const placed: THREE.Group[] = furnishRoom(furniture, { interests: opts.interests, wallAt, center: [0, .7] })
-  scene.add(furniture)
-
-  // 두더지 (glb, 따로 불러옴 → 오면 천장에서 떨어짐)
-  // 다닐 수 있는 곳: 바닥 원판 안, 뒤쪽 벽 안, 가구 발자리 밖
-  const MOLE_R = .38, MOLE_S = 1.9
   const clampRoom = (p: THREE.Vector3) => {
-    const fr = R + .2 - MOLE_R, d = Math.hypot(p.x, p.z)
+    const fr = ROOM_R - .5, d = Math.hypot(p.x, p.z)
     if (d > fr) { p.x *= fr / d; p.z *= fr / d }
-    if (p.z < 0) { const back = wallAt(0) - MOLE_R, d2 = Math.hypot(p.x, p.z); if (d2 > back) { p.x *= back / d2; p.z *= back / d2 } }
-    for (let k = 0; k < 2; k++) for (const g of placed) {
-      const f = g.userData.foot as { x: number; z: number; r: number } | null; if (!f) continue
-      const dx = p.x - f.x, dz = p.z - f.z, dd = Math.hypot(dx, dz), need = f.r + MOLE_R
-      if (dd < need) { p.x = f.x + dx / (dd || 1) * need; p.z = f.z + dz / (dd || 1) * need }
+    for (let k = 0; k < 2; k++) for (const f of feet) {
+      if (p.x <= f.x0 || p.x >= f.x1 || p.z <= f.z0 || p.z >= f.z1) continue
+      // 가장 가까운 변으로 밀어냄
+      const out = [p.x - f.x0, f.x1 - p.x, p.z - f.z0, f.z1 - p.z], m = Math.min(...out), i = out.indexOf(m)
+      if (i === 0) p.x = f.x0; else if (i === 1) p.x = f.x1; else if (i === 2) p.z = f.z0; else p.z = f.z1
     }
-    // 집주인 두더지와 겹치지 않게 (두더지 몸 폭 약 0.8m × scale)
     if (host) {
-      const h = host.object.position, dx = p.x - h.x, dz = p.z - h.z, dd = Math.hypot(dx, dz), need = 1.35
+      const h = host.object.position, dx = p.x - h.x, dz = p.z - h.z, dd = Math.hypot(dx, dz), need = MOLE_R * 2.1
       if (dd < need) { p.x = h.x + dx / (dd || 1) * need; p.z = h.z + dz / (dd || 1) * need }
     }
     return p
   }
+
   let host: MoleActor | null = null
   let mole: MoleActor | null = null
   let disposed = false
-  const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
   let worn = opts.worn ?? []
-  Promise.all([loadMoleGltf(), loadAccessories()]).then(([gltf, acc]) => {
+  const shadows = new Map<MoleActor, THREE.Mesh>()
+  let holeMixer: THREE.AnimationMixer | null = null
+  let holeObj: THREE.Object3D | null = null, holeClosing = false
+  let holeT = -1, holeOpen: THREE.AnimationAction | null = null, holeClose: THREE.AnimationAction | null = null
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const glbOf: Record<string, string> = { 'room_base_v1.glb': baseUrl, 'room_deco_v1.glb': decoUrl }
+
+  Promise.all([loadGlb(shellUrl), loadGlb(baseUrl), loadGlb(decoUrl), loadGlb(holeUrl), loadMoleGltf(), loadAccessories()]).then(([shell, base, deco, hole, moleG, acc]) => {
     if (disposed) return
-    // 같은 glb 하나를 복제해서 씀 (집주인 + 나)
+    // glb 는 캐시를 같이 씀 → 장면마다 복제 (재질·텍스처는 공유)
+    const shellS = shell.scene.clone(), decoS = deco.scene.clone(), baseS = base.scene.clone(), holeS = hole.scene.clone()
+    scene.add(shellS, decoS, holeS)
+    furniture.add(baseS)
+    baseS.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (m.isMesh && /^shadow_/.test(m.name)) {
+        const mat = (m.material as THREE.Material); mat.depthWrite = false; m.renderOrder = 1
+      }
+    })
+    const roots: Record<string, THREE.Object3D> = { [baseUrl]: baseS, [decoUrl]: decoS }
+    scene.updateMatrixWorld(true)
+    for (const c of CATALOG) {
+      if (!c.glb || c.category === 'deco') continue
+      const node = roots[glbOf[c.glb] ?? '']?.getObjectByName(c.node)
+      if (!node) continue
+      const box = new THREE.Box3().setFromObject(node)
+      if (box.min.y > 1) continue // 천장 램프처럼 매달린 것: 누를 수 없고 걸리지도 않음
+      const data: FurnitureData = { id: c.id, label: c.name_ko, act: ACTS[c.id], stand: Math.max(c.size_m.w, c.size_m.d) / 2 + .55 }
+      if (c.sit_point) {
+        const sp = node.getObjectByName(c.sit_point)
+        if (sp) {
+          const ex = sp.userData as { seat_type?: Seat['kind']; seat_height_m?: number }
+          data.seat = { kind: ex.seat_type ?? 'cushion', h: ex.seat_height_m ?? sp.getWorldPosition(new THREE.Vector3()).y }
+          data.sitAt = sp
+        }
+      }
+      node.userData.furniture = data
+      // 방석처럼 앉는 낮은 가구는 발자리를 조금 작게 (앞까지 걸어와야 해서)
+      const pad = c.sit_point ? MOLE_R * .6 : MOLE_R
+      feet.push({ x0: box.min.x - pad, x1: box.max.x + pad, z0: box.min.z - pad, z1: box.max.z + pad })
+    }
+
+    // 천장 구멍
+    holeObj = holeS
+    holeMixer = new THREE.AnimationMixer(holeS)
+    const clip = (n: string) => THREE.AnimationClip.findByName(hole.animations, n)
+    const once = (c: THREE.AnimationClip | null) => {
+      if (!c || !holeMixer) return null
+      const a = holeMixer.clipAction(c); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; return a
+    }
+    holeOpen = once(clip('ceiling_hole_open')); holeClose = once(clip('ceiling_hole_close'))
+    const drop = !reduce
+    holeS.visible = drop
+    if (drop && holeOpen) { holeOpen.play(); holeT = 0 }
+
     if (opts.hostName) {
-      host = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(1.5, 0, .4), yaw: -.35, drop: false, lookEvery: [5, 11], acc, worn: opts.hostWorn })
+      host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.95, FLOOR_Y, .55), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn })
       scene.add(host.object)
     }
-    mole = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(opts.hostName ? -1.4 : -.2, 0, 1.6), clamp: clampRoom, acc, worn })
+    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn })
     scene.add(mole.object)
-  }).catch((err) => console.warn('[3D] 두더지 모델을 못 불러왔어요', err))
-  // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로, 동작이 있는 가구를 누르면 그 동작
+    for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh) }
+    loop.redraw()
+  }).catch((err) => console.warn('[3D] 땅굴 모델을 못 불러왔어요', err))
+
+  // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로, 동작이 있는 가구를 누르면 그 동작. 끌면 카메라가 돎
+  const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
   const unbindKeys = bindMoleKeys(keyProxy)
   const el = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
   const furnitureOf = (o: THREE.Object3D | null) => {
-    for (; o; o = o.parent) if (o.userData.furniture) return o.userData.furniture.id === 'rug' ? null : o
+    for (; o; o = o.parent) if (o.userData.furniture) return o
     return null
   }
   const pick = (e: PointerEvent) => {
     const rect = el.getBoundingClientRect()
     ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height * 2 - 1))
     ray.setFromCamera(ndc, camera)
-    const hit = ray.intersectObject(furniture, true)[0]
-    // 집주인 두더지: 몸을 세로 막대(키 1m × scale)로 보고 광선과의 거리로 판정
+    const hit = ray.intersectObject(furniture, true).find((h) => !/^shadow_/.test(h.object.name))
+    // 집주인 두더지: 몸을 세로 막대(키 1m)로 보고 광선과의 거리로 판정
     let onHost = false
     if (host) {
-      const hp = host.object.position, a = new THREE.Vector3(hp.x, .1 * MOLE_S, hp.z), b2 = new THREE.Vector3(hp.x, 1 * MOLE_S, hp.z)
+      const hp = host.object.position, a = new THREE.Vector3(hp.x, hp.y + .1, hp.z), b2 = new THREE.Vector3(hp.x, hp.y + 1, hp.z)
       const pr = new THREE.Vector3(), ps = new THREE.Vector3()
       const d2 = ray.ray.distanceSqToSegment(a, b2, pr, ps)
-      onHost = d2 < (.45 * MOLE_S) ** 2 && (!hit || pr.distanceTo(ray.ray.origin) < hit.distance)
+      onHost = d2 < .45 ** 2 && (!hit || pr.distanceTo(ray.ray.origin) < hit.distance)
     }
     return { g: hit && !onHost ? furnitureOf(hit.object) : null, onHost }
   }
   const actionOf = (g: THREE.Object3D | null) => {
-    const f = g?.userData.furniture
+    const f = g?.userData.furniture as FurnitureData | undefined
     return f?.seat ? `${f.label}에 앉기` : f?.act === 'drink' ? '커피 마시기' : null
   }
-  // 말풍선(리액션)·가구 이름표(마우스를 올렸을 때)
-  // 말풍선은 두더지 오른쪽 위 (머리 위 '대화 요청하기' 버튼과 안 겹치게). 꼬리는 왼쪽 아래
+  // 말풍선(리액션)·가구 이름표(마우스를 올렸을 때). 말풍선은 두더지 오른쪽 위, 꼬리는 왼쪽 아래
   const makeBubble = () => {
     const b = document.createElement('div')
     Object.assign(b.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none', zIndex: '4', font: '600 22px/1 system-ui, sans-serif', padding: '8px 11px', borderRadius: '16px 16px 16px 4px', background: 'rgba(251,248,244,.96)', boxShadow: '0 4px 14px rgba(60,35,20,.18)', transformOrigin: '0 100%', transform: 'translate(0,-100%) scale(.6)', opacity: '0', transition: 'opacity .18s, transform .22s cubic-bezier(.2,.7,.2,1.4)' })
@@ -251,13 +198,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const say = (i: number, who: MoleActor, emoji: string, delay = 0) => {
     const b = bubbles[i]; b.el.textContent = emoji; b.who = who; b.from = clock + delay; b.until = clock + delay + 2.2
   }
-  const sideV = new THREE.Vector3()
+  const headV = new THREE.Vector3(), sideV = new THREE.Vector3()
   const drawBubbles = (t: number) => {
     for (const b of bubbles) {
       const on = !!b.who && t >= b.from && t < b.until
       if (on && b.who) {
-        // 머리 높이에서 몸 오른쪽(화면 기준)으로 0.55m
-        b.who.headTop(headV); headV.y -= .25 * MOLE_S
+        b.who.headTop(headV); headV.y -= .25
         sideV.copy(headV).project(camera)
         b.el.style.left = `${(sideV.x * .5 + .5) * W + 34}px`; b.el.style.top = `${(-sideV.y * .5 + .5) * H}px`
       }
@@ -269,7 +215,6 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   Object.assign(hint.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none', zIndex: '4', font: '500 13px/1 Pretendard, system-ui, sans-serif', padding: '7px 10px', borderRadius: '8px', background: 'rgba(62,42,31,.88)', color: '#fbf4ec', transform: 'translate(-50%, calc(-100% - 14px))', opacity: '0', transition: 'opacity .12s', whiteSpace: 'nowrap' })
   container.append(hint)
   let clock = 0
-  const headV = new THREE.Vector3()
 
   let down: { x: number; y: number } | null = null
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY } }
@@ -282,7 +227,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (g && mole.interact(g)) return
     if (g) return // 동작 없는 가구는 interact 가 앞까지 걸어감
     const o = ray.ray.origin, dir = ray.ray.direction; if (dir.y >= 0) return
-    const t = -o.y / dir.y; mole.walkTo(new THREE.Vector3(o.x + dir.x * t, 0, o.z + dir.z * t))
+    const t = (FLOOR_Y - o.y) / dir.y; mole.walkTo(new THREE.Vector3(o.x + dir.x * t, FLOOR_Y, o.z + dir.z * t))
   }
   let moveQueued: PointerEvent | null = null
   const onMove = (e: PointerEvent) => { moveQueued = e }
@@ -291,39 +236,29 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave)
   el.style.cursor = 'pointer'
 
-  // 후처리: GTAO + 색보정
-  const composer = new EffectComposer(renderer)
-  composer.setPixelRatio(renderer.getPixelRatio())
-  composer.addPass(new RenderPass(scene, camera))
-  const ao = new GTAOPass(scene, camera, 1, 1)
-  ao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.6, thickness: 1.2, scale: 1.25, samples: 16 })
-  ao.blendIntensity = 0.95
-  composer.addPass(ao)
-  const output = new OutputPass()
-  composer.addPass(output)
-  const grade = roomGradePass()
-  composer.addPass(grade)
-
   let W = 1, H = 1
   let focusTarget = opts.focusX ?? 0.5, focus = focusTarget
   const applyFrame = () => {
-    // 4:3 가상 화면: 높이 = 장면의 106.5%, 위에서 1% 아래, 가로 가운데 = focusX
-    const bh = H * 1.065, bw = bh * 4 / 3
-    frameCamera(camera, W, H, { left: focus * W - bw / 2, top: 0.01 * H, w: bw, h: bh })
+    if (W / H < 1) {
+      // 세로 화면: 가로를 꽉 채움 (스펙: 가로 화각 유지 → 돔 양옆이 잘리지 않게)
+      const bw = W * 1.02, bh = bw * 3 / 4
+      frameCamera(camera, W, H, { left: (W - bw) / 2, top: (H - bh) * .62, w: bw, h: bh })
+    } else {
+      const bh = H * 1.145, bw = bh * 4 / 3
+      frameCamera(camera, W, H, { left: focus * W - bw / 2, top: -0.054 * H, w: bw, h: bh })
+    }
   }
 
   const loop = startLoop(container, {
     resize(w, h) {
       W = w; H = h
       renderer.setSize(w, h, false)
-      composer.setSize(w, h)
-      ao.setSize(w, h)
-      grade.uniforms.uRes.value.set(w, h)
       applyFrame()
     },
     frame(dt, t) {
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
       clock = t
+      controls.update()
       if (moveQueued) {
         const e = moveQueued; moveQueued = null
         const pk = pick(e), rect = el.getBoundingClientRect()
@@ -332,11 +267,21 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         hint.style.opacity = label ? '1' : '0'
         hint.style.left = `${e.clientX - rect.left}px`; hint.style.top = `${e.clientY - rect.top}px`
       }
+      // 천장 구멍: 열림 → (두더지 떨어짐) → 1.5초에 닫힘
+      if (holeMixer && holeT >= 0) {
+        holeT += dt
+        if (!holeClosing && holeT >= HOLE_CLOSE) { holeClosing = true; holeOpen?.stop(); holeClose?.play() }
+        holeMixer.update(dt)
+        if (holeT > HOLE_CLOSE + .7 && holeObj) { holeT = -1; holeMixer.stopAllAction(); holeObj.visible = false }
+      }
       host?.update(dt)
       mole?.update(dt)
+      for (const [a, sh] of shadows) {
+        sh.visible = a.object.visible
+        sh.position.set(a.object.position.x, .012, a.object.position.z)
+      }
       drawBubbles(t)
-      grade.uniforms.uTime.value = t % 10
-      composer.render(dt)
+      renderer.render(scene, camera)
     },
   })
 
@@ -370,13 +315,15 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     dispose() {
       disposed = true
       loop.stop()
+      controls.dispose()
       unbindKeys()
       mole?.dispose(); host?.dispose()
+      holeMixer?.stopAllAction()
       bubbles.forEach((b) => b.el.remove()); hint.remove()
       el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp)
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
-      disposeObject(scene)
-      ao.dispose(); output.dispose(); grade.dispose(); composer.dispose()
+      // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)
+      for (const sh of shadows.values()) { sh.geometry.dispose(); (sh.material as THREE.Material).dispose() }
       destroyRenderer(renderer)
     },
   }

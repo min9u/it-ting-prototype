@@ -27,7 +27,8 @@ export const REACTIONS: { kind: Reaction; label: string; emoji: string }[] = [
 ]
 
 export interface Seat { kind: 'cushion' | 'beanbag' | 'chair'; h: number }
-interface FurnitureData { id: string; label: string; seat?: Seat; act?: 'drink'; stand?: number }
+/** 가구 userData.furniture. sitAt = 앉는 위치 노드 (sit_point_*: 위치 = 엉덩이 자리, 회전 0 = 카메라 쪽을 봄) */
+export interface FurnitureData { id: string; label: string; seat?: Seat; sitAt?: THREE.Object3D; act?: 'drink'; stand?: number }
 
 const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: number }> = {
   cushion: { sit: 'mole_sit_cushion', idle: 'mole_sit_idle', up: 'mole_stand_up_cushion', upOff: .35 },
@@ -36,7 +37,8 @@ const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: 
 }
 const UPPER = /^(upper_body|arm_L|arm_R|coffee_cup|mole_eye_L|mole_eye_R)\./
 const WALK_BASE = .32          // 재생 속도 1.0일 때 미끄러지지 않는 이동 속도 (m/s)
-const WALK_RATE = 1.25         // 자연스러운 범위 0.8~1.25배 중 가장 빠르게
+const MOVE_SPEED_MULT = 1.5    // 이동 속도 배율 (2026-11-11 사용자 요청 1.5배). 걷기 동작도 같은 배율로 빨라져 발이 미끄러지지 않음
+const WALK_RATE = 1.25 * MOVE_SPEED_MULT  // 원래 1.25 (자연스러운 범위 0.8~1.25배 중 가장 빠르게)
 const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
 export const loadMoleGltf = () => loadGlb(moleUrl)
@@ -342,11 +344,11 @@ export function createMoleActor(gltf: GLTF, opts: {
   function interact(g: THREE.Object3D): boolean {
     const f = g.userData.furniture as FurnitureData | undefined
     if (!f) return false
-    const gp = g.getWorldPosition(new THREE.Vector3())
+    const gp = (f.sitAt ?? g).getWorldPosition(new THREE.Vector3())
     if (f.seat) {
-      const yaw = g.rotation.y
+      const yaw = f.sitAt ? new THREE.Euler().setFromQuaternion(f.sitAt.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y : g.rotation.y
       if (pose === 'sit' && seatAt && seatAt.pos.distanceTo(new THREE.Vector3(gp.x, seatAt.pos.y, gp.z)) < .01) return true
-      const arrive = new THREE.Vector3(gp.x + Math.sin(yaw) * ARRIVE * S, 0, gp.z + Math.cos(yaw) * ARRIVE * S)
+      const arrive = new THREE.Vector3(gp.x + Math.sin(yaw) * ARRIVE * S, FY, gp.z + Math.cos(yaw) * ARRIVE * S)
       setPlan([...standUp(), walkStep(arrive), turnStep(() => yaw + Math.PI), sitStep(new THREE.Vector3(gp.x, 0, gp.z), yaw, f.seat)])
       return true
     }

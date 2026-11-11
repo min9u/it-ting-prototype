@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SceneHandle } from '../three/engine'
-import roomCutout from '../assets/room-cutout.png'
+import roomCutout from '../assets/room-v2.webp'
 import styles from './RoomView.module.css'
 
 // three.js 는 무거워서 땅굴 화면에 들어올 때만 따로 불러온다 (별도 청크)
@@ -34,8 +34,8 @@ interface Props {
 
 /**
  * 3D 땅굴 (src/three/roomScene.ts).
- * 3D가 준비될 때까지는 design/figma/room-cutout.png 자리표시를 같은 자리에 보여 준다.
- * 크기 기준: 방 지붕 꼭대기가 헤더 아래 21px, 방 높이가 장면 높이의 약 103%.
+ * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 디자이너 확인 렌더(핸드오프 v2 room_glb_check.png, 같은 카메라) 자리표시를 같은 자리에 보여 준다.
+ * 구도는 roomScene 과 같음: 4:3 그림 높이 = 장면 높이의 114.5%, 위로 5.4%, 가로 가운데 = focusX.
  */
 export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, hostWorn, worn, children, label }: Props) {
   const [ready, setReady] = useState(false)
