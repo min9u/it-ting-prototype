@@ -45,6 +45,16 @@ const ROOM_R = 3.25            // 방 반지름
 const FLOOR_Y = .03            // 러그 위 (두더지 기본 자리)
 const MOLE_R = .36             // 두더지 몸 반지름 (폭 약 0.8m)
 const HOLE_OPEN = .417, HOLE_CLOSE = 1.5
+/*
+ * 휠 확대·축소 (2026-11-11 사용자 요청: "스크롤로 확대/축소, 어느 정도 제한")
+ * - 기본 거리는 스펙 그대로 (카메라 (0, 1.56, 6.37) → target (0, 2.04, 0), 약 6.39m)
+ * - 확대: 스펙 최소 3.2m. 축소: 돔 바깥 흙이 조금 보이는 7.6m 까지
+ * - OrbitControls 기본 휠 줌은 끄고 직접 처리: 한 칸에 약 9%씩, 목표 거리로 부드럽게 따라감 (damping)
+ *   (원래 문제: 기본 거리 = 최대 거리라 축소가 아예 안 됐고, zoomSpeed .6 이라 한 칸에 3%만 움직여 거의 안 느껴졌음)
+ */
+const ZOOM_MIN = 3.2, ZOOM_MAX = 7.6
+// 확대할수록 바라보는 높이를 천장(2.04)에서 두더지·가구 높이(1.0)로 내림 → 가까이 가도 두더지가 화면에 남음
+const TARGET_Y = 2.04, TARGET_Y_NEAR = 1.0
 
 export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = {}): SceneHandle {
   const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap })
@@ -57,7 +67,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   camera.position.set(0, 1.56, 6.37)
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.target.set(0, 2.04, 0)
-  controls.minDistance = 3.2; controls.maxDistance = 6.37
+  controls.minDistance = ZOOM_MIN; controls.maxDistance = ZOOM_MAX
+  controls.enableZoom = false   // 휠은 아래 onWheel 에서 (부드럽게, 범위 제한)
   controls.minAzimuthAngle = THREE.MathUtils.degToRad(-15); controls.maxAzimuthAngle = THREE.MathUtils.degToRad(15)
   controls.minPolarAngle = THREE.MathUtils.degToRad(75); controls.maxPolarAngle = THREE.MathUtils.degToRad(94.3)
   controls.enablePan = false
@@ -164,6 +175,29 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
   const unbindKeys = bindDriveKeys(keyProxy.drive)
   const el = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
+  // 휠 확대·축소: 목표 거리만 바꾸고 프레임마다 따라감. 캔버스 위에서는 페이지가 스크롤되지 않게 막음.
+  // 트랙패드 핀치는 브라우저가 ctrl+wheel 로 보내므로 같은 줌 (값이 작아서 더 크게 반영)
+  let zoomGoal = camera.position.distanceTo(controls.target)
+  const ZOOM_HOME = zoomGoal
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault()
+    let dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1)
+    if (e.ctrlKey) dy *= 4
+    dy = THREE.MathUtils.clamp(dy, -300, 300)
+    zoomGoal = THREE.MathUtils.clamp(zoomGoal * Math.exp(dy * .00085), ZOOM_MIN, ZOOM_MAX)
+  }
+  el.addEventListener('wheel', onWheel, { passive: false })
+  const zoomOffset = new THREE.Vector3()
+  const stepZoom = (dt: number) => {
+    zoomOffset.copy(camera.position).sub(controls.target)
+    const d = zoomOffset.length()
+    if (Math.abs(d - zoomGoal) < 1e-3) return
+    const k = dt > 0 ? 1 - Math.exp(-dt * 10) : 1   // 루프가 안 도는 환경(dt 0)에서는 바로
+    const nd = d + (zoomGoal - d) * k
+    zoomOffset.setLength(nd)
+    controls.target.y = THREE.MathUtils.lerp(TARGET_Y_NEAR, TARGET_Y, THREE.MathUtils.smoothstep(nd, ZOOM_MIN, ZOOM_HOME))
+    camera.position.copy(controls.target).add(zoomOffset)
+  }
   const furnitureOf = (o: THREE.Object3D | null) => {
     for (; o; o = o.parent) if (o.userData.furniture) return o
     return null
@@ -258,6 +292,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     frame(dt, t) {
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
       clock = t
+      stepZoom(dt)
       controls.update()
       if (moveQueued) {
         const e = moveQueued; moveQueued = null
@@ -320,7 +355,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       mole?.dispose(); host?.dispose()
       holeMixer?.stopAllAction()
       bubbles.forEach((b) => b.el.remove()); hint.remove()
-      el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('wheel', onWheel)
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)
       for (const sh of shadows.values()) { sh.geometry.dispose(); (sh.material as THREE.Material).dispose() }
