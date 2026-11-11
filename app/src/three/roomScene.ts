@@ -13,6 +13,7 @@ import { createMoleActor, loadMoleGltf, REACTIONS, type FurnitureData, type Mole
 import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
+import { createBackdrop, toDynamicLayer } from './staticBackdrop'
 
 /*
  * 땅굴 방 장면 — 3D 핸드오프 v2 (design/digul_3d_handoff_v2, docs/room_spec.md) + v3 (design/digul_3d_handoff_v3)
@@ -98,11 +99,19 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial })
   renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
   renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
+  /*
+   * A 배경 한 번 + 움직이는 것만 (lib/lowLab.ts, staticBackdrop.ts. 탐색하기와 같은 방식):
+   * 움직이는 것(두더지·집주인·발밑 그림자·천장 구멍·떨어지는 중인 가구·먼지)은 layer 1, 나머지(껍데기·가구·착지한 가구)는 layer 0.
+   * layer 0 은 렌더 타깃에 한 번 그려 두고, 매 프레임은 붙인 뒤 layer 1 만 그림 → 방 전체 정점 처리가 매 프레임에서 빠짐.
+   * 가구가 착지하면 layer 0 으로 옮기고 배경을 다시 찍음. 카메라·줌·크기가 바뀌어도 다시 찍음
+   */
+  const backdrop = q.level === 'low' && q.lab?.A ? createBackdrop(renderer) : null
   const scene = new THREE.Scene()
   // 배경은 투명 (페이지 흙색이 보임. 스펙 배경 0x805B38 대신 Figma 화면색을 따름)
 
   const camera = new THREE.PerspectiveCamera(48.5, 4 / 3, 0.1, 100)
   camera.position.set(0, 1.56, 6.37)
+  camera.layers.enable(1) // 평소에는 두 층 모두 그림
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.target.set(0, 2.04, 0)
   controls.minDistance = ZOOM_MIN; controls.maxDistance = ZOOM_MAX
@@ -118,9 +127,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   controls.update()
 
   // 조명 (room_spec 3번. glTF 와트 변환 ×683 쓰지 않음)
-  scene.add(new THREE.AmbientLight(0xF0B47A, 0.785))
+  const amb = new THREE.AmbientLight(0xF0B47A, 0.785); scene.add(amb)
   const bulb = new THREE.PointLight(0xFFDDB3, 48.4, 0, 2); bulb.position.set(0, 2.436, -0.455); scene.add(bulb)
   const fill = new THREE.DirectionalLight(0xFFE7CB, 1.8); fill.position.set(0, 2.86, 4.55); fill.target.position.set(0, 1, 0); scene.add(fill, fill.target)
+  for (const l of [amb, bulb, fill]) l.layers.enable(1) // 움직이는 층도 같은 조명
 
   const furniture = new THREE.Group(); furniture.name = 'furniture'; scene.add(furniture)
   /** 두더지가 못 들어가는 가구 바닥 영역 (월드 xz 사각형, 두더지 반지름만큼 넓힘) */
@@ -178,6 +188,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     // glb 는 캐시를 같이 씀 → 장면마다 복제 (재질·텍스처는 공유)
     const shellS = shell.scene.clone(), holeS = hole.scene.clone()
     scene.add(shellS, holeS)
+    toDynamicLayer(holeS)
     const roots = new Map<string, THREE.Object3D>()
     fixedUrls.forEach((u, i) => {
       const root = fixedG[i].scene.clone()
@@ -250,6 +261,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         feet.push({ x0: g.position.x - hx, x1: g.position.x + hx, z0: g.position.z - hz, z1: g.position.z + hz })
       }
       drops.push({ g, it, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
+      if (!reduce) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
     }
 
     // 천장 구멍
@@ -273,7 +285,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     }
     mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
-    for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh) }
+    for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     fullNext = true
     loop.ready()
   }).catch((err) => console.warn('[3D] 땅굴 모델을 못 불러왔어요', err))
@@ -297,6 +309,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       d.g.visible = true
       if (t >= DROP_DURATION) {
         if (d.g.scale.x !== 1 || d.g.position.y !== y) { d.g.position.set(x, y, z); d.g.rotation.y = d.ry; d.g.scale.setScalar(1) }
+        // 착지: 움직이지 않는 층으로 옮기고 (누를 수 있게 됨) 배경을 다시 찍음
+        if (!d.g.layers.isEnabled(0)) { d.g.traverse((o) => o.layers.set(0)); backdrop?.invalidate() }
         continue
       }
       busy = true
@@ -325,7 +339,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const clip = THREE.AnimationClip.findByName(dustG.animations, 'dust_puff') ?? dustG.animations[0]
       const act = mixer.clipAction(clip); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true
       d = { o, mixer, act, mats, t: -1 }
-      dusts.push(d); scene.add(o)
+      dusts.push(d); scene.add(o); toDynamicLayer(o)
     }
     d.o.position.set(x, y, z); d.o.rotation.y = ry; d.o.scale.setScalar(scale); d.o.visible = true
     d.act.reset().play(); d.t = 0
@@ -489,7 +503,32 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     renderer.setScissorTest(false); renderer.autoClear = true
     renderer.render(scene, camera)
   }
+  /** A: 배경을 붙이고 움직이는 층만. 부분 그리기가 되면 두더지 둘레 사각형 안에서만 */
+  const drawBackdrop = (full: boolean) => {
+    const bd = backdrop!
+    if (bd.isDirty()) { bd.capture(scene, camera); full = true }
+    const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
+    for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
+    const prev = prevRect
+    prevRect = cur
+    let scissor = false
+    if (partial && !full && prev && cur.x1 > cur.x0) {
+      const pad = 12
+      const x0 = Math.max(0, Math.floor(Math.min(cur.x0, prev.x0) - pad)), x1 = Math.min(W, Math.ceil(Math.max(cur.x1, prev.x1) + pad))
+      const y0 = Math.max(0, Math.floor(Math.min(cur.y0, prev.y0) - pad)), y1 = Math.min(H, Math.ceil(Math.max(cur.y1, prev.y1) + pad))
+      if (x1 <= x0 || y1 <= y0) return
+      renderer.setScissorTest(true); renderer.setScissor(x0, y0, x1 - x0, y1 - y0); scissor = true
+    }
+    renderer.autoClear = false
+    bd.blit()
+    camera.layers.set(1)
+    renderer.render(scene, camera)
+    camera.layers.set(0); camera.layers.enable(1)
+    renderer.autoClear = true
+    if (scissor) renderer.setScissorTest(false)
+  }
   const draw = (full: boolean) => {
+    if (backdrop) { drawBackdrop(full); return }
     if (!partial || !mole) { drawFull(); return }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
@@ -520,10 +559,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       // 이번 프레임에 전체를 그려야 하는지 (부분 그리기일 때만 의미 있음)
       let full = fullNext || dt === 0
       fullNext = false
-      if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); full = true }
+      // 카메라 구도가 바뀌는 것 (A 배경을 다시 찍어야 함)
+      let camChanged = full
+      if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); full = camChanged = true }
       clock = t
-      if (stepZoom(dt)) full = true
+      if (stepZoom(dt)) full = camChanged = true
       camMoving = controls.update()
+      if (camMoving) camChanged = true
+      if (camChanged) backdrop?.invalidate()
       if (camMoving || holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)) full = true
       showHint()
       // 천장 구멍: 열림 → (두더지 떨어짐) → 1.5초에 닫힘
@@ -569,7 +612,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (document.hidden) { focus = x; applyFrame() }
       loop.wake()
     },
-    setWorn(ids) { worn = ids; mole?.setWorn(ids); loop.wake() },
+    setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
     react(kind) {
       if (!mole) return
@@ -607,6 +650,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)
       for (const sh of shadows.values()) { sh.geometry.dispose(); (sh.material as THREE.Material).dispose() }
+      backdrop?.dispose()
       destroyRenderer(renderer)
     },
   }

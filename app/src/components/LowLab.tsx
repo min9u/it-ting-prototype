@@ -12,7 +12,7 @@ import { router } from '../App'
 
 type BoolKey = Exclude<keyof LabState, 'force' | 'fps'>
 const ITEMS: { k: BoolKey; name: string; where: string; tip: string }[] = [
-  { k: 'A', name: 'A 배경 한 번 + 두더지만', where: '탐색하기', tip: '밭은 한 번만 그리고 두더지 둘레만 다시 그림' },
+  { k: 'A', name: 'A 배경 한 번 + 두더지만', where: '탐색하기·땅굴', tip: '움직이지 않는 것은 한 번만 그리고 두더지(떨어지는 가구)만 다시 그림' },
   { k: 'B', name: 'B 스톱모션', where: '모두', tip: '일부러 fps를 낮춤 (점토 인형극 느낌)' },
   { k: 'C', name: 'C 카메라 고정', where: '땅굴', tip: '방 돌리기·확대 끔 → 부분 그리기가 늘 적용' },
   { k: 'I', name: 'I 가끔 숨쉬기', where: '모두', tip: '쉬는 중 4초마다 1.2초만 움직임' },

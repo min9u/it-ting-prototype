@@ -8,7 +8,7 @@
 export interface LabState {
   /** 모드 강제: auto = 감지대로, low = 저사양 강제, high = 고사양 강제 */
   force: 'auto' | 'low' | 'high'
-  /** A 탐색하기: 밭은 한 번 그려 두고 두더지만 */
+  /** A 배경 한 번 + 움직이는 것만 (탐색하기·땅굴) */
   A: boolean
   /** B 스톱모션: 일부러 낮은 fps */
   B: boolean
