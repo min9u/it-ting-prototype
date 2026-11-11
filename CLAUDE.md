@@ -131,6 +131,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-10 [PlayCanvas vs three.js 실무 분석](docs/playcanvas-vs-threejs.md): 사용자는 PlayCanvas 결과가 가장 좋다고 봄. 차이 대부분은 조명 기법(그라데이션 환경광·PCSS·SSAO)이라 three.js로 옮길 수 있음. 앱에는 three.js(R3F)가 유리(gzip 167KB vs 655KB, React 생태계). → 조명을 옮겨 보니 three.js로도 거의 같은 느낌(N8AO 사용). 두더지는 펠트 질감(섬유 노멀맵 + sheen + 잔털 셸 12겹)으로 9회 다듬음 (explore/3d/NOTES.md). 2026-11-10 이 three.js 두더지로 임시 고정, 가구 17개를 벽 따라 정리, 방향키·WASD·클릭으로 조종, 앱에 합침. 다음: 엔진 확정 후 `app/` RoomView에 R3F로 이식
 
 - 2026-11-10 [프론트엔드 기술 가이드](docs/frontend-guide.md): 사용자 학습용. 앱 구조, React 상태, 라우팅(브라우저 vs 해시), 토큰·CSS Modules, TS 타입, 3D를 React에 넣는 법(경계·정리·루프·지연 로딩·레이캐스트), 빌드·배포, 공부 순서. README도 현재 상태로 다시 씀
+- 2026-11-11 [개발·배포·백엔드 연결 위험 지점](docs/dev-deploy-risks.md): 코드 근거로 정리. 가장 큰 것은 비동기 전환 시 `<Navigate>` "없음" 처리·로딩/에러 경계 없음, 날짜 형식 혼재(ISO vs "2시간 전")·시간대, 채팅방 전환 시 이전 메시지가 남는 버그(`<Room>`에 key 없음), 브라우저 라우터 새로고침 404·재배포 후 청크 404, 인증 가드 없음. 바로 할 예방 작업 Top 8과 백엔드 합의 체크리스트·API 규약 초안 포함
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)** (온보딩·시작 화면은 커밋만 하고 아직 아티팩트에 배포 안 함)
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
