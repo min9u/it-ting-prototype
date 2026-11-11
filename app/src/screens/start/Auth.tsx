@@ -95,7 +95,8 @@ export function SignupEmail() {
     <AuthFrame step={1}>
       <h1 className={s.panelTitle}>땅굴 주소를 만들어요</h1>
       <p className={s.panelLead}>SSAFY 이메일로 인증해요.</p>
-      <form className={s.form} onSubmit={(e) => { e.preventDefault(); nav('/signup/password') }}>
+      {/* 프로토타입: 체험용이라 입력이 없어도 다음 단계로 (2026-11-11) */}
+      <form className={s.form} noValidate onSubmit={(e) => { e.preventDefault(); nav('/signup/password') }}>
         <div className={s.fields}>
           <div className={s.field}>
             <label htmlFor="se">이메일</label>
@@ -114,7 +115,7 @@ export function SignupEmail() {
             <span className={s.help}>메일함에 코드가 없으면 스팸함도 확인해 주세요.</span>
           </div>
         </div>
-        <button className={s.primary} disabled={code.length !== 6}>다음</button>
+        <button className={s.primary}>다음</button>
       </form>
     </AuthFrame>
   )
@@ -138,7 +139,8 @@ export function SignupPassword() {
   return (
     <AuthFrame step={2}>
       <h1 className={s.panelTitle}>비밀번호를 정해요</h1>
-      <form className={s.form} onSubmit={(e) => { e.preventDefault(); nav('/onboarding/name') }}>
+      {/* 프로토타입: 체험용이라 조건을 안 채워도 온보딩으로 (2026-11-11) */}
+      <form className={s.form} noValidate onSubmit={(e) => { e.preventDefault(); nav('/onboarding/name') }}>
         <div className={s.fields}>
           <div className={s.field}>
             <label htmlFor="p1">비밀번호</label>
@@ -156,7 +158,7 @@ export function SignupPassword() {
           <label><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span className={s.box} aria-hidden />이용약관 동의 <em>필수</em></label>
           <label><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} /><span className={s.box} aria-hidden />개인정보 수집·이용 동의 <em>필수</em></label>
         </div>
-        <button className={s.primary} disabled={!ready}>땅굴 파기</button>
+        <button className={s.primary} data-ready={ready}>땅굴 파기</button>
       </form>
     </AuthFrame>
   )

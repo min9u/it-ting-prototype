@@ -29,7 +29,7 @@
 - **팀 공유용 앱 배포 (아티팩트)**: https://claude.ai/artifact/Fd1hfXP3T6nzY2Zg4QXYAS (비공개로 시작, 공유는 페이지 Share 메뉴)
   - 저장소가 비공개이고 gh 로그인이 없어 GitHub Pages 대신 아티팩트로 올림
   - 갱신: `cd app && npm run build:share` (# 라우팅·상대 경로, `.env.share`, 끝에 `scripts/share-page.mjs`가 `dist-share/share-page.html`과 `files.json`을 만듦) → Artifact publish(같은 url, root=dist-share, 바뀐 assets만 보내고 옛 해시 파일은 null)
-  - 공유 빌드는 첫 화면이 로그인된 내 땅굴(`#/burrow`). 시작 화면은 `#/start`
+  - 공유 빌드는 첫 화면이 시작 화면(`#/start`, 2026-11-11부터. 팀원이 랜딩 → 가입 → 온보딩을 체험). 로그인·회원가입은 프로토타입이라 입력 없이 통과
   - Pretendard는 CDN 대신 npm `pretendard`로 번들 (아티팩트는 외부 CSS 차단)
   - 아티팩트는 `.glb` 파일을 못 올림 → 공유 빌드에서만 glb를 data URL로 JS에 넣음(`vite.config.ts`의 `assetsInlineLimit`), `three/glb.ts`가 fetch 없이 직접 풀어서 parse. Draco는 안 씀(해독기 wasm을 올려야 해서) → 텍스처 WebP + 메시 양자화
 - **3D 핸드오프 v1** (`design/digul_3d_handoff_v1/`, 문서 `docs/HANDOFF_v1.md`): 디자이너가 만든 두더지 glb(동작 19개)·굴 입구 소품. 영상은 gitignore(디자이너 zip에 있음). 방·가구 glb는 아직 작업 중
