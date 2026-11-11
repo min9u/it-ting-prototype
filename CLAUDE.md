@@ -143,4 +143,4 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
 - 썸네일 생성이 느린 문제 (필요하면 지연 생성)
-- 2026-11-11 [저사양 모드 다른 아이디어](docs/gpu-lowspec-ideas.md): 부분 다시 그리기 외에 Worker(OffscreenCanvas)로 페이지 멈춤 없애기, 스톱모션 8~10fps + 카메라 고정, 스프라이트 두더지 등. 추천은 스톱모션 + 카메라 고정 먼저, 근본 해결은 Worker. 맥처럼 WebGL이 아예 없는 경우는 대응 안 함 (사용자 결정)
+- 2026-11-11 [저사양 모드 아이디어 모음](docs/gpu-lowspec-ideas.md): 한 것(감지·안내 띠·품질 묶음·쉬면 멈춤·땅굴 부분 다시 그리기)과 남은 아이디어 9개. **해 볼 순서: 탐색하기 배경 한 번 + 두더지만 → 스톱모션 8~10fps + 카메라 고정 → 가끔 숨쉬기 → 그래도 부족하면 Worker**. 맥처럼 WebGL이 아예 없는 경우는 대응 안 함
