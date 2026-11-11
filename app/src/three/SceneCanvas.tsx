@@ -27,6 +27,10 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   const q = quality()
   const lab = q.level === 'low' ? q.lab : null
   const [frozen, setFrozen] = useState(false)
+  const small = !!lab?.G
+  // G 일 때는 액자를 focusX 자리에 두고 장면은 액자 가운데(0.5)에 그림
+  const sceneFx = small ? 0.5 : focusX
+  latest.current.focusX = sceneFx
 
   useEffect(() => {
     const el = ref.current
@@ -48,11 +52,10 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
     }
   }, [deps, ver])
 
-  useEffect(() => { handle.current?.setFocusX(focusX) }, [focusX])
+  useEffect(() => { handle.current?.setFocusX(sceneFx) }, [sceneFx])
 
-  const small = !!lab?.G
   const style = small
-    ? { inset: '9% 14% 16%', width: 'auto', height: 'auto', borderRadius: 28, overflow: 'hidden', boxShadow: '0 0 0 6px rgba(251,244,236,.55), 0 18px 40px rgba(60,35,20,.25)' }
+    ? { inset: 'auto', top: '9%', bottom: '16%', left: `calc(${focusX * 100}% - 36%)`, width: '72%', height: 'auto', borderRadius: 28, overflow: 'hidden', transition: 'left .45s', boxShadow: '0 0 0 6px rgba(251,244,236,.55), 0 18px 40px rgba(60,35,20,.25)' }
     : undefined
 
   return (
