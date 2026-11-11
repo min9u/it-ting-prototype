@@ -1,0 +1,51 @@
+{
+  "name": "off-lite075",
+  "q": {
+    "ao": true,
+    "grade": true,
+    "composer": false,
+    "shadow": 1024,
+    "shadowType": "basic",
+    "pr": 0.75,
+    "aa": true,
+    "env": true,
+    "points": true,
+    "shells": 0,
+    "msaa": 0
+  },
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+  "dpr": 1,
+  "w": 1904,
+  "h": 985,
+  "detect": {
+    "webgl2": {
+      "renderer": "WebKit WebGL",
+      "vendor": "WebKit",
+      "unmaskedRenderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "unmaskedVendor": "Google Inc. (Microsoft)",
+      "maxTex": 16384
+    },
+    "webgl": {
+      "renderer": "WebKit WebGL",
+      "vendor": "WebKit",
+      "unmaskedRenderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "unmaskedVendor": "Google Inc. (Microsoft)",
+      "maxTex": 16384
+    },
+    "caveat_webgl": false,
+    "caveat_webgl2": false,
+    "webgpu": "adapter null",
+    "microMs": 117.6
+  },
+  "buildMs": 301,
+  "firstFrameMs": 2427,
+  "syncFrameMs": 87.6,
+  "stats": {
+    "meshes": 184,
+    "tris": 158354,
+    "programs": 10
+  },
+  "rafFps": 4.2,
+  "rafFrames": 21,
+  "worstGapMs": 3250
+}

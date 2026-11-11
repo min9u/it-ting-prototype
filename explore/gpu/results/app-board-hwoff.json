@@ -1,0 +1,14 @@
+{
+  "name": "app-board-hwoff",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5193/board",
+  "wallSec": 9,
+  "twoFramesMs": 31,
+  "fps": 59.9,
+  "worstGap": 17,
+  "p50": 17,
+  "longTasks": 1,
+  "longTaskMs": 82,
+  "canvases": 0,
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

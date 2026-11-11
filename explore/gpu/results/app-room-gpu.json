@@ -1,0 +1,14 @@
+{
+  "name": "app-room-gpu",
+  "mode": "gpu",
+  "url": "http://127.0.0.1:5193/burrow",
+  "wallSec": 16,
+  "twoFramesMs": 26,
+  "fps": 59.9,
+  "worstGap": 17,
+  "p50": 17,
+  "longTasks": 3,
+  "longTaskMs": 1985,
+  "canvases": 1,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

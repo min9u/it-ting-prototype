@@ -1,0 +1,45 @@
+{
+  "name": "det-edge-gpu",
+  "q": {
+    "ao": true,
+    "grade": true,
+    "composer": true,
+    "shadow": 2048,
+    "shadowType": "soft",
+    "pr": 1,
+    "aa": true,
+    "env": true,
+    "points": true,
+    "shells": 12,
+    "msaa": 0
+  },
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+  "dpr": 1,
+  "w": 1896,
+  "h": 988,
+  "detect": {
+    "webgl2": {
+      "renderer": "WebKit WebGL",
+      "vendor": "WebKit",
+      "unmaskedRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "unmaskedVendor": "Google Inc. (NVIDIA)",
+      "maxTex": 16384
+    },
+    "webgl": {
+      "renderer": "WebKit WebGL",
+      "vendor": "WebKit",
+      "unmaskedRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "unmaskedVendor": "Google Inc. (NVIDIA)",
+      "maxTex": 16384
+    },
+    "caveat_webgl": true,
+    "caveat_webgl2": true,
+    "webgpu": {
+      "vendor": "nvidia",
+      "architecture": "blackwell",
+      "description": "",
+      "infoFallback": false
+    },
+    "microMs": 0.9
+  }
+}

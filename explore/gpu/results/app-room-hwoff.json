@@ -1,0 +1,14 @@
+{
+  "name": "app-room-hwoff",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5193/burrow",
+  "wallSec": 19,
+  "twoFramesMs": 363,
+  "fps": 3,
+  "worstGap": 383,
+  "p50": 317,
+  "longTasks": 44,
+  "longTaskMs": 15395,
+  "canvases": 1,
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

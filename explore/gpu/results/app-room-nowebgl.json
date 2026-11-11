@@ -1,0 +1,14 @@
+{
+  "name": "app-room-nowebgl",
+  "mode": "nowebgl",
+  "url": "http://127.0.0.1:5193/burrow",
+  "wallSec": 9,
+  "twoFramesMs": 25,
+  "fps": 59.9,
+  "worstGap": 17,
+  "p50": 17,
+  "longTasks": 2,
+  "longTaskMs": 124,
+  "canvases": 0,
+  "renderer": null
+}
