@@ -107,6 +107,11 @@ export function createMoleActor(gltf: GLTF, opts: {
   groundAt?: (x: number, z: number) => number
   /** 지상: 가만히 있으면 center 근처(radius)를 혼자 돌아다님. rest = 쉬는 시간 [최소, 최대] 초. 직접 조종하면 6초 동안 쉼 */
   wander?: { center: THREE.Vector3; radius: number; rest: [number, number] }
+  /**
+   * F 단순한 두더지 (저사양 실험실, lib/lowLab.ts): 털 재질(sheen·specular·노멀맵의 Physical)을 Lambert 로 바꾸고 액세서리를 뺌.
+   * CPU 렌더러에서 두더지 픽셀 비용을 줄임. 모양·동작은 그대로
+   */
+  simple?: boolean
 }): MoleActor {
   const FY = opts.floorY ?? 0
   const S = opts.scale
@@ -115,12 +120,23 @@ export function createMoleActor(gltf: GLTF, opts: {
   object.name = 'mole-actor'
   // 같은 glb를 여러 마리에 씀. SkeletonUtils.clone 이 SkinnedMesh 뼈 연결까지 복제
   const model = cloneSkinned(gltf.scene)
+  const simpleMats = new Map<THREE.Material, THREE.MeshLambertMaterial>()
   model.traverse((o) => {
     const m = o as THREE.Mesh
     if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false }
+    if (m.isMesh && opts.simple) {
+      const src = m.material as THREE.MeshStandardMaterial
+      let lm = simpleMats.get(src)
+      if (!lm) {
+        lm = new THREE.MeshLambertMaterial({ color: src.color, map: src.map, side: src.side, transparent: src.transparent, opacity: src.opacity })
+        lm.name = `${src.name}_simple`
+        simpleMats.set(src, lm)
+      }
+      m.material = lm
+    }
   })
   object.add(model)
-  const dress: MoleDress | null = opts.acc ? createMoleDress(model, opts.acc) : null
+  const dress: MoleDress | null = opts.acc && !opts.simple ? createMoleDress(model, opts.acc) : null
   dress?.setWorn(opts.worn ?? [])
   object.scale.setScalar(S)
   object.position.copy(opts.start)
@@ -490,6 +506,6 @@ export function createMoleActor(gltf: GLTF, opts: {
     isGreeting: () => current === act('mole_greet') && current.isRunning(),
     headTop(out) { return out.set(object.position.x, object.position.y + 1.2 * S, object.position.z) },
     setWorn(ids) { dress?.setWorn(ids) },
-    dispose() { dress?.dispose(); mixer.stopAllAction(); mixer.uncacheRoot(model) },
+    dispose() { dress?.dispose(); mixer.stopAllAction(); mixer.uncacheRoot(model); simpleMats.forEach((m) => m.dispose()) },
   }
 }

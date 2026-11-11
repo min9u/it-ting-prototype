@@ -259,6 +259,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     mole = createMoleActor(moleG, {
       scale: S, start: home.clone(), yaw: 0, drop: false, clamp: clampWalk, groundAt: groundHeight,
       wander: { center: home.clone(), radius: 1.6, rest: [3, 6] }, acc, worn: opts.worn ?? getMyWorn(),
+      simple: q.level === 'low' && !!q.lab?.F,   // F 단순한 두더지 (lib/lowLab.ts)
     })
     scene.add(mole.object)
     toDynamicLayer(mole.object)

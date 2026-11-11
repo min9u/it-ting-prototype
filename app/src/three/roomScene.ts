@@ -93,6 +93,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const partial = q.level === 'low' && (q.lab?.P ?? true) && testParam('partial') !== '0'
   // C 저사양 카메라 고정 (lib/lowLab.ts): 돌리기·휠 확대를 끔 → 부분 그리기가 거의 항상 적용됨
   let camLock = q.level === 'low' && !!q.lab?.C
+  // F 단순한 두더지 (moleActor simple)
+  const simpleMole = q.level === 'low' && !!q.lab?.F
   const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial })
   renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
   renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
@@ -266,10 +268,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (drop && drops.length) { seqT = 0; for (const d of drops) d.g.visible = false }
 
     if (opts.hostName) {
-      host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn })
+      host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn, simple: simpleMole })
       scene.add(host.object)
     }
-    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn })
+    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh) }
     fullNext = true
