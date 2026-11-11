@@ -53,7 +53,8 @@ export function Login() {
   return (
     <AuthFrame after={<p className={s.returnHint}>로그인하면 보던 예린이의 방으로 돌아가요</p>}>
       <h1 className={s.panelTitle}>다시 왔네요</h1>
-      <form className={s.form} onSubmit={(e) => { e.preventDefault(); nav('/burrow') }}>
+      {/* 프로토타입: 입력 확인 없이 바로 온보딩으로 (온보딩 확인용, 2026-11-11) */}
+      <form className={s.form} noValidate onSubmit={(e) => { e.preventDefault(); nav('/onboarding/name') }}>
         <div className={s.fields}>
           <label className={s.field}>
             <span>이메일</span>
@@ -64,7 +65,7 @@ export function Login() {
             <input className={s.input} type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
           </label>
         </div>
-        <button className={s.primary} disabled={!email || !pw}>로그인</button>
+        <button className={s.primary}>로그인</button>
       </form>
       <div className={s.links}>
         <Link to="/password-reset">비밀번호 찾기</Link>

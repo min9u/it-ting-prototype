@@ -35,6 +35,7 @@ export default function MyBurrow() {
   const [mode, setMode] = useState<Mode>(() => (params.get('mode') === 'edit' ? 'edit' : params.get('mode') === 'decor' ? 'decor' : 'info'))
   const [profile, setProfile] = useState({ nickname: me.nickname, intro: me.intro, interests: me.interests })
   const [worn, setWorn] = useState<string[]>(DEFAULT_WORN)
+  const [draft, setDraft] = useState<string[]>(worn)   // 꾸미는 중인 모습 (방 두더지에 바로 보임)
   const [entries, setEntries] = useState(() => (params.get('guestbook') === '0' ? [] : liveGuestbook(GUESTBOOK)))
   const [allOpen, setAllOpen] = useState(params.get('modal') === 'guestbook')
   const [visitorsOpen, setVisitorsOpen] = useState(false)
@@ -46,12 +47,12 @@ export default function MyBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={me.id} interests={profile.interests} focusX={focusX} label="내 땅굴">
+      <RoomView ownerId={me.id} interests={profile.interests} worn={mode === 'decor' ? draft : worn} focusX={focusX} label="내 땅굴">
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 <span>바뀐 모습이 바로 보여요</span></span>
         ) : (
           <div className={s.sceneTools}>
-            <SceneButton tone="cream" onClick={() => setMode('decor')}>땅굴 꾸미기</SceneButton>
+            <SceneButton tone="cream" onClick={() => { setDraft(worn); setMode('decor') }}>땅굴 꾸미기</SceneButton>
             <SceneButton tone="mint" onClick={() => setVisitorsOpen(true)} aria-label={`지금 방문자 ${me.visitorsNow}명`}>
               <VisitorBadge count={me.visitorsNow ?? 0} />
             </SceneButton>
@@ -65,16 +66,18 @@ export default function MyBurrow() {
           profile={profile}
           affiliation={me.affiliation}
           onCancel={() => setMode('info')}
-          onDecorate={() => setMode('decor')}
+          onDecorate={() => { setDraft(worn); setMode('decor') }}
           onSave={(p) => { setProfile(p); setMode('info'); setToast('내 정보를 저장했어요') }}
         />
       )}
 
       {mode === 'decor' && (
         <DecorPanel
-          worn={worn}
+          draft={draft}
+          setDraft={setDraft}
+          picks={profile.interests}
           onCancel={() => setMode('info')}
-          onSave={(w) => { setWorn(w); setMode('info'); setToast('꾸민 모습을 저장했어요') }}
+          onSave={() => { setWorn(draft); setMode('info'); setToast('꾸민 모습을 저장했어요') }}
         />
       )}
 
@@ -216,9 +219,8 @@ function EditPanel({ profile, affiliation, onCancel, onSave, onDecorate }: {
 }
 
 /** 꾸미기 모드 · 사이드바 변신 682:7764 — 가구 / 두더지 탭 */
-function DecorPanel({ worn, onCancel, onSave }: { worn: string[]; onCancel: () => void; onSave: (w: string[]) => void }) {
+function DecorPanel({ draft, setDraft, picks, onCancel, onSave }: { draft: string[]; setDraft: (w: string[]) => void; picks: string[]; onCancel: () => void; onSave: () => void }) {
   const [tab, setTab] = useState<'furniture' | 'mole'>('mole')
-  const [draft, setDraft] = useState(worn)
   return (
     <aside className={`${s.panel} ${s.formPanel}`} aria-label="땅굴 꾸미기">
       <div className={s.panelHead}>
@@ -231,14 +233,14 @@ function DecorPanel({ worn, onCancel, onSave }: { worn: string[]; onCancel: () =
       </div>
       <div className={s.decorBody}>
         {tab === 'mole' ? (
-          <MoleDresser worn={draft} onChange={setDraft} compact />
+          <MoleDresser worn={draft} onChange={setDraft} picks={picks} compact />
         ) : (
           <p className={s.formNote}>가구 탭은 Figma에 아직 화면이 없어요. 지금은 관심사에 맞춰 가구가 자동으로 놓여요.</p>
         )}
       </div>
       <div className={s.panelActions}>
         <button className="btn btn-line" onClick={onCancel}>취소</button>
-        <button className="btn btn-cta" onClick={() => onSave(draft)}>저장하기</button>
+        <button className="btn btn-cta" onClick={onSave}>저장하기</button>
       </div>
     </aside>
   )

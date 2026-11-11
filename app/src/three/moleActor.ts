@@ -1,17 +1,18 @@
 import * as THREE from 'three'
-import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js'
+import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import moleUrl from '../assets/models/mole.glb?url'
+import { loadGlb } from './glb'
+import { createMoleDress, type MoleDress } from './moleDress'
 
 /*
- * glb 두더지 (design/digul_3d_handoff_v1). 동작 19개 중 방에서 쓰는 것:
+ * glb 두더지 (design/digul_3d_handoff_v1_1: v1 + 액세서리 소켓 5개 + mole_showcase). 동작 20개 중 방에서 쓰는 것:
  *   mole_room_drop, mole_idle, mole_walk, mole_turn, mole_drink(상체만),
  *   mole_sit_cushion / _beanbag / _chair, mole_sit_idle / _chair, mole_stand_up_cushion / _beanbag / _chair,
  *   리액션: mole_greet, mole_look_around, mole_ground_scratch
  * 지상 전용(mole_burrow_enter/exit, mole_butt_wiggle)은 굴 입구 기준 자세라 방에서는 안 씀.
  *
- * 원본 mole_v1.glb 에서 텍스처만 1024px WebP 로 줄인 파일 (Draco 해독기 없이 읽힘):
- *   gltf-transform resize --width 1024 --height 1024 → gltf-transform webp
+ * 원본 mole_v1_1.glb 에서 텍스처만 1024px WebP 로 줄인 파일 (Draco 해독기 없이 읽힘, 만드는 법은 docs/3d-handoff-v2-integration.md)
  *
  * 좌표: 두더지 원점 = 두 발 사이 바닥, 정면 +Z. 핸드오프 수치(m)는 키 1m 기준이라 방에서는 scale 배.
  * 구조: actor(위치·회전·scale) > gltf.scene(애니메이션 루트)
@@ -38,18 +39,7 @@ const WALK_BASE = .32          // 재생 속도 1.0일 때 미끄러지지 않�
 const WALK_RATE = 1.25         // 자연스러운 범위 0.8~1.25배 중 가장 빠르게
 const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
-let cached: Promise<GLTF> | null = null
-export function loadMoleGltf() {
-  if (!cached) {
-    const loader = new GLTFLoader()
-    // 공유 빌드는 glb가 data URL로 들어옴 (vite.config.ts). fetch 대신 직접 풀어서 parse (아티팩트 CSP 대비)
-    cached = (moleUrl.startsWith('data:')
-      ? loader.parseAsync(Uint8Array.from(atob(moleUrl.slice(moleUrl.indexOf(',') + 1)), (c) => c.charCodeAt(0)).buffer, '')
-      : loader.loadAsync(moleUrl)
-    ).catch((e) => { cached = null; throw e })
-  }
-  return cached
-}
+export const loadMoleGltf = () => loadGlb(moleUrl)
 
 const smooth = (u: number) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u) }
 const wrap = (a: number) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a }
@@ -79,6 +69,8 @@ export interface MoleActor {
   isGreeting(): boolean
   /** 말풍선 붙일 머리 위 월드 좌표 */
   headTop(out: THREE.Vector3): THREE.Vector3
+  /** 액세서리 바꾸기 (acc 를 넘겨 만든 경우만) */
+  setWorn(ids: string[]): void
   dispose(): void
 }
 
@@ -94,7 +86,15 @@ export function createMoleActor(gltf: GLTF, opts: {
   lookEvery?: [number, number]
   /** 처음 바라보는 방향 */
   yaw?: number
+  /** 떨어지기 전에 숨어 있는 시간 (천장 구멍이 열리는 동안, 초) */
+  dropDelay?: number
+  /** 서 있을 때 발 높이 (러그 위 0.03) */
+  floorY?: number
+  /** 액세서리 glb + 처음 착용 */
+  acc?: GLTF
+  worn?: string[]
 }): MoleActor {
+  const FY = opts.floorY ?? 0
   const S = opts.scale
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
   const object = new THREE.Group()
@@ -106,6 +106,8 @@ export function createMoleActor(gltf: GLTF, opts: {
     if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false }
   })
   object.add(model)
+  const dress: MoleDress | null = opts.acc ? createMoleDress(model, opts.acc) : null
+  dress?.setWorn(opts.worn ?? [])
   object.scale.setScalar(S)
   object.position.copy(opts.start)
   object.rotation.order = 'YXZ'
@@ -172,7 +174,7 @@ export function createMoleActor(gltf: GLTF, opts: {
     let goal = target.clone(); let stuck = 0; let last = Infinity
     return {
       begin() {
-        goal.y = 0
+        goal.y = FY
         if (!o.strict && opts.clamp) goal = opts.clamp(goal)
         if (current !== act('mole_walk')) play('mole_walk', { from: .125, rate: WALK_RATE, fade: .12 })
       },
@@ -269,7 +271,7 @@ export function createMoleActor(gltf: GLTF, opts: {
         t += dt
         if (t < end || !seatAt) return false
         const off = SIT[seatAt.seat.kind].upOff * S, y = seatAt.yaw
-        object.position.set(seatAt.pos.x + Math.sin(y) * off, 0, seatAt.pos.z + Math.cos(y) * off)
+        object.position.set(seatAt.pos.x + Math.sin(y) * off, FY, seatAt.pos.z + Math.cos(y) * off)
         play('mole_idle', { fade: 0 })
         pose = 'stand'; seatAt = null
         return true
@@ -307,12 +309,20 @@ export function createMoleActor(gltf: GLTF, opts: {
     }
   }
 
+  /** 떨어지기: dropDelay 동안 숨어 있다가 (천장 구멍이 열리는 동안) mole_room_drop */
   function dropStep(): Step {
-    let t = 0, end = 0
+    const delay = opts.dropDelay ?? 0
+    let t = 0, end = 0, started = false
+    const start = () => { started = true; object.visible = true; play('mole_room_drop', { once: true, fade: 0 }) }
     return {
       hold: true,
-      begin() { t = 0; end = clip('mole_room_drop').duration; play('mole_room_drop', { once: true, fade: 0 }) },
-      tick(dt) { t += dt; if (t < end) return false; play('mole_idle', { fade: .15 }); return true },
+      begin() { t = 0; end = clip('mole_room_drop').duration; if (delay > 0) { object.visible = false; play('mole_idle', { fade: 0 }) } else start() },
+      tick(dt) {
+        t += dt
+        if (!started) { if (t >= delay) { const over = t - delay; start(); mixer.update(over) } return false }
+        if (t - delay < end) return false
+        play('mole_idle', { fade: .15 }); return true
+      },
     }
   }
 
@@ -421,6 +431,18 @@ export function createMoleActor(gltf: GLTF, opts: {
       } else idleFor = 0
     }
     mixer.update(dt)
+    dress?.update(dt, activeClip(), driving || (current === act('mole_walk')))
+  }
+
+  /** 손 소품 숨김 규칙에 쓰는 지금 동작 이름 (커피는 상체만 겹쳐 재생하므로 따로 봄) */
+  const HIDE = ['mole_drink', 'mole_greet', 'mole_butt_wiggle', 'mole_burrow_enter']
+  function activeClip() {
+    for (const n of HIDE) {
+      if (!clips.has(n)) continue
+      const a = mixer.existingAction(clips.get(n)!)
+      if (a && a.isRunning() && a.getEffectiveWeight() > .01) return n
+    }
+    return current?.getClip().name.replace('#lower', '') ?? 'mole_idle'
   }
 
   return {
@@ -430,6 +452,7 @@ export function createMoleActor(gltf: GLTF, opts: {
     isIdle: () => !cur && !plan.length,
     isGreeting: () => current === act('mole_greet') && current.isRunning(),
     headTop(out) { return out.set(object.position.x, object.position.y + 1.2 * S, object.position.z) },
-    dispose() { mixer.stopAllAction(); mixer.uncacheRoot(model) },
+    setWorn(ids) { dress?.setWorn(ids) },
+    dispose() { dress?.dispose(); mixer.stopAllAction(); mixer.uncacheRoot(model) },
   }
 }

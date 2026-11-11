@@ -30,6 +30,8 @@ export interface User {
   online?: boolean
   /** 지금 땅굴에 와 있는 방문자 수 */
   visitorsNow?: number
+  /** 두더지가 낀 액세서리 id (data/moleItems, 부위마다 1개 최대 4개) */
+  worn?: string[]
 }
 
 export interface GuestbookEntry {

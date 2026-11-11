@@ -12,3 +12,10 @@ app/dist-share/
 .DS_Store
 # 3D 핸드오프 영상은 용량이 커서 제외 (원본은 디자이너 zip)
 design/digul_3d_handoff_v1/videos/
+# 3D 핸드오프 v1.1·v2: 이미지·영상·아이콘 원본은 zip에만 (아이콘은 줄여서 app/src/assets/mole-items 에 넣음)
+design/digul_3d_handoff_v1_1/videos/
+design/digul_3d_handoff_v1_1/images/
+design/digul_3d_handoff_v1_1/icons/
+design/digul_3d_handoff_v2/videos/
+design/digul_3d_handoff_v2/images/
+design/*.zip

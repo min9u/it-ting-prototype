@@ -7,6 +7,7 @@ import { add, at, clay, cyl, group, box, sph, roomNoise } from './clay'
 import { furnishRoom } from './furniture'
 import { bindMoleKeys } from './mole'
 import { createMoleActor, loadMoleGltf, REACTIONS, type MoleActor } from './moleActor'
+import { loadAccessories } from './moleDress'
 import { gradientEnv, ROOM_ENV } from './lighting'
 import { roomGradePass } from './post'
 import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
@@ -23,6 +24,9 @@ export interface RoomSceneOptions {
   focusX?: number
   /** 남의 땅굴이면 집주인 닉네임. 집주인 두더지가 방에 서 있음 */
   hostName?: string
+  hostWorn?: string[]
+  /** 내 두더지 액세서리 */
+  worn?: string[]
 }
 
 const R = 6.4, DH = 8.6 // 돔 반지름, 높이
@@ -198,14 +202,15 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let mole: MoleActor | null = null
   let disposed = false
   const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
-  loadMoleGltf().then((gltf) => {
+  let worn = opts.worn ?? []
+  Promise.all([loadMoleGltf(), loadAccessories()]).then(([gltf, acc]) => {
     if (disposed) return
     // 같은 glb 하나를 복제해서 씀 (집주인 + 나)
     if (opts.hostName) {
-      host = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(1.5, 0, .4), yaw: -.35, drop: false, lookEvery: [5, 11] })
+      host = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(1.5, 0, .4), yaw: -.35, drop: false, lookEvery: [5, 11], acc, worn: opts.hostWorn })
       scene.add(host.object)
     }
-    mole = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(opts.hostName ? -1.4 : -.2, 0, 1.6), clamp: clampRoom })
+    mole = createMoleActor(gltf, { scale: MOLE_S, start: new THREE.Vector3(opts.hostName ? -1.4 : -.2, 0, 1.6), clamp: clampRoom, acc, worn })
     scene.add(mole.object)
   }).catch((err) => console.warn('[3D] 두더지 모델을 못 불러왔어요', err))
   // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로, 동작이 있는 가구를 누르면 그 동작
@@ -342,6 +347,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       // 루프가 안 도는 환경(헤드리스·숨은 탭)에서도 최종 위치는 맞게
       if (document.hidden) { focus = x; applyFrame() }
     },
+    setWorn(ids) { worn = ids; mole?.setWorn(ids) },
     react(kind) {
       if (!mole) return
       const emoji = REACTIONS.find((r) => r.kind === kind)?.emoji ?? ''

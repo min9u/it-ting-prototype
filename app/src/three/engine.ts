@@ -10,6 +10,8 @@ export interface SceneHandle {
   setFocusX(x: number): void
   /** 두더지 리액션 (땅굴 장면만) */
   react?(kind: 'greet' | 'look' | 'scratch' | 'drink'): void
+  /** 내 두더지 액세서리 갈아 끼우기 (땅굴 장면만) */
+  setWorn?(ids: string[]): void
 }
 
 /**

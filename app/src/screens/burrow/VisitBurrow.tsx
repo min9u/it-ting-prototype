@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
+import { DEFAULT_WORN } from '../../data/moleItems'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import InterestChip from '../../components/InterestChip'
 import GuestbookItem from '../../components/GuestbookItem'
@@ -46,7 +47,7 @@ export default function VisitBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
+      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={DEFAULT_WORN} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
         <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => setReqOpen(true)}>
           💬 대화 요청하기

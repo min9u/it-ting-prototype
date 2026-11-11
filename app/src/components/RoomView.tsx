@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SceneHandle } from '../three/engine'
 import roomCutout from '../assets/room-cutout.png'
 import styles from './RoomView.module.css'
@@ -23,6 +23,10 @@ interface Props {
   interests?: string[]
   /** 남의 땅굴이면 집주인 닉네임. 집주인 두더지가 방에 서 있고, 인사하면 마주 보고 인사함 */
   hostName?: string
+  /** 집주인 두더지 액세서리 */
+  hostWorn?: string[]
+  /** 내 두더지 액세서리 (바뀌면 장면을 다시 만들지 않고 갈아 끼움) */
+  worn?: string[]
   /** 방 위에 올리는 UI (버튼, 말풍선 등) */
   children?: ReactNode
   label?: string
@@ -33,9 +37,11 @@ interface Props {
  * 3D가 준비될 때까지는 design/figma/room-cutout.png 자리표시를 같은 자리에 보여 준다.
  * 크기 기준: 방 지붕 꼭대기가 헤더 아래 21px, 방 높이가 장면 높이의 약 103%.
  */
-export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, children, label }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, hostWorn, worn, children, label }: Props) {
   const [ready, setReady] = useState(false)
   const handle = useRef<SceneHandle | null>(null)
+  const wornKey = (worn ?? []).join(',')
+  useEffect(() => { handle.current?.setWorn?.(worn ?? []) }, [wornKey]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className={styles.scene} data-owner={ownerId}>
       {!ready && (
@@ -48,6 +54,8 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, c
           ownerId={ownerId}
           interests={interests}
           hostName={hostName}
+          hostWorn={hostWorn}
+          worn={worn}
           focusX={focusX}
           className={styles.canvas}
           label={label ?? '땅굴 방 모습'}

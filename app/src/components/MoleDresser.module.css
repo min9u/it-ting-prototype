@@ -62,3 +62,15 @@
 .spin { animation: sway 4s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+/* 2026-11-11 핸드오프 v1.1: 레벨 배지·잠금 표시·3D 미리 보기 */
+.badge.lv { background: #f6e3c6; color: #7a4f1c; }
+.lock {
+  position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(90, 60, 40, .55); color: #fff;
+}
+.legend { flex-wrap: wrap; }
+.legend .lvDot { background: #f6e3c6; margin-left: 8px; }
+.preview3d { position: relative; flex: none; }
+.canvas3d { position: absolute; inset: 0; }
+.hidden3d { visibility: hidden; }

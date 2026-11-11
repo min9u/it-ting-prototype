@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
-import MoleDresser, { MoleWithItems, WornChips } from '../../components/MoleDresser'
-import { DEFAULT_WORN, MAX_WORN, MOLE_ITEMS, MOLE_PARTS } from '../../data/moleItems'
+import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
+import { DEFAULT_WORN, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, lockOf } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import type { Category } from '../../data/types'
@@ -10,7 +10,8 @@ import s from './Onboarding.module.css'
 
 /*
  * 온보딩 (design/figma/onboarding/*.png 시안 기준, 2026-11-10)
- *  2026-11-11 Figma 갱신: 1 "이름 · 두더지 꾸미기"(최대 2개, 머리·얼굴·목·손), 4 미리보기는 메인 화면 구도 681:7764
+ *  2026-11-11 Figma 갱신: 1 "이름 · 두더지 꾸미기"(머리·얼굴·목·손), 4 미리보기는 메인 화면 구도 681:7764
+ *  2026-11-11 3D 핸드오프 v1.1·v2: 액세서리 41개, 부위마다 1개 최대 4개, 미리 보기는 3D(mole_showcase + 회전)
  *  1 이름 408:18310 → 2 관심사 "A · 좌측 분류 전환" 408:22173 → 3 자기소개 408:18828
  *  → 4 땅굴 만들기: 3a 방 만드는 중 408:19036 → (3b 없음) → 3c 땅굴 미리보기 408:19306
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
@@ -98,10 +99,14 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
   const [spin, setSpin] = useState(true)
   const trimmed = p.name.trim()
   const bad = trimmed.length > 0 && trimmed.length < 2
-  // 랜덤: 서로 다른 부위에서 최대 2개
+  // 랜덤: 부위마다 하나씩 (잠긴 것·같이 못 끼는 조합은 빼고)
   const randomize = () => {
-    const parts = MOLE_PARTS.map((x) => x.part).filter((pt) => MOLE_ITEMS.some((i) => i.part === pt)).sort(() => Math.random() - 0.5).slice(0, MAX_WORN)
-    p.setWorn(parts.map((pt) => { const l = MOLE_ITEMS.filter((i) => i.part === pt); return l[Math.floor(Math.random() * l.length)].id }))
+    const out: string[] = []
+    for (const { part } of MOLE_PARTS) {
+      const l = MOLE_ITEMS.filter((i) => i.part === part && !lockOf(i) && !blockedBy(i.id, out))
+      if (l.length) out.push(l[Math.floor(Math.random() * l.length)].id)
+    }
+    p.setWorn(out.slice(0, MAX_WORN))
   }
 
   return (
@@ -123,7 +128,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
 
           <div className={s.field}>
             <div className={s.accHead}>
-              <span className={s.label}><span>두더지 꾸미기 <b className={s.wornCount}>{p.worn.length} / {MAX_WORN}</b></span><small>최대 {MAX_WORN}개까지 · 부위마다 하나씩 고를 수 있어요</small></span>
+              <span className={s.label}><span>두더지 꾸미기 <b className={s.wornCount}>{p.worn.length} / {MAX_WORN}</b></span><small>부위마다 하나씩 · 최대 {MAX_WORN}개까지 고를 수 있어요</small></span>
               <button className={s.randomBtn} onClick={randomize}><Dice /> 랜덤으로 꾸미기</button>
             </div>
             <MoleDresser worn={p.worn} onChange={p.setWorn} />
@@ -134,7 +139,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
           <span className={s.previewLabel}>미리 보기</span>
           <div className={s.previewBox}>
             <button className={s.spinChip} onClick={() => setSpin((v) => !v)} aria-pressed={spin}>↻ {spin ? '천천히 돌아가요' : '멈췄어요'}</button>
-            <MoleWithItems size={200} radius={0} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
+            <MolePreview size={200} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
           </div>
           <strong>{trimmed || '닉네임'}</strong>
           {p.worn.length > 0 && <WornChips worn={p.worn} onRemove={(id) => p.setWorn(p.worn.filter((w) => w !== id))} withPart large />}
@@ -473,7 +478,7 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
 function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
   return (
     <div className={s.previewStage}>
-      <RoomView ownerId="me" interests={picks} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
+      <RoomView ownerId="me" interests={picks} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
         <span className={s.roomBadge}>관심사 가구 {picks.length}개</span>
       </RoomView>
       <aside className={s.previewSide}>
