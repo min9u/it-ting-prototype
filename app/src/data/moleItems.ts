@@ -147,3 +147,19 @@ export function handVisible(clipName: string, worn: string[]) {
 
 /** Figma 예시와 같은 기본 착용: 베레모 + 물감 팔레트 */
 export const DEFAULT_WORN = ['hat_beret', 'prop_palette']
+
+/*
+ * 내 두더지가 지금 낀 것 (백엔드가 없어서 화면끼리 나누는 작은 저장소).
+ * 내 땅굴에서 꾸미기를 저장하면 바뀌고, 탐색하기 밭의 두더지도 같은 것을 낌. 새로고침해도 이 탭 안에서는 유지 (sessionStorage).
+ */
+const WORN_KEY = 'digul.myWorn'
+let myWorn: string[] | null = null
+export function getMyWorn(): string[] {
+  if (myWorn) return myWorn
+  try { const v = JSON.parse(sessionStorage.getItem(WORN_KEY) ?? 'null'); if (Array.isArray(v)) return (myWorn = v.filter((x) => typeof x === 'string')) } catch { /* 저장소를 못 쓰면 기본값 */ }
+  return (myWorn = DEFAULT_WORN)
+}
+export function setMyWorn(ids: string[]) {
+  myWorn = ids
+  try { sessionStorage.setItem(WORN_KEY, JSON.stringify(ids)) } catch { /* 무시 */ }
+}

@@ -52,8 +52,8 @@ interface Step { begin(): void; tick(dt: number): boolean; cancel?(): void; hold
 export interface MoleActor {
   object: THREE.Group
   update(dt: number): void
-  /** 바닥 한 점으로 걸어감 */
-  walkTo(p: THREE.Vector3): void
+  /** 바닥 한 점으로 걸어감. scratch = 도착해서 땅 긁기 한 번 (지상에서 잔디를 눌렀을 때, animation_list) */
+  walkTo(p: THREE.Vector3, o?: { scratch?: boolean }): void
   /** 방향키 입력 (월드 x, z) */
   drive(x: number, z: number): void
   /** 가구를 누름. 동작이 있는 가구면 true */
@@ -95,6 +95,10 @@ export function createMoleActor(gltf: GLTF, opts: {
   /** 액세서리 glb + 처음 착용 */
   acc?: GLTF
   worn?: string[]
+  /** 지상: 땅 높이 (x, z) → y. 주면 서 있는 동안 발을 땅에 붙임 (ground_move_spec 2번, 지면보다 1cm 아래) */
+  groundAt?: (x: number, z: number) => number
+  /** 지상: 가만히 있으면 center 근처(radius)를 혼자 돌아다님. rest = 쉬는 시간 [최소, 최대] 초. 직접 조종하면 6초 동안 쉼 */
+  wander?: { center: THREE.Vector3; radius: number; rest: [number, number] }
 }): MoleActor {
   const FY = opts.floorY ?? 0
   const S = opts.scale
@@ -336,9 +340,16 @@ export function createMoleActor(gltf: GLTF, opts: {
   const [lookMin, lookMax] = opts.lookEvery ?? [9, 9]
   let lookAfter = lookMin + Math.random() * (lookMax - lookMin)
 
+  /* ---------- 지상: 혼자 돌아다니기 ---------- */
+  const W = opts.wander
+  let userFor = W ? 4 : 0   // 직접 조종한 뒤 지난 시간이 아니라 "쉬어야 할 남은 시간" (처음에도 잠깐 쉼)
+  let wanderAfter = W ? W.rest[0] + Math.random() * (W.rest[1] - W.rest[0]) : Infinity
+  const userAct = () => { userFor = 6; idleFor = 0 }
+
   /* ---------- 밖에서 부르는 것 ---------- */
-  function walkTo(p: THREE.Vector3) {
-    setPlan([...standUp(), walkStep(p)])
+  function walkTo(p: THREE.Vector3, o: { scratch?: boolean } = {}) {
+    userAct()
+    setPlan([...standUp(), walkStep(p), ...(o.scratch && !reduce ? [clipStep('mole_ground_scratch')] : [])])
   }
 
   function interact(g: THREE.Object3D): boolean {
@@ -402,7 +413,14 @@ export function createMoleActor(gltf: GLTF, opts: {
 
   function drive(x: number, z: number) {
     driveDir.set(x, z)
-    if (driveDir.lengthSq() > 0) driveDir.normalize()
+    if (driveDir.lengthSq() > 0) { driveDir.normalize(); userAct() }
+  }
+
+  /** 지상: 근처 아무 데나 (clamp 안쪽) */
+  function wanderPoint() {
+    const a = Math.random() * Math.PI * 2, r = W!.radius * (.35 + .65 * Math.random())
+    const p = new THREE.Vector3(W!.center.x + Math.cos(a) * r, FY, W!.center.z + Math.sin(a) * r)
+    return opts.clamp ? opts.clamp(p) : p
   }
 
   function update(dt: number) {
@@ -426,12 +444,19 @@ export function createMoleActor(gltf: GLTF, opts: {
     if (!driving) {
       if (!cur && plan.length) { cur = plan.shift()!; cur.begin() }
       if (cur && cur.tick(dt)) cur = null
-      // 서서 한참 가만히 있으면 두리번
+      // 서서 한참 가만히 있으면 두리번 (지상은 돌아다니기와 번갈아)
       if (!cur && !plan.length && pose === 'stand') {
         idleFor += dt
-        if (idleFor > lookAfter && !reduce) { idleFor = 0; lookAfter = lookMin + Math.random() * (lookMax - lookMin); cur = clipStep('mole_look_around'); cur.begin() }
+        userFor = Math.max(0, userFor - dt)
+        if (W && userFor <= 0 && idleFor > wanderAfter) {
+          idleFor = 0; wanderAfter = W.rest[0] + Math.random() * (W.rest[1] - W.rest[0])
+          if (Math.random() < .3 && !reduce) { cur = clipStep('mole_look_around'); cur.begin() }
+          else { plan = [walkStep(wanderPoint())] }
+        } else if (!W && idleFor > lookAfter && !reduce) { idleFor = 0; lookAfter = lookMin + Math.random() * (lookMax - lookMin); cur = clipStep('mole_look_around'); cur.begin() }
       } else idleFor = 0
     }
+    // 지상: 발을 땅에 붙임 (ground_move_spec 2번. 탐색 화면 가까운 땅은 평평해서 몸 기울기는 생략)
+    if (opts.groundAt && pose === 'stand') object.position.y = opts.groundAt(object.position.x, object.position.z) - .01 * S
     mixer.update(dt)
     dress?.update(dt, activeClip(), driving || (current === act('mole_walk')))
   }

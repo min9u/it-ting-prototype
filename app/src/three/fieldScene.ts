@@ -4,7 +4,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { N8AOPass } from 'n8ao'
 import { noiseTex } from './clay'
-import { makeMole, createMoleMotion, bindMoleKeys } from './mole'
+import { createMoleActor, loadMoleGltf, type MoleActor } from './moleActor'
+import { loadAccessories } from './moleDress'
+import { bindDriveKeys } from './keys'
+import { getMyWorn } from '../data/moleItems'
 import { gradientEnv, FIELD_ENV } from './lighting'
 import { fieldGradePass } from './post'
 import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, startLoop, type SceneHandle } from './engine'
@@ -17,6 +20,8 @@ import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, 
 
 export interface FieldSceneOptions {
   focusX?: number
+  /** 내 두더지 액세서리 (없으면 기본 착용) */
+  worn?: string[]
 }
 
 const SW = 1440, SH = 897 // 원본 장면 좌표계
@@ -200,16 +205,10 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   sign(PD(1282, 700), D(0, 535)[1], 1.75, .72, -.12, .06)
   sign(PD(1488, 962), D(0, 708)[1], 1.3, .5, -.05)
 
-  // 두더지: 발 위치와 머리 꼭대기를 원본에 맞춤
-  const mole = makeMole()
-  {
-    const base = PD(986, 1128)
-    mole.position.copy(base)
-    mole.scale.setScalar(heightTo(base, D(0, 786)[1]))
-    scene.add(mole)
-  }
+  // 두더지 자리: 발 위치와 머리 꼭대기를 원본에 맞춤 (두더지는 glb를 받은 뒤 놓음)
+  const home = PD(986, 1128)
+  const moleH = heightTo(home, D(0, 786)[1])   // 원본 그림에서 두더지 키 (장면 단위)
   // 다닐 수 있는 곳: 둔덕 안쪽은 밖으로 밀어내고, 화면 밖으로 너무 멀리 가지 않게
-  const home = mole.position.clone()
   const clampWalk = (p: THREE.Vector3) => {
     p.x = THREE.MathUtils.clamp(p.x, home.x - 4.2, home.x + 4.2)
     p.z = THREE.MathUtils.clamp(p.z, home.z - 6, home.z + 1.6)
@@ -219,8 +218,22 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     }
     return p
   }
-  const motion = createMoleMotion(mole, { speed: 1.05 * 1.5 /* 기본 1.05의 1.5배 (2026-11-11 사용자 요청) */, ground: groundHeight, startRest: 4, clamp: clampWalk, wander: { center: home.clone(), radius: 1.6, rest: [3, 6] } })
-  const unbindKeys = bindMoleKeys(motion, window, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
+  // 방 안과 같은 glb 두더지 (moleActor). 이동 속도 1.5배는 moleActor 의 MOVE_SPEED_MULT 로 같이 적용됨.
+  // 정면 +Z = 카메라 쪽. 핸드오프 두더지는 키가 약 0.5m라 원본 그림의 키(moleH)에 맞게 scale.
+  let mole: MoleActor | null = null
+  let disposed = false
+  Promise.all([loadMoleGltf(), loadAccessories()]).then(([moleG, acc]) => {
+    if (disposed) return
+    const box = new THREE.Box3().setFromObject(moleG.scene)
+    const S = moleH / Math.max(box.max.y - box.min.y, 1e-3)
+    mole = createMoleActor(moleG, {
+      scale: S, start: home.clone(), yaw: 0, drop: false, clamp: clampWalk, groundAt: groundHeight,
+      wander: { center: home.clone(), radius: 1.6, rest: [3, 6] }, acc, worn: opts.worn ?? getMyWorn(),
+    })
+    scene.add(mole.object)
+    loop.redraw()
+  }).catch((err) => console.warn('[3D] 두더지를 못 불러왔어요', err))
+  const unbindKeys = bindDriveKeys((x, z) => mole?.drive(x, z), { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
 
   // 앞쪽 손으로 놓은 것들 (원본 위치)
   bush(PD(165, 1150), .45); bush(PD(1610, 1250), .42); bush(PD(1875, 905), .5); bush(PD(25, 905), .45); bush(PD(60, 735), .4)
@@ -280,9 +293,9 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       grade.uniforms.uRes.value.set(w, h)
       applyFrame()
     },
-    frame(dt, t) {
+    frame(dt) {
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame() }
-      motion.update(dt, t)
+      mole?.update(dt)
       composer.render(dt)
     },
   })
@@ -299,7 +312,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height * 2 - 1))
     ray.setFromCamera(ndc, camera)
     const hit = ray.intersectObject(ground, false)[0]
-    if (hit) motion.walkTo?.(hit.point.clone())
+    if (hit) mole?.walkTo(hit.point.clone(), { scratch: true })   // 잔디를 누르면 걸어가서 땅 긁기 한 번
   }
   el.addEventListener('pointerdown', onDown)
   el.addEventListener('pointerup', onUp)
@@ -312,7 +325,9 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       if (document.hidden) { focus = x; applyFrame() }
     },
     dispose() {
+      disposed = true
       loop.stop()
+      mole?.dispose()
       unbindKeys()
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointerup', onUp)

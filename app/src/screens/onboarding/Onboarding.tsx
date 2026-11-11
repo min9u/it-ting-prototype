@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
-import { DEFAULT_WORN, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, lockOf } from '../../data/moleItems'
+import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy, lockOf } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import type { Category } from '../../data/types'
@@ -500,7 +500,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn:
           <p>관심사 가구 {picks.length}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
           <div className={s.confirmBtns}>
             <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
-            <Link to="/burrow" className={s.next}>관심사 확정</Link>
+            <Link to="/burrow" className={s.next} onClick={() => setMyWorn(worn)}>관심사 확정</Link>
           </div>
           <small>관심사는 나중에 내 정보에서 바꿀 수 있어요.</small>
         </section>

@@ -6,7 +6,7 @@ import decoUrl from '../assets/models/room_deco.glb?url'
 import holeUrl from '../assets/models/room_ceiling_hole.glb?url'
 import catalog from '../data/furnitureCatalog.json'
 import { loadGlb } from './glb'
-import { bindMoleKeys } from './mole'
+import { bindDriveKeys } from './keys'
 import { createMoleActor, loadMoleGltf, REACTIONS, type FurnitureData, type MoleActor, type Seat } from './moleActor'
 import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
@@ -162,7 +162,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
 
   // 직접 조종: 방향키·WASD, 바닥을 누르면 그쪽으로, 동작이 있는 가구를 누르면 그 동작. 끌면 카메라가 돎
   const keyProxy = { drive: (x: number, z: number) => mole?.drive(x, z) }
-  const unbindKeys = bindMoleKeys(keyProxy)
+  const unbindKeys = bindDriveKeys(keyProxy.drive)
   const el = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
   const furnitureOf = (o: THREE.Object3D | null) => {
     for (; o; o = o.parent) if (o.userData.furniture) return o
