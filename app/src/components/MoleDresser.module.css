@@ -1,0 +1,64 @@
+.wrap { display: flex; flex-direction: column; gap: 14px; }
+.parts { display: flex; gap: 8px; flex-wrap: wrap; }
+.part, .partOn {
+  position: relative; height: 34px; padding: 0 14px; border-radius: 17px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid #e3cbb5; background: #fffaf5;
+  font-family: var(--font-display); font-size: 15px; color: var(--ink-800);
+}
+.partOn { background: var(--brown-700); border-color: var(--brown-700); color: var(--on-brown); }
+.part small, .partOn small { font-size: 11px; opacity: .65; font-family: var(--font-body); }
+.part i, .partOn i { width: 5px; height: 5px; border-radius: 50%; background: #e8792f; }
+
+.grid { display: grid; grid-template-columns: repeat(8, 62px); gap: 8px; }
+.compact .grid { grid-template-columns: repeat(4, 62px); }
+.item, .itemOn {
+  position: relative; height: 78px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 6px; gap: 2px;
+  background: #f4e6d8; border: 1.5px solid transparent;
+  font-size: 12px; color: var(--ink-700); white-space: nowrap;
+}
+.item:hover { background: #efdcc9; }
+.itemOn { background: #fffaf5; border-color: var(--brown-700); }
+.item img, .itemOn img { width: 44px; height: 44px; object-fit: contain; }
+.item span, .itemOn span { letter-spacing: -0.04em; }
+.locked { opacity: .45; cursor: not-allowed; }
+.badge {
+  position: absolute; top: 3px; left: 3px; padding: 0 4px; border-radius: 3px;
+  background: #e6ddf0; color: #5b4370; font-style: normal; font-size: 9px; line-height: 13px;
+}
+.check {
+  position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--brown-700); color: #fff; font-size: 10px; display: grid; place-items: center; border: 2px solid #fffaf5;
+}
+.legend { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-400); }
+.legend i { width: 9px; height: 9px; border-radius: 2px; background: #e6ddf0; }
+.notice { padding: 10px 14px; border-radius: 8px; background: #fdf3d8; font-size: 12px; color: #6b5410; }
+.unknown { font-size: 12px; color: var(--ink-400); }
+
+.wornHead { font-family: var(--font-display); font-size: 13px; color: var(--ink-800); display: flex; align-items: center; gap: 8px; }
+.wornHead span { padding: 1px 8px; border-radius: 9px; background: var(--brown-700); color: #fff; font-size: 11px; }
+.worn { display: flex; flex-wrap: wrap; gap: 8px; }
+.worn li {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 6px;
+  border: 1px solid #e3cbb5; border-radius: 16px; background: #fffaf5;
+  font-family: var(--font-display); font-size: 12px; color: var(--ink-900);
+}
+.worn img { width: 24px; height: 24px; object-fit: contain; }
+.worn small { padding: 0 5px; border-radius: 4px; background: #f1e2d3; font-size: 10px; color: var(--ink-500); }
+.worn button { color: var(--ink-500); display: grid; place-items: center; }
+.wornLarge { flex-direction: column; flex-wrap: nowrap; }
+.wornLarge li { height: 42px; padding: 0 14px 0 10px; border-radius: 12px; font-size: 15px; box-shadow: 0 1px 3px rgba(90, 60, 40, .08); }
+.wornLarge li span { flex: none; }
+.wornLarge li small { margin-right: auto; }
+.wornLarge img { width: 30px; height: 30px; }
+@media (max-width: 720px) {
+  .grid { grid-template-columns: repeat(4, minmax(56px, 1fr)); }
+}
+
+/* 아이템을 얹은 2D 두더지 */
+.moleBox { position: relative; flex: none; }
+.moleItem { position: absolute; height: auto; object-fit: contain; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(60, 35, 20, .15)); }
+.spin { animation: sway 4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }

@@ -1,0 +1,49 @@
+/* 확인 팝업 (400 폭) */
+.confirm { padding: 26px 24px 24px; background: #fffaf5; border-radius: var(--radius-xl); }
+.confirm h2 { font-size: 21px; color: var(--ink-900); }
+.confirm p { margin-top: 12px; font-size: 13px; line-height: 1.6; color: var(--ink-700); }
+.actions { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.actions .btn, .actions button { height: 46px; }
+.report { background: #a5512f; color: #fff8f0; }
+.report:hover { background: #8f4527; }
+.report:disabled { background: #eadbcd; color: #b9a596; cursor: default; }
+
+.reasons { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
+.reason, .reasonOn {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  height: 38px; padding: 0 12px; border-radius: 8px;
+  font-family: var(--font-display); font-size: 15px; color: var(--ink-900); cursor: pointer;
+}
+.reasonOn { background: #fdeee2; }
+.reason input, .reasonOn input { position: absolute; opacity: 0; pointer-events: none; }
+.radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #c9b3a3; display: grid; place-items: center; }
+.reasonOn .radio { border-color: #a5512f; }
+.reasonOn .radio::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #a5512f; }
+.reason:has(input:focus-visible), .reasonOn:has(input:focus-visible) { outline: 2px solid var(--accent); }
+
+/* 완료 토스트 */
+.toast {
+  position: fixed; left: 50%; bottom: 86px; z-index: 120; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px;
+  min-width: 320px; padding: 13px 18px 13px 16px; border-radius: 12px;
+  background: var(--toast-bg); color: #fbf1e6; box-shadow: 0 12px 30px rgba(40, 22, 12, .3);
+  animation: toastIn .28s var(--ease-out);
+}
+.top { bottom: auto; top: calc(var(--header-h) + 20px); }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } }
+.check { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #6f8a3c; color: #fff; flex: none; }
+.text { display: flex; flex-direction: column; gap: 3px; }
+.text strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; }
+.text small { font-size: 11px; color: #e3d2c2; }
+.action {
+  margin-left: 10px; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, .18);
+  font-family: var(--font-display); font-size: 13px; color: #f0a06e; white-space: nowrap;
+}
+.action:hover { color: #ffbe94; }
+
+/* 빈 상태 */
+.empty {
+  flex: 1; min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 24px 16px; border-radius: 12px; background: var(--surface-item); text-align: center;
+}
+.empty p { font-family: var(--font-display); font-size: 14px; color: var(--ink-700); }

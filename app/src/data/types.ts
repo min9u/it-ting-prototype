@@ -86,6 +86,11 @@ export interface Meetup {
   closesAt: string
   myStatus?: MyMeetupStatus
   past?: boolean
+  /** 카드 위 나무 팻말 글자 (2026-11-11 Meetup Card) */
+  sign?: string
+  /** 내가 신청할 때 남긴 말 (신청 대기 모임 팝업) */
+  myNote?: string
+  myNoteAgo?: string
 }
 
 export interface Message {

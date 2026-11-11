@@ -52,6 +52,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .btn-primary:disabled { background: #cdbcae; cursor: default; }
 .btn-ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--ink-700); }
 .btn-ghost:hover { background: var(--surface-item); }
+.btn-cta { background: var(--cta); color: #fff8f0; }
+.btn-cta:hover { background: var(--cta-hover); }
+.btn-cta:disabled { background: #e8d6c8; color: #b9a596; cursor: default; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:disabled { background: #eadbcd; color: #b9a596; cursor: default; }
+.btn-line { background: #fffaf5; border: 1px solid var(--line-strong); color: var(--ink-800); }
+.btn-line:hover { background: var(--surface-item); }
 .btn-soft { background: var(--surface-item); color: var(--ink-700); }
 .btn-block { width: 100%; }
 .btn-sm { height: 36px; padding: 0 14px; font-size: 15px; }
@@ -63,6 +70,19 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+}
+
+/* 페이지 제목 나무 팻말 (2026-11-11 Figma: 게시판·모임·내 모임·저장한 글·설정 제목 222×60) */
+.page-sign {
+  display: inline-grid; place-items: center;
+  min-width: 222px; height: 60px; padding: 0 34px;
+  font-family: var(--font-display); font-weight: 400; font-size: 28px; color: var(--ink-900);
+  background:
+    radial-gradient(120% 90% at 30% 30%, rgba(255, 240, 220, .55), transparent 60%),
+    linear-gradient(180deg, #f8dcbb, #f1cba2);
+  border: 1px solid #e9bf95;
+  border-radius: 46% 50% 44% 52% / 52% 48% 56% 50%;
+  box-shadow: inset 0 -3px 0 rgba(196, 140, 92, .25), 0 3px 8px rgba(120, 70, 30, .1);
 }
 
 .count-badge {

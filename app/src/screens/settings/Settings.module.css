@@ -1,0 +1,29 @@
+/* 설정 554:21331 — 본문 760 폭 (설정 본문 760×983, x 340) */
+.page { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 100px; }
+.group { margin-top: 38px; }
+.page > h1 + .group { margin-top: 40px; }
+.group h2 { font-family: var(--font-display); font-weight: 400; font-size: 13px; color: var(--ink-700); margin-bottom: 12px; }
+.box { border: 1px solid var(--line); border-radius: 14px; background: #faf3ec; overflow: hidden; }
+.row {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 57px; padding: 0 20px;
+  text-align: left; color: var(--ink-900);
+}
+.row + .row { border-top: 1px solid var(--line); }
+.rowBtn:hover { background: #f5e9dd; }
+.rowBtn svg { color: var(--ink-500); flex: none; }
+.label { flex: 1; font-family: var(--font-display); font-size: 14px; }
+.value { font-size: 12px; color: var(--ink-400); }
+.linkBtn {
+  height: 36px; padding: 0 20px; border-radius: 10px; border: 1.5px solid #a5512f;
+  font-family: var(--font-display); font-size: 13px; color: #a5512f; background: #fffaf5;
+}
+.linkBtn:hover { background: #fbeee3; }
+.switch, .switchOn { position: relative; width: 44px; height: 24px; border-radius: 12px; background: #ead2bf; transition: background .15s; }
+.switchOn { background: var(--cta); }
+.switch span, .switchOn span {
+  position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .2); transition: transform .15s;
+}
+.switchOn span { transform: translateX(20px); }
+.leave { margin-top: 36px; font-family: var(--font-display); font-size: 13px; color: var(--ink-400); }
+.leave:hover { color: var(--danger); }

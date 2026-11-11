@@ -1,17 +1,46 @@
 .card {
-  display: flex; flex-direction: column; min-height: 284px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; min-height: 294px;
+  background: #fbf6f0; border: 1px solid var(--line); border-radius: 6px;
   overflow: hidden; transition: transform .15s, box-shadow .15s;
 }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
-.thumb { position: relative; height: 128px; display: grid; place-items: center; font-size: 48px; }
-.status {
-  position: absolute; top: 10px; left: 10px; font-style: normal;
-  padding: 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, .85);
-  font-size: 12px; color: var(--ink-700);
+.cardDone { opacity: .75; }
+.linkArea { display: flex; flex-direction: column; flex: 1; }
+
+/* 흙 위 나무 팻말 (150 높이) */
+.thumb {
+  position: relative; height: 150px; display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 18% 30%, rgba(60, 30, 15, .35) 1.5px, transparent 2px),
+    radial-gradient(circle at 72% 62%, rgba(60, 30, 15, .3) 1.5px, transparent 2px),
+    radial-gradient(circle at 44% 82%, rgba(60, 30, 15, .3) 1.5px, transparent 2px),
+    radial-gradient(circle at 86% 22%, rgba(60, 30, 15, .3) 1.5px, transparent 2px),
+    #9b5a35;
+  background-size: 64px 52px, 70px 60px, 58px 66px, 80px 48px, auto;
 }
-.body { flex: 1; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.title { font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.25; color: var(--ink-900); }
-.meta { font-size: 13px; color: var(--ink-500); }
-.foot { margin-top: auto; width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-400); }
-.hot { color: var(--accent); font-weight: 600; }
+.thumbDone { background-color: #c49e86; }
+.sign {
+  position: relative; z-index: 1; margin-top: -10px;
+  padding: 8px 14px; border-radius: 4px; background: #f3d3ae; box-shadow: 0 2px 0 #c99a6c;
+  font-family: var(--font-display); font-size: 13px; color: var(--ink-900);
+}
+.signDone { background: #fbf4ec; transform: rotate(8deg); font-size: 15px; color: var(--ink-700); }
+.post { position: absolute; left: 50%; top: 82px; width: 8px; height: 48px; margin-left: -4px; background: #5b3423; border-radius: 1px; }
+.status {
+  position: absolute; top: 12px; left: 12px; z-index: 2; font-style: normal;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 4px; background: #fffaf5; font-family: var(--font-display); font-size: 11px; color: var(--ink-800);
+}
+.status i { width: 6px; height: 6px; border-radius: 50%; background: #5e8a3a; }
+.hot i, .wait i { background: #d9573a; }
+.done i { background: #b3a193; }
+.done { color: var(--ink-400); }
+
+.body { flex: 1; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.title { font-family: var(--font-body); font-weight: 500; font-size: 17px; line-height: 1.3; color: var(--ink-900); }
+.when { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ink-800); }
+.meta { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-500); }
+.meta span { display: inline-flex; align-items: center; gap: 5px; }
+.people { white-space: nowrap; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
+.actions :global(.btn) { height: 40px; padding: 0 12px; font-size: 13px; justify-content: flex-start; }

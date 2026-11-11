@@ -195,21 +195,22 @@
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .furnRow, .moodRow { animation: none; } }
 
-/* 4c. 땅굴 미리보기: 왼쪽 1011 + 오른쪽 339 */
-.previewCols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
-.previewCard, .infoCard { border: 1px solid var(--ob-line); border-radius: 18px; background: var(--ob-card); }
-.previewCard { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-.previewHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.previewHead h1 { font-size: 30px; font-weight: 400; letter-spacing: -0.01em; }
-.previewHead .next, .previewHead .outline { height: 44px; padding: 0 20px; font-size: 15px; }
-.roomBox { position: relative; height: min(708px, 70vh); min-height: 420px; border-radius: 14px; overflow: hidden; background: #7a5a3a; }
-.roomBox > div { background: #7a5a3a; }
-.roomBadge { position: absolute; left: 20px; top: 20px; z-index: 6; height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 8px; background: #fbf4ec; font-size: 14px; color: var(--ink-800); }
-.infoCard { padding: 26px 24px; display: flex; flex-direction: column; gap: 18px; position: sticky; top: 20px; }
-.infoCard h2 { font-size: 21px; font-weight: 400; }
-.qnaFull { margin: 0; padding: 20px 16px; border-radius: 12px; background: var(--ob-field); display: flex; flex-direction: column; gap: 18px; }
-.qnaFull dt { font-size: 13px; color: var(--ink-800); }
-.qnaFull dd { margin: 4px 0 0; font-size: 13px; color: var(--ink-700); line-height: 1.5; overflow-wrap: anywhere; }
+/* 4. 땅굴 미리보기 (681:7764): 헤더·단계 아래 전체가 방, 오른쪽 340 폭 카드 2장 (x 1068, y 176 = 단계 아래 48) */
+.bodyFull { position: relative; }
+.previewStage { position: relative; height: max(640px, calc(100vh - 129px)); overflow: hidden; background: #d8b48e; }
+.roomBadge { position: absolute; left: 40px; top: 36px; z-index: 6; height: 37px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 6px; background: #fbf4ec; font-size: 13px; color: var(--ink-800); }
+.previewSide { position: absolute; right: 32px; top: 48px; bottom: 24px; width: 340px; z-index: 6; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.infoCard, .confirmCard { border-radius: 12px; background: #fdf9f4; box-shadow: 0 2px 10px rgba(80, 50, 30, 0.08); }
+.infoCard { padding: 24px 24px 22px; display: flex; flex-direction: column; gap: 16px; }
+.infoCard h2 { font-size: 20px; font-weight: 400; }
+.qnaFull { margin: 0; padding: 26px 16px; border-radius: 12px; background: var(--ob-field); display: flex; flex-direction: column; gap: 18px; }
+.qnaFull dt { font-size: 12px; color: var(--ink-800); }
+.qnaFull dd { margin: 4px 0 0; font-size: 12px; color: var(--ink-700); line-height: 1.5; overflow-wrap: anywhere; }
+.confirmCard { padding: 22px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.confirmCard p { font-size: 13px; line-height: 1.6; color: var(--ink-800); }
+.confirmCard small { font-size: 11px; color: var(--ink-500); }
+.confirmBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.confirmBtns .next, .confirmBtns .outline { height: 44px; padding: 0 12px; font-size: 14px; justify-content: center; }
 
 /* 좁은 화면 */
 @media (max-width: 900px) {
@@ -237,3 +238,18 @@
   .furnResult { justify-content: flex-start; }
   .roomBox { height: 360px; min-height: 0; }
 }
+
+/* 미리보기 시안(681:7764)에는 리액션 버튼이 없음 */
+.previewStage [role="toolbar"] { display: none; }
+
+/* 1. 이름 · 두더지 꾸미기 (2026-11-11 갱신) */
+.accHead .label { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 15px; color: var(--ink-800); }
+.accHead .label small { margin-left: 0; }
+.wornCount { position: relative; top: -1px; margin-left: 8px; padding: 1px 8px; border-radius: 9px; background: var(--brown-700); color: #fff; font-size: 11px; font-weight: 400; }
+.avatarSide:has(.previewBox) { justify-content: flex-start; padding-top: 64px; }
+.previewLabel { font-size: 14px; color: var(--ink-700); margin-bottom: 14px; }
+.previewBox { position: relative; width: 260px; height: 328px; display: grid; place-items: end center; padding-bottom: 28px; background: radial-gradient(circle at 50% 40%, #f6e3cf 0%, #ead2bb 100%); }
+.previewBox > div svg { background: transparent !important; }
+.spinChip { position: absolute; top: 14px; right: 12px; height: 22px; padding: 0 8px; border-radius: 11px; background: #fffaf5; font-size: 11px; color: var(--ink-800); }
+.avatarSide:has(.previewBox) strong { margin: 16px 0 14px; }
+.avatarSide ul { width: 240px; }

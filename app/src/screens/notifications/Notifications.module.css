@@ -1,0 +1,28 @@
+/* 알림 페이지 569:7860: 본문 760 폭 (x 340), 제목 팻말 + 안 읽음 알약 + 모두 읽음 버튼, 탭, 목록 카드 */
+.page { max-width: 760px; margin: 0 auto; padding: 56px 20px 80px; }
+.head { display: flex; align-items: center; gap: 14px; }
+.unreadPill { height: 28px; padding: 0 10px; border-radius: 14px; display: inline-flex; align-items: center; background: #f4e6d8; font-family: var(--font-display); font-size: 12px; color: var(--accent); }
+.readAll { margin-left: auto; height: 41px; padding: 0 16px; border-radius: 10px; border: 1.5px solid var(--accent); background: #fffaf5; font-family: var(--font-display); font-size: 14px; color: var(--accent); }
+.readAll:disabled { opacity: .45; cursor: default; }
+.tabs { display: flex; gap: 8px; margin: 26px 0 20px; }
+.tab, .tabOn { height: 36px; padding: 0 15px; border-radius: 18px; background: #f4e6d8; font-family: var(--font-display); font-size: 14px; color: var(--ink-800); }
+.tabOn { background: var(--brown-700); color: var(--on-brown); }
+.list { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fbf4ec; }
+.list li + li { border-top: 1px solid #efe1d3; }
+.item { display: flex; align-items: center; gap: 14px; padding: 18px 20px; color: var(--ink-900); }
+.item:hover { background: #f8ebde; }
+.unread { background: #f6ebe0; }
+.kind { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; font-family: var(--font-display); font-size: 14px; }
+.body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.body strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; }
+.body small { font-size: 12px; color: var(--ink-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item time { font-size: 12px; color: var(--ink-500); white-space: nowrap; }
+.dot, .noDot { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-left: 10px; }
+.dot { background: #c2553a; }
+.empty { border: 1px solid var(--line); border-radius: 14px; background: #fbf4ec; padding: 48px 20px 52px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.empty img { width: 142px; }
+.empty p { font-size: 15px; color: var(--ink-800); }
+@media (max-width: 560px) {
+  .page { padding-top: 32px; }
+  .head { flex-wrap: wrap; }
+}

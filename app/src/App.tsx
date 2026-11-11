@@ -11,7 +11,9 @@ import MeetupsShell from './screens/meetups/MeetupsShell'
 import { MeetupList, MyMeetups } from './screens/meetups/MeetupList'
 import MeetupDetail from './screens/meetups/MeetupDetail'
 import MeetupNew from './screens/meetups/MeetupNew'
-import { BoardList, BoardPost } from './screens/board/Board'
+import { BoardList, BoardPost, BoardSaved, BoardWrite } from './screens/board/Board'
+import Settings from './screens/settings/Settings'
+import Notifications from './screens/notifications/Notifications'
 import Landing from './screens/start/Landing'
 import LookAround from './screens/start/LookAround'
 import { Login, PasswordReset, SignupEmail, SignupPassword } from './screens/start/Auth'
@@ -49,6 +51,8 @@ export const router = createRouter([
       { path: '/burrow/explore', element: <ExploreBurrow /> },
       { path: '/burrow/:userId', element: <VisitBurrow /> },
       { path: '/board', element: <BoardList /> },
+      { path: '/board/write', element: <BoardWrite /> },
+      { path: '/board/saved', element: <BoardSaved /> },
       { path: '/board/:postId', element: <BoardPost /> },
       { path: '/meetups/new', element: <MeetupNew /> },
       {
@@ -63,6 +67,8 @@ export const router = createRouter([
       { path: '/chat', element: <Chat /> },
       { path: '/chat/requests', element: <Chat requests /> },
       { path: '/chat/:roomId', element: <Chat /> },
+      { path: '/settings', element: <Settings /> },
+      { path: '/notifications', element: <Notifications /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

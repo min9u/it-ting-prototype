@@ -1,17 +1,20 @@
 import { useState } from 'react'
-import { Link, NavLink, useParams } from 'react-router-dom'
+import { Link, NavLink, useParams, useSearchParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import { ChipList } from '../../components/InterestChip'
-import { SearchIcon, SendIcon } from '../../components/Icons'
-import { CHAT_REQUESTS, CHAT_ROOMS, ME_ID, USERS, meetupOf, overlapCount, userOf } from '../../data/mock'
-import type { ChatRoom, Message } from '../../data/types'
+import { ChatIcon, HomeIcon, SearchIcon, SendIcon } from '../../components/Icons'
+import { CHAT_REQUESTS, CHAT_ROOMS, ME_ID, USERS, meetupOf, overlapCount, toneOf, userOf } from '../../data/mock'
+import type { ChatRequest, ChatRoom, Message } from '../../data/types'
 import { dateLabel } from '../../lib/format'
 import s from './Chat.module.css'
 
 /**
  * 채팅 (408:15918 묶음) — 메타데이터 기반, 스크린샷 대조 필요
  * /chat            대화 선택 전 408:16219
- * /chat/requests   받은 요청 · 보낸 요청 408:17145
+ * /chat/requests   요청 · 대화 · 받은 요청 408:17145 (+ 보낸 요청 588:8061, 모임 · 받은/보낸 589:8150 · 589:8292)
+ *                  2026-11-11 스크린샷 대조: 왼쪽 탭이 전체 / 1:1 / 모임 / 요청 n 으로 바뀜,
+ *                  가운데는 대화·모임 책갈피 탭 + 받은/보낸 요청 토글, 오른쪽은 "요청 보낸 사람"
+ *                  데모용 쿼리: ?tab=meetup, ?dir=sent
  * /chat/:roomId    1대1 408:16412 · 모임 대화 408:16752 · 요청 대기 중 408:15921
  */
 export default function Chat({ requests }: { requests?: boolean }) {
@@ -20,6 +23,7 @@ export default function Chat({ requests }: { requests?: boolean }) {
   const [q, setQ] = useState('')
   const room = CHAT_ROOMS.find((r) => r.id === roomId)
   const receivedCount = CHAT_REQUESTS.filter((r) => r.direction === 'received').length
+  const tabOf = (k: typeof tab) => (requests ? s.tab : tab === k ? s.tabOn : s.tab)
 
   const list = CHAT_ROOMS.filter((r) => (tab === 'all' ? true : r.kind === tab)).filter((r) => roomTitle(r).includes(q))
 
@@ -35,9 +39,9 @@ export default function Chat({ requests }: { requests?: boolean }) {
         </label>
         <div className={s.tabs} role="tablist">
           {([['all', '전체'], ['dm', '1:1'], ['group', '모임']] as const).map(([k, l]) => (
-            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? s.tabOn : s.tab} onClick={() => setTab(k)}>{l}</button>
+            <button key={k} role="tab" aria-selected={!requests && tab === k} className={tabOf(k)} onClick={() => setTab(k)}>{l}</button>
           ))}
-          <NavLink to="/chat/requests" className={({ isActive }) => (isActive ? s.reqTabOn : s.reqTab)}>받은 요청 {receivedCount}</NavLink>
+          <NavLink to="/chat/requests" className={({ isActive }) => (isActive ? s.tabOn : s.tab)}>요청 {receivedCount}</NavLink>
         </div>
         <ul className={s.convs}>
           {list.map((r) => <ChatListItem key={r.id} room={r} active={r.id === roomId} />)}
@@ -200,64 +204,112 @@ function Bubble({ m, group }: { m: Message; group: boolean }) {
 }
 
 function Requests() {
+  const [params] = useSearchParams()
   const [items, setItems] = useState(CHAT_REQUESTS)
+  const [kind, setKind] = useState<'dm' | 'meetup'>(params.get('tab') === 'meetup' ? 'meetup' : 'dm')
+  const [dir, setDir] = useState<'received' | 'sent'>(params.get('dir') === 'sent' ? 'sent' : 'received')
+  const [picked, setPicked] = useState<string | null>(null)
   const drop = (id: string) => setItems((l) => l.filter((x) => x.id !== id))
-  const received = items.filter((r) => r.direction === 'received')
-  const sent = items.filter((r) => r.direction === 'sent')
   const me = USERS[ME_ID]
+  const count = (k: 'dm' | 'meetup', d: 'received' | 'sent') => items.filter((r) => r.kind === k && r.direction === d).length
+  const list = items.filter((r) => r.kind === kind && r.direction === dir)
+  const focus = list.find((r) => r.id === picked) ?? list[0]
+  const who = focus ? userOf(focus.userId) : undefined
+  const shared = who ? who.interests.filter((i) => me.interests.includes(i)) : []
+
   return (
-    <section className={`${s.room} ${s.requests}`} aria-label="요청">
-      <h2 className="display">받은 요청</h2>
-      <p className={s.reqLead}>수락하면 바로 대화방이 열려요. 거절해도 상대에게 따로 알림이 가지 않아요.</p>
-      {(['dm', 'meetup'] as const).map((kind) => {
-        const list = received.filter((r) => r.kind === kind)
-        return (
-          <div key={kind} className={s.reqGroup}>
-            <h3>{kind === 'dm' ? '대화 요청' : '내 모임에 온 신청'} <span className="count-badge">{list.length}</span></h3>
-            {list.length === 0 && <p className={s.reqEmpty}>새 요청이 없어요.</p>}
-            {list.map((r) => {
-              const u = userOf(r.userId)
-              const mt = r.meetupId ? meetupOf(r.meetupId) : undefined
-              return (
-                <article key={r.id} className={s.reqCard}>
-                  <Avatar size={44} />
-                  <div className={s.reqBody}>
-                    <p className={s.reqTop}>
-                      <strong>{mt ? mt.title : u.nickname}</strong>
-                      {mt && <span className={s.reqKind}>모임 신청</span>}
-                      <time>{r.ago}</time>
-                    </p>
-                    <p className={s.reqCtx}>{mt ? `${u.nickname}님이 ${r.context}` : `${u.affiliation} · ${r.context}`}</p>
-                    {!mt && <p className={s.reqShared}>겹치는 관심사 <ChipList items={u.interests.filter((i) => me.interests.includes(i))} /></p>}
-                    <blockquote>“{r.message}”</blockquote>
-                  </div>
-                  <div className={s.reqActions}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => drop(r.id)}>거절</button>
-                    <button className="btn btn-primary btn-sm" onClick={() => drop(r.id)}>{mt ? '참여 승인' : '수락하고 대화하기'}</button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )
-      })}
-      <h2 className={`display ${s.sentTitle}`}>보낸 요청</h2>
-      <p className={s.reqLead}>상대가 답하기 전까지는 언제든 취소할 수 있어요.</p>
-      {sent.map((r) => {
-        const u = userOf(r.userId)
-        const mt = r.meetupId ? meetupOf(r.meetupId) : undefined
-        return (
-          <article key={r.id} className={`${s.reqCard} ${s.reqSent}`}>
-            <Avatar size={40} />
-            <div className={s.reqBody}>
-              <p className={s.reqTop}><strong>{mt ? mt.title : u.nickname}</strong></p>
-              <p className={s.reqCtx}>{r.context}</p>
+    <>
+      <section className={`${s.room} ${s.reqRoom}`} aria-label="요청">
+        <header className={s.reqHead}>
+          <h2 className="display">요청</h2>
+          <p>대화 요청과 모임 신청을 한곳에서 확인해요.</p>
+        </header>
+        <div className={s.folderTabs} role="tablist">
+          {(['dm', 'meetup'] as const).map((k) => (
+            <button key={k} role="tab" aria-selected={kind === k} className={kind === k ? s.folderOn : s.folder} onClick={() => { setKind(k); setPicked(null) }}>
+              {k === 'dm' ? '대화' : '모임'} <span>{count(k, 'received')}</span>
+            </button>
+          ))}
+        </div>
+        <div className={s.reqBody}>
+          <div className={s.dirBar}>
+            <div className={s.dirToggle} role="tablist" aria-label="받은 요청 / 보낸 요청">
+              {(['received', 'sent'] as const).map((d) => (
+                <button key={d} role="tab" aria-selected={dir === d} className={dir === d ? s.dirOn : s.dir} onClick={() => { setDir(d); setPicked(null) }}>
+                  {d === 'received' ? '받은 요청' : '보낸 요청'} <span>{count(kind, d)}</span>
+                </button>
+              ))}
             </div>
+            <p>{dir === 'received'
+              ? (kind === 'dm' ? '수락하면 바로 대화방이 열려요. 거절해도 상대에게 따로 알림이 가지 않아요.' : '승인하면 모임 채팅방에 초대돼요. 거절해도 따로 알림이 가지 않아요.')
+              : '상대가 답하기 전까지는 언제든 취소할 수 있어요.'}</p>
+          </div>
+          {list.length === 0 && <p className={s.reqEmpty}>{dir === 'received' ? '새 요청이 없어요.' : '보낸 요청이 없어요.'}</p>}
+          {list.map((r) => (
+            <RequestCard key={r.id} r={r} me={me.interests} active={focus?.id === r.id} onFocus={() => setPicked(r.id)} onDone={() => drop(r.id)} />
+          ))}
+        </div>
+      </section>
+
+      <aside className={s.side}>
+        <h3 className="display">{dir === 'received' ? '요청 보낸 사람' : '요청 받은 사람'}</h3>
+        {who ? (
+          <>
+            <div className={s.partner}>
+              <Avatar size={80} />
+              <strong className="display">{who.nickname}</strong>
+              <span>{who.affiliation}</span>
+            </div>
+            <hr className={s.sideRule} />
+            <h3 className={`display ${s.sideSub}`}>겹치는 관심사 <span>{shared.length}</span></h3>
+            <div className={s.checkChips}>{shared.map((i) => <CheckChip key={i} label={i} />)}</div>
+            <Link to={`/burrow/${who.id}`} className={`btn btn-line btn-block ${s.visit}`}><HomeIcon size={16} /> {who.nickname}님의 땅굴 놀러 가기</Link>
+          </>
+        ) : <p className={s.reqEmpty}>고른 요청이 없어요.</p>}
+      </aside>
+    </>
+  )
+}
+
+/** 체크 표시 관심사 칩 (겹치는 관심사) */
+function CheckChip({ label }: { label: string }) {
+  const t = toneOf(label)
+  return <span className={s.checkChip} style={{ background: `var(--tone-${t}-bg)`, color: `var(--tone-${t}-fg)` }}>✓ {label}</span>
+}
+
+/** 요청 카드 (430×241): 이름 + 종류 태그, 소속 · 맥락, 시간, 겹치는 관심사, 인사말, 거절 / 수락 */
+function RequestCard({ r, me, active, onFocus, onDone }: { r: ChatRequest; me: string[]; active: boolean; onFocus: () => void; onDone: () => void }) {
+  const u = userOf(r.userId)
+  const mt = r.meetupId ? meetupOf(r.meetupId) : undefined
+  const shared = u.interests.filter((i) => me.includes(i))
+  const tone = toneOf(u.interests[0] ?? '')
+  return (
+    <article className={active ? `${s.reqCard} ${s.reqCardOn}` : s.reqCard} onClick={onFocus}>
+      <div className={s.reqTop}>
+        <span className={s.initial} style={{ background: `var(--tone-${tone}-bg)`, color: `var(--tone-${tone}-fg)` }}>{u.nickname.slice(0, 1)}</span>
+        <div className={s.reqWho}>
+          <p><strong>{u.nickname}</strong><em className={mt ? s.tagMeet : s.tagDm}>{mt ? '모임 신청' : '대화 요청'}</em></p>
+          <small>{mt ? `${mt.title} · ${r.context}` : `${u.affiliation} · ${r.context}`}</small>
+        </div>
+        {r.ago && <time>◷ {r.ago}</time>}
+      </div>
+      {r.direction === 'received' && shared.length > 0 && (
+        <div className={s.reqShared}>겹치는 관심사 {shared.slice(0, 3).map((i) => <CheckChip key={i} label={i} />)}</div>
+      )}
+      {r.message && <blockquote className={s.reqMsg}>“{r.message}”</blockquote>}
+      <div className={s.reqActions}>
+        {r.direction === 'received' ? (
+          <>
+            <button className="btn btn-line btn-sm" onClick={(e) => { e.stopPropagation(); onDone() }}>거절</button>
+            <button className="btn btn-cta btn-sm" onClick={(e) => { e.stopPropagation(); onDone() }}><ChatIcon size={15} /> {mt ? '참여 승인' : '수락하고 대화하기'}</button>
+          </>
+        ) : (
+          <>
             <span className={s.waiting}>{mt ? '주최자 확인 중' : '수락 대기'}</span>
-            <button className="btn btn-ghost btn-sm" onClick={() => drop(r.id)}>요청 취소</button>
-          </article>
-        )
-      })}
-    </section>
+            <button className="btn btn-line btn-sm" onClick={(e) => { e.stopPropagation(); onDone() }}>요청 취소</button>
+          </>
+        )}
+      </div>
+    </article>
   )
 }

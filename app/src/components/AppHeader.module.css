@@ -18,7 +18,7 @@
 }
 .pill:hover { background: #f1e2d2; }
 .active, .active:hover { background: var(--brown-700); color: var(--on-brown); }
-.tools { display: flex; gap: 8px; margin-left: 30px; }
+.tools { position: relative; display: flex; gap: 8px; margin-left: 30px; }
 .iconBtn {
   position: relative;
   width: 44px; height: 44px; border-radius: 10px;
@@ -27,6 +27,7 @@
   background: var(--bg-cream);
 }
 .iconBtn:hover { background: #f5e8da; }
+.iconOn, .iconOn:hover { background: #ead8c6; border-color: #b89a83; }
 .dot {
   position: absolute; top: 9px; right: 10px;
   width: 7px; height: 7px; border-radius: 50%; background: var(--alert);

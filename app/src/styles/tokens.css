@@ -29,6 +29,10 @@
   --alert: #d9573a;         /* 알림 점 */
   --green: #5e8a3a;         /* 접속 중 점 */
   --green-ink: #526b3f;
+  --cta: #c8643a;           /* 저장하기·글쓰기·모임 만들기 같은 주요 행동 (2026-11-11 Figma) */
+  --cta-hover: #b4552e;
+  --danger: #e5392f;        /* 확인 팝업 삭제 버튼 */
+  --toast-bg: #402b20;      /* 완료 토스트 */
 
   /* 장면 버튼 */
   --scene-btn-cream: #f7e6c8;

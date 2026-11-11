@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import InterestChip from '../../components/InterestChip'
 import GuestbookItem from '../../components/GuestbookItem'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
+import { Toast } from '../../components/Feedback'
 import { GUESTBOOK, ME_ID, USERS, overlapCount } from '../../data/mock'
 import type { GuestbookEntry } from '../../data/types'
 import { liveGuestbook } from '../../lib/format'
@@ -17,6 +18,7 @@ const QUICK = ['땅굴 구경 잘했어요!', '같이 게임 한 판 해요', '�
 
 /**
  * 땅굴 – 방문자 뷰 (예린이의 땅굴) 510:13663 외 3변형 · 대화 요청 팝업 495:13898
+ * 대화 요청 완료 토스트 612:7718 (2026-11-11 추가, 스크린샷 대조): 보내면 팝업을 닫고 아래쪽에 토스트
  * 메타데이터 기반 — 스크린샷 대조 필요
  * 데모용 쿼리: ?modal=request
  */
@@ -31,7 +33,7 @@ export default function VisitBurrow() {
   const [allOpen, setAllOpen] = useState(false)
   const [reqOpen, setReqOpen] = useState(params.get('modal') === 'request')
   const [reqMsg, setReqMsg] = useState('')
-  const [sent, setSent] = useState(false)
+  const [sent, setSent] = useState(params.get('toast') === 'request')
 
   if (userId === ME_ID) return <Navigate to="/burrow" replace />
   const shared = owner.interests.filter((i) => me.interests.includes(i))
@@ -46,7 +48,7 @@ export default function VisitBurrow() {
     <main className={s.page}>
       <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
-        <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => { setSent(false); setReqOpen(true) }}>
+        <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => setReqOpen(true)}>
           💬 대화 요청하기
         </button>
         <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.515) * 100}%` }} />
@@ -104,28 +106,23 @@ export default function VisitBurrow() {
       <Modal open={reqOpen} onClose={() => setReqOpen(false)} width={460} labelledBy="req-title">
         <div className={s.requestModal}>
           <Avatar size={56} />
-          <h2 id="req-title" className="display">{sent ? '요청을 보냈어요' : '인사를 남겨볼까요?'}</h2>
-          {sent ? (
-            <>
-              <p className={s.reqSent}>{owner.nickname}님이 수락하면 채팅에서 대화를 시작할 수 있어요.</p>
-              <Link to="/chat/requests" className="btn btn-primary btn-block">보낸 요청 보기</Link>
-            </>
-          ) : (
-            <>
-              <div className={`field ${s.reqField}`}>
-                <textarea className="textarea" value={reqMsg} maxLength={100} onChange={(e) => setReqMsg(e.target.value)}
-                  placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
-                <span className="hint">{reqMsg.length} / 100 · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
-              </div>
-              <p className={s.quickLabel}>빠른 멘트</p>
-              <div className={s.phrases}>
-                {QUICK.map((q) => <button key={q} className={s.phrase} onClick={() => setReqMsg(q)}>{q}</button>)}
-              </div>
-              <button className={`btn btn-primary btn-block ${s.reqSend}`} disabled={!reqMsg.trim()} onClick={() => setSent(true)}>요청 보내기</button>
-            </>
-          )}
+          <h2 id="req-title" className="display">인사를 남겨볼까요?</h2>
+          <div className={`field ${s.reqField}`}>
+            <textarea className="textarea" value={reqMsg} maxLength={100} onChange={(e) => setReqMsg(e.target.value)}
+              placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
+            <span className="hint">{reqMsg.length} / 100 · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
+          </div>
+          <p className={s.quickLabel}>빠른 멘트</p>
+          <div className={s.phrases}>
+            {QUICK.map((q) => <button key={q} className={s.phrase} onClick={() => setReqMsg(q)}>{q}</button>)}
+          </div>
+          <button className={`btn btn-primary btn-block ${s.reqSend}`} disabled={!reqMsg.trim()} onClick={() => { setReqOpen(false); setReqMsg(''); setSent(true) }}>요청 보내기</button>
         </div>
       </Modal>
+
+      <Toast open={sent} onClose={() => setSent(false)} duration={6000}
+        title="대화 요청이 완료되었어요" desc={`${owner.nickname}님이 수락하면 채팅에서 알려드릴게요`}
+        action={{ label: '채팅 보기', to: '/chat/requests?dir=sent' }} />
     </main>
   )
 }

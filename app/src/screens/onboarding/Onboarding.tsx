@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
-import MoleAvatar, { ACCESSORIES, AccessoryIcon, MOLE_COLORS, SLOTS, findAcc, type Outfit, type Slot } from '../../components/MoleAvatar'
+import MoleDresser, { MoleWithItems, WornChips } from '../../components/MoleDresser'
+import { DEFAULT_WORN, MAX_WORN, MOLE_ITEMS, MOLE_PARTS } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import type { Category } from '../../data/types'
@@ -9,6 +10,7 @@ import s from './Onboarding.module.css'
 
 /*
  * 온보딩 (design/figma/onboarding/*.png 시안 기준, 2026-11-10)
+ *  2026-11-11 Figma 갱신: 1 "이름 · 두더지 꾸미기"(최대 2개, 머리·얼굴·목·손), 4 미리보기는 메인 화면 구도 681:7764
  *  1 이름 408:18310 → 2 관심사 "A · 좌측 분류 전환" 408:22173 → 3 자기소개 408:18828
  *  → 4 땅굴 만들기: 3a 방 만드는 중 408:19036 → (3b 없음) → 3c 땅굴 미리보기 408:19306
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
@@ -28,7 +30,7 @@ const ANSWER_MAX = 50
 
 const DEMO = {
   name: '새벽산책',
-  outfit: { hat: 'beret', glasses: 'round', scarf: 'stripe' } as Outfit,
+  worn: DEFAULT_WORN,
   picks: ['시티팝', '필름카메라', '테라리움', '체스', '공연', '독립서점', '요리', '반려식물', '캠핑', '홈카페'],
   answers: ['엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.', '창문부터 열고 이불 속에서 한참 뒹굴어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.'],
 }
@@ -44,8 +46,7 @@ export default function Onboarding() {
   const [params] = useSearchParams()
   const [demo] = useState(() => params.has('demo'))
   const [name, setName] = useState(demo ? DEMO.name : '')
-  const [color, setColor] = useState<string>(MOLE_COLORS[0].hex)
-  const [outfit, setOutfit] = useState<Outfit>(demo ? DEMO.outfit : {})
+  const [worn, setWorn] = useState<string[]>(demo ? DEMO.worn : [])
   const [picks, setPicks] = useState<string[]>(demo ? DEMO.picks : [])
   const [qs, setQs] = useState<number[]>([0, 0, 0])       // 칸마다 몇 번째 질문인지 (0 = 기본, 1 = 바꾼 질문)
   const [answers, setAnswers] = useState(demo ? DEMO.answers : ['', '', ''])
@@ -73,16 +74,16 @@ export default function Onboarding() {
           ))}
         </ol>
       </nav>
-      <main className={step === 'preview' ? s.bodyWide : s.body}>
+      <main className={step === 'preview' ? s.bodyFull : s.body}>
         {step === 'name' && (
-          <NameStep name={name} setName={setName} color={color} setColor={setColor} outfit={outfit} setOutfit={setOutfit} onNext={() => go('interests')} />
+          <NameStep name={name} setName={setName} worn={worn} setWorn={setWorn} onNext={() => go('interests')} />
         )}
         {step === 'interests' && <InterestStep picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => go('intro')} />}
         {step === 'intro' && (
-          <IntroStep name={nick} color={color} outfit={outfit} picks={picks} qs={qs} setQs={setQs} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
+          <IntroStep name={nick} worn={worn} picks={picks} qs={qs} setQs={setQs} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
         )}
         {step === 'building' && <BuildStep name={nick} picks={picks} qna={qna} onDone={() => go('preview')} />}
-        {step === 'preview' && <PreviewStep name={nick} color={color} outfit={outfit} picks={picks} qna={qna} onRepick={() => go('interests')} />}
+        {step === 'preview' && <PreviewStep name={nick} worn={worn} picks={picks} qna={qna} onRepick={() => go('interests')} />}
       </main>
     </div>
   )
@@ -92,28 +93,22 @@ function Check({ size = 12 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden><path d="M2.2 6.3 4.9 8.9 9.8 3.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
 
-/* ---------- 1. 나를 부르는 이름 ---------- */
-function NameStep(p: { name: string; setName: (v: string) => void; color: string; setColor: (v: string) => void; outfit: Outfit; setOutfit: (o: Outfit) => void; onNext: () => void }) {
-  const [slot, setSlot] = useState<Slot>('hat')
+/* ---------- 1. 이름 · 두더지 꾸미기 (408:18310, 2026-11-11 갱신) ---------- */
+function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; onNext: () => void }) {
+  const [spin, setSpin] = useState(true)
   const trimmed = p.name.trim()
   const bad = trimmed.length > 0 && trimmed.length < 2
+  // 랜덤: 서로 다른 부위에서 최대 2개
   const randomize = () => {
-    const o: Outfit = {}
-    for (const sl of SLOTS) {
-      const open = ACCESSORIES[sl].items.filter((a) => !a.lockedLv)
-      const pick = Math.floor(Math.random() * (open.length + 1))   // 마지막 = 없음
-      if (pick < open.length) o[sl] = open[pick].id
-    }
-    p.setOutfit(o)
-    p.setColor(MOLE_COLORS[Math.floor(Math.random() * MOLE_COLORS.length)].hex)
+    const parts = MOLE_PARTS.map((x) => x.part).filter((pt) => MOLE_ITEMS.some((i) => i.part === pt)).sort(() => Math.random() - 0.5).slice(0, MAX_WORN)
+    p.setWorn(parts.map((pt) => { const l = MOLE_ITEMS.filter((i) => i.part === pt); return l[Math.floor(Math.random() * l.length)].id }))
   }
-  const worn = SLOTS.map((sl) => findAcc(sl, p.outfit[sl])).filter(Boolean)
 
   return (
     <>
       <div className={s.intro}>
-        <h1>어떻게 불러드릴까요?</h1>
-        <p>실명이나 사진은 받지 않아요.</p>
+        <h1>닉네임을 입력하세요</h1>
+        <p>실명이나 사진은 받지 않아요</p>
       </div>
       <section className={s.card}>
         <div className={s.form}>
@@ -127,47 +122,22 @@ function NameStep(p: { name: string; setName: (v: string) => void; color: string
           </div>
 
           <div className={s.field}>
-            <span className={s.label}>두더지 색</span>
-            <div className={s.swatches} role="radiogroup" aria-label="두더지 색">
-              {MOLE_COLORS.map((c) => (
-                <button key={c.id} role="radio" aria-checked={p.color === c.hex} aria-label={c.name} title={c.name}
-                  className={p.color === c.hex ? s.swatchOn : s.swatch} style={{ ['--sw' as string]: c.hex }} onClick={() => p.setColor(c.hex)} />
-              ))}
-            </div>
-          </div>
-
-          <div className={s.field}>
             <div className={s.accHead}>
-              <span className={s.label}>액세서리 <small>부위마다 하나씩 고를 수 있어요 · 나중에 바꿀 수 있어요</small></span>
+              <span className={s.label}><span>두더지 꾸미기 <b className={s.wornCount}>{p.worn.length} / {MAX_WORN}</b></span><small>최대 {MAX_WORN}개까지 · 부위마다 하나씩 고를 수 있어요</small></span>
               <button className={s.randomBtn} onClick={randomize}><Dice /> 랜덤으로 꾸미기</button>
             </div>
-            <div className={s.slotTabs} role="tablist" aria-label="액세서리 부위">
-              {SLOTS.map((sl) => (
-                <button key={sl} role="tab" aria-selected={slot === sl} className={slot === sl ? s.slotTabOn : s.slotTab} onClick={() => setSlot(sl)}>
-                  {ACCESSORIES[sl].label}{p.outfit[sl] && <i className={s.dot} aria-label="고름" />}
-                </button>
-              ))}
-            </div>
-            <div className={s.tiles} role="tabpanel" aria-label={`${ACCESSORIES[slot].label} 고르기`}>
-              <button className={!p.outfit[slot] ? s.tileOn : s.tile} aria-pressed={!p.outfit[slot]} onClick={() => p.setOutfit({ ...p.outfit, [slot]: undefined })}>
-                <None /><span>없음</span>
-              </button>
-              {ACCESSORIES[slot].items.map((a) => a.lockedLv ? (
-                <span key={a.id} className={s.tileLocked} title={`${a.name} · 레벨 ${a.lockedLv}부터`}><Lock /><span>Lv.{a.lockedLv}</span></span>
-              ) : (
-                <button key={a.id} className={p.outfit[slot] === a.id ? s.tileOn : s.tile} aria-pressed={p.outfit[slot] === a.id} onClick={() => p.setOutfit({ ...p.outfit, [slot]: a.id })}>
-                  <AccessoryIcon slot={slot} id={a.id} /><span>{a.name}</span>
-                </button>
-              ))}
-            </div>
+            <MoleDresser worn={p.worn} onChange={p.setWorn} />
           </div>
         </div>
 
         <aside className={s.avatarSide} aria-live="polite">
-          <MoleAvatar size={150} color={p.color} outfit={p.outfit} label={`${trimmed || '내'} 두더지`} />
+          <span className={s.previewLabel}>미리 보기</span>
+          <div className={s.previewBox}>
+            <button className={s.spinChip} onClick={() => setSpin((v) => !v)} aria-pressed={spin}>↻ {spin ? '천천히 돌아가요' : '멈췄어요'}</button>
+            <MoleWithItems size={200} radius={0} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
+          </div>
           <strong>{trimmed || '닉네임'}</strong>
-          <p>다른 사람 땅굴에 놀러 가면 이 모습으로 보여요</p>
-          {worn.length > 0 && <div className={s.wornChips}>{worn.map((a) => <span key={a!.id}>{a!.full ?? a!.name}</span>)}</div>}
+          {p.worn.length > 0 && <WornChips worn={p.worn} onRemove={(id) => p.setWorn(p.worn.filter((w) => w !== id))} withPart large />}
         </aside>
       </section>
       <div className={s.actions}>
@@ -263,7 +233,7 @@ const QUESTION_SLOTS = [
   ],
 ]
 
-function IntroStep(p: { name: string; color: string; outfit: Outfit; picks: string[]; qs: number[]; setQs: (v: number[]) => void; answers: string[]; setAnswers: (v: string[]) => void; onPrev: () => void; onNext: () => void }) {
+function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: number[]; setQs: (v: number[]) => void; answers: string[]; setAnswers: (v: string[]) => void; onPrev: () => void; onNext: () => void }) {
   return (
     <>
       <div className={s.intro}>
@@ -295,7 +265,7 @@ function IntroStep(p: { name: string; color: string; outfit: Outfit; picks: stri
           <p className={s.sideLabel}>내 땅굴에선 이렇게 보여요</p>
           <div className={s.profileCard}>
             <div className={s.profileTop}>
-              <MoleAvatar size={52} radius={12} color={p.color} outfit={p.outfit} />
+              <MoleWithItems size={52} radius={12} worn={p.worn} />
               <div><strong>{p.name}</strong><span>관심사 {p.picks.length}개</span></div>
             </div>
             <dl className={s.qnaBox}>
@@ -498,37 +468,37 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
   )
 }
 
-/* ---------- 4c. 땅굴 미리보기 ---------- */
-function PreviewStep({ name, color, outfit, picks, qna, onRepick }: { name: string; color: string; outfit: Outfit; picks: string[]; qna: QnA[]; onRepick: () => void }) {
+/* ---------- 4. 땅굴 미리보기 (메인 화면 기준, Figma 681:7764) ---------- */
+// 방이 화면 전체를 채우고, 오른쪽에 땅굴 정보 카드 + 확정 카드가 떠 있음 (내 땅굴 메인과 같은 구도)
+function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
   return (
-    <div className={s.previewCols}>
-      <section className={s.previewCard}>
-        <div className={s.previewHead}>
-          <h1>{name}님의 땅굴 미리보기</h1>
-          <div className={s.btnRow}>
+    <div className={s.previewStage}>
+      <RoomView ownerId="me" interests={picks} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
+        <span className={s.roomBadge}>관심사 가구 {picks.length}개</span>
+      </RoomView>
+      <aside className={s.previewSide}>
+        <section className={s.infoCard}>
+          <h2>땅굴 정보</h2>
+          <div className={s.profileTop}>
+            <MoleWithItems size={64} radius={12} worn={worn} />
+            <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {picks.length}개</span></div>
+          </div>
+          <dl className={s.qnaFull}>
+            {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}
+          </dl>
+          <p className={s.sideLabel}>관심사 <span>{picks.length}</span></p>
+          <div className={s.chipRow}>
+            {picks.map((t) => <span key={t} className={s.chip} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>{t}</span>)}
+          </div>
+        </section>
+        <section className={s.confirmCard}>
+          <p>관심사 가구 {picks.length}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
+          <div className={s.confirmBtns}>
             <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
             <Link to="/burrow" className={s.next}>관심사 확정</Link>
           </div>
-        </div>
-        <div className={s.roomBox}>
-          <RoomView ownerId="me" interests={picks} focusX={0.5} label={`${name}님의 땅굴 미리보기`}>
-            <span className={s.roomBadge}>관심사 가구 {picks.length}개</span>
-          </RoomView>
-        </div>
-      </section>
-      <aside className={s.infoCard}>
-        <h2>땅굴 정보</h2>
-        <div className={s.profileTop}>
-          <MoleAvatar size={88} radius={16} color={color} outfit={outfit} />
-          <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {picks.length}개</span></div>
-        </div>
-        <dl className={s.qnaFull}>
-          {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}
-        </dl>
-        <p className={s.sideLabel}>관심사 <span>{picks.length}</span></p>
-        <div className={s.chipRow}>
-          {picks.map((t) => <span key={t} className={s.chip} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>{t}</span>)}
-        </div>
+          <small>관심사는 나중에 내 정보에서 바꿀 수 있어요.</small>
+        </section>
       </aside>
     </div>
   )
@@ -539,5 +509,3 @@ const Chevron = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidde
 const Arrow = () => <svg className={s.arrow} width="20" height="20" viewBox="0 0 20 20" aria-hidden><path d="M3.5 10h12M11 5.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
 const Cube = () => <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M12 2.8 20 7.2v9.6L12 21.2 4 16.8V7.2Z M4 7.2l8 4.4 8-4.4 M12 11.6v9.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
 const Dice = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><rect x="2" y="2" width="12" height="12" rx="3" fill="none" stroke="currentColor" strokeWidth="1.4" /><circle cx="5.5" cy="5.5" r="1" fill="currentColor" /><circle cx="10.5" cy="10.5" r="1" fill="currentColor" /><circle cx="8" cy="8" r="1" fill="currentColor" /></svg>
-const None = () => <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M9 23 23 9" stroke="currentColor" strokeWidth="2" /></svg>
-const Lock = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" strokeWidth="2" /></svg>

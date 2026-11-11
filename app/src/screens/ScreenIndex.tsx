@@ -12,11 +12,11 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['비밀번호 찾기', '/password-reset', '504:5382'],
   ] },
   { title: '온보딩', items: [
-    ['1 나를 부르는 이름', '/onboarding/name', '408:18310'],
-    ['2 관심 분야 고르기 (+ 분야 팝업)', '/onboarding/interests', '408:18482 · 408:18656'],
-    ['3 자기소개', '/onboarding/intro', '408:18828'],
-    ['3a 방 만드는 중 → 3b 가구 매칭 완료', '/onboarding/building', '408:19036 · 408:21319'],
-    ['3c 땅굴 미리보기', '/onboarding/preview', '408:19306'],
+    ['1 이름 · 두더지 꾸미기', '/onboarding/name?demo', '408:18310', true],
+    ['2 관심사 선택 (A · 좌측 분류 전환)', '/onboarding/interests?demo', '551:7406', true],
+    ['3 자기소개', '/onboarding/intro?demo', '408:18828', true],
+    ['3a 방 만드는 중', '/onboarding/building?demo', '408:19036', true],
+    ['4 땅굴 미리보기 (메인 화면 기준)', '/onboarding/preview?demo', '681:7764', true],
   ] },
   { title: '땅굴', items: [
     ['내 땅굴 (스크린샷 대조 완료)', '/burrow', '454:6900', true],
@@ -26,11 +26,18 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['탐색하기 (돌아다니기)', '/burrow/explore', '477:12524 · 493:12616'],
     ['방문자 뷰 (예린이의 땅굴)', '/burrow/yerin', '510:13663'],
     ['방문자 뷰 – 대화 요청 팝업', '/burrow/yerin?modal=request', '495:13898'],
+    ['방문자 뷰 – 대화 요청 완료 토스트', '/burrow/yerin?toast=request', '612:7718', true],
+    ['꾸미기 모드 · 사이드바 변신', '/burrow?mode=decor', '682:7764', true],
+    ['내 정보 수정 · 사이드바 교체', '/burrow?mode=edit', '683:8058', true],
   ] },
   { title: '커뮤니티', items: [
     ['게시판', '/board', '494:12708'],
     ['글 상세 A안', '/board/p1', '494:13028'],
     ['글 상세 B안', '/board/p1?v=b', '494:13242'],
+    ['글쓰기', '/board/write', '559:7299', true],
+    ['저장한 글', '/board/saved', '560:7370', true],
+    ['게시물 삭제 팝업', '/board/p1?modal=delete', '610:12231'],
+    ['게시물 신고 팝업', '/board/p1?modal=report', '610:12558', true],
   ] },
   { title: '모임', items: [
     ['모임 리스트', '/meetups', '494:13691'],
@@ -38,7 +45,7 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['내 모임', '/meetups/me', '546:7282 · 500:15371'],
     ['모임 상세', '/meetups/m1', '494:13857 · 408:13129'],
     ['모임 상세 – 참여 신청 팝업', '/meetups/m4?modal=apply', '544:7521'],
-    ['모임 만들기', '/meetups/new', '408:13607'],
+    ['모임 만들기', '/meetups/new', '408:13607', true],
     ['모임 생성 완료 팝업', '/meetups/new?modal=done', '408:14074'],
   ] },
   { title: '채팅', items: [
@@ -46,7 +53,14 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['1대1 대화', '/chat/r-yerin', '408:16412'],
     ['모임 대화', '/chat/r-book', '408:16752'],
     ['대화 요청 대기 중', '/chat/r-seoyeon', '408:15921'],
-    ['받은 요청 · 보낸 요청', '/chat/requests', '408:17145'],
+    ['요청 · 대화 · 받은/보낸 요청', '/chat/requests', '408:17145 · 588:8061', true],
+    ['요청 · 모임 · 받은/보낸 요청', '/chat/requests?tab=meetup', '589:8150 · 589:8292'],
+  ] },
+  { title: '알림 · 설정', items: [
+    ['알림 팝업 (수정안: 탭 제거, 요청 고정)', '/burrow?notice=open', '596:8808', true],
+    ['알림 페이지', '/notifications', '569:7860', true],
+    ['알림 페이지 – 빈 상태', '/notifications?empty=1', '569:7860', true],
+    ['설정', '/settings', '554:21331', true],
   ] },
 ]
 

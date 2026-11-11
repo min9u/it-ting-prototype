@@ -180,3 +180,79 @@
 .reqField { margin-top: 14px; }
 .quickLabel { margin-top: 16px; font-size: 12px; color: var(--ink-500); }
 .reqSend { margin-top: 18px; }
+
+/* ---- 2026-11-11 Figma 반영 ---- */
+/* 내 정보 헤더 링크: 수정 · 접기 (454:6900 Links) */
+.headLinks { display: inline-flex; gap: 14px; }
+.introStatic { cursor: default; }
+/* 방명록 0개 (506:7960): 흙더미 두더지 빈 상태 카드 292×236 */
+.gbEmptyBox { margin-top: 12px; display: flex; min-height: 236px; }
+
+/* 사이드바 교체형 공통 (내 정보 수정 683:8058 · 꾸미기 682:7764) */
+.formPanel { padding-bottom: 22px; }
+.formPanel .panelHead h2 { display: inline-flex; align-items: center; gap: 6px; }
+.backBtn { display: grid; place-items: center; width: 24px; height: 24px; color: var(--ink-900); }
+.closeBtn { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--ink-700); }
+.closeBtn:hover { background: var(--surface-item); }
+.outlineChip {
+  margin-top: 8px; height: 28px; padding: 0 10px; border-radius: 14px;
+  border: 1px solid #c97a55; color: #a5512f; background: #fffaf5;
+  font-family: var(--font-display); font-size: 12px;
+}
+.outlineChip:hover { background: #fbeee3; }
+.formField { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.formField > label, .formLabel {
+  display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 13px; color: var(--ink-800);
+}
+.formField > label span, .formLabel span { font-family: var(--font-body); font-size: 11px; color: var(--ink-400); }
+.formField input, .formField textarea {
+  width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #ead2bf; background: var(--surface-sunken);
+  font-family: var(--font-display); font-size: 14px; color: var(--ink-900); outline: none;
+}
+.formField textarea { height: 120px; resize: none; line-height: 1.6; }
+.formField input:focus, .formField textarea:focus { border-color: var(--brown-600); }
+.dashedBtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; margin-top: 4px;
+  border: 1.5px dashed #e0c3ab; border-radius: 8px; background: transparent;
+  font-family: var(--font-display); font-size: 13px; color: var(--ink-800);
+}
+.dashedBtn:hover { background: #fbefe3; }
+.formNote { font-size: 11px; color: var(--ink-500); line-height: 1.6; }
+.panelActions { margin-top: auto; padding-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: none; }
+.panelActions :global(.btn) { height: 46px; }
+.removeChip {
+  display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 14px;
+  background: var(--surface-item); font-size: 13px; color: var(--ink-700);
+}
+
+/* 꾸미기: 가구 / 두더지 탭 (segmented 296×42) */
+.segment { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 22px; background: #f1e2d3; }
+.seg, .segOn { height: 34px; border-radius: 18px; font-family: var(--font-display); font-size: 14px; color: var(--ink-500); }
+.segOn { background: #fffaf5; color: var(--ink-900); box-shadow: 0 1px 3px rgba(90, 60, 40, .12); }
+.decorBody { margin-top: 18px; }
+.decorPill {
+  position: absolute; top: 48px; left: 48px; z-index: 5;
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px;
+  border-radius: 17px; background: rgba(64, 43, 32, .88); color: #fbf1e6;
+  font-family: var(--font-display); font-size: 12px;
+}
+.decorPill i { width: 7px; height: 7px; border-radius: 50%; background: #f0a06e; }
+.decorPill span { margin-left: 8px; }
+
+/* 탐색하기: 땅굴 입구 나무 안내판 679:17013 (360×240) */
+.signboard {
+  position: absolute; z-index: 5; width: 272px; transform: translate(-50%, -100%);
+  padding: 24px 34px 26px 34px;
+  background: #fbf3ea; border-radius: 22px 22px 22px 22px;
+  clip-path: polygon(4% 0, 96% 0, 100% 6%, 100% 92%, 96% 100%, 4% 100%, 0 92%, 0 6%);
+  box-shadow: 0 10px 24px rgba(70, 40, 20, .18);
+  animation: signIn .25s var(--ease-out);
+}
+@keyframes signIn { from { opacity: 0; transform: translate(-50%, calc(-100% + 8px)); } }
+.signOwner { display: flex; align-items: center; gap: 12px; }
+.signOwner strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--ink-900); }
+.signOwner small { font-size: 12px; color: var(--ink-400); }
+.signTags { margin-top: 12px; display: flex; gap: 8px; }
+.signBtn { margin-top: 14px; width: 100%; height: 47px; }
+.signClose { position: absolute; top: 10px; right: 14px; color: var(--ink-400); }
+.sharedText { color: var(--green-ink) !important; }

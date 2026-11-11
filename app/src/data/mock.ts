@@ -143,33 +143,41 @@ export const MEETUPS: Meetup[] = [
   {
     id: 'm1', title: '주말의 작은 독서 모임', interest: '독서', date: '2026-11-08', start: '오후 2:00', end: '오후 4:00',
     area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6,
-    memberIds: ['kim', 'lee', 'park', 'choi'], hostId: 'kim', myStatus: '참여 확정', closesAt: '11월 8일 오전 10시',
+    memberIds: ['kim', 'lee', 'park', 'choi'], hostId: 'kim', myStatus: '참여 확정', closesAt: '11월 7일 (토)', sign: '독서 모임',
     intro: '한 주에 한 권씩, 각자 읽은 책을 들고 모입니다. 발제나 독후감 같은 건 없어요. 읽다가 접어둔 페이지를 펴놓고 두 시간쯤 이야기합니다. 처음 오시는 분은 다 못 읽고 오셔도 괜찮아요.',
   },
   {
     id: 'm2', title: '퇴근 후 보드게임 한 판', interest: '보드게임', date: '2026-11-06', start: '오후 7:00', end: '오후 10:00',
     area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6,
-    memberIds: ['mingu', 'ha', 'lee'], hostId: 'mingu', myStatus: '신청 대기', closesAt: '11월 6일 오후 3시',
+    memberIds: ['mingu', 'ha', 'lee'], hostId: 'mingu', myStatus: '신청 대기', closesAt: '11월 6일 오후 3시', sign: '보드게임', myNote: '보드게임은 처음인데 괜찮을까요? 규칙 미리 공부해 갈게요!', myNoteAgo: '2시간 전 신청',
     intro: '룰 설명부터 천천히 해드려요. 가벼운 파티 게임 위주로 합니다.',
   },
   {
     id: 'm3', title: '일요일 아침 드로잉', interest: '그림', date: '2026-11-22', start: '오전 10:00', end: '오후 12:00',
     area: '망원', place: '망원 한강공원', mode: '오프라인', capacity: 6,
-    memberIds: ['me', 'park', 'seobeok'], hostId: 'me', myStatus: '내가 주최', closesAt: '11월 21일 오후 6시',
+    memberIds: ['me', 'park', 'seobeok'], hostId: 'me', myStatus: '내가 주최', closesAt: '11월 21일 오후 6시', sign: '드로잉',
     intro: '연필 한 자루랑 스케치북만 챙겨오세요. 잘 그리는 것보다 같이 그리는 게 목적이에요.',
   },
   {
     id: 'm4', title: '초보 환영, 가평 1박 캠핑', interest: '캠핑', date: '2026-11-15', start: '오전 10:00', end: '다음 날 오전 11:00',
     area: '가평', place: '가평 자라섬 캠핑장', mode: '오프라인', capacity: 8,
-    memberIds: ['yerin', 'ha', 'kim', 'seoyeon', 'mingu'], hostId: 'yerin', myStatus: '찜', closesAt: '11월 13일 자정',
+    memberIds: ['yerin', 'ha', 'kim', 'seoyeon', 'mingu'], hostId: 'yerin', myStatus: '참여 확정', closesAt: '11월 13일 자정', sign: '가평 캠핑',
     intro: '장비 없어도 괜찮아요. 공용 텐트 두 동 준비했어요.',
   },
-  { id: 'm5', title: '시티팝 LP 듣는 밤', interest: '시티팝', date: '2026-11-19', start: '오후 8:00', end: '오후 10:00', area: '온라인', place: '디스코드', mode: '온라인', capacity: 10, memberIds: ['seoyeon', 'yejin'], hostId: 'seoyeon', closesAt: '11월 19일 오후 6시', intro: '각자 좋아하는 한 곡씩 틀어요.' },
-  { id: 'm6', title: '테라리움 같이 만들어요', interest: '테라리움', date: '2026-11-23', start: '오후 3:00', end: '오후 5:00', area: '연남동', place: '연남동 공방', mode: '오프라인', capacity: 5, memberIds: ['choi'], hostId: 'choi', closesAt: '11월 21일', intro: '재료비 1만 원. 작은 유리병 하나씩 가져가요.' },
-  { id: 'm7', title: '역삼 점심 러닝 크루', interest: '러닝', date: '2026-11-12', start: '오후 12:10', end: '오후 12:50', area: '역삼', place: '선릉공원 입구', mode: '오프라인', capacity: 12, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', closesAt: '11월 12일 오전 9시', intro: '3km 천천히 뛰어요.' },
-  { id: 'm8', title: '홈카페 원두 나눔회', interest: '홈카페', date: '2026-11-29', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수 카페거리', mode: '오프라인', capacity: 6, memberIds: ['yejin', 'seoyeon'], hostId: 'yejin', closesAt: '11월 27일', intro: '집에 남는 원두 가져와서 바꿔 마셔요.' },
-  { id: 'm9', title: '지브리 영화 같이 보기', interest: '지브리', date: '2026-11-07', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: '왓챠 파티', mode: '온라인', capacity: 8, memberIds: ['yerin', 'seobeok', 'park'], hostId: 'seobeok', closesAt: '11월 7일', intro: '이번 주는 하울의 움직이는 성!' },
+  { id: 'm5', title: '시티팝 LP 듣는 밤', interest: '시티팝', date: '2026-11-19', start: '오후 8:00', end: '오후 10:00', area: '온라인', place: '디스코드', mode: '온라인', capacity: 10, memberIds: ['seoyeon', 'yejin'], hostId: 'seoyeon', myStatus: '찜', sign: 'LP 듣는 밤', closesAt: '11월 19일 오후 6시', intro: '각자 좋아하는 한 곡씩 틀어요.' },
+  { id: 'm6', title: '테라리움 같이 만들어요', interest: '테라리움', date: '2026-11-23', start: '오후 3:00', end: '오후 5:00', area: '연남동', place: '연남동 공방', mode: '오프라인', capacity: 5, memberIds: ['choi'], hostId: 'choi', sign: '테라리움', closesAt: '11월 21일', intro: '재료비 1만 원. 작은 유리병 하나씩 가져가요.' },
+  { id: 'm7', title: '역삼 점심 러닝 크루', interest: '러닝', date: '2026-11-12', start: '오후 12:10', end: '오후 12:50', area: '역삼', place: '선릉공원 입구', mode: '오프라인', capacity: 12, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', myStatus: '찜', sign: '점심 러닝', closesAt: '11월 12일 오전 9시', intro: '3km 천천히 뛰어요.' },
+  { id: 'm8', title: '홈카페 원두 나눔회', interest: '홈카페', date: '2026-11-29', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수 카페거리', mode: '오프라인', capacity: 6, memberIds: ['yejin', 'seoyeon'], hostId: 'yejin', myStatus: '찜', sign: '원두 나눔', closesAt: '11월 27일', intro: '집에 남는 원두 가져와서 바꿔 마셔요.' },
+  { id: 'm9', title: '지브리 영화 같이 보기', interest: '지브리', date: '2026-11-07', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: '왓챠 파티', mode: '온라인', capacity: 8, memberIds: ['yerin', 'seobeok', 'park'], hostId: 'seobeok', sign: '지브리', closesAt: '11월 7일', intro: '이번 주는 하울의 움직이는 성!' },
+  { id: 'm10', title: '한강 5km 같이 뛰어요', interest: '러닝', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 10, memberIds: ['ha', 'mingu', 'lee', 'park', 'kim', 'choi', 'yejin', 'seoyeon', 'yerin'], hostId: 'ha', myStatus: '신청 대기', sign: '러닝', closesAt: '11월 6일', intro: '페이스 느려도 괜찮아요. 끝까지 같이 뛰어요.', myNote: '페이스는 느린 편인데 끝까지 같이 뛰어보고 싶어요!', myNoteAgo: '어제 신청' },
 ]
+
+/** 목 데이터의 "오늘" (Figma 내 모임 D-day 기준: 11/6 모임이 D-3) */
+export const TODAY = '2026-11-03'
+export function dday(ymd: string) {
+  const d = Math.round((Date.parse(ymd) - Date.parse(TODAY)) / 86400000)
+  return d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`
+}
 
 export const meetupOf = (id: string) => MEETUPS.find((m) => m.id === id)
 
@@ -204,6 +212,40 @@ export const CHAT_REQUESTS: ChatRequest[] = [
   { id: 'q3', kind: 'meetup', direction: 'received', userId: 'seoyeon', meetupId: 'm3', context: '참여를 신청했어요 · 3 / 6명', ago: '어제', message: '그림 배운 적은 없는데 괜찮을까요? 연필이랑 스케치북 챙겨갈게요!' },
   { id: 'q4', kind: 'dm', direction: 'sent', userId: 'yerin', context: '대화 요청 · 방금', ago: '방금', message: '' },
   { id: 'q5', kind: 'meetup', direction: 'sent', userId: 'mingu', meetupId: 'm2', context: '모임 신청 · 11월 6일 (금)', ago: '', message: '' },
+]
+
+/* ===== 알림 (알림 – 팝업 · 수정안 596:8808: 탭 없이 요청 2줄을 위에 고정) ===== */
+export interface Notice {
+  id: string
+  kind: '채팅' | '모임' | '커뮤니티' | '공지'
+  title: string
+  sub: string
+  ago: string
+  unread?: boolean
+  to: string
+}
+export const NOTICE_PINNED = [
+  { id: 'pin-meetup', title: '모임 참여 요청', sub: '민서님 외 2명', count: 3, to: '/chat/requests?tab=meetup' },
+  { id: 'pin-chat', title: '채팅 요청', sub: '지우님 외 1명', count: 2, to: '/chat/requests' },
+]
+export const NOTICES: Notice[] = [
+  { id: 'n1', kind: '채팅', title: '새 메시지가 도착했어요', sub: '서준: 이번 주 토요일 2시 괜찮으세요?', ago: '10분 전', unread: true, to: '/chat/r-yerin' },
+  { id: 'n2', kind: '모임', title: '찜한 ‘성수 보드게임 모임’이 곧 마감돼요', sub: '남은 자리 1석', ago: '1시간 전', unread: true, to: '/meetups/m2' },
+  { id: 'n3', kind: '커뮤니티', title: '내 글에 댓글이 달렸어요', sub: '‘읽고 있는 책 한 줄’ · 하은님', ago: '어제', to: '/board/p4' },
+  { id: 'n4', kind: '커뮤니티', title: '내 댓글에 답글이 달렸어요', sub: '‘이번 달 독서 챌린지’ · 지우님', ago: '어제', to: '/board/p4' },
+  { id: 'n5', kind: '모임', title: '참여 신청이 수락됐어요', sub: '‘주말의 작은 독서 모임’ 채팅방이 열렸어요', ago: '2일 전', to: '/chat/r-book' },
+]
+
+/** 알림 페이지 (569:7860): 탭 전체·모임·채팅·게시판·공지 */
+export const NOTICE_PAGE: Notice[] = [
+  { id: 'a1', kind: '모임', title: '‘주말의 작은 독서 모임’에 새 참여 신청이 왔어요', sub: '민서님이 참여를 신청했어요', ago: '방금 전', unread: true, to: '/meetups/me' },
+  { id: 'a2', kind: '채팅', title: '새 메시지가 도착했어요', sub: '서준: 이번 주 토요일 2시 괜찮으세요?', ago: '10분 전', unread: true, to: '/chat/r-yerin' },
+  { id: 'a3', kind: '모임', title: '찜한 ‘성수 보드게임 모임’이 곧 마감돼요', sub: '남은 자리 1석', ago: '1시간 전', unread: true, to: '/meetups/m2' },
+  { id: 'a4', kind: '커뮤니티', title: '내 글에 댓글이 달렸어요', sub: '‘읽고 있는 책 한 줄’ · 하은님', ago: '어제', to: '/board/p4' },
+  { id: 'a5', kind: '커뮤니티', title: '내 댓글에 답글이 달렸어요', sub: '‘이번 달 독서 챌린지’ · 지우님', ago: '어제', to: '/board/p4' },
+  { id: 'a6', kind: '모임', title: '참여 신청이 수락됐어요', sub: '‘주말의 작은 독서 모임’ 채팅방이 열렸어요', ago: '2일 전', to: '/chat/r-book' },
+  { id: 'a7', kind: '채팅', title: '대화 요청이 왔어요', sub: '지우님이 대화를 요청했어요', ago: '3일 전', to: '/chat/requests' },
+  { id: 'a8', kind: '공지', title: '디굴디굴 이용 안내가 업데이트됐어요', sub: '새 기능과 변경 사항을 확인해 보세요', ago: '5일 전', to: '/notifications' },
 ]
 
 /* ===== 공용 계산 ===== */

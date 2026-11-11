@@ -1,6 +1,8 @@
-import { NavLink, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link, useSearchParams } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { BellIcon, GearIcon } from './Icons'
+import NotificationPopover from './NotificationPopover'
 import styles from './AppHeader.module.css'
 
 /** Figma: Review/Navigation (1440×63) + Nav Pill (State=Active/Default) */
@@ -19,7 +21,10 @@ export function Logo({ to = '/burrow' }: { to?: string }) {
   )
 }
 
+/** 데모용 쿼리: ?notice=open (알림 팝업 열린 채로) */
 export default function AppHeader({ hasAlert = true }: { hasAlert?: boolean }) {
+  const [params] = useSearchParams()
+  const [noticeOpen, setNoticeOpen] = useState(params.get('notice') === 'open')
   return (
     <header className={styles.header}>
       <Logo />
@@ -31,13 +36,16 @@ export default function AppHeader({ hasAlert = true }: { hasAlert?: boolean }) {
         ))}
       </nav>
       <div className={styles.tools}>
-        <button className={styles.iconBtn} aria-label={hasAlert ? '알림 (새 알림 있음)' : '알림'}>
+        <button data-bell className={noticeOpen ? `${styles.iconBtn} ${styles.iconOn}` : styles.iconBtn}
+          aria-label={hasAlert ? '알림 (새 알림 있음)' : '알림'} aria-expanded={noticeOpen} onClick={() => setNoticeOpen((v) => !v)}>
           <BellIcon size={21} />
           {hasAlert && <span className={styles.dot} />}
         </button>
-        <button className={styles.iconBtn} aria-label="설정">
+        {/* 설정 554:21331 */}
+        <NavLink to="/settings" className={({ isActive }) => (isActive ? `${styles.iconBtn} ${styles.iconOn}` : styles.iconBtn)} aria-label="설정">
           <GearIcon size={21} />
-        </button>
+        </NavLink>
+        {noticeOpen && <NotificationPopover onClose={() => setNoticeOpen(false)} />}
       </div>
     </header>
   )
