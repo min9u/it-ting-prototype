@@ -37,6 +37,8 @@ export interface RoomSceneOptions {
   hostWorn?: string[]
   /** 내 두더지 액세서리 */
   worn?: string[]
+  /** D 시험판: Worker 안에서 그릴 때 넘겨받은 캔버스 (three/worker/roomWorker.ts) */
+  canvas?: OffscreenCanvas
 }
 
 /** 방 모델 glb (파일 이름 = 카탈로그의 glb_compressed). 두더지·껍데기는 따로 불러서 여기엔 없음 */
@@ -96,7 +98,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let camLock = q.level === 'low' && !!q.lab?.C
   // F 단순한 두더지 (moleActor simple)
   const simpleMole = q.level === 'low' && !!q.lab?.F
-  const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial })
+  const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial, canvas: opts.canvas })
   renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
   renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
   /*

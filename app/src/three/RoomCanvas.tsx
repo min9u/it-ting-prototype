@@ -1,6 +1,10 @@
 import SceneCanvas from './SceneCanvas'
 import { mountRoomScene } from './roomScene'
-import type { SceneHandle } from './engine'
+import { quality, type SceneHandle } from './engine'
+import { mountRoomWorker, workerRenderSupported } from './worker/roomWorkerHost'
+
+/** D 시험판: 저사양 + 실험실 D 면 Worker 에서 그림 (안 되면 원래대로) */
+const useWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
 
 /** 땅굴 방 3D (RoomView 가 React.lazy 로 불러옴 → three.js 는 별도 청크) */
 export default function RoomCanvas({ ownerId, interests, hostName, hostWorn, worn, focusX, className, label, onReady }: {
@@ -19,7 +23,10 @@ export default function RoomCanvas({ ownerId, interests, hostName, hostWorn, wor
   return (
     <SceneCanvas
       deps={`${ownerId}|${hostName ?? ''}|${(interests ?? []).join(',')}`}
-      mount={(el, fx) => mountRoomScene(el, { ownerId, interests, hostName, hostWorn, worn, focusX: fx })}
+      mount={(el, fx) => {
+        const o = { ownerId, interests, hostName, hostWorn, worn, focusX: fx }
+        return useWorker() ? mountRoomWorker(el, o, () => mountRoomScene(el, o)) : mountRoomScene(el, o)
+      }}
       focusX={focusX}
       className={className}
       label={label}

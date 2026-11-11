@@ -17,6 +17,8 @@ function stripAvifProbe(): Plugin {
 export default defineConfig(({ mode }) => ({
   plugins: [react(), stripAvifProbe()],
   server: { port: 5173 },
+  // D 시험판(땅굴 Worker, three/worker/roomWorker.ts): Worker 안에서도 동적 import(roomScene·Draco)를 쓰려면 es 형식. avif 확인 코드도 같이 뺌
+  worker: { format: 'es', plugins: () => [stripAvifProbe()] },
   // public/ 은 Draco wasm 해독기(일반 빌드용)뿐. 공유 빌드는 JS 해독기를 번들에 넣으므로 복사하지 않음 (three/glb.ts)
   publicDir: mode === 'share' ? false : 'public',
   build: {

@@ -82,10 +82,11 @@ export interface SceneHandle {
  * 캔버스를 매번 새로 만드는 이유: React StrictMode가 effect를 두 번 돌릴 때
  * 같은 캔버스에 forceContextLoss() 뒤 다시 붙으면 잃어버린 컨텍스트를 그대로 받게 됨.
  */
-export function createRenderer(container: HTMLElement, o: { alpha?: boolean; exposure: number; shadowType: THREE.ShadowMapType; quality: Quality; preserve?: boolean }) {
+export function createRenderer(container: HTMLElement, o: { alpha?: boolean; exposure: number; shadowType: THREE.ShadowMapType; quality: Quality; preserve?: boolean; canvas?: OffscreenCanvas }) {
   const q = o.quality
   // preserve: 지난 프레임 그림을 남겨 둠 (땅굴 저사양의 부분 그리기용)
-  const renderer = new THREE.WebGLRenderer({ antialias: q.antialias, alpha: !!o.alpha, powerPreference: 'high-performance', preserveDrawingBuffer: !!o.preserve })
+  // canvas: D 시험판에서 Worker 가 넘겨받은 OffscreenCanvas (three 는 HTMLCanvasElement 처럼 씀)
+  const renderer = new THREE.WebGLRenderer({ canvas: o.canvas as unknown as HTMLCanvasElement | undefined, antialias: q.antialias, alpha: !!o.alpha, powerPreference: 'high-performance', preserveDrawingBuffer: !!o.preserve })
   renderer.setPixelRatio(q.pixelRatio)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.NeutralToneMapping
