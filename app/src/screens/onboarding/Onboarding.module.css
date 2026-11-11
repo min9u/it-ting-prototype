@@ -79,7 +79,8 @@
 .tile:hover { background: #efdccb; }
 .tileOn { background: #fbf4ec; box-shadow: inset 0 0 0 2px var(--brown-700); color: var(--ink-900); }
 .tileOn svg { color: #c9a990; }
-.tileOn::after { content: ''; position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--brown-700) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.6 6.2 5 8.5 9.4 3.6' fill='none' stroke='%23fbf4ec' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; }
+/* 체크 표시는 svg data URL 대신 글자로 (아티팩트 공개 공유 검토가 svg data URL을 막음, 2026-11-11) */
+.tileOn::after { content: '✓'; position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--brown-700); color: #fbf4ec; font: 700 11px/18px system-ui, sans-serif; text-align: center; }
 .tileLocked { background: #efe5da; color: #bba897; cursor: not-allowed; }
 
 .avatarSide { background: var(--ob-side); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 40px 28px; text-align: center; }
