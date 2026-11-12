@@ -192,7 +192,9 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     raf = requestAnimationFrame(tick)
     probe(now)
     if (q.maxFps && now - last < 1000 / q.maxFps - 4) return // fps 제한 (rAF 간격 흔들림 4ms 여유)
-    const dt = Math.min((now - last) / 1000, 0.1)
+    // rAF 의 now(프레임 시작 시각)는 play() 때 잰 performance.now() 보다 이를 수 있음 → 음수 dt 막기.
+    // (음수가 들어가면 가구 낙하 타이머가 0 → 음수로 가서 다시 안 돌고, 가구가 숨은 채로 남았음. 2026-11-12 온보딩 → 내 땅굴)
+    const dt = Math.min(Math.max(0, (now - last) / 1000), 0.1)
     last = now
     t += dt
     cb.frame(dt, t)
