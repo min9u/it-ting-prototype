@@ -84,3 +84,12 @@
   - M3 조리대의 냄비(`deco_attached`)는 조리대 노드의 자식이라 같이 복제됨 (따로 할 일 없음)
 - **CC-BY 표기 (M3)**: 기타(jeremy), 오락기·빈백(J-Toastie)이 들어오면 앱 크레딧 화면(설정 등)에 `design/digul_3d_handoff_v3/docs/credits.md` "필수 작가 표기" 문구를 넣을 것. 이번 전달은 모두 CC0
 - 첫 화면 번들: 카탈로그 JSON에서 화면에 필요한 필드만 남기거나 온보딩을 지연 로딩하면 줄일 수 있음
+
+## v3.1 패치 반영 (2026-11-12)
+- 원본: `design/digul_3d_handoff_v3_1/` (`digul_3d_handoff_v3_1_20261111.zip`, v3 위에 얹는 패치. 기준 문서 `docs/HANDOFF_v3_1.md`)
+- 모델: `interest_movie_v1_1`, `interest_photo_v1_1`, `room_shelves_v1_1`로 교체(v1 삭제), 새로 `interest_outdoor_v1`(운동·아웃도어), `interest_nature_v1`(자연·식물). 모두 `_draco_webp` → `app/src/assets/models/room/`
+- 데이터: `slots.json`, `furnitureCatalog.json` 새 것으로 교체 (TV·사진 판·선반·선반 칸 12개가 벽에 닿게, 이끼 벤치·자전거 슬롯 이동, 모델 있는 줄 40 → 55). `interestCatalog.json`은 내용 같음
+- **코드 변경 없음**: 로딩이 카탈로그 `glb_compressed` 이름과 `slots.json` 좌표를 따라가서 파일·JSON만 바꿈. 자전거 벽걸이(원점 = 벽에 닿는 점)도 슬롯에 그대로 놓으면 맞음
+- 확인: `tsc -b`, `build`, `build:share` 통과. 헤드리스 Edge로 목 데이터 내 땅굴(캠핑·자전거 포함) 확인 → 자전거가 뒤쪽 벽에 걸리고 선반이 벽에 붙음 (스크린샷은 남기지 않음). 자연·식물 카테고리는 화면으로 따로 확인 못 함
+- 배포: 팀 아티팩트 version 12
+- 남은 것: M3(차·커피·베이킹, 음악, 게임·놀이, 우주·과학), M4(반려동물)는 블록 그대로
