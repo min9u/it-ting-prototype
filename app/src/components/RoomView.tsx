@@ -73,7 +73,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
             <img src={mound} alt="" draggable={false} />
             <i /><i /><i />
           </span>
-          <span className={styles.loaderText}>땅굴을 꾸미는 중<span aria-hidden className={styles.loaderDots}><b>.</b><b>.</b><b>.</b></span></span>
+          <span className={styles.loaderText}>땅굴 파는 중<span aria-hidden className={styles.loaderDots}><b>.</b><b>.</b><b>.</b></span></span>
         </div>
       )}
       {(loader ? gaveUp && !ready : !ready) && (
