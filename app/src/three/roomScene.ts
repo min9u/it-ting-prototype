@@ -564,14 +564,41 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   type Rect = { x0: number; y0: number; x1: number; y1: number }
   let prevRect: Rect | null = null
   const corner = new THREE.Vector3()
-  /** 두더지 + 발밑 그림자 + 모자를 덮는 상자(가로·깊이 ±0.62m, 높이 1.5m)를 화면에 투영한 사각형 (CSS px, 아래가 0) */
-  const actorRect = (a: MoleActor, r: Rect) => {
-    const p = a.object.position, s = a.object.scale.x, h = .62 * s
+  /*
+   * 두더지 + 발밑 그림자 + 모자를 덮는 상자(가로·깊이 ±0.62m, 높이 1.5m)를 화면에 투영한 사각형 (CSS px, 아래가 0)
+   * + 뼈대마다 ±0.5m 상자. 천장에서 떨어지는 동작(mole_room_drop)처럼 기준점(object.position)은 바닥에 둔 채
+   * 뼈대만 움직이는 동작이 있어서, 기준점만 보면 공중의 두더지가 사각형 밖에 남음 → 머리가 잘리고 지워지지 않은
+   * 잔상이 계속 남던 버그 (2026-11-12 사용자 제보)
+   * + 액세서리(뼈에 붙은 일반 메시: 모자·소품)는 자기 경계 상자를 그대로. 베레모처럼 뼈에서 0.5m 넘게 튀어나와
+   *   가는 줄 잔상이 남았음
+   */
+  const actorBones = new Map<MoleActor, THREE.Object3D[]>()
+  const boneP = new THREE.Vector3()
+  const accBox = new THREE.Box3()
+  const addBox = (r: Rect, cx: number, y0: number, y1: number, cz: number, h: number) => {
     for (let i = 0; i < 8; i++) {
-      corner.set(p.x + (i & 1 ? h : -h), p.y + (i & 2 ? 1.5 * s : -.05), p.z + (i & 4 ? h : -h)).project(camera)
+      corner.set(cx + (i & 1 ? h : -h), i & 2 ? y1 : y0, cz + (i & 4 ? h : -h)).project(camera)
       const x = (corner.x * .5 + .5) * W, y = (corner.y * .5 + .5) * H
       r.x0 = Math.min(r.x0, x); r.x1 = Math.max(r.x1, x); r.y0 = Math.min(r.y0, y); r.y1 = Math.max(r.y1, y)
     }
+  }
+  const actorRect = (a: MoleActor, r: Rect) => {
+    const p = a.object.position, s = a.object.scale.x
+    a.object.updateMatrixWorld(true) // 이번 프레임 동작(mixer)이 반영된 뼈·액세서리 위치
+    addBox(r, p.x, p.y - .05, p.y + 1.5 * s, p.z, .62 * s)
+    let bones = actorBones.get(a)
+    if (!bones) { bones = []; a.object.traverse((o) => { if ((o as THREE.Bone).isBone) bones!.push(o) }); actorBones.set(a, bones) }
+    // 액세서리는 갈아 끼울 수 있어서 매번 찾음 (노드 수십 개라 가벼움)
+    a.object.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh || (m as THREE.SkinnedMesh).isSkinnedMesh || !o.visible) return
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox()
+      accBox.copy(m.geometry.boundingBox!).applyMatrix4(m.matrixWorld)
+      const c = accBox.getCenter(boneP), half = Math.max(accBox.max.x - accBox.min.x, accBox.max.z - accBox.min.z) / 2 + .05
+      addBox(r, c.x, accBox.min.y - .05, accBox.max.y + .05, c.z, half)
+    })
+    const pad = .5 * s
+    for (const b of bones) { b.getWorldPosition(boneP); addBox(r, boneP.x, boneP.y - pad, boneP.y + pad, boneP.z, pad) }
   }
   const drawFull = () => {
     renderer.setScissorTest(false); renderer.autoClear = true
