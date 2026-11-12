@@ -7,6 +7,7 @@
  * - 바닥 소품(기타)·동물 용품: 행의 slot.name 고정. 동물 용품을 고르면 짝 동물(sub.pet)도 같이
  * - glb 가 null(status todo)이면 둥근 블록으로 대신 놓음 (built 가 되면 코드 변경 없이 모델로)
  * - 낙하 순서: 카테고리(세트)마다, 세트 안은 부피 큰 것부터 0.12초 간격, 세트가 끝나고 1.0초 쉬고 다음 세트
+ *   (반려동물은 동물 + 짝 용품을 같은 시각에, v3.4)
  */
 import catalogRaw from './furnitureCatalog.json'
 import slotsRaw from './slots.json'
@@ -116,10 +117,18 @@ export function planRoom(picksIn: string[]): RoomPlan {
   const items: PlannedItem[] = []
   let start = 0
   for (const c of cats) {
-    const set = (bySet.get(c) ?? []).sort((a, b) => vol(b.row) - vol(a.row))
+    const set = bySet.get(c) ?? []
     if (!set.length) continue
-    set.forEach((it, i) => items.push({ ...it, start: start + DROP_GAP * i }))
-    start += DROP_GAP * (set.length - 1) + DROP_LEN + SET_REST
+    // 동물과 짝 용품은 같은 시각 (HANDOFF_v3_4 3번): 같은 세부 관심사의 pet·용품을 한 묶음으로, 묶음끼리 부피 큰 것부터 0.12초 간격
+    const groups = new Map<string, Omit<PlannedItem, 'start'>[]>()
+    set.forEach((it, i) => {
+      const key = it.category === 'pet' && it.sub ? `pair:${it.sub}` : `one:${i}`
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(it)
+    })
+    const order = [...groups.values()].sort((a, b) => Math.max(...b.map((x) => vol(x.row))) - Math.max(...a.map((x) => vol(x.row))))
+    order.forEach((g, i) => g.forEach((it) => items.push({ ...it, start: start + DROP_GAP * i })))
+    start += DROP_GAP * (order.length - 1) + DROP_LEN + SET_REST
   }
   return { picks, categories: cats, items, duration: Math.max(0, start - SET_REST) }
 }
