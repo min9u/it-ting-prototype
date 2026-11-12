@@ -93,3 +93,18 @@
 - 확인: `tsc -b`, `build`, `build:share` 통과. 헤드리스 Edge로 목 데이터 내 땅굴(캠핑·자전거 포함) 확인 → 자전거가 뒤쪽 벽에 걸리고 선반이 벽에 붙음 (스크린샷은 남기지 않음). 자연·식물 카테고리는 화면으로 따로 확인 못 함
 - 배포: 팀 아티팩트 version 12
 - 남은 것: M3(차·커피·베이킹, 음악, 게임·놀이, 우주·과학), M4(반려동물)는 블록 그대로
+
+## v3.2 · v3.3 · v3.4 패치 반영 (2026-11-12)
+원본: `design/digul_3d_handoff_v3_2/`, `_v3_3/`, `_v3_4/` (순서대로 덮어씀). 이제 카탈로그에 `todo` 줄이 0개 → **블록 없이 전부 모델**
+
+| 패치 | 반영 | 코드 변경 |
+|---|---|---|
+| v3.2 차·커피, 음악, 게임, 우주·과학 glb 4개 + slots·카탈로그 | glb·JSON 교체 | **선반 소품 `shelf_offset_forward_m`**: 칸 위치에서 슬롯 +Z(방 쪽)로 옮김 (`roomScene.ts`, 낙하 최종 위치도 같은 값). **망원경 pop 최대 배율 1.0** (벽을 3.2cm 파고들어서, 디자이너 제안). **설정 화면에 "3D 모델 크레딧"** (CC-BY 3개: 기타·오락기·빈백, `credits_app.md` 문구 그대로, 항상 표시) |
+| v3.3 빈백 앉기 | 두더지 `mole.glb` = `mole_v1_2_draco_webp.glb`(0.68MB, 동작 23개. 예전엔 원본에서 텍스처만 WebP로 바꾼 0.95MB), `room_base_v2`·`interest_game_v1` 교체 | sit point의 `sit_clip_set`(노드 extras → 카탈로그 → 옛 `seat_type` 순)으로 동작 묶음 선택. 빈백 = `mole_sit_beanbag_v2` / `mole_sit_idle_beanbag` / `mole_stand_up_beanbag_v2` (`moleActor.ts` `SIT`) |
+| v3.4 반려동물 5 + 용품 5 (`interest_pet_v1_draco_webp.glb`) | glb·JSON 교체 (위치는 slots.json이 정답이라 오프셋 계산 안 함) | 동물과 짝 용품을 **같은 시각**에 등장 (`roomPlan.ts` 낙하 시간표에서 같은 세부 관심사끼리 묶음) |
+
+- 확인: tsc·build·build:share 통과, 콘솔 오류 없음. 헤드리스로 내 땅굴(오락기·빈백·피아노·조리대·망원경·자전거), 설정 크레딧, 반려동물 5개 고른 방을 봄
+- **문제: 반려동물이 화면 아래에 걸려 거의 안 보임.** 슬롯이 방 앞쪽(three z 1.4~1.85)인데, 우리 구도는 Figma에 돔 크기를 맞추려고 스펙 화면을 114.5%로 키우고 5.4% 올려서 아래 약 8%가 잘림(`roomScene.ts` `applyFrame`). 왼쪽 아래 리액션 버튼 줄도 겹침. 구도 조정 여부는 사용자 결정 대기
+- 빈백에 실제로 앉는 동작은 헤드리스로 못 봄 (실제 브라우저에서 빈백 클릭으로 확인할 것)
+- 공유 빌드 크기: 방 glb가 늘어 `roomScene.js` 12MB, `RoomCanvas.js` 9MB (glb data URL이 두 청크에 중복으로 들어감: Worker 시험판용 청크 때문으로 보임). 16MB 한도 안이지만 첫 땅굴 로딩이 무거움 → 다음에 정리 후보
+- 배포: 팀 아티팩트 version 13
