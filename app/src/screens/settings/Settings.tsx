@@ -51,6 +51,21 @@ export default function Settings() {
         </div>
       </Group>
 
+      {/* 3D 모델 작가 표기 (CC-BY 3.0 의무, 3D 핸드오프 v3.2 docs/credits_app.md). 가구를 안 골라도 glb에 들어 있어 항상 표시 */}
+      <Group title="3D 모델 크레딧">
+        <div className={s.credits}>
+          <ul>
+            {CREDITS.map((c) => (
+              <li key={c.url}>
+                "{c.title}" by {c.author} (<a href={c.url} target="_blank" rel="noreferrer">{c.url}</a>), CC BY 3.0 — 색을 바꿔 사용
+              </li>
+            ))}
+          </ul>
+          <p>라이선스: <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">https://creativecommons.org/licenses/by/3.0/</a></p>
+          <p>일부 3D 모델: Poly Pizza (CC0) — Kenney, Quaternius, Kay Lousberg, Isa Lousberg, CreativeTrio 외. 나머지 두더지·방·가구는 디굴디굴 3D 팀 제작</p>
+        </div>
+      </Group>
+
       <button className={s.leave} onClick={() => setLeaveOpen(true)}>회원 탈퇴</button>
 
       <ConfirmDialog open={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => setToast('프로토타입이라 실제로 탈퇴되지는 않아요')}
@@ -59,6 +74,12 @@ export default function Settings() {
     </main>
   )
 }
+
+const CREDITS = [
+  { title: 'Acoustic guitar', author: 'jeremy', url: 'https://poly.pizza/m/afr6GCpce_I' },
+  { title: 'Arcade Machine', author: 'J-Toastie', url: 'https://poly.pizza/m/GLDkMhiynM' },
+  { title: 'Bean Bag', author: 'J-Toastie', url: 'https://poly.pizza/m/nMZz79A5ru' },
+]
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (

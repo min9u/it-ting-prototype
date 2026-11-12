@@ -43,6 +43,8 @@ export interface RoomSceneOptions {
 
 /** 방 모델 glb (파일 이름 = 카탈로그의 glb_compressed). 두더지·껍데기는 따로 불러서 여기엔 없음 */
 const MODEL_URLS = import.meta.glob<string>('../assets/models/room/*.glb', { eager: true, query: '?url', import: 'default' })
+/** sit_clip_set(v3.3) 또는 옛 seat_type → 앉는 동작 묶음. 모르는 값은 방석 */
+const seatKind = (v?: string): Seat['kind'] => (v === 'beanbag' || v === 'chair' ? v : 'cushion')
 const urlOf = (r: FurnitureRow) => { const f = r.glb_compressed ?? r.glb; return f ? MODEL_URLS[`../assets/models/room/${f}`] : undefined }
 /** 가구별 동작 (카탈로그에 없는 정보). 원탁엔 찻주전자·컵이 있어서 커피 */
 const ACTS: Record<string, FurnitureData['act']> = { round_table: 'drink' }
@@ -172,7 +174,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const softLoad = (u: string) => loadGlb(u).catch((e) => { console.warn('[3D] 관심사 가구 모델을 못 불러와서 블록으로 대신해요', u, e); return null })
 
   /** 떨어지는 가구 하나 (슬롯 자리에 놓인 묶음) */
-  interface Drop { g: THREE.Group; it: PlannedItem; dir: THREE.Vector3; ry: number; dustDone: boolean }
+  interface Drop { g: THREE.Group; it: PlannedItem; pos: [number, number, number]; dir: THREE.Vector3; ry: number; dustDone: boolean }
   const drops: Drop[] = []
   let seqT = -1                      // 가구 낙하 연출 경과 (−1 = 안 함)
   const blockGeos: THREE.BufferGeometry[] = [], blockMats: THREE.Material[] = []
@@ -212,8 +214,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         // sit_point_cushion_01(하늘색)·02(노란, v3에서 원탁 앞으로 옮기고 +90°): 방석의 자식 노드. 위치 = 엉덩이 자리, 방향 = 앉아서 보는 쪽
         const sp = node.getObjectByName(c.sit_point)
         if (sp) {
-          const ex = sp.userData as { seat_type?: Seat['kind']; seat_height_m?: number }
-          data.seat = { kind: ex.seat_type ?? 'cushion', h: ex.seat_height_m ?? sp.getWorldPosition(new THREE.Vector3()).y }
+          const ex = sp.userData as { seat_type?: string; sit_clip_set?: string; seat_height_m?: number }
+          data.seat = { kind: seatKind(ex.sit_clip_set ?? (c as { sit_clip_set?: string }).sit_clip_set ?? ex.seat_type), h: ex.seat_height_m ?? sp.getWorldPosition(new THREE.Vector3()).y }
           data.sitAt = sp
         }
       }
@@ -228,8 +230,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     for (const it of plan.items) {
       const { row, slot } = it
       const g = new THREE.Group(); g.name = `slot:${slot.name}`
-      g.position.set(...slot.pos_three)
       const ry = THREE.MathUtils.degToRad(slot.ry_deg)
+      // 선반 소품: 카탈로그 shelf_offset_forward_m 만큼 칸의 앞쪽(슬롯 +Z = 방 쪽)으로 (HANDOFF_v3_2 3번)
+      const fwd = slot.kind === 'shelf' ? row.shelf_offset_forward_m ?? 0 : 0
+      const pos: [number, number, number] = [slot.pos_three[0] + Math.sin(ry) * fwd, slot.pos_three[1], slot.pos_three[2] + Math.cos(ry) * fwd]
+      g.position.set(...pos)
       g.rotation.order = 'YXZ'; g.rotation.y = ry
       const src = it.built ? planRoots.get(urlOf(row)!)?.getObjectByName(row.node) : null
       let size = row.size_m
@@ -252,8 +257,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       }
       // 앉는 자리가 있는 관심사 가구 (M3 빈백 sit_point_chair_01 등): 모델 안 노드 extras 의 seat_type 으로
       const sp = row.sit_point ? g.getObjectByName(row.sit_point) : undefined
-      const spx = sp?.userData as { seat_type?: Seat['kind']; seat_height_m?: number } | undefined
-      if (sp && spx?.seat_type) { data.seat = { kind: spx.seat_type, h: spx.seat_height_m ?? sp.position.y }; data.sitAt = sp; data.hint = undefined }
+      const spx = sp?.userData as { seat_type?: string; sit_clip_set?: string; seat_height_m?: number } | undefined
+      if (sp && (spx?.sit_clip_set || row.sit_clip_set || spx?.seat_type)) {
+        data.seat = { kind: seatKind(spx?.sit_clip_set ?? row.sit_clip_set ?? spx?.seat_type), h: spx?.seat_height_m ?? sp.position.y }
+        data.sitAt = sp; data.hint = undefined
+      }
       g.userData.furniture = data
       furniture.add(g)
       if (!hung) {
@@ -262,7 +270,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         const hx = c * size.w / 2 + sn * size.d / 2 + MOLE_R, hz = sn * size.w / 2 + c * size.d / 2 + MOLE_R
         feet.push({ x0: g.position.x - hx, x1: g.position.x + hx, z0: g.position.z - hz, z1: g.position.z + hz })
       }
-      drops.push({ g, it, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
+      drops.push({ g, it, pos, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
       if (!reduce) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
     }
 
@@ -306,7 +314,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     for (const d of drops) {
       const t = seqT - t0 - d.it.start
       const spec = d.it.slot.drop
-      const [x, y, z] = d.it.slot.pos_three
+      const [x, y, z] = d.pos
       if (t < 0) { d.g.visible = false; busy = true; continue }
       d.g.visible = true
       if (t >= DROP_DURATION) {
@@ -319,6 +327,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const k = furnitureDrop(t, spec.H ?? 2, spec.S ?? 0, spec.mode)
       d.g.position.set(x + d.dir.x * k.side, y + k.y, z + d.dir.z * k.side)
       d.g.rotation.y = d.ry + THREE.MathUtils.degToRad(k.rotDeg)
+      // 망원경은 벽에 붙어 있어 pop 1.08배 순간 뒷다리가 벽을 3.2cm 파고듦 → 이 가구만 최대 1.0 (HANDOFF_v3_2 2번)
+      if (d.it.row.id === 'telescope') { k.scaleH = Math.min(k.scaleH, 1); k.scaleV = Math.min(k.scaleV, 1) }
       d.g.scale.set(k.scaleH, k.scaleV, k.scaleH)
       if (!d.dustDone && t >= DUST_AT) { d.dustDone = true; if (spec.dust) puff(x, y, z, d.ry, spec.dust) }
     }

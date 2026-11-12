@@ -27,3 +27,7 @@
 .switchOn span { transform: translateX(20px); }
 .leave { margin-top: 36px; font-family: var(--font-display); font-size: 13px; color: var(--ink-400); }
 .leave:hover { color: var(--danger); }
+.credits { padding: 16px 20px; font-size: 12px; line-height: 1.6; color: var(--ink-700); word-break: break-all; }
+.credits ul { margin: 0 0 8px; padding-left: 18px; }
+.credits p { margin: 6px 0 0; }
+.credits a { color: #a5512f; }

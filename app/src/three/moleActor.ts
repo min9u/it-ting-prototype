@@ -38,7 +38,8 @@ export interface FurnitureData {
 
 const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: number }> = {
   cushion: { sit: 'mole_sit_cushion', idle: 'mole_sit_idle', up: 'mole_stand_up_cushion', upOff: .35 },
-  beanbag: { sit: 'mole_sit_beanbag', idle: 'mole_sit_idle_chair', up: 'mole_stand_up_beanbag', upOff: .7 },
+  // 빈백 전용 v2 동작 (3D 핸드오프 v3.3, mole_v1_2). 높이 보정이 동작 안에 들어 있음
+  beanbag: { sit: 'mole_sit_beanbag_v2', idle: 'mole_sit_idle_beanbag', up: 'mole_stand_up_beanbag_v2', upOff: .7 },
   chair: { sit: 'mole_sit_chair', idle: 'mole_sit_idle_chair', up: 'mole_stand_up_chair', upOff: .7 },
 }
 const UPPER = /^(upper_body|arm_L|arm_R|coffee_cup|mole_eye_L|mole_eye_R)\./

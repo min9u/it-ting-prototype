@@ -27,6 +27,10 @@ export interface FurnitureRow {
   size_m: Size
   slot: { kind: string; name?: string; paired_pet?: string } | null
   sit_point: string | null
+  /** 앉는 동작 묶음 (v3.3): 'cushion' | 'beanbag'. glb sit point 노드 extras 에도 같은 값 */
+  sit_clip_set?: string
+  /** 선반 소품을 칸 위치에서 칸 앞쪽(방 쪽)으로 옮길 거리 m (v3.2, 돔에 안 닿게). 없으면 0 */
+  shelf_offset_forward_m?: number
   status: 'built' | 'todo' | 'unused'
   parent?: string
 }
