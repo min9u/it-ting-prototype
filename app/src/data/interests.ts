@@ -83,6 +83,18 @@ export function getMyInterests(fallback: string[]): string[] {
   } catch { /* 저장소를 못 쓰면 목 데이터 */ }
   return fallback
 }
+/** 꾸미기 가구 탭에서 고른 가구 (카테고리 id → 가구 id). 관심사와 같은 방식으로 메모리 + sessionStorage */
+const FURN_KEY = 'digul.myFurniture'
+let myFurn: Record<string, string> | null = null
+export function getMyFurniture(): Record<string, string> {
+  if (myFurn) return myFurn
+  try { const v = JSON.parse(sessionStorage.getItem(FURN_KEY) ?? 'null'); if (v && typeof v === 'object') return (myFurn = v) } catch { /* 저장소를 못 쓰면 비움 */ }
+  return {}
+}
+export function setMyFurniture(v: Record<string, string>) {
+  myFurn = { ...v }
+  try { sessionStorage.setItem(FURN_KEY, JSON.stringify(v)) } catch { /* 무시 */ }
+}
 export function setMyInterests(list: string[]) {
   myPicks = [...list]
   try { sessionStorage.setItem(PICKS_KEY, JSON.stringify(list)) } catch { /* 무시 */ }

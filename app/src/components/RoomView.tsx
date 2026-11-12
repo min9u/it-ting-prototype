@@ -21,6 +21,8 @@ interface Props {
   focusX?: number
   /** 관심사 (가구 배치에 씀) */
   interests?: string[]
+  /** 꾸미기 가구 탭에서 고른 가구 (카테고리 → 가구 id) */
+  furniture?: Record<string, string>
   /** 남의 땅굴이면 집주인 닉네임. 집주인 두더지가 방에 서 있고, 인사하면 마주 보고 인사함 */
   hostName?: string
   /** 집주인 두더지 액세서리 */
@@ -37,7 +39,7 @@ interface Props {
  * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 디자이너 확인 렌더(핸드오프 v2 room_glb_check.png, 같은 카메라) 자리표시를 같은 자리에 보여 준다.
  * 구도는 roomScene 과 같음: 4:3 그림 높이 = 장면 높이의 114.5%, 위로 5.4%, 가로 가운데 = focusX.
  */
-export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, hostWorn, worn, children, label }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, furniture, hostName, hostWorn, worn, children, label }: Props) {
   const [ready, setReady] = useState(false)
   const handle = useRef<SceneHandle | null>(null)
   const wornKey = (worn ?? []).join(',')
@@ -53,6 +55,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, hostName, h
         <RoomCanvas
           ownerId={ownerId}
           interests={interests}
+          furniture={furniture}
           hostName={hostName}
           hostWorn={hostWorn}
           worn={worn}

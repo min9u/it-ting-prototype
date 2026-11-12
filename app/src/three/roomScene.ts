@@ -37,6 +37,8 @@ export interface RoomSceneOptions {
   hostWorn?: string[]
   /** 내 두더지 액세서리 */
   worn?: string[]
+  /** 꾸미기 가구 탭에서 카테고리마다 고른 가구 (data/roomPlan.ts planRoom 의 choice) */
+  furniture?: Record<string, string>
   /** D 시험판: Worker 안에서 그릴 때 넘겨받은 캔버스 (three/worker/roomWorker.ts) */
   canvas?: OffscreenCanvas
 }
@@ -167,7 +169,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
-  const plan = planRoom(opts.interests ?? [])
+  const plan = planRoom(opts.interests ?? [], opts.furniture)
   const fixedRows = FURNITURE_CATALOG.filter((r) => (r.type === 'base' || r.type === 'deco') && urlOf(r))
   const fixedUrls = [...new Set(fixedRows.map((r) => urlOf(r)!))]
   const planUrls = [...new Set(plan.items.filter((it) => it.built).map((it) => urlOf(it.row)).filter((u): u is string => !!u))]

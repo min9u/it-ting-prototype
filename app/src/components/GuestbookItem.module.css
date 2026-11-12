@@ -17,3 +17,8 @@
 .full .text { font-size: 14px; }
 .actions { flex: none; display: flex; gap: 5px; font-size: 12px; color: var(--ink-400); }
 .actions button:hover { color: var(--accent); }
+/* 방명록 작성자 프로필 카드 (2026-11-12) */
+.profile { padding: 30px 26px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.profile h2 { font-size: 20px; font-weight: 400; margin-top: 4px; }
+.profile > p { font-size: 12px; color: var(--ink-500); }
+.profile :global(.btn) { margin-top: 10px; }

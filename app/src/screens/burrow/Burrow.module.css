@@ -256,3 +256,29 @@
 .signBtn { margin-top: 14px; width: 100%; height: 47px; }
 .signClose { position: absolute; top: 10px; right: 14px; color: var(--ink-400); }
 .sharedText { color: var(--green-ink) !important; }
+
+/* ===== 2026-11-12 Figma: 꾸미기 안내 말풍선 711:8541 · 연필 버튼 · 가구 탭 711:7994 ===== */
+.decorHint {
+  position: absolute; top: calc(100% + 12px); left: 0; width: max-content; padding: 12px 34px 12px 14px; border-radius: 8px;
+  background: var(--brown-700); color: #fbf1e6; font-family: var(--font-display); font-size: 12px; line-height: 1.6;
+  box-shadow: 0 8px 20px rgba(40, 22, 12, .25);
+}
+.decorHint::before { content: ''; position: absolute; top: -6px; left: 30px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--brown-700); }
+.decorHint button { position: absolute; top: 10px; right: 10px; color: #e3d2c2; }
+.penBtn { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #f1e2d3; color: var(--ink-700); flex: none; }
+.penBtn:hover { background: #ead2bf; }
+.furnTab { display: flex; flex-direction: column; gap: 14px; }
+.furnInfo { padding: 12px 14px; border-radius: 8px; background: #f1e2d3; font-size: 11px; line-height: 1.6; color: var(--ink-700); }
+.furnCats { display: flex; flex-wrap: wrap; gap: 6px; }
+.furnCat, .furnCatOn { height: 30px; padding: 0 11px; border-radius: 15px; border: 1px solid var(--line-strong); background: #fff; font-family: var(--font-display); font-size: 11px; color: var(--ink-700); }
+.furnCatOn { background: var(--brown-700); border-color: var(--brown-700); color: #fff; }
+.furnCatOff { opacity: .55; }
+.furnHead { display: flex; justify-content: space-between; align-items: baseline; }
+.furnHead strong { font-family: var(--font-display); font-weight: 400; font-size: 13px; }
+.furnHead span { font-size: 11px; color: var(--ink-500); }
+.furnGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.furnCard, .furnCardOn { position: relative; width: 100%; aspect-ratio: 92 / 116; padding: 10px 6px; border-radius: 8px; background: #f1e2d3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 10px; font-family: var(--font-display); font-size: 11px; color: var(--ink-800); border: 2px solid transparent; }
+.furnCard:disabled { opacity: .5; cursor: default; }
+.furnCardOn { background: #fff; border-color: var(--brown-700); }
+.furnCardOn::after { content: '✓'; position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--brown-700); color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center; }
+.furnThumb { width: 56%; aspect-ratio: 1; border-radius: 10px; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .08); }

@@ -80,8 +80,11 @@ export interface RoomPlan {
 
 export const DROP_LEN = 0.6, DROP_GAP = 0.12, SET_REST = 1.0
 
-/** picks: 세부 관심사 id 또는 화면 이름 (고른 순서) */
-export function planRoom(picksIn: string[]): RoomPlan {
+/**
+ * picks: 세부 관심사 id 또는 화면 이름 (고른 순서)
+ * choice: 꾸미기 가구 탭(2026-11-12 Figma 711:7994)에서 카테고리마다 고른 가구 id. 있으면 그 카테고리 가구는 그것 하나만 놓음
+ */
+export function planRoom(picksIn: string[], choice?: Record<string, string>): RoomPlan {
   const picks = toSubIds(picksIn)
   const cats = [...new Set(picks.map((id) => subOf(id)!.category))]
   const shelf = SLOTS.filter((s) => s.kind === 'shelf')
@@ -95,7 +98,7 @@ export function planRoom(picksIn: string[]): RoomPlan {
   // 카테고리 가구 (슬롯 고정)
   for (const c of cats) {
     const cd = INTEREST_CATS.find((x) => x.id === c)!
-    cd.furniture.forEach((fid, i) => push(c, rowOf(fid), slotOf(cd.furniture_slots[i]), null))
+    cd.furniture.forEach((fid, i) => { if (!choice?.[c] || choice[c] === fid) push(c, rowOf(fid), slotOf(cd.furniture_slots[i]), null) })
   }
   // 소품
   for (const id of picks) {
