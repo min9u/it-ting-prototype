@@ -70,7 +70,13 @@ export const ACCESSORY_CATEGORY: Record<string, InterestCategory> = Object.fromE
  * 온보딩 "관심사 확정"·내 정보 수정 저장 때 기록 → 내 땅굴이 그 관심사로 방을 만듦. 없으면 목 데이터(USERS.me)
  */
 const PICKS_KEY = 'digul.myInterests'
+/**
+ * 메모리에도 들고 있음: 아티팩트(공유 링크)처럼 sessionStorage 가 막힌 곳에서는 저장이 조용히 실패해서
+ * 온보딩에서 고른 관심사 대신 목 데이터 방이 나왔음 (2026-11-12 사용자 제보). 한 페이지 안 이동은 이 값으로 이어짐
+ */
+let myPicks: string[] | null = null
 export function getMyInterests(fallback: string[]): string[] {
+  if (myPicks) return myPicks
   try {
     const v = JSON.parse(sessionStorage.getItem(PICKS_KEY) ?? 'null')
     if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string')
@@ -78,5 +84,6 @@ export function getMyInterests(fallback: string[]): string[] {
   return fallback
 }
 export function setMyInterests(list: string[]) {
+  myPicks = [...list]
   try { sessionStorage.setItem(PICKS_KEY, JSON.stringify(list)) } catch { /* 무시 */ }
 }

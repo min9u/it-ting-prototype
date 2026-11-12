@@ -437,6 +437,8 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
 // 방이 화면 전체를 채우고, 오른쪽에 땅굴 정보 카드 + 확정 카드가 떠 있음 (내 땅굴 메인과 같은 구도)
 function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
   const room = useMemo(() => planRoom(picks), [picks])
+  // 미리보기에 들어오면 바로 내 관심사·꾸미기로 기록: "관심사 확정" 대신 위 메뉴(땅굴)로 나가도 같은 방이 나오게
+  useEffect(() => { setMyInterests(picks); setMyWorn(worn) }, [picks, worn])
   const total = room.items.length, todo = room.items.filter((it) => !it.built).length
   return (
     <div className={s.previewStage}>
