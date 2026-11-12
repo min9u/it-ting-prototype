@@ -42,6 +42,8 @@ export interface RoomSceneOptions {
   wallpaper?: string
   /** D 시험판: Worker 안에서 그릴 때 넘겨받은 캔버스 (three/worker/roomWorker.ts) */
   canvas?: OffscreenCanvas
+  /** 연출 없이 다 차려진 방으로 시작 (시작 화면): 천장 구멍·두더지 낙하·가구 낙하 없음 */
+  still?: boolean
 }
 
 /** 방 모델 glb (파일 이름 = 카탈로그의 glb_compressed). 두더지·껍데기는 따로 불러서 여기엔 없음 */
@@ -213,7 +215,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * N 저사양이면 가구는 처음부터 제자리 (2026-11-12 사용자 요청): 떨어지는 동안은 저해상도 층에 있다가
    * 다 놓인 뒤에야 S(방은 선명하게)로 선명해져서 "흐렸다가 갑자기 좋아짐". 가구를 미리 놓아 두고 두더지만 떨어짐
    */
-  const furnDrop = !reduce && !(q.level === 'low' && (q.lab?.N ?? true))
+  const furnDrop = !reduce && !opts.still && !(q.level === 'low' && (q.lab?.N ?? true))
+  let markLoaded = () => {}
+  const loaded = new Promise<void>((r) => { markLoaded = r })
 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
   const plan = planRoom(opts.interests ?? [])
@@ -337,7 +341,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const a = holeMixer.clipAction(c); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; return a
     }
     holeOpen = once(clip('ceiling_hole_open')); holeClose = once(clip('ceiling_hole_close'))
-    const drop = !reduce
+    const drop = !reduce && !opts.still
     holeS.visible = drop
     if (drop && holeOpen) { holeOpen.play(); holeT = 0 }
     // 가구 낙하: 두더지가 떨어지는 연출을 할 때만 (모션 줄이기·저사양 N 이면 처음부터 제자리)
@@ -355,7 +359,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     // 가구가 처음부터 제자리면 방은 이미 다 됨 → 첫 프레임에 바로 선명하게 (두더지가 떨어지는 도중에 멈칫하지 않게)
     if (seqT < 0) settle = 1
     loop.ready()
-  }).catch((err) => console.warn('[3D] 땅굴 모델을 못 불러왔어요', err))
+    markLoaded()
+  }).catch((err) => { console.warn('[3D] 땅굴 모델을 못 불러왔어요', err); markLoaded() })
 
   /*
    * 가구 낙하 (furniture_drop_spec.md): FURN_T0 부터 계획의 start 순서대로. 시작 전에는 숨김.
@@ -681,6 +686,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   }, q)
 
   return {
+    loaded,
     resize: () => loop.resize(),
     setFocusX(x) {
       focusTarget = x

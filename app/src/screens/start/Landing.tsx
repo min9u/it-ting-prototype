@@ -41,7 +41,7 @@ const px = (x: number, y: number) => ({ left: `${x / 14.4}%`, top: `${y / 9}%` }
  * 시작 v2 – 스크롤 모션 타임라인 408:19694 (2026-11-12 Figma 갱신)
  * "한 화면에 고정(sticky)된 3D 씬을 스크롤 진행도로 움직여요. 텍스트만 위에서 바뀌어요."
  * 2026-11-12: 01 땅 위 · 02 구멍 속으로가 빠지고 2구간이 됨 → 0% 방 / 60–100% 이웃
- *  01 방(0%): 땅굴 방(RoomView) + 가구 이름표 0.08초 간격 · 02 이웃(60%~): 방 → 다시 땅 위로 풀아웃, 이웃 땅굴 태그 + CTA
+ *  01 방(0%): 땅굴 방(RoomView still·loader: 다 차려질 때까지 로딩 애니메이션, 그 뒤 한 번에 페이드 인) + 가구 이름표 0.08초 간격(방이 뜬 뒤) · 02 이웃(60%~): 방 → 다시 땅 위로 풀아웃, 이웃 땅굴 태그 + CTA
  * 이웃 구간 밭은 확대하지 않음 (2026-11-12 사용자 제보: 1.46배 확대 때문에 glb 두더지가 화면을 가림 → 풀아웃 그대로)
  * 모션 줄이기: 스크롤 연동 없이 두 장면이 크로스페이드 (구간 전환만)
  * Figma 메모 707:11198: "먼저 둘러보기"가 왼쪽 (다른 사람 방을 먼저 구경하는 게 우선), 로고 키우기 → 반영
@@ -52,6 +52,8 @@ export default function Landing() {
   const demo = useRef(window.location.href.match(/[#?&]s=?([1-2])/)?.[1] ?? null)
   const [p, setP] = useState(() => (demo.current === '2' ? 0.8 : 0))
   const [fieldOn, setFieldOn] = useState(false)
+  // 방 3D 가 다 차려졌는지: 그 전에는 로딩 애니메이션, 가구 이름표도 그 뒤에 (가구보다 이름표가 먼저 뜨던 문제)
+  const [roomOn, setRoomOn] = useState(false)
 
   useEffect(() => {
     const release = () => { demo.current = null }
@@ -78,13 +80,13 @@ export default function Landing() {
       <div className={s.stage} data-sec={sec}>
         {/* 01 방 */}
         <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 0 ? 1 : 0, pointerEvents: sec === 0 ? 'auto' : 'none' }}>
-          <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" />
+          <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still loader onLoaded={() => setRoomOn(true)} />
           <div className={s.shadeLeft} />
           <div className={s.pinBox}>
           {LABELS.map((l, i) => {
             const bx = l.bx < 0 ? l.bx + l.w : l.bx, by = l.by + 44
             return (
-              <div key={l.item} className={s.pin} style={{ ...inRoom(l.x, l.y), transitionDelay: sec === 0 ? `${0.3 + i * 0.08}s` : '0s', opacity: sec === 0 ? 1 : 0 }}>
+              <div key={l.item} className={s.pin} style={{ ...inRoom(l.x, l.y), transitionDelay: sec === 0 && roomOn ? `${0.3 + i * 0.08}s` : '0s', opacity: sec === 0 && roomOn ? 1 : 0 }}>
                 <svg className={s.pinLine} aria-hidden><line x1={0} y1={0} x2={bx} y2={by} /></svg>
                 <span className={s.pinDot} />
                 <span className={s.pinLabel} style={{ left: l.bx, top: l.by }}><small>{l.cat}</small>{l.item}</span>

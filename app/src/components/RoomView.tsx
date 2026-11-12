@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SceneHandle } from '../three/engine'
 import roomCutout from '../assets/room-v2.webp'
+import mound from '../assets/mole-mound.png'
 import styles from './RoomView.module.css'
 
 // three.js 는 무거워서 땅굴 화면에 들어올 때만 따로 불러온다 (별도 청크)
@@ -32,6 +33,15 @@ interface Props {
   /** 방 위에 올리는 UI (버튼, 말풍선 등) */
   children?: ReactNode
   label?: string
+  /** 연출 없이 다 차려진 방으로 시작 (천장 구멍·두더지·가구 낙하 없음) */
+  still?: boolean
+  /**
+   * 3D 가 다 차려질 때까지 자리표시 그림 대신 로딩 애니메이션을 보여 주고, 다 되면 3D 를 한 번에 페이드 인
+   * (시작 화면, 2026-11-12 사용자 제보: 그림 → 사라짐 → 가구가 하나씩 뜸 → 번잡함)
+   */
+  loader?: boolean
+  /** 3D 가 다 차려짐 (loader 와 같이 씀) */
+  onLoaded?: () => void
 }
 
 /**
@@ -39,14 +49,34 @@ interface Props {
  * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 디자이너 확인 렌더(핸드오프 v2 room_glb_check.png, 같은 카메라) 자리표시를 같은 자리에 보여 준다.
  * 구도는 roomScene 과 같음: 4:3 그림 높이 = 장면 높이의 114.5%, 위로 5.4%, 가로 가운데 = focusX.
  */
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader, onLoaded }: Props) {
   const [ready, setReady] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
+  const [gaveUp, setGaveUp] = useState(false)
   const handle = useRef<SceneHandle | null>(null)
   const wornKey = (worn ?? []).join(',')
   useEffect(() => { handle.current?.setWorn?.(worn ?? []) }, [wornKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!loader || ready) return
+    const id = setTimeout(() => setGaveUp(true), 8000)
+    return () => clearTimeout(id)
+  }, [loader, ready])
+  const latestLoaded = useRef(onLoaded)
+  latestLoaded.current = onLoaded
+  const shown = loader ? loaded : ready
   return (
     <div className={styles.scene} data-owner={ownerId}>
-      {!ready && (
+      {loader && !loaded && !gaveUp && (
+        <div className={styles.loader} style={{ left: `${focusX * 100}%` }} role="status">
+          <span className={styles.loaderArt} aria-hidden>
+            <img src={mound} alt="" draggable={false} />
+            <i /><i /><i />
+          </span>
+          <span className={styles.loaderText}>땅굴을 꾸미는 중<span aria-hidden className={styles.loaderDots}><b>.</b><b>.</b><b>.</b></span></span>
+        </div>
+      )}
+      {(loader ? gaveUp && !ready : !ready) && (
         <div className={styles.stage} style={{ left: `${focusX * 100}%` }}>
           <img src={roomCutout} alt={label ?? '땅굴 방 모습'} className={styles.room} draggable={false} />
         </div>
@@ -56,16 +86,20 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           ownerId={ownerId}
           interests={interests}
           wallpaper={wallpaper}
+          still={still}
           hostName={hostName}
           hostWorn={hostWorn}
           worn={worn}
           focusX={focusX}
-          className={styles.canvas}
+          className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
           label={label ?? '땅굴 방 모습'}
-          onReady={(h) => { handle.current = h; setReady(true) }}
+          onReady={(h) => {
+            handle.current = h; setReady(true)
+            ;(h.loaded ?? Promise.resolve()).then(() => { if (handle.current !== h) return; setLoaded(true); latestLoaded.current?.() })
+          }}
         />
       </Suspense>
-      {ready && (
+      {shown && (
         <div className={styles.reactions} role="toolbar" aria-label="두더지 리액션">
           {REACTIONS.map((r) => (
             <button key={r.kind} className={styles.reaction} onClick={() => handle.current?.react?.(r.kind)} title={r.label}>

@@ -75,6 +75,8 @@ export interface SceneHandle {
   setWorn?(ids: string[]): void
   /** H 가볍게 보기: 3D 그리기 멈춤/다시 */
   setFrozen?(on: boolean): void
+  /** 모델을 다 받고 첫 그림을 그린 뒤 풀림 (땅굴 장면만. 못 불러와도 풀림) */
+  loaded?: Promise<void>
 }
 
 /**
