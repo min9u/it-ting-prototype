@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import FieldView from '../../components/FieldView'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import Avatar from '../../components/Avatar'
+import TodayNeighbors, { markShown, shouldShowToday } from './TodayNeighbors'
 import InterestChip from '../../components/InterestChip'
 import { ChevronLeft, ChevronRight, CloseIcon } from '../../components/Icons'
 import { ME_ID, USERS } from '../../data/mock'
@@ -17,6 +18,7 @@ const NEIGHBORS = ['yerin', 'ha', 'seoyeon', 'mingu', 'yejin']
  * 2026-11-11: 땅굴 입구 나무 안내판 679:17013 추가 (스크린샷 대조). 원래는 두더지가 입구에 다가가면 뜨지만
  * 3D 장면에서 거리 판정을 아직 안 받아서, 지금은 왼쪽 둔덕 위 고정 위치에 띄우고 ×로 닫을 수 있다.
  * 오른쪽 패널의 관심 분야·겹치는 관심사는 칩 대신 글자로 (스크린샷 기준).
+ * 2026-11-12: 친구 추천 C · 첫 진입 추천 모달(오늘의 이웃 3명, 카드 뒤집어 답변 보기) → TodayNeighbors. ?recommend=1 로 다시 보기
  */
 export default function ExploreBurrow() {
   const [idx, setIdx] = useState(0)
@@ -26,6 +28,8 @@ export default function ExploreBurrow() {
   const me = USERS[ME_ID]
   const shared = owner.interests.filter((i) => me.interests.includes(i))
   const [signOpen, setSignOpen] = useState(params.get('sign') !== 'closed')
+  const [todayOpen, setTodayOpen] = useState(() => params.get('recommend') === '1' || (params.get('recommend') !== '0' && shouldShowToday()))
+  useEffect(() => { if (todayOpen) markShown() }, [todayOpen])
   const go = useCallback((d: number) => { setIdx((i) => (i + d + NEIGHBORS.length) % NEIGHBORS.length); setSignOpen(true) }, [])
 
   useEffect(() => {
@@ -94,6 +98,7 @@ export default function ExploreBurrow() {
       ) : (
         <button className={s.reopen} onClick={() => setPanelOpen(true)}><span className="display">방 정보</span><Avatar size={22} /></button>
       )}
+      <TodayNeighbors open={todayOpen} onClose={() => setTodayOpen(false)} />
     </main>
   )
 }
