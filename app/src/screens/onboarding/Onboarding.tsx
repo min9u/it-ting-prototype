@@ -7,6 +7,7 @@ import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import { MAX_PICK, interestCatOf, setMyInterests, subOf } from '../../data/interests'
 import { planRoom } from '../../data/roomPlan'
+import { setMyWallpaper, tileUrl, wallpaperForCategory, wallpaperForPicks, wallpaperOf } from '../../data/wallpapers'
 import type { Category } from '../../data/types'
 import s from './Onboarding.module.css'
 
@@ -305,18 +306,25 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: numbe
 const keysOf = (...names: string[]) => [...new Set(names.flatMap((n) => n.split(/[·\s]+/)).filter((k) => k.length >= 2))]
 
 // 분류별 땅굴 무드 (가장 무거운 분류로 정함. 무게는 legacy 의 tasteWeights 와 같은 Σ(1 + 1000/인원))
-const MOODS: Record<string, { name: string; desc: string; wall: string; floor: string }> = {
-  music: { name: '레코드 가게 무드', desc: '라일락 벽 · 체크 러그', wall: '#e6ddeb', floor: '#9a7aa6' },
-  photo: { name: '작은 암실 무드', desc: '민트 벽 · 원목 마루', wall: '#d5e8df', floor: '#b98a5e' },
-  nature: { name: '작은 온실 무드', desc: '세이지 벽 · 테라코타 타일', wall: '#cfddc6', floor: '#c98a62' },
-  game: { name: '동네 오락실 무드', desc: '하늘색 벽 · 격자 타일', wall: '#d9e6ec', floor: '#6b7fa0' },
-  craft: { name: '작업실 무드', desc: '점토색 벽 · 물감 묻은 마루', wall: '#f1dccb', floor: '#b8744c' },
-  book: { name: '다락 서재 무드', desc: '버터색 벽 · 짙은 원목', wall: '#f3e6be', floor: '#8a5a3a' },
-  science: { name: '별 관측소 무드', desc: '밤하늘 벽 · 별무늬 러그', wall: '#3b4466', floor: '#c9b98a' },
-  tea_coffee: { name: '골목 카페 무드', desc: '크림 벽 · 체크 타일', wall: '#f3e6be', floor: '#c98a62' },
-  outdoor: { name: '캠핑장 무드', desc: '모래색 벽 · 나무 데크', wall: '#eadfc6', floor: '#8fae5c' },
-  movie: { name: '작은 극장 무드', desc: '장밋빛 벽 · 벨벳 러그', wall: '#f2d9d9', floor: '#8a3a3f' },
-  pet: { name: '포근한 둥지 무드', desc: '점토색 벽 · 폭신한 러그', wall: '#f1dccb', floor: '#d9a046' },
+// 벽은 v3.5.1 벽지 (data/wallpapers.ts mood_map: 같은 카테고리 → 벽지, 정해지지 않은 카테고리는 01 기본 단색)
+const MOODS: Record<string, { name: string }> = {
+  music: { name: '레코드 가게 무드' },
+  photo: { name: '작은 암실 무드' },
+  nature: { name: '작은 온실 무드' },
+  game: { name: '동네 오락실 무드' },
+  craft: { name: '작업실 무드' },
+  book: { name: '다락 서재 무드' },
+  science: { name: '별 관측소 무드' },
+  tea_coffee: { name: '골목 카페 무드' },
+  outdoor: { name: '캠핑장 무드' },
+  movie: { name: '작은 극장 무드' },
+  pet: { name: '포근한 둥지 무드' },
+}
+
+/** 벽지 견본 (타일 그림, 01 기본은 단색) */
+const wallSwatch = (id: string, solid?: string) => {
+  const u = tileUrl(id, 512)
+  return u ? { background: `url(${u}) center / 48px repeat` } : { background: solid }
 }
 
 type QnA = { q: string; a: string }
@@ -349,7 +357,7 @@ function buildPlan(picks: string[], qna: QnA[]) {
   }
   // 답변을 근거로 한 줄을 위로 (시안처럼 "내 답변"이 먼저 보이게)
   rows.sort((a, b) => Number(!!b.quote) - Number(!!a.quote))
-  return { mood: MOODS[topId] ?? MOODS.nature, top, rarest, topCount: inTop.length, rows, count: room.items.length }
+  return { mood: MOODS[topId] ?? MOODS.nature, wall: wallpaperOf(wallpaperForCategory(topId)), top, rarest, topCount: inTop.length, rows, count: room.items.length }
 }
 
 const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '땅굴에 배치하고 벽 꾸미는 중']
@@ -405,8 +413,8 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
           </div>
           <Arrow />
           <div className={s.moodResult}>
-            <span className={s.moodSwatch} style={{ background: `linear-gradient(${plan.mood.wall} 55%, ${plan.mood.floor} 55%)` }} aria-hidden />
-            <div><strong>{plan.mood.name}</strong><small>{plan.mood.desc}</small></div>
+            <span className={s.moodSwatch} style={wallSwatch(plan.wall.id, plan.wall.solid_color)} aria-hidden />
+            <div><strong>{plan.mood.name}</strong><small>벽지 · {plan.wall.name_ko}</small></div>
           </div>
         </div>
       ) : <div className={s.skelRow} aria-hidden />}
@@ -437,12 +445,13 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
 // 방이 화면 전체를 채우고, 오른쪽에 땅굴 정보 카드 + 확정 카드가 떠 있음 (내 땅굴 메인과 같은 구도)
 function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
   const room = useMemo(() => planRoom(picks), [picks])
-  // 미리보기에 들어오면 바로 내 관심사·꾸미기로 기록: "관심사 확정" 대신 위 메뉴(땅굴)로 나가도 같은 방이 나오게
-  useEffect(() => { setMyInterests(picks); setMyWorn(worn) }, [picks, worn])
+  const wallpaper = useMemo(() => wallpaperForPicks(picks), [picks])
+  // 미리보기에 들어오면 바로 내 관심사·꾸미기·벽지로 기록: "관심사 확정" 대신 위 메뉴(땅굴)로 나가도 같은 방이 나오게
+  useEffect(() => { setMyInterests(picks); setMyWorn(worn); setMyWallpaper(wallpaper) }, [picks, worn, wallpaper])
   const total = room.items.length, todo = room.items.filter((it) => !it.built).length
   return (
     <div className={s.previewStage}>
-      <RoomView ownerId="me" interests={picks} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
+      <RoomView ownerId="me" interests={picks} wallpaper={wallpaper} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
         <span className={s.roomBadge}>관심사 가구 {total}개{todo > 0 && ` · ${todo}개는 3D 모델 준비 중(블록)`}</span>
       </RoomView>
       <aside className={s.previewSide}>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
+import { getMyWallpaper, wallpaperForPicks } from '../../data/wallpapers'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import SceneButton, { VisitorBadge } from '../../components/SceneButton'
 import { ChipList } from '../../components/InterestChip'
@@ -55,7 +56,7 @@ export default function MyBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={me.id} interests={profile.interests} furniture={mode === 'decor' ? furnDraft : furn} worn={mode === 'decor' ? draft : worn} focusX={focusX} label="내 땅굴">
+      <RoomView ownerId={me.id} interests={profile.interests} wallpaper={getMyWallpaper(wallpaperForPicks(profile.interests))} worn={mode === 'decor' ? draft : worn} focusX={focusX} label="내 땅굴">
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 <span>바뀐 모습이 바로 보여요</span></span>
         ) : (
@@ -268,7 +269,7 @@ function DecorPanel({ draft, setDraft, furn, setFurn, picks, onCancel, onSave }:
 
 /**
  * 꾸미기 모드 · 가구 탭 (2026-11-12 Figma 711:7994)
- * 관심사 카테고리 칩 → 그 카테고리 가구 카드 중 하나 고르기 ("3개 중 1개"). 고르면 방에 그 가구만 놓임(바로 보임)
+ * 관심사 카테고리 칩 → 그 카테고리 가구 카드 중 하나 고르기 ("3개 중 1개"). 고른 표시만 하고 방 배치는 그대로 (2026-11-12 사용자 확인)
  * 카드 그림은 Figma "Furniture PNG"(815:10748)를 아직 못 받아서 카테고리 색 상자 + 이름으로 대신함
  * 내 관심사가 아닌 카테고리는 볼 수만 있고 고를 수 없음 (가구는 관심사를 고르면 생김)
  */

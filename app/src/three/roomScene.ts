@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
-import shellUrl from '../assets/models/room_shell.glb?url'
+import shellUrl from '../assets/models/room_shell_v3_draco_webp.glb?url'
 import holeUrl from '../assets/models/room_ceiling_hole.glb?url'
 import dustUrl from '../assets/models/dust_puff_v1.glb?url'
 import { BLOCK_COLORS, FURNITURE_CATALOG, planRoom, type FurnitureRow, type PlannedItem } from '../data/roomPlan'
@@ -14,6 +14,7 @@ import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
 import { createBackdrop, toDynamicLayer } from './staticBackdrop'
+import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
 
 /*
  * 땅굴 방 장면 — 3D 핸드오프 v2 (design/digul_3d_handoff_v2, docs/room_spec.md) + v3 (design/digul_3d_handoff_v3)
@@ -37,8 +38,8 @@ export interface RoomSceneOptions {
   hostWorn?: string[]
   /** 내 두더지 액세서리 */
   worn?: string[]
-  /** 꾸미기 가구 탭에서 카테고리마다 고른 가구 (data/roomPlan.ts planRoom 의 choice) */
-  furniture?: Record<string, string>
+  /** 벽지 id (data/wallpapers.ts, 프로필 wallpaper_id). 없으면 관심사로 정함 */
+  wallpaper?: string
   /** D 시험판: Worker 안에서 그릴 때 넘겨받은 캔버스 (three/worker/roomWorker.ts) */
   canvas?: OffscreenCanvas
 }
@@ -169,7 +170,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
-  const plan = planRoom(opts.interests ?? [], opts.furniture)
+  const plan = planRoom(opts.interests ?? [])
+  const wall = wallpaperOf(opts.wallpaper ?? wallpaperForPicks(opts.interests ?? []))
+  const tileSrc = tileUrl(wall.id, q.level === 'low' ? 512 : 1024)
+  let wallMat: THREE.MeshBasicMaterial | null = null
   const fixedRows = FURNITURE_CATALOG.filter((r) => (r.type === 'base' || r.type === 'deco') && urlOf(r))
   const fixedUrls = [...new Set(fixedRows.map((r) => urlOf(r)!))]
   const planUrls = [...new Set(plan.items.filter((it) => it.built).map((it) => urlOf(it.row)).filter((u): u is string => !!u))]
@@ -188,12 +192,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     Promise.all(fixedUrls.map((u) => loadGlb(u))),
     Promise.all(planUrls.map(softLoad)),
     loadGlb(dustUrl).catch(() => null),
-  ]).then(([shell, hole, moleG, acc, fixedG, planG, dust]) => {
-    if (disposed) return
+    tileSrc ? loadTile(tileSrc) : Promise.resolve(null),
+  ]).then(([shell, hole, moleG, acc, fixedG, planG, dust, tile]) => {
+    if (disposed) { tile?.dispose(); return }
     dustG = dust
     // glb 는 캐시를 같이 씀 → 장면마다 복제 (재질·텍스처는 공유)
     const shellS = shell.scene.clone(), holeS = hole.scene.clone()
     scene.add(shellS, holeS)
+    wallMat = applyWallpaper(shellS, tile, wall.solid_color)
     toDynamicLayer(holeS)
     const roots = new Map<string, THREE.Object3D>()
     fixedUrls.forEach((u, i) => {
@@ -658,6 +664,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       for (const d of dusts) d.mixer.stopAllAction()
       // 이 장면에서 만든 블록·먼지 재질만 해제 (glb 것은 캐시가 다시 씀)
       blockGeos.forEach((g) => g.dispose()); blockMats.forEach((m) => m.dispose())
+      wallMat?.map?.dispose(); wallMat?.dispose()
       for (const d of dusts) d.mats.forEach((m) => m.dispose())
       bubbles.forEach((b) => b.el.remove()); hint.remove()
       el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('wheel', onWheel)
@@ -668,4 +675,48 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       destroyRenderer(renderer)
     },
   }
+}
+
+/*
+ * 벽지 (3D 핸드오프 v3.5.1 HANDOFF_v3_5_1.md, shell v3)
+ * 돔 room_dome 의 안쪽 면 재질 wall_inner 만 바꿈 (wall_outer·바닥·갈비대는 그대로).
+ * 결과 = 타일 × 음영. 음영은 wall_inner 의 emissive 텍스처(T_room_wall_shade, UV0, 값 = 음영÷4)를 lightMap 으로.
+ * three r165 MeshBasicMaterial 은 lightMap 에 1/π 를 곱해서 문서의 세기 4 에 π 를 곱함 (Blender 렌더와 밝기 맞춤)
+ * 타일은 두 번째 UV(wall_uv, channel 1), 둘레 N번 반복. 01 기본은 타일 없이 단색 (#F0B47A = v2 렌더와 같음)
+ * glb 재질은 장면끼리 공유하므로 이 장면 복제본의 메시에만 새 재질을 끼움
+ */
+const SHADE_INTENSITY = 4 * Math.PI
+function applyWallpaper(root: THREE.Object3D, tile: THREE.Texture | null, solid?: string): THREE.MeshBasicMaterial | null {
+  let made: THREE.MeshBasicMaterial | null = null
+  root.traverse((o) => {
+    const m = o as THREE.Mesh
+    const src = m.isMesh ? (m.material as THREE.MeshStandardMaterial) : null
+    if (!src || src.name !== 'wall_inner') return
+    if (!made) {
+      const shade = src.emissiveMap
+      if (shade) shade.channel = 0
+      made = new THREE.MeshBasicMaterial({ name: 'wall_inner_wallpaper', side: src.side, lightMap: shade, lightMapIntensity: SHADE_INTENSITY })
+      if (tile) {
+        tile.colorSpace = THREE.SRGBColorSpace
+        tile.wrapS = tile.wrapT = THREE.RepeatWrapping
+        tile.channel = 1
+        tile.repeat.set(WALLPAPER_REPEAT, WALLPAPER_REPEAT)
+        tile.anisotropy = 4
+        made.map = tile
+      } else made.color.set(solid ?? '#F0B47A')
+    }
+    m.material = made
+  })
+  if (!made) tile?.dispose()
+  return made
+}
+
+/** 벽지 타일 그림. 메인 스레드는 img, Worker(D 시험판)는 ImageBitmap. 둘 다 glTF UV 방향이라 flipY 끔 */
+function loadTile(url: string): Promise<THREE.Texture | null> {
+  const onFail = (e: unknown) => { console.warn('[3D] 벽지를 못 불러와서 단색으로 대신해요', url, e); return null }
+  if (typeof document === 'undefined') {
+    return new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'none' }).loadAsync(url)
+      .then((bmp) => { const t = new THREE.Texture(bmp as unknown as HTMLImageElement); t.flipY = false; t.needsUpdate = true; return t }, onFail)
+  }
+  return new THREE.TextureLoader().loadAsync(url).then((t) => { t.flipY = false; return t }, onFail)
 }

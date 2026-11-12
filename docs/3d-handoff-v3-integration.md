@@ -108,3 +108,22 @@
 - 빈백에 실제로 앉는 동작은 헤드리스로 못 봄 (실제 브라우저에서 빈백 클릭으로 확인할 것)
 - 공유 빌드 크기: 방 glb가 늘어 `roomScene.js` 12MB, `RoomCanvas.js` 9MB (glb data URL이 두 청크에 중복으로 들어감: Worker 시험판용 청크 때문으로 보임). 16MB 한도 안이지만 첫 땅굴 로딩이 무거움 → 다음에 정리 후보
 - 배포: 팀 아티팩트 version 13
+
+## v3.5.1 벽지 + shell v3 반영 (2026-11-12)
+원본: `design/digul_3d_handoff_v3_5_1/` (`docs/HANDOFF_v3_5_1.md`, `wallpapers/wallpapers.json`). 요청: 온보딩 4단계 "땅굴 무드" 결과로 벽지를 정하고 프로필에 `wallpaper_id`로 저장.
+
+| 항목 | 한 것 |
+|---|---|
+| shell | `room_shell.glb`(v2 변환본) → `room_shell_v3_draco_webp.glb` (노드·메시 이름 같음) |
+| 벽지 적용 | `three/roomScene.ts` `applyWallpaper`: 돔 `wall_inner` 재질만 `MeshBasicMaterial({ map: 타일, lightMap: 원래 emissiveMap })`. 타일은 sRGB·RepeatWrapping·`channel = 1`(wall_uv)·repeat 5×5, flipY 끔(glTF UV). 음영 lightMap은 `channel 0` |
+| 밝기 | three r165 `MeshBasicMaterial`은 lightMap에 1/π를 곱함 → 문서의 세기 4 대신 **4π**. 기본(단색 #F0B47A) 캡처가 v2 벽색과 같아 보이는 것 확인 |
+| 01 기본 | 타일 없이 `color = #F0B47A` (`solid_color`) |
+| 무드 → 벽지 | `data/wallpapers.ts`: 가장 큰 취향 카테고리(온보딩과 같은 Σ(1+1000/인원)) → `mood_map`. json의 `tea`는 앱의 `tea_coffee`로도 받음. 사진·아웃도어·영화·반려동물은 01 |
+| 저장 | 온보딩 미리보기에서 `setMyWallpaper` (관심사처럼 메모리 + sessionStorage). 내 땅굴은 저장값, 없으면 관심사로 계산. 남의 땅굴·시작 화면은 그 사람 관심사로 계산 |
+| 온보딩 화면 | "땅굴 무드" 견본을 벽지 타일로, 설명은 "벽지 · 이름" (예전 벽·바닥 색 설명은 벽지와 안 맞아서 뺌) |
+| 크기 | 타일 WebP 1024(저사양은 512), 장당 8~53KB. 공유 빌드는 별도 파일로 올라감 |
+| Worker(D 시험판) | document가 없어서 `ImageBitmapLoader`로 타일을 읽음 |
+
+같은 날 사용자 확인: **꾸미기 가구 탭은 고른 가구를 표시만 함** → `planRoom`의 choice(그 가구만 남기기)와 `furniture` 옵션을 없앰. 방 배치는 관심사로만 정해짐.
+
+팀 아티팩트 version 17로 배포.

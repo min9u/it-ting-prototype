@@ -1,0 +1,126 @@
+{
+ "version": 1,
+ "colorspace": "sRGB",
+ "wrap": "RepeatWrapping (S, T)",
+ "recommended_repeat_around_dome": [
+  4,
+  6
+ ],
+ "wallpapers": [
+  {
+   "id": "wallpaper_01_default",
+   "no": 1,
+   "name_ko": "기본",
+   "file": "wallpaper_01_default.png",
+   "webp_1024": "wallpaper_01_default_1024.webp",
+   "webp_512": "wallpaper_01_default_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#EBC9A8",
+   "seamless": true,
+   "original_file": "peach_paper_tile.png",
+   "tile": null,
+   "mode": "none",
+   "note_ko": "타일 이미지 없음. 단색 #F0B47A를 쓴다(= 기존 벽 색, 단색 타일이면 v2 렌더와 같음). png/webp는 참고용 견본",
+   "solid_color": "#F0B47A"
+  },
+  {
+   "id": "wallpaper_02_stars",
+   "no": 2,
+   "name_ko": "별자리",
+   "file": "wallpaper_02_stars.png",
+   "webp_1024": "wallpaper_02_stars_1024.webp",
+   "webp_512": "wallpaper_02_stars_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#424C6C",
+   "seamless": true,
+   "original_file": "navy_stars_tile.png"
+  },
+  {
+   "id": "wallpaper_03_flower",
+   "no": 3,
+   "name_ko": "꽃무늬",
+   "file": "wallpaper_03_flower.png",
+   "webp_1024": "wallpaper_03_flower_1024.webp",
+   "webp_512": "wallpaper_03_flower_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#F3DEC5",
+   "seamless": true,
+   "original_file": "new_large_tile"
+  },
+  {
+   "id": "wallpaper_04_modern",
+   "no": 4,
+   "name_ko": "모던",
+   "file": "wallpaper_04_modern.png",
+   "webp_1024": "wallpaper_04_modern_1024.webp",
+   "webp_512": "wallpaper_04_modern_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#EEDBC2",
+   "seamless": true,
+   "original_file": "beige_linen_tile.png"
+  },
+  {
+   "id": "wallpaper_05_check",
+   "no": 5,
+   "name_ko": "체크",
+   "file": "wallpaper_05_check.png",
+   "webp_1024": "wallpaper_05_check_1024.webp",
+   "webp_512": "wallpaper_05_check_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#D8DAB7",
+   "seamless": true,
+   "original_file": "gingham_tile.png"
+  },
+  {
+   "id": "wallpaper_06_dot",
+   "no": 6,
+   "name_ko": "도트",
+   "file": "wallpaper_06_dot.png",
+   "webp_1024": "wallpaper_06_dot_1024.webp",
+   "webp_512": "wallpaper_06_dot_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#F7ECD8",
+   "seamless": true,
+   "original_file": "peach_dots_tile.png"
+  },
+  {
+   "id": "wallpaper_07_forest",
+   "no": 7,
+   "name_ko": "숲",
+   "file": "wallpaper_07_forest.png",
+   "webp_1024": "wallpaper_07_forest_1024.webp",
+   "webp_512": "wallpaper_07_forest_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#B5CD9C",
+   "seamless": true,
+   "original_file": "new_large_tile"
+  },
+  {
+   "id": "wallpaper_08_stripe",
+   "no": 8,
+   "name_ko": "줄무늬",
+   "file": "wallpaper_08_stripe.png",
+   "webp_1024": "wallpaper_08_stripe_1024.webp",
+   "webp_512": "wallpaper_08_stripe_512.webp",
+   "size_px": 1024,
+   "avg_color_srgb": "#F3DFC5",
+   "seamless": true,
+   "original_file": "peach_stripes_tile.png"
+  }
+ ],
+ "mood_map": {
+  "by_category_id": {
+   "nature": "wallpaper_07_forest",
+   "science": "wallpaper_02_stars",
+   "tea": "wallpaper_05_check",
+   "game": "wallpaper_06_dot",
+   "book": "wallpaper_04_modern",
+   "music": "wallpaper_08_stripe",
+   "craft": "wallpaper_03_flower"
+  },
+  "default": "wallpaper_01_default",
+  "note": "photo, outdoor, movie, pet 및 그 외 관심사는 default(01). 한글: 자연·식물→07 숲, 우주·과학→02 별자리, 차·커피·베이킹→05 체크, 게임·놀이→06 도트, 책·글→04 모던, 음악→08 줄무늬, 공예·만들기→03 꽃무늬, 그 외→01 기본",
+  "default_note": "default(01)는 타일을 입히지 않고 기존 벽을 그대로 둔다"
+ },
+ "apply_rule": "돔 벽 안쪽 면에만 타일 적용. 벽 두께 면(바깥 테두리)·안쪽이 아닌 면은 항상 기존 벽 색 유지"
+}
