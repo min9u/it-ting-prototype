@@ -37,7 +37,8 @@ interface Props {
   still?: boolean
   /**
    * 3D 가 다 차려질 때까지 자리표시 그림 대신 로딩 애니메이션을 보여 주고, 다 되면 3D 를 한 번에 페이드 인
-   * (시작 화면, 2026-11-12 사용자 제보: 그림 → 사라짐 → 가구가 하나씩 뜸 → 번잡함)
+   * (시작 화면, 2026-11-12 사용자 제보: 그림 → 사라짐 → 가구가 하나씩 뜸 → 번잡함). 같은 날 모든 땅굴 화면 기본값으로 (자리표시 그림이 조잡해 보임).
+   * false 면 예전처럼 자리표시 그림 → 3D
    */
   loader?: boolean
   /** 3D 가 다 차려짐 (loader 와 같이 씀) */
@@ -83,7 +84,7 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader, onLoaded }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로

@@ -83,7 +83,7 @@ export default function Landing() {
       <div className={s.stage} data-sec={sec}>
         {/* 01 방 */}
         <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 0 ? 1 : 0, pointerEvents: sec === 0 ? 'auto' : 'none' }}>
-          <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still loader onLoaded={() => setRoomOn(true)} />
+          <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still onLoaded={() => setRoomOn(true)} />
           <div className={s.shadeLeft} />
           <div className={s.pinBox} style={{ top: `${PIN_BOX.top * 100}%`, height: `${PIN_BOX.h * 100}%` }}>
           {LABELS.map((l, i) => {
