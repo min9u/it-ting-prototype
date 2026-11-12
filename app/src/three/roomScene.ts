@@ -117,7 +117,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * S 방은 선명하게 (2026-11-12 사용자 요청 "두더지 화질은 낮아져도 괜찮은데 방은 GPU 켰을 때처럼"):
    * 방(layer 0)이 멈춰 있으면 고해상도(기기 배율 × 1.5 슈퍼샘플)로 한 번 그려서 WebGL 캔버스 뒤 2D 캔버스에 깔아 둠.
    * WebGL 캔버스(0.55배)는 투명하게 지우고 배경 깊이만 써서 두더지(layer 1)만 그림 → 방은 선명, 두더지만 저해상도.
-   * 카메라·패널 이동·천장 구멍·가구 낙하·먼지 중에는 예전처럼 전부 저해상도로 그리고, 끝나고 0.35초 조용하면 다시 찍음.
+   * 카메라·패널 이동·가구 낙하·먼지 중에는 예전처럼 전부 저해상도로 그리고, 끝나고 0.35초 조용하면 다시 찍음.
+   * 천장 구멍·두더지는 움직이는 층이라 선명한 방 위에 저해상도로 그림
    * Worker(D)에는 DOM 이 없어서 안 씀. 시험용 ?sharp=0 으로 끔
    */
   const sharp = !!backdrop && !opts.canvas && (q.lab?.S ?? true) && testParam('sharp') !== '0'
@@ -208,6 +209,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let holeObj: THREE.Object3D | null = null, holeClosing = false
   let holeT = -1, holeOpen: THREE.AnimationAction | null = null, holeClose: THREE.AnimationAction | null = null
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  /*
+   * N 저사양이면 가구는 처음부터 제자리 (2026-11-12 사용자 요청): 떨어지는 동안은 저해상도 층에 있다가
+   * 다 놓인 뒤에야 S(방은 선명하게)로 선명해져서 "흐렸다가 갑자기 좋아짐". 가구를 미리 놓아 두고 두더지만 떨어짐
+   */
+  const furnDrop = !reduce && !(q.level === 'low' && (q.lab?.N ?? true))
 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
   const plan = planRoom(opts.interests ?? [])
@@ -319,7 +325,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         feet.push({ x0: g.position.x - hx, x1: g.position.x + hx, z0: g.position.z - hz, z1: g.position.z + hz })
       }
       drops.push({ g, it, pos, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
-      if (!reduce) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
+      if (furnDrop) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
     }
 
     // 천장 구멍
@@ -334,8 +340,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     const drop = !reduce
     holeS.visible = drop
     if (drop && holeOpen) { holeOpen.play(); holeT = 0 }
-    // 가구 낙하: 두더지가 떨어지는 연출을 할 때만 (모션 줄이기면 처음부터 제자리)
-    if (drop && drops.length) { seqT = 0; for (const d of drops) d.g.visible = false }
+    // 가구 낙하: 두더지가 떨어지는 연출을 할 때만 (모션 줄이기·저사양 N 이면 처음부터 제자리)
+    if (drop && furnDrop && drops.length) { seqT = 0; for (const d of drops) d.g.visible = false }
 
     if (opts.hostName) {
       host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn, simple: simpleMole })
@@ -346,6 +352,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     fullNext = true
     sharpOff()
+    // 가구가 처음부터 제자리면 방은 이미 다 됨 → 첫 프레임에 바로 선명하게 (두더지가 떨어지는 도중에 멈칫하지 않게)
+    if (seqT < 0) settle = 1
     loop.ready()
   }).catch((err) => console.warn('[3D] 땅굴 모델을 못 불러왔어요', err))
 
@@ -633,7 +641,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (camMoving || holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)) full = true
       // S: 방이 바뀌는 중이면 선명한 그림을 내리고 저해상도로, 조용하면 시간을 셈 (dt 0 인 깨우기 프레임은 구도 변화가 아님)
       if (sharp) {
-        const moving = focus !== focusTarget || camMoving || Math.abs(camera.position.distanceTo(controls.target) - zoomGoal) > 1e-3 || holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)
+        const moving = focus !== focusTarget || camMoving || Math.abs(camera.position.distanceTo(controls.target) - zoomGoal) > 1e-3 || seqT >= 0 || dusts.some((d) => d.t >= 0)
         if (moving) { if (sharpOk) full = true; sharpOff() } else settle += dt
       }
       showHint()

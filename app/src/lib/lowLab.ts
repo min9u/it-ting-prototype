@@ -32,9 +32,11 @@ export interface LabState {
   P: boolean
   /** S 방은 선명하게: 멈춰 있을 때 방만 고해상도로 한 번 그려 두고 두더지는 낮은 해상도로 겹침 (땅굴, A 필요) */
   S: boolean
+  /** N 가구는 처음부터 제자리 (땅굴 가구 낙하 연출 끔. 두더지·천장 구멍은 그대로) */
+  N: boolean
 }
 
-export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: true, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true }
+export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: true, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
 
 const KEY = 'digul.lowlab'
 const KEY_SHOW = 'digul.lowlab.show'
