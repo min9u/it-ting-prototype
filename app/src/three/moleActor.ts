@@ -44,7 +44,7 @@ const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: 
 }
 const UPPER = /^(upper_body|arm_L|arm_R|coffee_cup|mole_eye_L|mole_eye_R)\./
 const WALK_BASE = .32          // 재생 속도 1.0일 때 미끄러지지 않는 이동 속도 (m/s)
-const MOVE_SPEED_MULT = 1.5    // 이동 속도 배율 (2026-11-11 사용자 요청 1.5배). 걷기 동작도 같은 배율로 빨라져 발이 미끄러지지 않음
+const MOVE_SPEED_MULT = 2.25   // 이동 속도 배율 (2026-11-11 사용자 요청 1.5배, 2026-11-12 다시 1.5배 → 2.25). 걷기 동작도 같은 배율로 빨라져 발이 미끄러지지 않음
 const WALK_RATE = 1.25 * MOVE_SPEED_MULT  // 원래 1.25 (자연스러운 범위 0.8~1.25배 중 가장 빠르게)
 const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
