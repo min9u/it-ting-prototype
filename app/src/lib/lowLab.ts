@@ -30,9 +30,11 @@ export interface LabState {
   E: boolean
   /** 땅굴 부분 다시 그리기 (이미 있던 것, 비교용) */
   P: boolean
+  /** S 방은 선명하게: 멈춰 있을 때 방만 고해상도로 한 번 그려 두고 두더지는 낮은 해상도로 겹침 (땅굴, A 필요) */
+  S: boolean
 }
 
-export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: true, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true }
+export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: true, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true }
 
 const KEY = 'digul.lowlab'
 const KEY_SHOW = 'digul.lowlab.show'

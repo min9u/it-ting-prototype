@@ -113,6 +113,46 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * 가구가 착지하면 layer 0 으로 옮기고 배경을 다시 찍음. 카메라·줌·크기가 바뀌어도 다시 찍음
    */
   const backdrop = q.level === 'low' && q.lab?.A ? createBackdrop(renderer) : null
+  /*
+   * S 방은 선명하게 (2026-11-12 사용자 요청 "두더지 화질은 낮아져도 괜찮은데 방은 GPU 켰을 때처럼"):
+   * 방(layer 0)이 멈춰 있으면 고해상도(기기 배율 × 1.5 슈퍼샘플)로 한 번 그려서 WebGL 캔버스 뒤 2D 캔버스에 깔아 둠.
+   * WebGL 캔버스(0.55배)는 투명하게 지우고 배경 깊이만 써서 두더지(layer 1)만 그림 → 방은 선명, 두더지만 저해상도.
+   * 카메라·패널 이동·천장 구멍·가구 낙하·먼지 중에는 예전처럼 전부 저해상도로 그리고, 끝나고 0.35초 조용하면 다시 찍음.
+   * Worker(D)에는 DOM 이 없어서 안 씀. 시험용 ?sharp=0 으로 끔
+   */
+  const sharp = !!backdrop && !opts.canvas && (q.lab?.S ?? true) && testParam('sharp') !== '0'
+  let sharpCv: HTMLCanvasElement | null = null
+  /** 2D 캔버스 그림이 지금 구도와 맞음 (보이는 중) */
+  let sharpOk = false
+  /** 방이 바뀐 뒤 조용히 지난 시간 (초) */
+  let settle = 0
+  const sharpOff = () => { settle = 0; if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
+  /** 방(layer 0)을 고해상도로 그려 2D 캔버스에 옮김. 끝나면 원래 해상도로 */
+  const captureSharp = () => {
+    if (!sharpCv) {
+      sharpCv = document.createElement('canvas')
+      sharpCv.setAttribute('aria-hidden', 'true')
+      sharpCv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none'
+      container.insertBefore(sharpCv, renderer.domElement)
+    }
+    const out = Math.min(window.devicePixelRatio || 1, 2)
+    // 슈퍼샘플 1.5배, 다만 한 번 그리는 픽셀이 400만을 넘지 않게 (CPU 렌더러에서 한 번에 0.5초 안쪽)
+    const ss = Math.max(out, Math.min(out * 1.5, Math.sqrt(4e6 / (W * H))))
+    const prevPR = renderer.getPixelRatio()
+    renderer.setPixelRatio(ss)
+    renderer.setScissorTest(false); renderer.autoClear = true
+    camera.layers.set(0)
+    renderer.render(scene, camera)
+    camera.layers.enable(1)
+    sharpCv.width = Math.round(W * out); sharpCv.height = Math.round(H * out)
+    const ctx = sharpCv.getContext('2d')!
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
+    ctx.clearRect(0, 0, sharpCv.width, sharpCv.height)
+    ctx.drawImage(renderer.domElement, 0, 0, sharpCv.width, sharpCv.height)
+    renderer.setPixelRatio(prevPR)
+    sharpCv.style.visibility = 'visible'
+    sharpOk = true
+  }
   const scene = new THREE.Scene()
   // 배경은 투명 (페이지 흙색이 보임. 스펙 배경 0x805B38 대신 Figma 화면색을 따름)
 
@@ -305,6 +345,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     fullNext = true
+    sharpOff()
     loop.ready()
   }).catch((err) => console.warn('[3D] 땅굴 모델을 못 불러왔어요', err))
 
@@ -527,6 +568,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const drawBackdrop = (full: boolean) => {
     const bd = backdrop!
     if (bd.isDirty()) { bd.capture(scene, camera); full = true }
+    if (sharp && !sharpOk && mole && settle >= .35) { captureSharp(); full = true }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
     const prev = prevRect
@@ -540,7 +582,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       renderer.setScissorTest(true); renderer.setScissor(x0, y0, x1 - x0, y1 - y0); scissor = true
     }
     renderer.autoClear = false
-    bd.blit()
+    if (sharpOk) { renderer.clear(true, true, false); bd.blitDepth() } else bd.blit()
     camera.layers.set(1)
     renderer.render(scene, camera)
     camera.layers.set(0); camera.layers.enable(1)
@@ -571,6 +613,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const loop = startLoop(container, {
     resize(w, h) {
       W = w; H = h
+      sharpOff()
       renderer.setSize(w, h, false)
       applyFrame()
       fullNext = true
@@ -588,6 +631,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (camMoving) camChanged = true
       if (camChanged) backdrop?.invalidate()
       if (camMoving || holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)) full = true
+      // S: 방이 바뀌는 중이면 선명한 그림을 내리고 저해상도로, 조용하면 시간을 셈 (dt 0 인 깨우기 프레임은 구도 변화가 아님)
+      if (sharp) {
+        const moving = focus !== focusTarget || camMoving || Math.abs(camera.position.distanceTo(controls.target) - zoomGoal) > 1e-3 || holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)
+        if (moving) { if (sharpOk) full = true; sharpOff() } else settle += dt
+      }
       showHint()
       // 천장 구멍: 열림 → (두더지 떨어짐) → 1.5초에 닫힘
       if (holeMixer && holeT >= 0) {
@@ -671,7 +719,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)
       for (const sh of shadows.values()) { sh.geometry.dispose(); (sh.material as THREE.Material).dispose() }
-      backdrop?.dispose()
+      backdrop?.dispose(); sharpCv?.remove()
       destroyRenderer(renderer)
     },
   }

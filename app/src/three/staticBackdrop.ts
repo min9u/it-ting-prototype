@@ -18,6 +18,8 @@ export interface Backdrop {
   capture(scene: THREE.Scene, camera: THREE.Camera): void
   /** 저장해 둔 배경을 지금 그리기 대상에 붙임 (색 + 깊이) */
   blit(): void
+  /** 깊이만 붙임 (색은 안 씀). 방을 다른 캔버스에 고해상도로 깔아 두고 두더지만 그릴 때 가림용 */
+  blitDepth(): void
   dispose(): void
 }
 
@@ -81,6 +83,12 @@ export function createBackdrop(renderer: THREE.WebGLRenderer): Backdrop {
       const bg = quadScene.background
       renderer.render(quadScene, quadCam)
       quadScene.background = bg
+    },
+    blitDepth() {
+      if (!rt) return
+      mat.colorWrite = false
+      renderer.render(quadScene, quadCam)
+      mat.colorWrite = true
     },
     dispose() {
       rt?.depthTexture?.dispose(); rt?.dispose(); rt = null

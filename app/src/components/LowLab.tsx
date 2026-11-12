@@ -19,6 +19,7 @@ const ITEMS: { k: BoolKey; name: string; where: string; tip: string }[] = [
   { k: 'G', name: 'G 3D 창 작게', where: '모두', tip: '3D를 액자 크기로 (그릴 픽셀 약 절반)' },
   { k: 'H', name: 'H 가볍게 보기 버튼', where: '모두', tip: '왼쪽 위 버튼으로 3D를 멈춤' },
   { k: 'F', name: 'F 단순한 두더지', where: '모두', tip: '가벼운 재질, 액세서리 끔' },
+  { k: 'S', name: 'S 방은 선명하게', where: '땅굴', tip: '멈춰 있을 때 방만 고해상도로 한 번 그려 둠. 두더지는 낮은 해상도 (A가 켜져 있어야 함)' },
   { k: 'P', name: '땅굴 부분 그리기', where: '땅굴', tip: '이미 있던 것. 비교용으로 끄기' },
   { k: 'D', name: 'D 땅굴을 별도 스레드에서 (시험판)', where: '땅굴', tip: '3D가 느려도 버튼·스크롤은 그대로. 기능은 줄어듦' },
   { k: 'E', name: 'E 2D 두더지 (시험판)', where: '탐색하기', tip: '두더지를 미리 찍은 그림으로. 3D를 매 프레임 안 그림' },
