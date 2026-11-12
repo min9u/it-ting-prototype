@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ConfirmDialog } from '../../components/Feedback'
 import Footer from '../../components/Footer'
 import Modal from '../../components/Modal'
 import MonthCalendar from '../../components/MonthCalendar'
 import InterestChip from '../../components/InterestChip'
 import MoleAvatar from '../../components/MoleAvatar'
-import { ME_ID, USERS, categoryOf } from '../../data/mock'
+import { ME_ID, USERS, categoryOf, meetupOf } from '../../data/mock'
 import { dateParts } from '../../lib/format'
 import s from './Meetups.module.css'
 
@@ -15,21 +16,28 @@ const TIMES = ['오전 10:00', '오전 11:00', '오후 12:00', '오후 1:00', '�
  * 모임 만들기 408:13607 · 모임 생성 완료 팝업 408:14074
  * 2026-11-11 Figma 스크린샷 대조로 순서·배치 갱신. 데모용 쿼리: ?modal=done
  * Figma 메모: "내모임 만들기 확정 멘트 수정 필요" — 완료 팝업 문구는 아직 확정 안 됨
+ * 모임 수정 · 취소 805:1677 (2026-11-12): /meetups/:id/edit 이면 같은 양식을 "모임 수정"으로.
+ *   정원은 이미 확정된 인원보다 줄일 수 없음(빨간 안내), 아래 버튼은 모임 취소하기 · 수정 완료
  */
 export default function MeetupNew() {
   const [params] = useSearchParams()
+  const { id } = useParams()
+  const nav = useNavigate()
+  const editing = id ? meetupOf(id) : undefined
   const me = USERS[ME_ID]
-  const [title, setTitle] = useState('주말의 작은 독서 모임')
-  const [intro, setIntro] = useState('한 주에 한 권씩. 각자 읽은 책을 들고 모입니다. 발제나 독후감은 없어요.\n처음 오시는 분은 다 못 읽고 오셔도 괜찮아요.')
+  const [title, setTitle] = useState(editing?.title ?? '주말의 작은 독서 모임')
+  const [intro, setIntro] = useState(editing?.intro ?? '한 주에 한 권씩. 각자 읽은 책을 들고 모입니다. 발제나 독후감은 없어요.\n처음 오시는 분은 다 못 읽고 오셔도 괜찮아요.')
   // 예시 제목이 독서 모임이라 책·글 관심사를 먼저 고름 (관심사 v2: 세부 관심사 중에서)
-  const [interest, setInterest] = useState(() => me.interests.find((i) => categoryOf(i)?.id === 'book') ?? me.interests[0] ?? '')
-  const [day, setDay] = useState(8)
-  const [start, setStart] = useState('오후 2:00')
-  const [end, setEnd] = useState('오후 4:00')
-  const [mode, setMode] = useState<'오프라인' | '온라인'>('오프라인')
-  const [place, setPlace] = useState('')
+  const [interest, setInterest] = useState(() => (editing && me.interests.includes(editing.interest) ? editing.interest : me.interests.find((i) => categoryOf(i)?.id === (editing ? categoryOf(editing.interest)?.id : 'book')) ?? me.interests[0] ?? ''))
+  const [day, setDay] = useState(editing ? Number(editing.date.slice(8)) : 8)
+  const [start, setStart] = useState(editing?.start ?? '오후 2:00')
+  const [end, setEnd] = useState(editing?.end ?? '오후 4:00')
+  const [mode, setMode] = useState<'오프라인' | '온라인'>(editing?.mode ?? '오프라인')
+  const [place, setPlace] = useState(editing?.place ?? '')
   const [placeDetail, setPlaceDetail] = useState('3층 세미나실')
-  const [cap, setCap] = useState(6)
+  const [cap, setCap] = useState(editing?.capacity ?? 6)
+  const minCap = editing ? Math.max(2, editing.memberIds.length) : 2
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [prep, setPrep] = useState('읽고 있는 책 한 권')
   const [askMsg, setAskMsg] = useState(true)
   const [done, setDone] = useState(params.get('modal') === 'done')
@@ -40,27 +48,28 @@ export default function MeetupNew() {
 
   return (
     <div className={s.detailWrap}>
-      <nav className={s.crumb}><Link to="/meetups">모임</Link> / <span>모임 만들기</span></nav>
+      <nav className={s.crumb}><Link to="/meetups">모임</Link> / <span>{editing ? '모임 수정' : '모임 만들기'}</span></nav>
       {/* 2026-11-11 Figma 408:13607: 두더지 아이콘 + 제목, 1·2 두 칸 → 3 → 4, 오른쪽 미리보기 없음 */}
       <header className={s.newHead}>
         <MoleAvatar size={64} radius={10} />
         <div>
-          <h1 className={`display ${s.newTitle}`}>모임 만들기</h1>
-          <p className={s.newLead}>열고 싶은 모임을 알려주세요. 만든 뒤에도 고칠 수 있어요.</p>
+          <h1 className={`display ${s.newTitle}`}>{editing ? '모임 수정' : '모임 만들기'}</h1>
+          <p className={s.newLead}>{editing ? '바꾼 내용은 신청자와 참여자 모두에게 알림으로 가요.' : '열고 싶은 모임을 알려주세요. 만든 뒤에도 고칠 수 있어요.'}</p>
         </div>
       </header>
 
-      <form className={s.newForm} onSubmit={(e) => { e.preventDefault(); if (valid) setDone(true) }}>
+      <form className={s.newForm} onSubmit={(e) => { e.preventDefault(); if (!valid) return; if (editing) nav(`/meetups/${editing.id}?as=host&toast=edited`); else setDone(true) }}>
         <div className={s.newRow}>
           <section className={s.newBlock}>
             <h2 className={`display ${s.stepH}`}><span>1</span>몇 명과 함께할까요</h2>
             <div className="field"><span className="field-label">정원</span>
               <div className={s.stepper}>
-                <button type="button" onClick={() => setCap((c) => Math.max(2, c - 1))} aria-label="정원 줄이기">−</button>
+                <button type="button" onClick={() => setCap((c) => Math.max(minCap, c - 1))} aria-label="정원 줄이기">−</button>
                 <strong>{cap}명</strong>
                 <button type="button" onClick={() => setCap((c) => Math.min(30, c + 1))} aria-label="정원 늘리기">+</button>
               </div>
               <span className="hint">나를 포함한 인원이에요. 2명부터 정할 수 있어요.</span>
+              {editing && cap <= minCap && <span className={s.capWarn}>ⓘ 이미 확정된 {minCap}명보다 적게 줄일 수 없어요.</span>}
             </div>
             <div className="field"><label htmlFor="pr">준비물 <span className={s.optTag}>선택</span></label><input id="pr" className={`input ${s.fill}`} value={prep} onChange={(e) => setPrep(e.target.value)} placeholder="예: 읽고 있는 책 한 권" /></div>
             <div className="field"><span className="field-label">신청할 때 메시지 받기</span>
@@ -119,11 +128,20 @@ export default function MeetupNew() {
         </section>
 
         <div className={s.formActions}>
-          <Link to="/meetups" className="btn btn-ghost">그만두기</Link>
-          <button className="btn btn-cta" disabled={!valid}>모임 만들기</button>
+          {editing ? (
+            <button type="button" className="btn btn-line" onClick={() => setCancelOpen(true)}>모임 취소하기</button>
+          ) : (
+            <Link to="/meetups" className="btn btn-ghost">그만두기</Link>
+          )}
+          <button className="btn btn-cta" disabled={!valid}>{editing ? '수정 완료' : '모임 만들기'}</button>
         </div>
       </form>
       <Footer />
+
+      {editing && (
+        <ConfirmDialog open={cancelOpen} onClose={() => setCancelOpen(false)} title="모임을 취소할까요?" confirmLabel="모임 취소"
+          desc="참여자와 신청자 모두에게 취소 알림이 가요. 취소한 모임은 되돌릴 수 없어요." onConfirm={() => nav(`/meetups/${editing.id}?as=cancelled`)} />
+      )}
 
       <Modal open={done} onClose={() => setDone(false)} width={460} labelledBy="done-title">
         <div className={s.doneModal}>

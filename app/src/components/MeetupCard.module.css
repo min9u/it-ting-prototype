@@ -43,4 +43,6 @@
 .meta span { display: inline-flex; align-items: center; gap: 5px; }
 .people { white-space: nowrap; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
+/* 내가 연 모임: 모임 수정 · 모임 삭제 · 신청 관리 (2026-11-12 810:9) → 세 칸이면 마지막 버튼이 아래 줄을 꽉 채움 */
+.actions > :nth-child(3) { grid-column: 1 / -1; }
 .actions :global(.btn) { height: 40px; padding: 0 12px; font-size: 13px; justify-content: flex-start; }

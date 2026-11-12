@@ -63,6 +63,22 @@ export function ReportDialog({ open, target = '게시물', onConfirm, onClose }:
   )
 }
 
+/** 토스트 내용 (title·desc·action) */
+export interface ToastSpec { title: string; desc?: string; action?: { label: string; to: string } }
+
+/**
+ * Toast 컴포넌트 6종 (2026-11-12 Figma 754:13592): 대화 요청 · 참여 신청 · 게시글 등록 · 수정 · 삭제 · 신고
+ * 문구는 여기 한 곳에서 씀. 대화 요청은 상대 닉네임이 들어가서 함수
+ */
+export const TOAST = {
+  chatRequest: (nick: string): ToastSpec => ({ title: '대화 요청이 완료되었어요', desc: `${nick}님이 수락하면 채팅에서 알려드릴게요`, action: { label: '채팅 보기', to: '/chat/requests?dir=sent' } }),
+  applied: { title: '참여 신청이 완료되었어요', desc: '주최자가 확인하면 알림으로 알려드릴게요', action: { label: '신청 내역 보기', to: '/meetups/me?modal=pending' } } as ToastSpec,
+  posted: (to: string): ToastSpec => ({ title: '게시글이 등록되었어요', desc: '게시판에서 바로 확인할 수 있어요', action: { label: '글 보기', to } }),
+  edited: { title: '수정이 완료되었어요', desc: '변경한 내용이 저장되었어요' } as ToastSpec,
+  deleted: { title: '삭제가 완료되었어요', desc: '삭제한 내용은 되돌릴 수 없어요' } as ToastSpec,
+  reported: { title: '신고가 접수되었어요', desc: '검토 후 결과를 알림으로 알려드릴게요' } as ToastSpec,
+}
+
 /**
  * 완료 토스트 621:3239 (227×47 기본형) — 대화 요청 완료 612:7718 · 참여 신청 완료 642:7955
  * 제목 + 설명 + 오른쪽 이동 버튼. 4초 뒤 사라진다.

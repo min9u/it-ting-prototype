@@ -287,3 +287,48 @@
 @media (max-width: 1000px) {
   .newRow, .whenCols { grid-template-columns: 1fr; }
 }
+
+/* ===== 2026-11-12 모임 상세 상태별 (804:2 ~ 805:587) · 신청 관리 팝업 805:1358 ===== */
+.chipDone { background: #ece4da; color: var(--ink-500); }
+.chipDone i { background: #b9a596; }
+.chipCancel { background: #f6dcd3; color: #a5412f; }
+.chipCancel i { background: #c8643a; }
+.waitSeat { color: var(--accent); }
+.seats .seatHole { display: grid; place-items: center; font-family: var(--font-display); font-size: 12px; }
+.waitSeat .seatHole { border-color: var(--accent); color: var(--accent); background: #fff6ef; }
+.stateBox { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.stateBox h2 { font-size: 19px; font-weight: 400; }
+.stateBox > p { font-size: 12px; color: var(--ink-500); line-height: 1.5; margin-top: -4px; }
+.stateBox .btn:disabled { background: #e8d6c4; color: var(--ink-500); border: 0; cursor: default; }
+.stateLabel { margin-top: 6px; font-family: var(--font-display); font-size: 12px; color: var(--ink-800); }
+.sentNote { padding: 13px 16px; border: 1px solid #ead2bf; border-radius: 8px; background: #fff; font-family: var(--font-display); font-size: 13px; color: var(--ink-900); }
+.hostStats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0; }
+.hostStats div { padding: 12px 14px; border-radius: 8px; background: var(--surface-item); display: flex; flex-direction: column; gap: 4px; }
+.hostStats span { font-size: 11px; color: var(--ink-500); }
+.hostStats strong { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
+.accentNum { color: var(--accent); }
+.btnBadge { display: inline-grid; place-items: center; min-width: 20px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: #fff; color: var(--accent); font-size: 11px; }
+.similar { text-align: center; font-family: var(--font-display); font-size: 13px; color: var(--accent); }
+.similar:hover { text-decoration: underline; }
+.manage { padding: 28px 28px 22px; }
+.manage h2 { font-size: 22px; font-weight: 400; display: flex; align-items: center; gap: 8px; }
+.manageSub { margin-top: 8px; display: flex; gap: 14px; font-size: 12px; color: var(--ink-700); font-family: var(--font-display); }
+.manageList { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow: auto; }
+.manageList > li { border: 1px solid #ead2bf; border-radius: 10px; padding: 16px; background: #fff; }
+.manageHead { display: grid; grid-template-columns: 44px 1fr auto auto; gap: 10px; align-items: center; }
+.manageHead > div { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.manageHead strong { font-family: var(--font-display); font-weight: 400; font-size: 15px; }
+.manageHead em { font-style: normal; font-size: 10px; padding: 1px 8px; border-radius: 9px; background: #fbe3d6; color: var(--accent); }
+.manageHead span { flex-basis: 100%; font-size: 11px; color: var(--ink-500); }
+.manageHead .btn { height: 36px; padding: 0 16px; }
+.manageMsg { margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--surface-item); font-family: var(--font-display); font-size: 13px; color: var(--ink-800); }
+.manageEmpty { text-align: center; color: var(--ink-400); font-size: 13px; }
+.manageNote { margin-top: 18px; font-size: 11px; color: var(--ink-500); }
+.capWarn { font-size: 11px; color: #c0412f; }
+/* 정렬 · 개수 보기 드롭다운 (751:7849 · 751:8069) */
+.dd { position: relative; }
+.ddBtn { height: 40px; padding: 0 12px 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fffaf5; font-family: var(--font-display); font-size: 13px; color: var(--ink-800); }
+.ddBtn:hover { background: #fbefe3; }
+.ddList { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 100%; padding: 6px; border-radius: 8px; background: var(--brown-700); box-shadow: 0 10px 24px rgba(40, 22, 12, .25); }
+.ddList button { width: 100%; padding: 7px 12px; border-radius: 6px; text-align: left; white-space: nowrap; font-family: var(--font-display); font-size: 12px; color: #f3e6d8; }
+.ddList button:hover, .ddOn { background: rgba(255, 255, 255, .12); color: #fff !important; }

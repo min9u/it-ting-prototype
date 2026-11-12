@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ConfirmDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import MeetupCard from '../../components/MeetupCard'
 import Pagination from '../../components/Pagination'
 import { SearchIcon } from '../../components/Icons'
@@ -7,9 +8,36 @@ import { ME_ID, MEETUPS, USERS, categoryOf, dday, toneOf } from '../../data/mock
 import type { Meetup } from '../../data/types'
 import s from './Meetups.module.css'
 
-const PAGE = 12
-/** Figma 메모(675:10975): "정렬: 최신등록순, 게시순, 마감임박순?, 인원순?(관련도순 제외)" — ?는 아직 미정 */
-const SORTS = ['최신순', '마감임박순', '인원순'] as const
+/** 2026-11-12 Figma 751:8069 "12개씩 보기" 드롭다운 (Figma 메모 677:10983 '00개씩 보기' 완료) */
+const PAGE_SIZES = [12, 24, 36] as const
+/** Figma 메모(675:10975): "정렬: 최신등록순, 게시순, 마감임박순?, 인원순?(관련도순 제외)" — ?는 아직 미정. 2026-11-12 화면 이름은 최신등록순 */
+const SORTS = ['최신등록순', '마감임박순', '인원순'] as const
+
+/** 정렬 · 개수 보기 드롭다운 (2026-11-12 Figma 751:7849 정렬 열림 · 751:8069 개수 보기 열림): 진한 갈색 목록이 버튼 아래로 펼쳐짐 */
+function Dropdown<T extends string | number>({ value, options, label, render, onChange }: { value: T; options: readonly T[]; label: string; render: (v: T) => string; onChange: (v: T) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [open])
+  return (
+    <div className={s.dd} ref={ref}>
+      <button type="button" className={s.ddBtn} aria-haspopup="listbox" aria-expanded={open} aria-label={label} onClick={() => setOpen((v) => !v)}>
+        {render(value)}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && (
+        <ul className={s.ddList} role="listbox" aria-label={label}>
+          {options.map((o) => (
+            <li key={String(o)}><button type="button" role="option" aria-selected={o === value} className={o === value ? s.ddOn : ''} onClick={() => { onChange(o); setOpen(false) }}>{render(o)}</button></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 const FILTER_TAGS = ['독서', '캠핑', '보드게임', '그림', '러닝', '게임', '음악']
 
 /**
@@ -23,8 +51,10 @@ export function MeetupList() {
   const myCats = useMemo(() => new Set(me.interests.map((i) => categoryOf(i)?.id)), [me.interests])
   const mine = (topic: string) => me.interests.includes(topic) || myCats.has(categoryOf(topic)?.id)
   const [tags, setTags] = useState<string[]>(FILTER_TAGS.filter(mine))
-  const [sort, setSort] = useState<(typeof SORTS)[number]>('최신순')
-  const [q, setQ] = useState('')
+  const [sort, setSort] = useState<(typeof SORTS)[number]>('최신등록순')
+  const [PAGE, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(12)
+  const [params] = useSearchParams()
+  const [q, setQ] = useState(params.get('q') ?? '')
   const [page, setPage] = useState(1)
 
   const list = useMemo(() => {
@@ -38,6 +68,8 @@ export function MeetupList() {
     const full = (m: Meetup) => m.memberIds.length >= m.capacity || !!m.past
     return [...l.filter((m) => !full(m)), ...l.filter(full)]
   }, [scope, tags, sort, q]) // eslint-disable-line react-hooks/exhaustive-deps
+  // "비슷한 ○○ 모임 보기"(?q=)로 왔으면 관심사 필터를 풀고 검색어만으로
+  useEffect(() => { if (params.get('q')) { setScope('전체'); setTags([]) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const total = Math.max(1, Math.ceil(list.length / PAGE))
   const toggle = (t: string) => { setTags((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t])); setPage(1) }
 
@@ -62,9 +94,8 @@ export function MeetupList() {
       </div>
       <div className={s.tools}>
         <label className={s.search}><SearchIcon size={18} /><input value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} placeholder="모임, 관심사 검색" /></label>
-        <select className={s.sort} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="정렬">
-          {SORTS.map((x) => <option key={x}>{x}</option>)}
-        </select>
+        <Dropdown label="정렬" value={sort} options={SORTS} render={(v) => v} onChange={(v) => { setSort(v); setPage(1) }} />
+        <Dropdown label="한 번에 볼 개수" value={PAGE} options={PAGE_SIZES} render={(v) => `${v}개씩 보기`} onChange={(v) => { setPageSize(v); setPage(1) }} />
       </div>
       <div className={s.grid}>
         {list.slice((page - 1) * PAGE, page * PAGE).map((m) => <MeetupCard key={m.id} m={m} />)}
@@ -83,12 +114,17 @@ const TABS = ['다가오는 모임', '지난 모임', '찜한 모임'] as const
  */
 export function MyMeetups() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('다가오는 모임')
+  const [params] = useSearchParams()
+  // 내 모임 – 모임 삭제 확인 팝업 810:9 (2026-11-12). 데모용 ?modal=delete
+  const [delOpen, setDelOpen] = useState(params.get('modal') === 'delete')
+  const [deleted, setDeleted] = useState<string[]>([])
+  const [toast, setToast] = useState<ToastSpec | null>(null)
   const counts: Record<string, number> = { '다가오는 모임': 4, '지난 모임': 4, '찜한 모임': 3 }
   const list = MEETUPS.filter((m) => {
     if (tab === '다가오는 모임') return m.myStatus && m.myStatus !== '찜' && ['m1', 'm2', 'm3', 'm4'].includes(m.id)
     if (tab === '찜한 모임') return m.myStatus === '찜'
     return false
-  }).sort((a, b) => a.date.localeCompare(b.date))
+  }).filter((m) => !deleted.includes(m.id)).sort((a, b) => a.date.localeCompare(b.date))
 
   return (
     <>
@@ -107,7 +143,7 @@ export function MyMeetups() {
               badge={{ label: `${label} · ${dday(m.date)}`, tone: m.myStatus === '신청 대기' ? 'wait' : 'open' }}
               actions={
                 m.myStatus === '신청 대기' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><button className="btn btn-line">신청 취소</button></>
-                : m.myStatus === '내가 주최' ? <><Link to="/meetups/new" className="btn btn-line">모임 수정</Link><Link to="/chat/requests?tab=meetup" className="btn btn-primary">신청 관리 1</Link></>
+                : m.myStatus === '내가 주최' ? <><Link to={`/meetups/${m.id}/edit`} className="btn btn-line">모임 수정</Link><button className="btn btn-line" onClick={() => setDelOpen(true)}>모임 삭제</button><Link to={`/meetups/${m.id}?modal=applicants`} className="btn btn-primary">신청 관리 1</Link></>
                 : m.myStatus === '찜' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to={`/meetups/${m.id}`} className="btn btn-primary">신청하기</Link></>
                 : <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to="/chat/r-book" className="btn btn-primary">모임 채팅</Link></>
               } />
@@ -115,6 +151,10 @@ export function MyMeetups() {
         })}
       </div>
       <div className={s.pager}><Pagination page={1} total={1} onChange={() => {}} /></div>
+      <ConfirmDialog open={delOpen} onClose={() => setDelOpen(false)} title="모임을 삭제할까요?" confirmLabel="삭제"
+        desc="참여자와 신청자에게 알림이 가고, 모임 채팅도 함께 사라져요. 삭제한 모임은 되돌릴 수 없어요."
+        onConfirm={() => { setDeleted((l) => [...l, ...MEETUPS.filter((m) => m.myStatus === '내가 주최').map((m) => m.id)]); setToast(TOAST.deleted) }} />
+      <Toast open={!!toast} onClose={() => setToast(null)} {...(toast ?? { title: '' })} />
     </>
   )
 }

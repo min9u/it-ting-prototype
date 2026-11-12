@@ -64,6 +64,7 @@ export const router = createRouter([
         ],
       },
       { path: '/meetups/:id', element: <MeetupDetail /> },
+      { path: '/meetups/:id/edit', element: <MeetupNew /> },
       { path: '/chat', element: <Chat /> },
       { path: '/chat/requests', element: <Chat requests /> },
       { path: '/chat/:roomId', element: <Chat /> },

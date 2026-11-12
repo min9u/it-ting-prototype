@@ -90,6 +90,8 @@ export interface Meetup {
   closesAt: string
   myStatus?: MyMeetupStatus
   past?: boolean
+  /** 주최자가 취소한 모임 (2026-11-12 모임 상세 – 취소된 모임) */
+  cancelled?: boolean
   /** 카드 위 나무 팻말 글자 (2026-11-11 Meetup Card) */
   sign?: string
   /** 내가 신청할 때 남긴 말 (신청 대기 모임 팝업) */
