@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SceneHandle } from '../three/engine'
+import { ROOM_FRAME } from '../three/roomFrame'
 import roomCutout from '../assets/room-v2.webp'
 import styles from './RoomView.module.css'
 
@@ -46,7 +47,7 @@ interface Props {
 /**
  * 3D 땅굴 (src/three/roomScene.ts).
  * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 디자이너 확인 렌더(핸드오프 v2 room_glb_check.png, 같은 카메라) 자리표시를 같은 자리에 보여 준다.
- * 구도는 roomScene 과 같음: 4:3 그림 높이 = 장면 높이의 114.5%, 위로 5.4%, 가로 가운데 = focusX.
+ * 구도는 roomScene 과 같음 (three/roomFrame.ts ROOM_FRAME): 4:3 그림, 가로 가운데 = focusX.
  */
 /**
  * 로딩 그림: 흙더미에서 고개를 내민 두더지 (벡터로 그림. 예전 mole-mound.png 는 흰 배경에서 잘라 낸 작은 그림이라
@@ -110,7 +111,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
         </div>
       )}
       {(loader ? gaveUp && !ready : !ready) && (
-        <div className={styles.stage} style={{ left: `${focusX * 100}%` }}>
+        <div className={styles.stage} style={{ left: `${focusX * 100}%`, top: `${ROOM_FRAME.top * 100}%`, height: `${ROOM_FRAME.h * 100}%` }}>
           <img src={roomCutout} alt={label ?? '땅굴 방 모습'} className={styles.room} draggable={false} />
         </div>
       )}

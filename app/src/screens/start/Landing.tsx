@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FieldView from '../../components/FieldView'
 import RoomView from '../../components/RoomView'
+import { ROOM_FRAME } from '../../three/roomFrame'
 import StartHeader from './StartHeader'
 import s from './Start.module.css'
 
@@ -30,9 +31,11 @@ const NEIGHBORS = [
 const SECTIONS = ['방', '이웃']
 
 /**
- * 1440×900 시안 좌표 → 방 상자(pinBox) 안 %. pinBox 는 RoomView 의 방 자리(.stage: 위 -3.7%, 높이 104.5%, 4:3, 가운데)와 같아서
- * 화면 비율이 달라도 이름표가 가구를 따라감. 1440×900 에서 상자 = (93, -33.3) 1254×940.5
+ * 1440×900 시안 좌표 → 방 상자(pinBox) 안 %. 이름표 좌표는 처음 구도(방 그림 높이 114.5%, 위 -5.4%)에서
+ * pinBox(위 -3.7%, 높이 104.5%, 4:3, 가운데) 기준으로 맞춘 것. 1440×900 에서 상자 = (93, -33.3) 1254×940.5
+ * 구도(three/roomFrame.ts)가 바뀌어도 방 그림 안에서 같은 자리가 되게 pinBox 를 같은 비율로 옮김 (PIN_BOX)
  */
+const PIN_BOX = { top: ROOM_FRAME.top + (-0.037 + 0.054) / 1.145 * ROOM_FRAME.h, h: 1.045 / 1.145 * ROOM_FRAME.h }
 const inRoom = (x: number, y: number) => ({ left: `${(x - 93) / 12.54}%`, top: `${(y + 33.3) / 9.405}%` })
 /** 1440×900 시안 좌표 → 화면 % (가로는 화면 폭, 세로는 화면 높이 기준) */
 const px = (x: number, y: number) => ({ left: `${x / 14.4}%`, top: `${y / 9}%` })
@@ -82,7 +85,7 @@ export default function Landing() {
         <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 0 ? 1 : 0, pointerEvents: sec === 0 ? 'auto' : 'none' }}>
           <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still loader onLoaded={() => setRoomOn(true)} />
           <div className={s.shadeLeft} />
-          <div className={s.pinBox}>
+          <div className={s.pinBox} style={{ top: `${PIN_BOX.top * 100}%`, height: `${PIN_BOX.h * 100}%` }}>
           {LABELS.map((l, i) => {
             const bx = l.bx < 0 ? l.bx + l.w : l.bx, by = l.by + 44
             return (

@@ -14,6 +14,7 @@ import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
 import { createBackdrop, toDynamicLayer } from './staticBackdrop'
+import { ROOM_FRAME } from './roomFrame'
 import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
 
 /*
@@ -26,7 +27,7 @@ import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../da
  * - 좌표: 1 unit = 1m, 방 중심 바닥 = 원점, 방 지름 6.5m, 돔은 뒤쪽 절반만
  * - 들어올 때: 천장 구멍 열림(0.417초) → 두더지 떨어짐 → 1.5초에 구멍 닫힘 (HANDOFF_v2 2번)
  * - 구도: 스펙 카메라(위치 (0,1.56,6.37), target (0,2.04,0), 세로 FOV 48.5° @4:3)를 4:3 "가상 화면"에 그리고,
- *   가상 화면 높이 = 장면 높이의 114.5%, 위로 5.4% 올림, 가로 가운데 = focusX (Figma 내 땅굴 화면과 돔 크기·위치를 맞춤)
+ *   가상 화면 높이·위치 = roomFrame.ts ROOM_FRAME, 가로 가운데 = focusX
  */
 
 export interface RoomSceneOptions {
@@ -553,8 +554,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const bw = W * 1.02, bh = bw * 3 / 4
       frameCamera(camera, W, H, { left: (W - bw) / 2, top: (H - bh) * .62, w: bw, h: bh })
     } else {
-      const bh = H * 1.145, bw = bh * 4 / 3
-      frameCamera(camera, W, H, { left: focus * W - bw / 2, top: -0.054 * H, w: bw, h: bh })
+      const bh = H * ROOM_FRAME.h, bw = bh * 4 / 3
+      frameCamera(camera, W, H, { left: focus * W - bw / 2, top: ROOM_FRAME.top * H, w: bw, h: bh })
     }
   }
 
