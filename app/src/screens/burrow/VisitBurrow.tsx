@@ -7,7 +7,7 @@ import InterestChip from '../../components/InterestChip'
 import GuestbookItem from '../../components/GuestbookItem'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
-import { Toast } from '../../components/Feedback'
+import { TOAST, Toast } from '../../components/Feedback'
 import { GUESTBOOK, ME_ID, USERS, overlapCount } from '../../data/mock'
 import type { GuestbookEntry } from '../../data/types'
 import { liveGuestbook } from '../../lib/format'
@@ -121,9 +121,7 @@ export default function VisitBurrow() {
         </div>
       </Modal>
 
-      <Toast open={sent} onClose={() => setSent(false)} duration={6000}
-        title="대화 요청이 완료되었어요" desc={`${owner.nickname}님이 수락하면 채팅에서 알려드릴게요`}
-        action={{ label: '채팅 보기', to: '/chat/requests?dir=sent' }} />
+      <Toast open={sent} onClose={() => setSent(false)} duration={6000} {...TOAST.chatRequest(owner.nickname)} />
     </main>
   )
 }

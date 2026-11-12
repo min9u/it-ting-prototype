@@ -5,7 +5,7 @@ import Footer from '../../components/Footer'
 import InterestChip from '../../components/InterestChip'
 import Pagination from '../../components/Pagination'
 import { ChatIcon, ChevronRight, EyeIcon, HeartIcon, PenIcon, PlusIcon, SearchIcon } from '../../components/Icons'
-import { ConfirmDialog, ReportDialog, Toast } from '../../components/Feedback'
+import { ConfirmDialog, ReportDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import { POSTS, categoryOf, toneOf, userOf } from '../../data/mock'
 import type { Comment, PostCategory } from '../../data/types'
 import s from './Board.module.css'
@@ -28,6 +28,8 @@ export function BoardList({ saved }: { saved?: boolean } = {}) {
   const [q, setQ] = useState('')
   const [interest, setInterest] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [params] = useSearchParams()
+  const [deletedToast, setDeletedToast] = useState(params.get('toast') === 'deleted')
 
   const list = useMemo(() => {
     const base = saved ? SAVED_IDS.map((id) => POSTS.find((p) => p.id === id)!).filter(Boolean) : POSTS
@@ -108,6 +110,7 @@ export function BoardList({ saved }: { saved?: boolean } = {}) {
           <Link to="/board/write" className="btn btn-cta btn-block"><PenIcon size={16} /> 글쓰기</Link>
         </aside>
       </div>
+      <Toast open={deletedToast} {...TOAST.deleted} onClose={() => setDeletedToast(false)} />
       <Footer />
     </div>
   )
@@ -128,9 +131,12 @@ export function BoardPost() {
   const [saved, setSaved] = useState(false)
   const [comments, setComments] = useState<Comment[]>(p?.comments ?? [])
   const [draft, setDraft] = useState('')
+  // 답글 대상 표시 (2026-11-12 Figma 747:11747 ②안): 답글 달기 → 대상 댓글 아래에 입력창이 열림, 하단 입력창은 그대로
+  const [replyTo, setReplyTo] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialog, setDialog] = useState<'delete' | 'report' | null>(params.get('modal') === 'delete' ? 'delete' : params.get('modal') === 'report' ? 'report' : null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastSpec | null>(() => (params.get('toast') === 'posted' ? TOAST.posted(`/board/${postId}`) : null))
   const nav2 = useNavigate()
   if (!p) return <Navigate to="/board" replace />
   const author = userOf(p.authorId)
@@ -138,6 +144,12 @@ export function BoardPost() {
   const next = POSTS[idx - 1]
   const count = comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0) + (p.id === 'p1' ? 16 : 0)
   const side = variant === 'a'
+
+  const submitReply = (cid: string) => {
+    if (!replyDraft.trim()) return
+    setComments((l) => l.map((c) => (c.id === cid ? { ...c, replies: [...(c.replies ?? []), { id: `r${Date.now()}`, authorId: 'me', text: replyDraft.trim(), createdAt: '방금', likes: 0 }] } : c)))
+    setReplyDraft(''); setReplyTo(null)
+  }
 
   const submit = () => {
     if (!draft.trim()) return
@@ -191,8 +203,19 @@ export function BoardPost() {
         <ul className={s.cList}>
           {comments.map((c) => (
             <li key={c.id}>
-              <CommentRow c={c} />
+              <CommentRow c={c} onReply={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyDraft('') }} />
               {c.replies?.map((r) => <div key={r.id} className={s.reply}><CommentRow c={r} /></div>)}
+              {replyTo === c.id && (
+                <form className={s.replyForm} onSubmit={(e) => { e.preventDefault(); submitReply(c.id) }}>
+                  <span className={s.replyTarget}>↳ {userOf(c.authorId).nickname}님에게 답글</span>
+                  <textarea autoFocus value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="답글을 남겨주세요" aria-label={`${userOf(c.authorId).nickname}님에게 답글`}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setReplyTo(null); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitReply(c.id) } }} />
+                  <span className={s.replyBtns}>
+                    <button type="button" className="btn btn-line btn-sm" onClick={() => setReplyTo(null)}>취소</button>
+                    <button className="btn btn-cta btn-sm" disabled={!replyDraft.trim()}>등록</button>
+                  </span>
+                </form>
+              )}
             </li>
           ))}
         </ul>
@@ -238,15 +261,15 @@ export function BoardPost() {
         </article>
       )}
       <Footer />
-      <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} onConfirm={() => nav2('/board')}
+      <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} onConfirm={() => nav2('/board?toast=deleted')}
         title="게시물을 삭제할까요?" desc="게시물에 달린 댓글과 답글도 함께 사라지고 되돌릴 수 없어요." />
-      <ReportDialog open={dialog === 'report'} onClose={() => setDialog(null)} onConfirm={() => setToast('신고가 접수되었어요')} />
-      <Toast open={!!toast} title={toast ?? ''} desc="검토 후 처리 결과를 알림으로 알려드릴게요" onClose={() => setToast(null)} />
+      <ReportDialog open={dialog === 'report'} onClose={() => setDialog(null)} onConfirm={() => setToast(TOAST.reported)} />
+      <Toast open={!!toast} {...(toast ?? { title: '' })} onClose={() => setToast(null)} />
     </div>
   )
 }
 
-function CommentRow({ c }: { c: Comment }) {
+function CommentRow({ c, onReply }: { c: Comment; onReply?: () => void }) {
   const u = userOf(c.authorId)
   return (
     <div className={s.comment}>
@@ -254,7 +277,7 @@ function CommentRow({ c }: { c: Comment }) {
       <div>
         <p className={s.cMeta}><strong>{u.nickname}</strong>{c.isAuthor && <em>글쓴이</em>}<span>{c.createdAt}</span></p>
         <p className={s.cText}>{c.text}</p>
-        <p className={s.cActions}><button><HeartIcon size={13} /> {c.likes}</button><button>답글 달기</button></p>
+        <p className={s.cActions}><button><HeartIcon size={13} /> {c.likes}</button>{onReply && <button onClick={onReply}>답글 달기</button>}</p>
       </div>
     </div>
   )
@@ -344,7 +367,7 @@ export function BoardWrite() {
           <div className={s.writeActions}>
             <button className="btn btn-line" onClick={() => nav('/board')}>취소</button>
             <button className="btn btn-line" onClick={() => setToast('임시저장했어요')}>임시저장</button>
-            <button className="btn btn-cta" disabled={!title.trim() || !body.trim()} onClick={() => nav('/board/p1')}>등록하기</button>
+            <button className="btn btn-cta" disabled={!title.trim() || !body.trim()} onClick={() => nav('/board/p1?toast=posted')}>등록하기</button>
           </div>
         </section>
 
