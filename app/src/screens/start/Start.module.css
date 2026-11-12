@@ -11,7 +11,7 @@
   color: var(--ink-900); font-family: var(--font-display);
 }
 .headerLight { color: #fbf4ec; }
-.logo { display: block; width: 80px; height: auto; }
+.logo { display: block; width: 104px; height: auto; } /* 2026-11-12 Figma 메모: 로고 키우기 (80 → 104) */
 .headerNav { margin-left: auto; display: flex; align-items: center; gap: 28px; }
 .headerLink { font-size: 16px; }
 .headerLink:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -151,7 +151,7 @@
 .gateActions { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ===== 랜딩 (sticky 장면) ===== */
-.track { height: 420vh; background: var(--bg-dark); font-family: var(--font-display); }
+.track { height: 240vh; background: var(--bg-dark); font-family: var(--font-display); }
 .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; background: #5b3e28; color: #fbf4ec; }
 .layer { position: absolute; inset: 0; transition: opacity .5s ease; }
 .fieldZoom { position: absolute; inset: 0; transition: transform .6s var(--ease-out); will-change: transform; }
