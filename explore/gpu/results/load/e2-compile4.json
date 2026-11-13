@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-compile4",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/?compile=1#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2217,
+      "longTaskMs": 418,
+      "longTaskMax": 132,
+      "worstFreezeMs": 150,
+      "mb": 7.1,
+      "heapMB": 71
+    },
+    "warm": {
+      "readyMs": 1899,
+      "longTaskMs": 131,
+      "longTaskMax": 131,
+      "worstFreezeMs": 133,
+      "mb": 0,
+      "heapMB": 103
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 3348,
+      "longTaskMs": 345,
+      "longTaskMax": 132,
+      "worstFreezeMs": 150,
+      "heapMB": 69,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1773,
+      "longTaskMs": 131,
+      "longTaskMax": 131,
+      "worstFreezeMs": 133,
+      "heapMB": 103,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2217,
+      "longTaskMs": 422,
+      "longTaskMax": 134,
+      "worstFreezeMs": 150,
+      "heapMB": 71,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1899,
+      "longTaskMs": 137,
+      "longTaskMax": 137,
+      "worstFreezeMs": 150,
+      "heapMB": 103,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2184,
+      "longTaskMs": 418,
+      "longTaskMax": 123,
+      "worstFreezeMs": 133,
+      "heapMB": 72,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1964,
+      "longTaskMs": 126,
+      "longTaskMax": 126,
+      "worstFreezeMs": 133,
+      "heapMB": 67,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

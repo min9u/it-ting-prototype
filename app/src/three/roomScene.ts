@@ -217,6 +217,49 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * 다 놓인 뒤에야 S(방은 선명하게)로 선명해져서 "흐렸다가 갑자기 좋아짐". 가구를 미리 놓아 두고 두더지만 떨어짐
    */
   const furnDrop = !reduce && !opts.still && !(q.level === 'low' && (q.lab?.N ?? true))
+  // 기본으로 켬 (2026-11-13 측정: 처음 들어올 때 가장 긴 멈춤 WARP 0.70 → 0.15초, GPU 0.32 → 0.15초. 대신 다 차려지는 시각은 0.1~0.2초 늦음). 시험용 ?compile=0 으로 끔
+  const precompile = testParam('compile') !== '0'
+  let warming = false
+  /*
+   * 그리기 예열 (docs/rendering-experiments.md 2번): WARP(ANGLE D3D11)는 셰이더를 미리 컴파일해도 물체를 처음 그릴 때
+   * 파이프라인을 만드느라 첫 프레임이 0.3~0.5초 멈춤. 메시 몇 개씩만 보이게 해서 1×1 영역에 그리고 쉬기를 반복 →
+   * 같은 일을 짧은 작업 여러 개로 나눔. 배경(A) 렌더 타깃과 캔버스 두 군데 다 (셰이더가 다름)
+   */
+  const warmDraws = async () => {
+    const meshes: THREE.Object3D[] = []
+    scene.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.visible) meshes.push(o) })
+    const prevTarget = renderer.getRenderTarget(), prevAuto = renderer.autoClear
+    const vp = renderer.getViewport(new THREE.Vector4()), sc = renderer.getScissor(new THREE.Vector4()), scOn = renderer.getScissorTest()
+    const mask = camera.layers.mask
+    for (const m of meshes) m.visible = false
+    let i = 0
+    try {
+      while (i < meshes.length) {
+        if (disposed) return
+        const t0 = performance.now()
+        while (i < meshes.length && performance.now() - t0 < 25) {
+          const m = meshes[i++]; m.visible = true
+          camera.layers.enableAll()
+          renderer.autoClear = false
+          for (const rt of backdrop ? [backdrop.target(), null] : [null]) {
+            renderer.setRenderTarget(rt)
+            if (rt) { rt.viewport.set(0, 0, 1, 1); rt.scissor.set(0, 0, 1, 1); rt.scissorTest = true }
+            else { renderer.setViewport(0, 0, 1, 1); renderer.setScissor(0, 0, 1, 1); renderer.setScissorTest(true) }
+            renderer.render(scene, camera)
+            if (rt) { rt.viewport.set(0, 0, rt.width, rt.height); rt.scissor.set(0, 0, rt.width, rt.height); rt.scissorTest = false }
+          }
+          m.visible = false
+        }
+        await new Promise((r) => setTimeout(r, 0))
+      }
+    } finally {
+      for (const m of meshes) m.visible = true
+      camera.layers.mask = mask
+      renderer.setRenderTarget(prevTarget); renderer.autoClear = prevAuto
+      renderer.setViewport(vp); renderer.setScissor(sc); renderer.setScissorTest(scOn)
+      backdrop?.invalidate(); fullNext = true
+    }
+  }
   let markLoaded = () => {}
   const loaded = new Promise<void>((r) => { markLoaded = r })
 
@@ -244,7 +287,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     Promise.all(planUrls.map(softLoad)),
     loadGlb(dustUrl).catch(() => null),
     tileSrc ? loadTile(tileSrc) : Promise.resolve(null),
-  ]).then(([shell, hole, moleG, acc, fixedG, planG, dust, tile]) => {
+  ]).then(async ([shell, hole, moleG, acc, fixedG, planG, dust, tile]) => {
     if (disposed) { tile?.dispose(); return }
     dustG = dust
     // glb 는 캐시를 같이 씀 → 장면마다 복제 (재질·텍스처는 공유)
@@ -359,6 +402,22 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     sharpOff()
     // 가구가 처음부터 제자리면 방은 이미 다 됨 → 첫 프레임에 바로 선명하게 (두더지가 떨어지는 도중에 멈칫하지 않게)
     if (seqT < 0) settle = 1
+    // 셰이더 미리 컴파일 (docs/rendering-experiments.md 2번): KHR_parallel_shader_compile 이 있으면 드라이버가 따로 컴파일하는 동안 메인 스레드가 놂
+    // 배경(A)은 선형 렌더 타깃에 그려서 셰이더 종류가 캔버스와 다름 → 두 가지 다. 텍스처도 한 장씩 나눠 올림 (긴 작업 하나 → 짧은 작업 여럿)
+    if (precompile) {
+      warming = true // 예열이 끝날 때까지 루프는 그리지 않음 (안 그러면 첫 프레임이 예열보다 먼저 그려서 소용없음)
+      if (backdrop) await backdrop.precompile(scene, camera)
+      await renderer.compileAsync(scene, camera).catch(() => {})
+      const texs = new Set<THREE.Texture>()
+      scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+        for (const mm of m ? (Array.isArray(m) ? m : [m]) : []) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
+      })
+      for (const t of texs) { if (disposed) return; renderer.initTexture(t); await new Promise((r) => setTimeout(r, 0)) }
+      await warmDraws()
+      warming = false
+    }
+    if (disposed) return
     loop.ready()
     markLoaded()
   }).catch((err) => { console.warn('[3D] 땅굴 모델을 못 불러왔어요', err); markLoaded() })
@@ -660,6 +719,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       fullNext = true
     },
     frame(dt, t) {
+      if (warming) return
       // 이번 프레임에 전체를 그려야 하는지 (부분 그리기일 때만 의미 있음)
       let full = fullNext || dt === 0
       fullNext = false

@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-b64new",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2077,
+      "longTaskMs": 1601,
+      "longTaskMax": 691,
+      "worstFreezeMs": 717,
+      "mb": 7.2,
+      "heapMB": 86
+    },
+    "warm": {
+      "readyMs": 1534,
+      "longTaskMs": 961,
+      "longTaskMax": 517,
+      "worstFreezeMs": 517,
+      "mb": 0,
+      "heapMB": 137
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2025,
+      "longTaskMs": 1549,
+      "longTaskMax": 697,
+      "worstFreezeMs": 767,
+      "heapMB": 85,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1608,
+      "longTaskMs": 1034,
+      "longTaskMax": 570,
+      "worstFreezeMs": 550,
+      "heapMB": 137,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2077,
+      "longTaskMs": 1612,
+      "longTaskMax": 668,
+      "worstFreezeMs": 683,
+      "heapMB": 87,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1534,
+      "longTaskMs": 961,
+      "longTaskMax": 517,
+      "worstFreezeMs": 517,
+      "heapMB": 86,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2129,
+      "longTaskMs": 1601,
+      "longTaskMax": 691,
+      "worstFreezeMs": 717,
+      "heapMB": 86,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1373,
+      "longTaskMs": 865,
+      "longTaskMax": 436,
+      "worstFreezeMs": 433,
+      "heapMB": 139,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

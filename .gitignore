@@ -22,3 +22,5 @@ design/*.zip
 design/digul_3d_handoff_v3/images/
 explore/gpu/results/win/*.png
 !explore/gpu/results/win/keep-*.png
+explore/gpu/results/load/*.png
+explore/gpu/results/load/*.cpuprofile

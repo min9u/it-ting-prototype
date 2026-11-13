@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-compile2",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/?compile=1#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2258,
+      "longTaskMs": 818,
+      "longTaskMax": 586,
+      "worstFreezeMs": 583,
+      "mb": 7.1,
+      "heapMB": 68
+    },
+    "warm": {
+      "readyMs": 1793,
+      "longTaskMs": 351,
+      "longTaskMax": 351,
+      "worstFreezeMs": 350,
+      "mb": 0,
+      "heapMB": 69
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2264,
+      "longTaskMs": 818,
+      "longTaskMax": 571,
+      "worstFreezeMs": 567,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1793,
+      "longTaskMs": 422,
+      "longTaskMax": 422,
+      "worstFreezeMs": 433,
+      "heapMB": 102,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2206,
+      "longTaskMs": 870,
+      "longTaskMax": 601,
+      "worstFreezeMs": 600,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1828,
+      "longTaskMs": 351,
+      "longTaskMax": 351,
+      "worstFreezeMs": 350,
+      "heapMB": 69,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2258,
+      "longTaskMs": 818,
+      "longTaskMax": 586,
+      "worstFreezeMs": 583,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1771,
+      "longTaskMs": 339,
+      "longTaskMax": 339,
+      "worstFreezeMs": 333,
+      "heapMB": 66,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

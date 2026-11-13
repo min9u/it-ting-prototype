@@ -1,105 +1,75 @@
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
-// 순수 JS(wasm2js) Draco 해독기. three/examples/jsm/libs/draco/gltf/draco_decoder.js 를 ES 모듈로 복사한 것
-import DracoDecoderModule from './draco/draco_decoder.js'
+import type { GeoData, TaskConfig } from './dracoCore'
+import { testParam } from './engine'
 
 /*
  * 공유 빌드(아티팩트) 전용 Draco 해독 — glb.ts 가 공유 빌드에서만 불러옴.
- * three.js DRACOLoader 는 해독기 파일을 fetch 해서 blob 워커로 돌리는데, 아티팩트에서는
- * 별도 파일 fetch·.wasm·blob 워커가 막힐 수 있어서 같은 해독 코드를 메인 스레드에서 돌림.
- * 해독 함수는 DRACOLoader 의 워커 코드(decodeGeometry·decodeIndex·decodeAttribute)를 그대로 옮김.
- * 우리 방 모델은 합쳐서 수십만 꼭짓점 정도라 메인 스레드에서도 한 번에 끝남.
+ * three.js DRACOLoader 는 해독기 파일을 fetch 해서 blob 워커로 돌리는데, 아티팩트에서는 .wasm·blob 워커가 막힐 수 있어서
+ * 순수 JS 해독기(dracoCore.ts)를 번들에 넣어 씀.
+ * - 2026-11-13 (docs/rendering-experiments.md 2번): 빌드에 들어간 module Worker(dracoWorker.ts)에서 풀어 메인 스레드를 비움.
+ *   Worker 를 못 만들거나 실패하면 예전처럼 메인 스레드에서 풂. 시험용 ?dracow=0 으로 끔
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type Draco = any
-interface TaskConfig { attributeIDs: Record<string, number | string>; attributeTypes: Record<string, string>; useUniqueIDs: boolean; vertexColorSpace: string }
-interface GeoData { index: { array: Uint32Array; itemSize: number } | null; attributes: { name: string; array: ArrayLike<number>; itemSize: number; vertexColorSpace?: string }[] }
 
-let modulePending: Promise<Draco> | null = null
-function decoderModule(): Promise<Draco> {
-  if (!modulePending) {
-    modulePending = new Promise((resolve) => {
-      // Module 은 then 이 있는 객체라 그대로 resolve 하면 무한히 기다림 → 감싸서 넘김 (DRACOLoader 워커와 같음)
-      ;(DracoDecoderModule as any)({ onModuleLoaded: (draco: Draco) => resolve({ draco }) })
-    }).then((m: any) => m.draco)
-  }
-  return modulePending
-}
+/** Worker 하나 (해독기 초기화 비용이 있어서 재사용). null = 못 씀 → 메인 스레드 */
+let worker: Worker | null | undefined
+let seq = 0
+const waits = new Map<number, { ok: (d: GeoData) => void; fail: (e: unknown) => void }>()
 
-const ARRAYS: Record<string, any> = { Float32Array, Int8Array, Int16Array, Int32Array, Uint8Array, Uint16Array, Uint32Array }
-
-function dataType(draco: Draco, T: any) {
-  switch (T) {
-    case Float32Array: return draco.DT_FLOAT32
-    case Int8Array: return draco.DT_INT8
-    case Int16Array: return draco.DT_INT16
-    case Int32Array: return draco.DT_INT32
-    case Uint8Array: return draco.DT_UINT8
-    case Uint16Array: return draco.DT_UINT16
-    case Uint32Array: return draco.DT_UINT32
-  }
-}
-
-function decodeIndex(draco: Draco, decoder: Draco, geo: Draco) {
-  const n = geo.num_faces() * 3, bytes = n * 4
-  const ptr = draco._malloc(bytes)
-  decoder.GetTrianglesUInt32Array(geo, bytes, ptr)
-  const index = new Uint32Array(draco.HEAPF32.buffer, ptr, n).slice()
-  draco._free(ptr)
-  return { array: index, itemSize: 1 }
-}
-
-function decodeAttribute(draco: Draco, decoder: Draco, geo: Draco, name: string, T: any, attribute: Draco) {
-  const comps = attribute.num_components(), n = geo.num_points() * comps, bytes = n * T.BYTES_PER_ELEMENT
-  const ptr = draco._malloc(bytes)
-  decoder.GetAttributeDataArrayForAllPoints(geo, attribute, dataType(draco, T), bytes, ptr)
-  const array = new T(draco.HEAPF32.buffer, ptr, n).slice()
-  draco._free(ptr)
-  return { name, array, itemSize: comps }
-}
-
-function decodeGeometry(draco: Draco, decoder: Draco, array: Int8Array, cfg: TaskConfig): GeoData {
-  let geo: Draco, status: Draco
-  const type = decoder.GetEncodedGeometryType(array)
-  if (type === draco.TRIANGULAR_MESH) { geo = new draco.Mesh(); status = decoder.DecodeArrayToMesh(array, array.byteLength, geo) }
-  else if (type === draco.POINT_CLOUD) { geo = new draco.PointCloud(); status = decoder.DecodeArrayToPointCloud(array, array.byteLength, geo) }
-  else throw new Error('THREE.DRACOLoader: Unexpected geometry type.')
-  if (!status.ok() || geo.ptr === 0) throw new Error('THREE.DRACOLoader: Decoding failed: ' + status.error_msg())
-  const out: GeoData = { index: null, attributes: [] }
-  for (const name in cfg.attributeIDs) {
-    const T = ARRAYS[cfg.attributeTypes[name]]
-    let attribute: Draco
-    if (cfg.useUniqueIDs) attribute = decoder.GetAttributeByUniqueId(geo, cfg.attributeIDs[name])
-    else {
-      const id = decoder.GetAttributeId(geo, draco[cfg.attributeIDs[name] as string])
-      if (id === -1) continue
-      attribute = decoder.GetAttribute(geo, id)
+function getWorker(): Worker | null {
+  if (worker !== undefined) return worker
+  if (typeof Worker === 'undefined' || testParam('dracow') === '0') return (worker = null)
+  try {
+    const w = new Worker(new URL('./dracoWorker.ts', import.meta.url), { type: 'module', name: 'draco' })
+    w.onmessage = (e: MessageEvent<{ id: number; data?: GeoData; error?: string }>) => {
+      const p = waits.get(e.data.id); if (!p) return
+      waits.delete(e.data.id)
+      if (e.data.data) p.ok(e.data.data); else p.fail(new Error(e.data.error))
     }
-    const r: GeoData['attributes'][number] = decodeAttribute(draco, decoder, geo, name, T, attribute)
-    if (name === 'color') r.vertexColorSpace = cfg.vertexColorSpace
-    out.attributes.push(r)
+    w.onerror = (e) => {
+      // 시작부터 막힘 (CSP 등) → 이후는 메인 스레드, 기다리던 것도 메인 스레드로 다시
+      console.warn('[3D] Draco Worker 를 못 써서 메인 스레드에서 풀어요', e.message)
+      worker = null
+      for (const p of waits.values()) p.fail(new Error('worker'))
+      waits.clear()
+    }
+    worker = w
+  } catch (e) {
+    console.warn('[3D] Draco Worker 를 못 만들어서 메인 스레드에서 풀어요', e)
+    worker = null
   }
-  if (type === draco.TRIANGULAR_MESH) out.index = decodeIndex(draco, decoder, geo)
-  draco.destroy(geo)
-  return out
+  return worker
 }
 
-class MainThreadDracoLoader extends DRACOLoader {
-  preload() { decoderModule(); return this }
-  // GLTFLoader 가 부르는 decodeDracoFile → decodeGeometry 를 워커 대신 여기서 처리
+/** 메인 스레드 해독 (Worker 를 못 쓸 때만 해독기를 불러옴 → 평소엔 메인 스레드가 해독기 455KB 를 읽지 않음) */
+function decodeHere(buffer: ArrayBuffer, cfg: TaskConfig): Promise<GeoData> {
+  return import('./dracoCore').then(({ decoderModule, decodeGeometry }) => decoderModule().then((draco) => {
+    const decoder = new draco.Decoder()
+    try { return decodeGeometry(draco, decoder, new Int8Array(buffer), cfg) } finally { draco.destroy(decoder) }
+  }))
+}
+
+function decodeInWorker(buffer: ArrayBuffer, cfg: TaskConfig): Promise<GeoData> {
+  const w = getWorker()
+  if (!w) return decodeHere(buffer, cfg)
+  const id = ++seq
+  // buffer 는 glb 안 조각을 복사한 것이라 넘겨도(transfer) 됨
+  const copy = buffer.slice(0)
+  return new Promise<GeoData>((ok, fail) => {
+    waits.set(id, { ok, fail })
+    w.postMessage({ id, buffer: copy, cfg }, [copy])
+  }).catch(() => decodeHere(buffer, cfg))
+}
+
+class SharedDracoLoader extends DRACOLoader {
+  preload() { getWorker(); return this }
+  // GLTFLoader 가 부르는 decodeDracoFile → decodeGeometry 를 여기서 처리
   decodeGeometry(buffer: ArrayBuffer, taskConfig: TaskConfig) {
-    return decoderModule().then((draco) => {
-      const decoder = new draco.Decoder()
-      try {
-        const data = decodeGeometry(draco, decoder, new Int8Array(buffer), taskConfig)
-        return (this as any)._createGeometry(data)
-      } finally {
-        draco.destroy(decoder)
-      }
-    })
+    return decodeInWorker(buffer, taskConfig).then((data) => (this as any)._createGeometry(data))
   }
 }
 
 export function createMainThreadDracoLoader(): DRACOLoader {
-  return new MainThreadDracoLoader()
+  return new SharedDracoLoader()
 }

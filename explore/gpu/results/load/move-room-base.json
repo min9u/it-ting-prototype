@@ -1,0 +1,37 @@
+{
+  "name": "move-room-base",
+  "mode": "hwoff",
+  "url": "http://127.0.0.1:5301/#/burrow",
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "idle1": {
+    "sec": 6,
+    "rafFps": 60.1,
+    "renderFps": 2.3,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 2.3
+  },
+  "moving": {
+    "sec": 8,
+    "rafFps": 60.1,
+    "renderFps": 10,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 10
+  },
+  "idle2": {
+    "sec": 6,
+    "rafFps": 60,
+    "renderFps": 2,
+    "rafP50": 17,
+    "worstGap": 17,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "sceneFps": 2
+  },
+  "twoFramesMs": 22
+}

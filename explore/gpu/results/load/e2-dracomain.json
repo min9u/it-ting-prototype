@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-dracomain",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/?dracow=0#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2104,
+      "longTaskMs": 1082,
+      "longTaskMax": 681,
+      "worstFreezeMs": 717,
+      "mb": 7.2,
+      "heapMB": 86
+    },
+    "warm": {
+      "readyMs": 1665,
+      "longTaskMs": 522,
+      "longTaskMax": 447,
+      "worstFreezeMs": 500,
+      "mb": 0,
+      "heapMB": 86
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2166,
+      "longTaskMs": 1123,
+      "longTaskMax": 701,
+      "worstFreezeMs": 733,
+      "heapMB": 86,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1790,
+      "longTaskMs": 567,
+      "longTaskMax": 447,
+      "worstFreezeMs": 500,
+      "heapMB": 86,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2104,
+      "longTaskMs": 1082,
+      "longTaskMax": 681,
+      "worstFreezeMs": 717,
+      "heapMB": 86,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1514,
+      "longTaskMs": 522,
+      "longTaskMax": 457,
+      "worstFreezeMs": 500,
+      "heapMB": 139,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2061,
+      "longTaskMs": 1079,
+      "longTaskMax": 681,
+      "worstFreezeMs": 717,
+      "heapMB": 86,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1665,
+      "longTaskMs": 495,
+      "longTaskMax": 431,
+      "worstFreezeMs": 500,
+      "heapMB": 85,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

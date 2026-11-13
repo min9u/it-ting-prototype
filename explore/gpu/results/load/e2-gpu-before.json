@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-gpu-before",
+    "mode": "gpu",
+    "url": "http://127.0.0.1:5301/?compile=0&dracow=0&b64=0#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2113,
+      "longTaskMs": 1130,
+      "longTaskMax": 403,
+      "worstFreezeMs": 400,
+      "mb": 7.2,
+      "heapMB": 97
+    },
+    "warm": {
+      "readyMs": 1628,
+      "longTaskMs": 543,
+      "longTaskMax": 428,
+      "worstFreezeMs": 417,
+      "mb": 0,
+      "heapMB": 87
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2293,
+      "longTaskMs": 1347,
+      "longTaskMax": 449,
+      "worstFreezeMs": 450,
+      "heapMB": 97,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1682,
+      "longTaskMs": 634,
+      "longTaskMax": 428,
+      "worstFreezeMs": 417,
+      "heapMB": 87,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1964,
+      "longTaskMs": 1014,
+      "longTaskMax": 389,
+      "worstFreezeMs": 384,
+      "heapMB": 95,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1628,
+      "longTaskMs": 523,
+      "longTaskMax": 400,
+      "worstFreezeMs": 400,
+      "heapMB": 86,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2113,
+      "longTaskMs": 1130,
+      "longTaskMax": 403,
+      "worstFreezeMs": 400,
+      "heapMB": 97,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1573,
+      "longTaskMs": 543,
+      "longTaskMax": 430,
+      "worstFreezeMs": 417,
+      "heapMB": 94,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

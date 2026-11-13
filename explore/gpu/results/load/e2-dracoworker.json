@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-dracoworker",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2031,
+      "longTaskMs": 1035,
+      "longTaskMax": 683,
+      "worstFreezeMs": 700,
+      "mb": 7.1,
+      "heapMB": 68
+    },
+    "warm": {
+      "readyMs": 1546,
+      "longTaskMs": 464,
+      "longTaskMax": 396,
+      "worstFreezeMs": 400,
+      "mb": 0,
+      "heapMB": 73
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2130,
+      "longTaskMs": 1071,
+      "longTaskMax": 679,
+      "worstFreezeMs": 700,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1367,
+      "longTaskMs": 425,
+      "longTaskMax": 356,
+      "worstFreezeMs": 367,
+      "heapMB": 73,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2031,
+      "longTaskMs": 1035,
+      "longTaskMax": 699,
+      "worstFreezeMs": 700,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1627,
+      "longTaskMs": 464,
+      "longTaskMax": 397,
+      "worstFreezeMs": 417,
+      "heapMB": 73,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1994,
+      "longTaskMs": 1009,
+      "longTaskMax": 683,
+      "worstFreezeMs": 700,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1546,
+      "longTaskMs": 474,
+      "longTaskMax": 396,
+      "worstFreezeMs": 400,
+      "heapMB": 73,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

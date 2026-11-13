@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-gpu-compile",
+    "mode": "gpu",
+    "url": "http://127.0.0.1:5301/?compile=1#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 1795,
+      "longTaskMs": 181,
+      "longTaskMax": 85,
+      "worstFreezeMs": 150,
+      "mb": 7.1,
+      "heapMB": 71
+    },
+    "warm": {
+      "readyMs": 1334,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "worstFreezeMs": 34,
+      "mb": 0,
+      "heapMB": 69
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 1808,
+      "longTaskMs": 152,
+      "longTaskMax": 79,
+      "worstFreezeMs": 167,
+      "heapMB": 72,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1310,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "worstFreezeMs": 33,
+      "heapMB": 68,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1795,
+      "longTaskMs": 283,
+      "longTaskMax": 85,
+      "worstFreezeMs": 150,
+      "heapMB": 71,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1334,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "worstFreezeMs": 34,
+      "heapMB": 69,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1730,
+      "longTaskMs": 181,
+      "longTaskMax": 95,
+      "worstFreezeMs": 133,
+      "heapMB": 71,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1362,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "worstFreezeMs": 34,
+      "heapMB": 69,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}
