@@ -27,7 +27,7 @@ await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__f=[];win
  const _gc=HTMLCanvasElement.prototype.getContext; window.__draws=[]; HTMLCanvasElement.prototype.getContext=function(...a){const c=_gc.apply(this,a); if(c&&/webgl/.test(a[0])&&!c.__w){c.__w=1; for (const fn of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){ const o=c[fn]; if(!o) continue; c[fn]=function(...b){ const n=performance.now(); if(!window.__lastDraw||n-window.__lastDraw>4) window.__draws.push(n); window.__lastDraw=n; return o.apply(this,b)} }} return c};
  try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push([e.startTime,e.duration]))).observe({type:'longtask',buffered:true})}catch(e){}` })
 // LAB='{"A":false}' 처럼 주면 저사양 실험실(app/src/lib/lowLab.ts) 선택을 미리 넣음
-if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
+if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab.v2', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
 await send('Page.navigate', { url })
 await sleep(8000)
 const ev = async (x) => (await send('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true })).result?.result?.value

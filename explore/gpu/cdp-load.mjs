@@ -37,7 +37,7 @@ async function run(prof, label) {
   const ev = async (x) => (await send('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true })).result?.result?.value
   await send('Page.enable'); await send('Network.enable')
   await send('Page.addScriptToEvaluateOnNewDocument', { source: INJECT })
-  if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab', ${JSON.stringify(process.env.LAB)});localStorage.setItem('digul.gpuNotice.dismissed','1')}catch(e){}` })
+  if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab.v2', ${JSON.stringify(process.env.LAB)});localStorage.setItem('digul.gpuNotice.dismissed','1')}catch(e){}` })
   else await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.gpuNotice.dismissed','1')}catch(e){}` })
   const res = []
   for (let k = 0; k < 2; k++) {

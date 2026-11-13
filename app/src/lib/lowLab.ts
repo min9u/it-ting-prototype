@@ -36,9 +36,10 @@ export interface LabState {
   N: boolean
 }
 
-export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: true, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
+export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: false, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
 
-const KEY = 'digul.lowlab'
+// 2026-11-13 v2: 기본값에서 B(스톱모션 10fps)를 끔. 예전에 저장된 선택(B 켜짐)이 남지 않게 키를 바꿈
+const KEY = 'digul.lowlab.v2'
 const KEY_SHOW = 'digul.lowlab.show'
 
 const read = (): LabState => {
