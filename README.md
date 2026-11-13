@@ -124,6 +124,7 @@ npm run build:share  # 팀 공유용 빌드 → app/dist-share
 - [3d-handoff-v2-integration.md](docs/3d-handoff-v2-integration.md), [3d-handoff-v3-integration.md](docs/3d-handoff-v3-integration.md) — 디자이너 glb 반영 (v1 ~ v3.5.1)
 
 **성능·운영**
+- [rendering-overview.md](docs/rendering-overview.md) — 3D 렌더링 방식, 저사양 PC에서 보이는 모습, 개선 방향
 - [gpu-fallback-research.md](docs/gpu-fallback-research.md) — 그래픽 가속이 꺼진 PC 실측과 대응
 - [gpu-lowspec-ideas.md](docs/gpu-lowspec-ideas.md) — 저사양 아이디어 9개 구현·측정
 - [dev-deploy-risks.md](docs/dev-deploy-risks.md) — 백엔드 연결·배포 때 위험 지점과 API 규약 초안
