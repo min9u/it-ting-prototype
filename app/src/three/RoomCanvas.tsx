@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import SceneCanvas from './SceneCanvas'
 import { mountRoomScene } from './roomScene'
 import { quality, type SceneHandle } from './engine'
@@ -7,7 +8,7 @@ import { mountRoomWorker, workerRenderSupported } from './worker/roomWorkerHost'
 const useWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
 
 /** 땅굴 방 3D (RoomView 가 React.lazy 로 불러옴 → three.js 는 별도 청크) */
-export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, focusX, className, label, onReady }: {
+export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, focusX, className, label, onReady, overlay }: {
   ownerId: string
   /** 남의 땅굴이면 집주인 닉네임 (집주인 두더지가 나옴) */
   hostName?: string
@@ -23,6 +24,8 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
   className?: string
   label?: string
   onReady?: (handle: SceneHandle) => void
+  /** 장면 위 UI (SceneCanvas overlay) */
+  overlay?: ReactNode
 }) {
   return (
     <SceneCanvas
@@ -35,6 +38,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
       className={className}
       label={label}
       onReady={onReady}
+      overlay={overlay}
     />
   )
 }

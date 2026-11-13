@@ -47,11 +47,9 @@ export default function VisitBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
+      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
+        hostBubble={<button className={s.speech} onClick={() => setReqOpen(true)}>💬 대화 요청하기</button>}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
-        <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => setReqOpen(true)}>
-          💬 대화 요청하기
-        </button>
         <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.515) * 100}%` }} />
       </RoomView>
 

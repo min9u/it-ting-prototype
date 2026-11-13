@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import type { SceneHandle } from '../three/engine'
+import type { HostScreen, SceneHandle } from '../three/engine'
 import { ROOM_FRAME } from '../three/roomFrame'
 import roomCutout from '../assets/room-v2.webp'
 import styles from './RoomView.module.css'
@@ -43,6 +43,12 @@ interface Props {
   loader?: boolean
   /** 3D 가 다 차려짐 (loader 와 같이 씀) */
   onLoaded?: () => void
+  /**
+   * 집주인 두더지 머리 바로 위에 띄울 UI (남의 땅굴의 '대화 요청하기' 말풍선). 아래 가운데가 머리 꼭대기에 오게 둠.
+   * 3D 장면이 알려 주는 위치(SceneHandle.onHostScreen)를 ref 로 직접 옮겨서 매 프레임 React 렌더가 없음.
+   * 집주인이 안 보이거나 입장 연출·리액션 말풍선 중이면 숨김. 3D 를 못 쓰면 예전처럼 방 가운데쯤 고정
+   */
+  hostBubble?: ReactNode
 }
 
 /**
@@ -84,7 +90,7 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, hostBubble }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
@@ -100,6 +106,22 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const latestLoaded = useRef(onLoaded)
   latestLoaded.current = onLoaded
   const shown = loader ? loaded : ready
+  // 집주인 머리 위 자리: 마지막 위치를 기억해 두고, 3D 가 보일 때만 켬
+  const anchor = useRef<HTMLDivElement>(null)
+  const hostAt = useRef<HostScreen | null>(null)
+  const shownRef = useRef(shown)
+  shownRef.current = shown
+  const placeHost = () => {
+    const a = anchor.current
+    if (!a) return
+    const p = hostAt.current
+    // 위로는 말풍선 키(약 56px)만큼 남겨서, 확대해 머리가 화면 위로 나가도 말풍선은 화면 안에
+    if (p) a.style.transform = `translate3d(${Math.round(p.x)}px, ${Math.round(Math.max(p.y, 60))}px, 0)`
+    const on = !!p && shownRef.current
+    if (on) a.dataset.on = ''; else delete a.dataset.on
+  }
+  useEffect(placeHost, [shown]) // eslint-disable-line react-hooks/exhaustive-deps
+  const placeholder = loader ? gaveUp && !ready : !ready
   return (
     <div className={styles.scene} data-owner={ownerId}>
       {loader && !loaded && !gaveUp && (
@@ -111,7 +133,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           <span className={styles.loaderText}>땅굴 파는 중<span aria-hidden className={styles.loaderDots}><b>.</b><b>.</b><b>.</b></span></span>
         </div>
       )}
-      {(loader ? gaveUp && !ready : !ready) && (
+      {placeholder && (
         <div className={styles.stage} style={{ left: `${focusX * 100}%`, top: `${ROOM_FRAME.top * 100}%`, height: `${ROOM_FRAME.h * 100}%` }}>
           <img src={roomCutout} alt={label ?? '땅굴 방 모습'} className={styles.room} draggable={false} />
         </div>
@@ -128,8 +150,13 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           focusX={focusX}
           className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
           label={label ?? '땅굴 방 모습'}
+          overlay={hostBubble != null && (
+            <div ref={anchor} className={styles.hostAnchor}>{hostBubble}</div>
+          )}
           onReady={(h) => {
             handle.current = h; setReady(true)
+            hostAt.current = null; placeHost()
+            h.onHostScreen?.((p) => { if (handle.current !== h) return; hostAt.current = p; placeHost() })
             ;(h.loaded ?? Promise.resolve()).then(() => { if (handle.current !== h) return; setLoaded(true); latestLoaded.current?.() })
           }}
         />
@@ -142,6 +169,9 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
             </button>
           ))}
         </div>
+      )}
+      {placeholder && hostBubble != null && (
+        <div className={styles.hostStatic} style={{ left: `${(focusX - 0.01) * 100}%` }}>{hostBubble}</div>
       )}
       {children}
     </div>

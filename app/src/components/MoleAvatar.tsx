@@ -26,8 +26,6 @@ export interface Accessory {
   /** 타일 아이콘을 그릴 때 보여 줄 영역 */
   vb: string
   draw: () => ReactNode
-  /** 레벨이 올라야 쓸 수 있는 것 (타일만 보여 줌) */
-  lockedLv?: number
 }
 
 const INK = '#3e2a1f'
@@ -70,7 +68,7 @@ export const ACCESSORIES: Record<Slot, { label: string; items: Accessory[] }> = 
           <circle r="3" fill="#f0c850" />
         </g>
       ) },
-      { id: 'crown', name: '왕관', vb: '30 4 40 28', draw: () => <path d="M34 28 L36 10 L44 19 L50 7 L56 19 L64 10 L66 28 Z" fill="#f0c850" />, lockedLv: 3 },
+      { id: 'crown', name: '왕관', vb: '30 4 40 28', draw: () => <path d="M34 28 L36 10 L44 19 L50 7 L56 19 L64 10 L66 28 Z" fill="#f0c850" /> },
     ],
   },
   glasses: {
@@ -98,7 +96,7 @@ export const ACCESSORIES: Record<Slot, { label: string; items: Accessory[] }> = 
         <g fill="#f0c850" stroke="#c98a3a" strokeWidth="1">
           {[41.5, 58.5].map((x) => <path key={x} transform={`translate(${x} 45)`} d="M0 -8 L2.4 -2.6 L8 -2.4 L3.6 1.2 L5 7 L0 3.8 L-5 7 L-3.6 1.2 L-8 -2.4 L-2.4 -2.6 Z" />)}
         </g>
-      ), lockedLv: 3 },
+      ) },
     ],
   },
   scarf: {

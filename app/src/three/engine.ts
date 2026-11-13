@@ -77,7 +77,15 @@ export interface SceneHandle {
   setFrozen?(on: boolean): void
   /** 모델을 다 받고 첫 그림을 그린 뒤 풀림 (땅굴 장면만. 못 불러와도 풀림) */
   loaded?: Promise<void>
+  /**
+   * 집주인 두더지 머리 위 화면 위치 알림 (남의 땅굴만). 장면 컨테이너 기준 px, null = 숨김
+   * (집주인이 안 보임·입장 연출 중·집주인 리액션 말풍선이 떠 있음). 바뀔 때만 부름, 등록하면 지금 값을 바로 한 번 부름
+   */
+  onHostScreen?(cb: ((p: HostScreen | null) => void) | null): void
 }
+
+/** 집주인 두더지 머리 꼭대기의 화면 위치 (장면 컨테이너 기준 px) */
+export interface HostScreen { x: number; y: number }
 
 /**
  * 렌더러를 만들어 container 안에 캔버스를 붙인다.

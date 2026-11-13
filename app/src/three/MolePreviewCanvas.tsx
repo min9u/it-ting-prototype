@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { createRenderer, destroyRenderer, disposeObject, quality, startLoop } from './engine'
@@ -10,10 +10,13 @@ import { blobShadow } from './roomLook'
  * 온보딩 1 "두더지 꾸미기" 3D 미리 보기 (accessories.md 7번)
  * - mole_showcase(3초) 반복 + 받침을 초당 60° 회전 (한 바퀴 6초)
  * - 조명은 땅굴 방과 같은 값 (room_spec.md 3번)
+ * - view: 캔버스가 원래 정사각형보다 넓을 때(위로 Overflow Zone) 그 정사각형이 캔버스 안 어디인지.
+ *   setViewOffset 으로 정사각형 안 구도는 그대로 두고 바깥만 더 그림
  */
+export interface PreviewView { left: number; top: number; size: number }
 interface Handle { setWorn(ids: string[]): void; setSpin(on: boolean): void; dispose(): void }
 
-function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onReady(): void }): Handle {
+function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; view?: PreviewView; onReady(): void }): Handle {
   // 저사양(engine.ts)이면 해상도를 낮추고 15fps. 돌리기를 멈춘 뒤 1초 지나면 그리기도 멈춤
   const q = quality()
   const renderer = createRenderer(el, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q })
@@ -50,7 +53,13 @@ function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onRea
 
   stand.rotation.y = -0.5
   const loop = startLoop(el, {
-    resize(w, h) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix() },
+    resize(w, h) {
+      renderer.setSize(w, h, false)
+      const v = o.view
+      if (v && v.size > 0) { camera.aspect = 1; camera.setViewOffset(v.size, v.size, -v.left, -v.top, w, h) }
+      else camera.aspect = w / h
+      camera.updateProjectionMatrix()
+    },
     frame(dt) {
       if (spin && !reduce) stand.rotation.y += THREE.MathUtils.degToRad(60) * dt
       mixer?.update(dt)
@@ -70,17 +79,17 @@ function mountPreview(el: HTMLElement, o: { worn: string[]; spin: boolean; onRea
   }
 }
 
-export default function MolePreviewCanvas({ worn, spin, label, className, onReady }: { worn: string[]; spin: boolean; label?: string; className?: string; onReady?: () => void }) {
+export default function MolePreviewCanvas({ worn, spin, label, className, style, view, onReady }: { worn: string[]; spin: boolean; label?: string; className?: string; style?: CSSProperties; view?: PreviewView; onReady?: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const h = useRef<Handle | null>(null)
-  const latest = useRef({ worn, spin, onReady })
-  latest.current = { worn, spin, onReady }
+  const latest = useRef({ worn, spin, view, onReady })
+  latest.current = { worn, spin, view, onReady }
   useEffect(() => {
     const el = ref.current
     if (!el) return
     let handle: Handle
     try {
-      handle = mountPreview(el, { worn: latest.current.worn, spin: latest.current.spin, onReady: () => latest.current.onReady?.() })
+      handle = mountPreview(el, { worn: latest.current.worn, spin: latest.current.spin, view: latest.current.view, onReady: () => latest.current.onReady?.() })
     } catch (err) {
       console.warn('[3D] 미리 보기를 만들지 못했어요', err) // WebGL 없음 → 2D 그대로
       return
@@ -90,5 +99,5 @@ export default function MolePreviewCanvas({ worn, spin, label, className, onRead
   }, [])
   useEffect(() => { h.current?.setWorn(worn) }, [worn])
   useEffect(() => { h.current?.setSpin(spin) }, [spin])
-  return <div ref={ref} className={className} role="img" aria-label={label ?? '두더지 미리 보기'} />
+  return <div ref={ref} className={className} style={style} role="img" aria-label={label ?? '두더지 미리 보기'} />
 }

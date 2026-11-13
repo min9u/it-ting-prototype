@@ -82,7 +82,28 @@ export interface MoleActor {
   headTop(out: THREE.Vector3): THREE.Vector3
   /** 액세서리 바꾸기 (acc 를 넘겨 만든 경우만) */
   setWorn(ids: string[]): void
+  /**
+   * 지상: 굴로 들어가기 (ground_move_spec 5·5-1). 굴 앞 도착점(굴 중심에서 카메라 쪽 1.75m)까지 걷고
+   * 4·10·16·22프레임에 맞춰 멈춘 뒤 mole_turn 으로 굴을 보고, 굴 중심으로 옮겨 mole_burrow_enter. 끝나면 숨김
+   */
+  enterBurrow(center: THREE.Vector3, o?: BurrowOpts): void
+  /** 지상: 굴에서 나오기. 굴 중심에 회전 0으로 두고 mole_burrow_exit → 착지점(굴 앞 1.75m)으로 옮기고 mole_idle */
+  exitBurrow(center: THREE.Vector3, o?: BurrowOpts): void
+  /** 굴에 들어가서 안 보이는지 */
+  isHidden(): boolean
   dispose(): void
+}
+
+/** 굴 들어가기·나오기 옵션 */
+export interface BurrowOpts {
+  /** 다 끝나면 (들어가기: 쏙 사라진 뒤, 나오기: idle 로 이어진 뒤) */
+  done?: () => void
+  /** 걷기·돌기·굴 동작 없이 바로 (동작 줄이기) */
+  instant?: boolean
+  /** 걷기·돌기는 하되 굴 동작(enter/exit clip)만 건너뜀 (2D 두더지 E) */
+  skipClip?: boolean
+  /** 굴 → 카메라 수평 방향 (기본 +Z). 도착점 = 굴 중심 + 1.75m × 이 방향 */
+  toward?: THREE.Vector3
 }
 
 export function createMoleActor(gltf: GLTF, opts: {
@@ -201,7 +222,7 @@ export function createMoleActor(gltf: GLTF, opts: {
   /* ---------- 단계들 ---------- */
   const speed = WALK_BASE * WALK_RATE * S
 
-  function walkStep(target: THREE.Vector3, o: { strict?: boolean } = {}): Step {
+  function walkStep(target: THREE.Vector3, o: { strict?: boolean; until?: number; keep?: boolean } = {}): Step {
     let goal = target.clone(); let stuck = 0; let last = Infinity
     return {
       begin() {
@@ -211,6 +232,7 @@ export function createMoleActor(gltf: GLTF, opts: {
       },
       tick(dt) {
         const dx = goal.x - object.position.x, dz = goal.z - object.position.z, d = Math.hypot(dx, dz)
+        if (o.until && d < o.until) return true   // 이어서 approachStep 이 걷기를 끊지 않고 이어 받음
         if (d < .03) { object.position.x = goal.x; object.position.z = goal.z; play('mole_idle', { fade: .12 }); return true }
         // 몸을 진행 방향으로 (빠르게 따라 돌기)
         const want = Math.atan2(dx, dz), diff = wrap(want - yawOf())
@@ -222,7 +244,7 @@ export function createMoleActor(gltf: GLTF, opts: {
         // 가구에 막혀 더 못 가면 멈춤
         if (d > last - 1e-4 && go > 0) stuck += dt; else stuck = 0
         last = d
-        if (stuck > .5) { play('mole_idle', { fade: .12 }); plan = []; return true }
+        if (stuck > .5) { play('mole_idle', { fade: .12 }); if (!o.keep) plan = []; return true }
         return false
       },
       cancel() { play('mole_idle', { fade: .12 }) },
@@ -419,6 +441,103 @@ export function createMoleActor(gltf: GLTF, opts: {
   }
   const yawTo = (p: THREE.Vector3) => Math.atan2(p.x - object.position.x, p.z - object.position.z)
 
+  /* ---------- 지상: 굴 들어가기·나오기 (ground_move_spec 3·4·5) ---------- */
+  const BURROW_FRONT = 1.75            // 굴 중심 → 도착·착지점 (m)
+  const BURROW_DROP = .01 + .033       // 굴 중심 높이 = 도착점 지면 높이 - 0.01 - 0.033
+  const STRIDE = .081                  // 한 걸음(6프레임 = 동작 0.25초)에 나아가는 거리 (m, 0.324 m/s × 0.25)
+  let burrowing = false, hidden = false
+  const groundY = (x: number, z: number) => (opts.groundAt ? opts.groundAt(x, z) : FY)
+  const towardOf = (o?: BurrowOpts) => { const d = (o?.toward ?? new THREE.Vector3(0, 0, 1)).clone().setY(0); return d.lengthSq() > 1e-6 ? d.normalize() : d.set(0, 0, 1) }
+
+  /**
+   * 굴 앞 도착점까지 마지막 몇 걸음: 걸음 수(6프레임 단위)를 정하고 속도를 맞춰서 mole_walk 의 4·10·16·22프레임(발이 모이는 때)에 정확히 멈춤.
+   * 이미 걷는 중이면 걷기를 끊지 않고 이어 받고, 서 있으면 4프레임(0.125초)부터 시작. 멈추면 0.1초 크로스페이드로 idle
+   */
+  function approachStep(target: THREE.Vector3): Step {
+    const from = new THREE.Vector3(); let D = 0, E = 0, e = 0
+    let walk: THREE.AnimationAction | null = null
+    return {
+      begin() {
+        from.copy(object.position); D = Math.hypot(target.x - from.x, target.z - from.z); e = 0
+        if (D < .01 * S) { E = 0; return }
+        walk = act('mole_walk')
+        if (current !== walk || !walk.isRunning()) play('mole_walk', { from: .125, rate: WALK_RATE, fade: .1 })
+        else walk.timeScale = WALK_RATE
+        const phase = ((walk.time % 1) + 1) % 1
+        const r0 = (((.125 - phase) % .25) + .25) % .25                  // 다음 "발 모임" 프레임까지
+        const m = Math.max(r0 < .02 ? 1 : 0, Math.round((D / (STRIDE * 4 * S) - r0) / .25))
+        E = r0 + m * .25   // 걸을 동작 시간 (초). 이동은 e / E 비율로 해서 속도가 D / (E × 0.324m) 배로 맞춰짐 (보통 ±3% 안)
+      },
+      tick(dt) {
+        if (E <= 0) { object.position.x = target.x; object.position.z = target.z; return true }
+        e += dt * WALK_RATE
+        const u = Math.min(1, e / E)
+        object.position.x = from.x + (target.x - from.x) * u
+        object.position.z = from.z + (target.z - from.z) * u
+        const want = Math.atan2(target.x - from.x, target.z - from.z)
+        object.rotation.y = yawOf() + wrap(want - yawOf()) * Math.min(1, dt * 12)
+        if (u < 1) return false
+        play('mole_idle', { fade: .1 })
+        return true
+      },
+      cancel() { play('mole_idle', { fade: .1 }) },
+    }
+  }
+
+  /** 굴 중심에 두고 mole_burrow_enter / exit (뼈대가 굴 기준으로 움직임). after = 끝났을 때 */
+  function burrowClipStep(name: 'mole_burrow_enter' | 'mole_burrow_exit', center: THREE.Vector3, yaw: number, front: THREE.Vector3, after: () => void): Step {
+    let t = 0, end = 0
+    return {
+      hold: true,
+      begin() {
+        burrowing = true; hidden = false; object.visible = true
+        object.position.set(center.x, groundY(front.x, front.z) - BURROW_DROP * S, center.z)
+        object.rotation.set(0, yaw, 0)
+        t = 0; end = clip(name).duration
+        play(name, { once: true, fade: 0 })
+      },
+      tick(dt) { t += dt; if (t < end) return false; after(); return true },
+    }
+  }
+
+  function enterBurrow(center: THREE.Vector3, o: BurrowOpts = {}) {
+    userAct()
+    const dir = towardOf(o)
+    const front = new THREE.Vector3(center.x + dir.x * BURROW_FRONT * S, FY, center.z + dir.z * BURROW_FRONT * S)
+    const yawB = Math.atan2(dir.x, dir.z)   // 굴 기준 회전 (탐색 화면은 0)
+    const hide = () => { hidden = true; burrowing = true; object.visible = false; play('mole_idle', { fade: 0 }) }
+    if (o.instant || reduce) { setPlan([callStep(() => { pose = 'stand'; seatAt = null; hide(); o.done?.() })]); return }
+    const steps: Step[] = [...standUp()]
+    const d = Math.hypot(front.x - object.position.x, front.z - object.position.z)
+    // 멀면 평소 걷기(장애물 피하기)로 가까이 간 뒤 마지막 걸음만 맞춰 멈춤. 가까우면 먼저 그쪽으로 돌고 걷기
+    if (d > .6 * S) steps.push(walkStep(front, { until: .45 * S, keep: true }))
+    else if (d > .05 * S) steps.push(turnStep(() => yawTo(front)))
+    steps.push(approachStep(front))
+    // 엉덩이가 카메라를 향하게: 굴을 바라보도록 돌기 (120° 넘으면 두 번에 나눠, turnStep)
+    steps.push(turnStep(() => Math.atan2(center.x - front.x, center.z - front.z)))
+    if (o.skipClip) steps.push(callStep(hide))
+    else steps.push(burrowClipStep('mole_burrow_enter', center, yawB, front, hide))
+    steps.push(callStep(() => o.done?.()))
+    setPlan(steps)
+  }
+
+  function exitBurrow(center: THREE.Vector3, o: BurrowOpts = {}) {
+    userAct()
+    const dir = towardOf(o)
+    const front = new THREE.Vector3(center.x + dir.x * BURROW_FRONT * S, FY, center.z + dir.z * BURROW_FRONT * S)
+    const yawB = Math.atan2(dir.x, dir.z)
+    // 착지: 굴 앞 1.75m, 카메라를 봄. 뼈대 위치가 같아서 idle 로 바로 (페이드 없이) 이어짐
+    const land = () => {
+      burrowing = false; hidden = false; object.visible = true; pose = 'stand'; seatAt = null
+      object.position.set(front.x, groundY(front.x, front.z) - .01 * S, front.z)
+      object.rotation.set(0, yawB, 0)
+      play('mole_idle', { fade: 0 })
+    }
+    if (o.instant || o.skipClip || reduce) { if (cur?.hold) cur = null; setPlan([callStep(() => { land(); o.done?.() })]); return }
+    if (cur?.hold) cur = null   // 굴 속에 숨어 있던 상태(이전 들어가기)에서 바로 이어서
+    setPlan([burrowClipStep('mole_burrow_exit', center, yawB, front, land), callStep(() => o.done?.())])
+  }
+
   function greetWith(other: MoleActor) {
     const op = other.object.position
     // 상대에서 나 쪽으로 1.5m (방 단위 ×scale), 카메라 쪽으로 조금 치우치게
@@ -471,7 +590,7 @@ export function createMoleActor(gltf: GLTF, opts: {
       if (!cur && plan.length) { cur = plan.shift()!; cur.begin() }
       if (cur && cur.tick(dt)) cur = null
       // 서서 한참 가만히 있으면 두리번 (지상은 돌아다니기와 번갈아)
-      if (!cur && !plan.length && pose === 'stand') {
+      if (!cur && !plan.length && pose === 'stand' && !hidden) {
         idleFor += dt
         userFor = Math.max(0, userFor - dt)
         if (W && userFor <= 0 && idleFor > wanderAfter) {
@@ -482,7 +601,7 @@ export function createMoleActor(gltf: GLTF, opts: {
       } else idleFor = 0
     }
     // 지상: 발을 땅에 붙임 (ground_move_spec 2번. 탐색 화면 가까운 땅은 평평해서 몸 기울기는 생략)
-    if (opts.groundAt && pose === 'stand') object.position.y = opts.groundAt(object.position.x, object.position.z) - .01 * S
+    if (opts.groundAt && pose === 'stand' && !burrowing) object.position.y = opts.groundAt(object.position.x, object.position.z) - .01 * S
     mixer.update(dt)
     dress?.update(dt, activeClip(), driving || (current === act('mole_walk')))
   }
@@ -499,7 +618,8 @@ export function createMoleActor(gltf: GLTF, opts: {
   }
 
   return {
-    object, update, walkTo, drive, interact, react, greetWith,
+    object, update, walkTo, drive, interact, react, greetWith, enterBurrow, exitBurrow,
+    isHidden: () => hidden,
     faceTowards(p) { const q = p.clone(); setPlan([...standUp(), turnStep(() => yawTo(q))]) },
     greet(delay) { setPlan([...standUp(), waitStep(delay), clipStep('mole_greet')]) },
     isIdle: () => !cur && !plan.length,

@@ -12,7 +12,7 @@ import { bindDriveKeys } from './keys'
 import { createMoleActor, loadMoleGltf, REACTIONS, type FurnitureData, type MoleActor, type Seat } from './moleActor'
 import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
-import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
+import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type HostScreen, type SceneHandle } from './engine'
 import { createBackdrop, toDynamicLayer } from './staticBackdrop'
 import { ROOM_FRAME } from './roomFrame'
 import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
@@ -23,7 +23,7 @@ import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../da
  * - 기본 가구·장식·벽 선반: furniture_catalog.json(app/src/data/furnitureCatalog.json)의 type base·deco 행 glb 를 방 원점에 그대로
  * - 관심사 가구·소품: data/roomPlan.ts 가 slots.json 기준으로 자리를 정함. glb 가 없으면(todo) 카테고리 색 둥근 블록
  *   모델 파일은 assets/models/room/ 에 카탈로그의 glb_compressed 이름 그대로 두면 코드 변경 없이 쓰임
- * - 가구 낙하 "또로로록" + 착지 먼지: furniture_drop_spec.md (값은 slots.json 의 drop). 두더지가 내려온 뒤 시작
+ * - 가구 낙하 "또로로록" + 착지 먼지: furniture_drop_spec.md (값은 slots.json 의 drop). 방이 보인 뒤 0.3초에 시작해 1.9초 안에 다 놓임 (2026-11-12)
  * - 좌표: 1 unit = 1m, 방 중심 바닥 = 원점, 방 지름 6.5m, 돔은 뒤쪽 절반만
  * - 들어올 때: 천장 구멍 열림(0.417초) → 두더지 떨어짐 → 1.5초에 구멍 닫힘 (HANDOFF_v2 2번)
  * - 구도: 스펙 카메라(위치 (0,1.56,6.37), target (0,2.04,0), 세로 FOV 48.5° @4:3)를 4:3 "가상 화면"에 그리고,
@@ -59,8 +59,13 @@ const ROOM_R = 3.25            // 방 반지름
 const FLOOR_Y = .03            // 러그 위 (두더지 기본 자리)
 const MOLE_R = .36             // 두더지 몸 반지름 (폭 약 0.8m)
 const HOLE_OPEN = .417, HOLE_CLOSE = 1.5
-/** 가구 낙하 시작 (방에 들어온 뒤 초). 천장 구멍이 닫히고(1.5) 숨은 뒤(2.2) 두더지가 착지한 다음 */
-const FURN_T0 = 2.4
+/**
+ * 가구 낙하 시작 (방에 들어온 뒤 초). 2026-11-12 사용자 요청 "2초 안에": 두더지 착지(2.2)를 기다리지 않고
+ * 천장 구멍이 열리는 동안 같이 시작 → 마지막 가구 착지 ≤ FURN_T0 + DROP_SPAN + DROP_LEN = 1.9초 (data/roomPlan.ts)
+ */
+const FURN_T0 = 0.3
+/** 착지 먼지: 한꺼번에 많이 떨어질 때 시끄럽고 무겁지 않게 동시에 최대 4개, 0.06초 간격 이상 */
+const DUST_MAX = 4, DUST_MIN_GAP = .06
 /*
  * 휠 확대·축소 (2026-11-11 사용자 요청: "스크롤로 확대/축소, 어느 정도 제한")
  * - 기본 거리는 스펙 그대로 (카메라 (0, 1.56, 6.37) → target (0, 2.04, 0), 약 6.39m)
@@ -234,6 +239,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   interface Drop { g: THREE.Group; it: PlannedItem; pos: [number, number, number]; dir: THREE.Vector3; ry: number; dustDone: boolean }
   const drops: Drop[] = []
   let seqT = -1                      // 가구 낙하 연출 경과 (−1 = 안 함)
+  let lookT = -1, lastPuff = -1      // 두더지 두리번 대기 경과 (−1 = 안 함) / 마지막 먼지를 튼 seqT
   const blockGeos: THREE.BufferGeometry[] = [], blockMats: THREE.Material[] = []
   let dustG: GLTF | null = null
   const dusts: { o: THREE.Object3D; mixer: THREE.AnimationMixer; act: THREE.AnimationAction; mats: THREE.Material[]; t: number }[] = []
@@ -346,7 +352,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     holeS.visible = drop
     if (drop && holeOpen) { holeOpen.play(); holeT = 0 }
     // 가구 낙하: 두더지가 떨어지는 연출을 할 때만 (모션 줄이기·저사양 N 이면 처음부터 제자리)
-    if (drop && furnDrop && drops.length) { seqT = 0; for (const d of drops) d.g.visible = false }
+    if (drop && furnDrop && drops.length) { seqT = 0; lookT = 0; for (const d of drops) d.g.visible = false }
 
     if (opts.hostName) {
       host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn, simple: simpleMole })
@@ -368,11 +374,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * 선반 소품·벽걸이는 pop(제자리에서 커짐), 먼지는 slots.json drop.dust 배율 (null 이면 없음)
    */
   const stepDrops = (dt: number) => {
-    const prev = seqT
     seqT += dt
     const t0 = FURN_T0
-    // 첫 세트가 떨어질 때 두더지가 두리번 (영상 시나리오: mole_look_around)
-    if (prev < t0 && seqT >= t0 && mole?.isIdle()) mole.react('look')
     let busy = false
     for (const d of drops) {
       const t = seqT - t0 - d.it.start
@@ -393,9 +396,22 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       // 망원경은 벽에 붙어 있어 pop 1.08배 순간 뒷다리가 벽을 3.2cm 파고듦 → 이 가구만 최대 1.0 (HANDOFF_v3_2 2번)
       if (d.it.row.id === 'telescope') { k.scaleH = Math.min(k.scaleH, 1); k.scaleV = Math.min(k.scaleV, 1) }
       d.g.scale.set(k.scaleH, k.scaleV, k.scaleH)
-      if (!d.dustDone && t >= DUST_AT) { d.dustDone = true; if (spec.dust) puff(x, y, z, d.ry, spec.dust) }
+      if (!d.dustDone && t >= DUST_AT) {
+        d.dustDone = true
+        // 겹쳐 떨어지므로 먼지는 동시에 DUST_MAX 개, DUST_MIN_GAP 간격까지만 (넘치면 그 가구는 먼지 없이 착지)
+        if (spec.dust && seqT - lastPuff >= DUST_MIN_GAP && dusts.filter((q) => q.t >= 0).length < DUST_MAX) { lastPuff = seqT; puff(x, y, z, d.ry, spec.dust) }
+      }
     }
-    if (!busy) seqT = -1
+    if (!busy) {
+      if (testParam('droplog')) console.info(`[3D] 가구 ${drops.length}개 다 놓임: 장면 시간 ${seqT.toFixed(2)}초 (방이 보인 뒤)`)
+      seqT = -1; lastPuff = -1
+    }
+  }
+  /** 가구가 떨어지는 동안 내려온 두더지가 두리번 (영상 시나리오: mole_look_around). 착지해서 쉬는 첫 순간, 4초 안에만 */
+  const stepLook = (dt: number) => {
+    if (lookT < 0) return
+    lookT += dt
+    if (mole?.isIdle()) { lookT = -1; mole.react('look') } else if (lookT > 4) lookT = -1
   }
   /** 착지 먼지 dust_puff_v1.glb (spec 5번): 덩어리 5개 위치·크기 애니메이션 + 코드로 투명도. 다 끝난 것은 다시 씀 */
   const puff = (x: number, y: number, z: number, ry: number, scale: number) => {
@@ -505,6 +521,38 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const op = on ? '1' : '0'
       if (b.el.style.opacity !== op) { b.el.style.opacity = op; b.el.style.transform = `translate(0,-100%) scale(${on ? 1 : .6})` }
     }
+  }
+  /*
+   * 집주인 머리 위 화면 위치 → onHostScreen (VisitBurrow 의 '대화 요청하기' 말풍선이 따라감).
+   * 프레임마다 계산하되 1px 넘게 바뀔 때만 알림 (Worker 면 메시지가 되므로). 루프가 쉬는 동안엔 아무것도 안 움직이니 그대로 맞음
+   * 숨김: 집주인이 안 보임, 입장 연출(천장 구멍·가구 낙하) 중, 리액션 말풍선과 겹칠 때(집주인 말풍선 또는 집주인 곁에서 내 말풍선)
+   */
+  let hostCb: ((p: HostScreen | null) => void) | null = null
+  let hostLast: HostScreen | null = null, hostSent = false
+  const hostV = new THREE.Vector3()
+  // 집주인 키 (모자 같은 액세서리까지, 발바닥 기준 m). headTop 은 머리만이라 모자에 말풍선 꼬리가 걸쳐서 한 번 재 둠
+  let hostTall = 0
+  const reportHost = () => {
+    if (!hostCb) return
+    let p: HostScreen | null = null
+    if (host && host.object.visible && holeT < 0 && seqT < 0) {
+      const hp = host.object.position
+      if (!hostTall) {
+        host.headTop(hostV)
+        const box = new THREE.Box3().setFromObject(host.object, true)
+        // + 6cm: 재는 자세(묶인 자세)와 움직이는 자세가 조금 달라 확대하면 꼬리가 모자에 닿았음
+        hostTall = Math.max(hostV.y - hp.y, Number.isFinite(box.max.y) ? box.max.y - hp.y : 0) + .06
+      }
+      const clash = bubbles.some((b) => b.who && clock >= b.from - .1 && clock < b.until + .2 &&
+        (b.who === host || Math.hypot(b.who.object.position.x - hp.x, b.who.object.position.z - hp.z) < 1.6))
+      if (!clash) {
+        hostV.set(hp.x, hp.y + hostTall, hp.z).project(camera)
+        if (hostV.z < 1) p = { x: (hostV.x * .5 + .5) * W, y: (-hostV.y * .5 + .5) * H }
+      }
+    }
+    if (hostSent && (p === null) === (hostLast === null) && (!p || !hostLast || (Math.abs(p.x - hostLast.x) < 1 && Math.abs(p.y - hostLast.y) < 1))) return
+    hostLast = p; hostSent = true
+    hostCb(p)
   }
   const hint = document.createElement('div')
   Object.assign(hint.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none', zIndex: '4', font: '500 13px/1 Pretendard, system-ui, sans-serif', padding: '7px 10px', borderRadius: '8px', background: 'rgba(62,42,31,.88)', color: '#fbf4ec', transform: 'translate(-50%, calc(-100% - 14px))', opacity: '0', transition: 'opacity .12s', whiteSpace: 'nowrap' })
@@ -687,6 +735,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       }
       if (seqT >= 0) stepDrops(dt)
       stepDust(dt)
+      stepLook(dt)
       host?.update(dt)
       mole?.update(dt)
       for (const [a, sh] of shadows) {
@@ -694,6 +743,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         sh.position.set(a.object.position.x, .012, a.object.position.z)
       }
       drawBubbles(t)
+      reportHost()
       draw(full)
     },
     // 저사양에서 루프를 멈춰도 되는지: 두더지 동작·구멍·가구 낙하·먼지·줌·카메라 감속·패널 이동·말풍선이 모두 끝났을 때
@@ -719,11 +769,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     setFocusX(x) {
       focusTarget = x
       // 루프가 안 도는 환경(헤드리스·숨은 탭)에서도 최종 위치는 맞게
-      if (document.hidden) { focus = x; applyFrame() }
+      if (document.hidden) { focus = x; applyFrame(); reportHost() }
       loop.wake()
     },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
+    onHostScreen(cb) { hostCb = cb; hostSent = false; reportHost() },
     react(kind) {
       if (!mole) return
       loop.wake()
@@ -746,6 +797,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     },
     dispose() {
       disposed = true
+      hostCb = null
       loop.stop()
       controls.dispose()
       unbindKeys()

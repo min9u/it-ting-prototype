@@ -1,4 +1,4 @@
-import type { SceneHandle } from '../engine'
+import type { HostScreen, SceneHandle } from '../engine'
 import type { RoomSceneOptions } from '../roomScene'
 import { getLab } from '../../lib/lowLab'
 
@@ -6,7 +6,7 @@ import { getLab } from '../../lib/lowLab'
  * D 땅굴을 Worker 에서 그리기 — 메인 스레드 쪽 (시험판).
  * 캔버스를 만들어 OffscreenCanvas 로 Worker(roomWorker.ts)에 넘기고, 입력·크기를 메시지로 보낸다.
  * Worker 를 못 만들거나 시작하다 실패하면 원래대로 메인 스레드에서 그림 (fallback).
- * 시험판 한계: 말풍선·가구 이름표가 안 보임, 마우스 커서 모양이 안 바뀜
+ * 시험판 한계: 리액션 말풍선·가구 이름표가 안 보임, 마우스 커서 모양이 안 바뀜 (집주인 머리 위 위치는 메시지로 받아 onHostScreen 으로 넘김)
  */
 export const workerRenderSupported = () =>
   typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' &&
@@ -24,6 +24,8 @@ export function mountRoomWorker(container: HTMLElement, opts: RoomSceneOptions, 
   const worker = new Worker(new URL('./roomWorker.ts', import.meta.url), { type: 'module', name: 'room-3d' })
   const post = (m: unknown, t?: Transferable[]) => { if (alive && !impl) worker.postMessage(m, t ?? []) }
 
+  let hostCb: ((p: HostScreen | null) => void) | null = null
+  let hostLast: HostScreen | null = null
   const cleanupInputs: (() => void)[] = []
   const switchToFallback = (why: string) => {
     if (!alive || impl) return
@@ -32,10 +34,12 @@ export function mountRoomWorker(container: HTMLElement, opts: RoomSceneOptions, 
     cleanupInputs.forEach((f) => f())
     canvas.remove()
     impl = fallback()
+    if (hostCb) impl.onHostScreen?.(hostCb)
   }
   worker.onmessage = (e) => {
     const m = e.data
     if (m.type === 'frames') (window as unknown as { __sceneFrames?: number }).__sceneFrames = m.n
+    else if (m.type === 'host') { hostLast = m.p; hostCb?.(m.p) }
     else if (m.type === 'error') {
       console.warn('[3D worker]', m.message)
       if (!ready) switchToFallback(m.message)
@@ -82,7 +86,9 @@ export function mountRoomWorker(container: HTMLElement, opts: RoomSceneOptions, 
     react(kind) { if (impl) impl.react?.(kind); else call('react', kind) },
     setWorn(ids) { if (impl) impl.setWorn?.(ids); else call('setWorn', ids) },
     setFrozen(on) { if (impl) impl.setFrozen?.(on); else call('setFrozen', on) },
+    onHostScreen(cb) { hostCb = cb; if (impl) impl.onHostScreen?.(cb); else cb?.(hostLast) },
     dispose() {
+      hostCb = null
       if (impl) { impl.dispose(); alive = false; return }
       post({ type: 'dispose' })
       alive = false
