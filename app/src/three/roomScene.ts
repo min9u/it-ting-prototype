@@ -47,11 +47,23 @@ export interface RoomSceneOptions {
   still?: boolean
 }
 
+/** S 선명한 방 그림 (같은 탭 안에서만, 최근 3개). 키 = 방 주인·관심사·벽지·크기·카메라 */
+const SHARP_CACHE = new Map<string, HTMLCanvasElement>()
+
 /** 방 모델 glb (파일 이름 = 카탈로그의 glb_compressed). 두더지·껍데기는 따로 불러서 여기엔 없음 */
-const MODEL_URLS = import.meta.glob<string>('../assets/models/room/*.glb', { eager: true, query: '?url', import: 'default' })
+/*
+ * 방 모델은 파일마다 따로 불러옴 (docs/rendering-experiments.md 5번). 공유 빌드는 glb 가 data URL 로 JS 에 들어가서,
+ * 한꺼번에(eager) 넣으면 관심사 가구 11개가 다 땅굴 청크(약 12MB)에 들어감 → 이 방에 필요한 것만 받음.
+ * 일반 빌드에서는 파일 주소만 든 아주 작은 청크
+ */
+const MODEL_LAZY = import.meta.glob<string>('../assets/models/room/*.glb', { query: '?url', import: 'default' })
+const MODEL_KEYS = new Set(Object.keys(MODEL_LAZY))
+/** 모델 키(파일 경로) → glb */
+const loadModel = async (k: string) => loadGlb(await MODEL_LAZY[k]())
 /** sit_clip_set(v3.3) 또는 옛 seat_type → 앉는 동작 묶음. 모르는 값은 방석 */
 const seatKind = (v?: string): Seat['kind'] => (v === 'beanbag' || v === 'chair' ? v : 'cushion')
-const urlOf = (r: FurnitureRow) => { const f = r.glb_compressed ?? r.glb; return f ? MODEL_URLS[`../assets/models/room/${f}`] : undefined }
+/** 카탈로그 행 → 모델 키 (파일이 없으면 undefined) */
+const urlOf = (r: FurnitureRow) => { const f = r.glb_compressed ?? r.glb; const k = f ? `../assets/models/room/${f}` : ''; return MODEL_KEYS.has(k) ? k : undefined }
 /** 가구별 동작 (카탈로그에 없는 정보). 원탁엔 찻주전자·컵이 있어서 커피 */
 const ACTS: Record<string, FurnitureData['act']> = { round_table: 'drink' }
 
@@ -126,12 +138,18 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    */
   const sharp = !!backdrop && !opts.canvas && (q.lab?.S ?? true) && testParam('sharp') !== '0'
   let sharpCv: HTMLCanvasElement | null = null
+  const sharpCache = sharp && testParam('sharpcache') !== '0'
   /** 2D 캔버스 그림이 지금 구도와 맞음 (보이는 중) */
   let sharpOk = false
   /** 방이 바뀐 뒤 조용히 지난 시간 (초) */
   let settle = 0
   const sharpOff = () => { settle = 0; if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
   /** 방(layer 0)을 고해상도로 그려 2D 캔버스에 옮김. 끝나면 원래 해상도로 */
+  const sharpKeyOf = (out: number) => {
+    camera.updateMatrixWorld()
+    const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
+    return [opts.ownerId, (opts.interests ?? []).join('+'), opts.wallpaper ?? '', opts.still ? 1 : 0, W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
+  }
   const captureSharp = () => {
     if (!sharpCv) {
       sharpCv = document.createElement('canvas')
@@ -140,6 +158,16 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       container.insertBefore(sharpCv, renderer.domElement)
     }
     const out = Math.min(window.devicePixelRatio || 1, 2)
+    // 같은 탭에서 같은 방·같은 구도로 다시 들어오면 (탐색하기 갔다 돌아오기 등) 찍어 둔 그림을 그대로 씀 (docs/rendering-experiments.md 4번)
+    const key = sharpCache ? sharpKeyOf(out) : ''
+    const hit = sharpCache ? SHARP_CACHE.get(key) : undefined
+    if (hit) {
+      sharpCv.width = hit.width; sharpCv.height = hit.height
+      sharpCv.getContext('2d')!.drawImage(hit, 0, 0)
+      sharpCv.style.visibility = 'visible'
+      sharpOk = true
+      return
+    }
     // 슈퍼샘플 1.5배, 다만 한 번 그리는 픽셀이 400만을 넘지 않게 (CPU 렌더러에서 한 번에 0.5초 안쪽)
     const ss = Math.max(out, Math.min(out * 1.5, Math.sqrt(4e6 / (W * H))))
     const prevPR = renderer.getPixelRatio()
@@ -154,6 +182,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     ctx.clearRect(0, 0, sharpCv.width, sharpCv.height)
     ctx.drawImage(renderer.domElement, 0, 0, sharpCv.width, sharpCv.height)
     renderer.setPixelRatio(prevPR)
+    if (sharpCache) {
+      const copy = document.createElement('canvas'); copy.width = sharpCv.width; copy.height = sharpCv.height
+      copy.getContext('2d')!.drawImage(sharpCv, 0, 0)
+      SHARP_CACHE.delete(key); SHARP_CACHE.set(key, copy)
+      while (SHARP_CACHE.size > 3) SHARP_CACHE.delete(SHARP_CACHE.keys().next().value!)
+    }
     sharpCv.style.visibility = 'visible'
     sharpOk = true
   }
@@ -271,7 +305,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const fixedRows = FURNITURE_CATALOG.filter((r) => (r.type === 'base' || r.type === 'deco') && urlOf(r))
   const fixedUrls = [...new Set(fixedRows.map((r) => urlOf(r)!))]
   const planUrls = [...new Set(plan.items.filter((it) => it.built).map((it) => urlOf(it.row)).filter((u): u is string => !!u))]
-  const softLoad = (u: string) => loadGlb(u).catch((e) => { console.warn('[3D] 관심사 가구 모델을 못 불러와서 블록으로 대신해요', u, e); return null })
+  const softLoad = (u: string) => loadModel(u).catch((e) => { console.warn('[3D] 관심사 가구 모델을 못 불러와서 블록으로 대신해요', u, e); return null })
 
   /** 떨어지는 가구 하나 (슬롯 자리에 놓인 묶음) */
   interface Drop { g: THREE.Group; it: PlannedItem; pos: [number, number, number]; dir: THREE.Vector3; ry: number; dustDone: boolean }
@@ -283,7 +317,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
 
   Promise.all([
     loadGlb(shellUrl), loadGlb(holeUrl), loadMoleGltf(), loadAccessories(),
-    Promise.all(fixedUrls.map((u) => loadGlb(u))),
+    Promise.all(fixedUrls.map((u) => loadModel(u))),
     Promise.all(planUrls.map(softLoad)),
     loadGlb(dustUrl).catch(() => null),
     tileSrc ? loadTile(tileSrc) : Promise.resolve(null),
