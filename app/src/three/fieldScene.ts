@@ -325,9 +325,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     }
     return p
   }
-
-  // 방 안과 같은 glb 두더지 (moleActor). 이동 속도 배율은 moleActor 의 MOVE_SPEED_MULT 로 같이 적용됨.
-  // 정면 +Z = 카메라 쪽. 핸드오프 두더지는 키가 약 1.0 이라 원본 그림의 키(moleH)에 맞게 scale.
+  // 방 안과 같은 glb 두더지 (moleActor). 이동 속도(보폭)는 moleActor 의 STRIDE 로 같이 적용됨.
+  // 정면 +Z = 카메라 쪽. 핸드오프 두더지는 키가 약 0.5m라 원본 그림의 키(moleH)에 맞게 scale.
   let mole: MoleActor | null = null
   let disposed = false
   let busyMove = false             // 굴 이동·들어가기 중 (입력 막음)
@@ -682,7 +681,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     lastPos.copy(p)
     spriteT += dt
     const walk = speed > moleH * .05
-    const i = walk ? Math.floor(spriteT * 9) % 6 : Math.floor(spriteT * 2) % 4
+    // 걷기 6장 = 동작 한 바퀴. 3D 와 같은 재생 속도(1.25바퀴/초)로 넘김
+    const i = walk ? Math.floor(spriteT * 7.5) % 6 : Math.floor(spriteT * 2) % 4
     const c = sprites.cell(dir, walk, i)
     ctx.drawImage(sprites.atlas, c.sx, c.sy, sprites.S, sprites.S, fx - drawH / 2, fy - sprites.footY * drawH, drawH, drawH)
   }

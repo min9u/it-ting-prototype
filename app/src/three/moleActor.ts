@@ -44,11 +44,38 @@ const SIT: Record<Seat['kind'], { sit: string; idle: string; up: string; upOff: 
 }
 const UPPER = /^(upper_body|arm_L|arm_R|coffee_cup|mole_eye_L|mole_eye_R)\./
 const WALK_BASE = .32          // 재생 속도 1.0일 때 미끄러지지 않는 이동 속도 (m/s)
-const MOVE_SPEED_MULT = 2.25   // 이동 속도 배율 (2026-11-11 사용자 요청 1.5배, 2026-11-12 다시 1.5배 → 2.25). 걷기 동작도 같은 배율로 빨라져 발이 미끄러지지 않음
-const WALK_RATE = 1.25 * MOVE_SPEED_MULT  // 원래 1.25 (자연스러운 범위 0.8~1.25배 중 가장 빠르게)
+const WALK_RATE = 1.25         // 걷기 동작 재생 속도 (자연스러운 범위 0.8~1.25배 중 가장 빠르게)
+/**
+ * 보폭 배율 = 이동 속도 배율 (2026-11-11 1.5배, 2026-11-12 2.25배).
+ * 2026-11-13: 동작까지 빨리 틀면 촐싹대 보여서(사용자 의견) 재생 속도는 그대로 두고,
+ * mole_walk 의 발 앞뒤 이동(foot_* translation z)을 가운데 기준으로 이만큼 늘려 보폭으로 빨라지게 함. 발은 여전히 미끄러지지 않음
+ */
+const STRIDE = 2.25
+const STRIDE_LIFT = 1.6        // 보폭이 커진 만큼 발을 조금 더 들어 올림 (발 높이 y 의 들림 폭 배율)
 const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
 export const loadMoleGltf = () => loadGlb(moleUrl)
+
+/** mole_walk 복제본: 발의 앞뒤 이동(z)을 STRIDE 배, 들림(y)을 STRIDE_LIFT 배로 (각각 곡선의 가운데·바닥 기준). 이름은 그대로 */
+const strideCache = new WeakMap<THREE.AnimationClip, THREE.AnimationClip>()
+export function strideWalk(src: THREE.AnimationClip) {
+  let c = strideCache.get(src)
+  if (c) return c
+  c = src.clone()
+  for (const t of c.tracks) {
+    if (!/^foot_[LR]\.position$/.test(t.name)) continue
+    const v = t.values
+    let zMin = Infinity, zMax = -Infinity, yMin = Infinity
+    for (let i = 0; i < v.length; i += 3) { zMin = Math.min(zMin, v[i + 2]); zMax = Math.max(zMax, v[i + 2]); yMin = Math.min(yMin, v[i + 1]) }
+    const zMid = (zMin + zMax) / 2
+    for (let i = 0; i < v.length; i += 3) {
+      v[i + 1] = yMin + (v[i + 1] - yMin) * STRIDE_LIFT
+      v[i + 2] = zMid + (v[i + 2] - zMid) * STRIDE
+    }
+  }
+  strideCache.set(src, c)
+  return c
+}
 
 const smooth = (u: number) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u) }
 const wrap = (a: number) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a }
@@ -166,7 +193,7 @@ export function createMoleActor(gltf: GLTF, opts: {
   object.rotation.y = opts.yaw ?? 0
 
   const mixer = new THREE.AnimationMixer(model)
-  const clips = new Map(gltf.animations.map((c) => [c.name, c]))
+  const clips = new Map(gltf.animations.map((c) => [c.name, c.name === 'mole_walk' ? strideWalk(c) : c]))
   const clip = (name: string) => {
     const c = clips.get(name)
     if (!c) throw new Error(`두더지 동작 없음: ${name}`)
@@ -220,7 +247,7 @@ export function createMoleActor(gltf: GLTF, opts: {
   }
 
   /* ---------- 단계들 ---------- */
-  const speed = WALK_BASE * WALK_RATE * S
+  const speed = WALK_BASE * WALK_RATE * STRIDE * S
 
   function walkStep(target: THREE.Vector3, o: { strict?: boolean; until?: number; keep?: boolean } = {}): Step {
     let goal = target.clone(); let stuck = 0; let last = Infinity
@@ -444,7 +471,7 @@ export function createMoleActor(gltf: GLTF, opts: {
   /* ---------- 지상: 굴 들어가기·나오기 (ground_move_spec 3·4·5) ---------- */
   const BURROW_FRONT = 1.75            // 굴 중심 → 도착·착지점 (m)
   const BURROW_DROP = .01 + .033       // 굴 중심 높이 = 도착점 지면 높이 - 0.01 - 0.033
-  const STRIDE = .081                  // 한 걸음(6프레임 = 동작 0.25초)에 나아가는 거리 (m, 0.324 m/s × 0.25)
+  const STEP_LEN = WALK_BASE * STRIDE * .25   // 한 걸음(6프레임 = 동작 0.25초)에 나아가는 거리 (m). 보폭 배율(STRIDE)을 반영 (merge 2026-11-13)
   let burrowing = false, hidden = false
   const groundY = (x: number, z: number) => (opts.groundAt ? opts.groundAt(x, z) : FY)
   const towardOf = (o?: BurrowOpts) => { const d = (o?.toward ?? new THREE.Vector3(0, 0, 1)).clone().setY(0); return d.lengthSq() > 1e-6 ? d.normalize() : d.set(0, 0, 1) }
@@ -465,7 +492,7 @@ export function createMoleActor(gltf: GLTF, opts: {
         else walk.timeScale = WALK_RATE
         const phase = ((walk.time % 1) + 1) % 1
         const r0 = (((.125 - phase) % .25) + .25) % .25                  // 다음 "발 모임" 프레임까지
-        const m = Math.max(r0 < .02 ? 1 : 0, Math.round((D / (STRIDE * 4 * S) - r0) / .25))
+        const m = Math.max(r0 < .02 ? 1 : 0, Math.round((D / (STEP_LEN * 4 * S) - r0) / .25))
         E = r0 + m * .25   // 걸을 동작 시간 (초). 이동은 e / E 비율로 해서 속도가 D / (E × 0.324m) 배로 맞춰짐 (보통 ±3% 안)
       },
       tick(dt) {

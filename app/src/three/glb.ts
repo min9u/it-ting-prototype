@@ -1,5 +1,6 @@
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
+import { testParam } from './engine'
 
 /*
  * glb 불러오기 (같은 파일은 한 번만).
@@ -34,7 +35,13 @@ function usesDraco(buf: ArrayBuffer) {
 }
 
 async function bytesOf(url: string): Promise<ArrayBuffer> {
-  if (url.startsWith('data:')) return Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0)).buffer
+  if (url.startsWith('data:')) {
+    const b64 = url.slice(url.indexOf(',') + 1)
+    // 브라우저 내장 base64 해독 (크롬 140+). 글자 하나씩 도는 atob 루프보다 훨씬 빠름 (docs/rendering-experiments.md 2번)
+    const fromB64 = (Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array }).fromBase64
+    if (fromB64 && testParam('b64') !== '0') return fromB64(b64).buffer as ArrayBuffer
+    return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer
+  }
   const r = await fetch(url)
   if (!r.ok) throw new Error(`glb 를 못 받았어요: ${url} (${r.status})`)
   return r.arrayBuffer()

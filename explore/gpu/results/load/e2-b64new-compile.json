@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-b64new-compile",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/?compile=1#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 1938,
+      "longTaskMs": 1367,
+      "longTaskMax": 580,
+      "worstFreezeMs": 583,
+      "mb": 7.2,
+      "heapMB": 89
+    },
+    "warm": {
+      "readyMs": 1692,
+      "longTaskMs": 1059,
+      "longTaskMax": 595,
+      "worstFreezeMs": 583,
+      "mb": 0,
+      "heapMB": 139
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 1937,
+      "longTaskMs": 1391,
+      "longTaskMax": 618,
+      "worstFreezeMs": 617,
+      "heapMB": 89,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1678,
+      "longTaskMs": 1059,
+      "longTaskMax": 595,
+      "worstFreezeMs": 583,
+      "heapMB": 139,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1942,
+      "longTaskMs": 1367,
+      "longTaskMax": 569,
+      "worstFreezeMs": 567,
+      "heapMB": 97,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1706,
+      "longTaskMs": 1057,
+      "longTaskMax": 563,
+      "worstFreezeMs": 550,
+      "heapMB": 139,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 1938,
+      "longTaskMs": 1367,
+      "longTaskMax": 580,
+      "worstFreezeMs": 583,
+      "heapMB": 89,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1692,
+      "longTaskMs": 1080,
+      "longTaskMax": 601,
+      "worstFreezeMs": 583,
+      "heapMB": 86,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

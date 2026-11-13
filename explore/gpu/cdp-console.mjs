@@ -21,7 +21,7 @@ ws.addEventListener('message', async (e) => {
 })
 await send('Runtime.enable'); await send('Page.enable')
 await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true })
-if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
+if (process.env.LAB) await send('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.setItem('digul.lowlab.v2', ${JSON.stringify(process.env.LAB)})}catch(e){}` })
 await send('Page.navigate', { url })
 await sleep(Number(secs) * 1000)
 // CLICK="x,y" 면 그 자리를 한 번 누르고 1초 기다림 (패널 열기 확인용)

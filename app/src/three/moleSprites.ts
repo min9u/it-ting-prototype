@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { createMoleDress } from './moleDress'
+import { strideWalk } from './moleActor'
 
 /*
  * E 2D 두더지 (저사양 실험실 시험판, docs/gpu-lowspec-ideas.md).
@@ -48,7 +49,7 @@ export async function bakeMoleSprites(renderer: THREE.WebGLRenderer, gltf: GLTF,
   dress?.setWorn(o.worn ?? [])
   scene.add(model)
   const mixer = new THREE.AnimationMixer(model)
-  const clip = (n: string) => THREE.AnimationClip.findByName(gltf.animations, n)
+  const clip = (n: string) => { const c = THREE.AnimationClip.findByName(gltf.animations, n); return n === 'mole_walk' ? strideWalk(c) : c }
 
   // 두더지 크기 (쉬는 자세 기준) → 카메라 거리. 걷기·모자 여유로 키의 1.35배를 칸 높이로
   mixer.clipAction(clip('mole_idle')).play(); mixer.update(0); dress?.update(0, 'mole_idle')

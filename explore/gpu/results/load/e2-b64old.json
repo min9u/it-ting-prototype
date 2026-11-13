@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e2-b64old",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/?b64=0#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 2369,
+      "longTaskMs": 1876,
+      "longTaskMax": 677,
+      "worstFreezeMs": 717,
+      "mb": 7.2,
+      "heapMB": 87
+    },
+    "warm": {
+      "readyMs": 1732,
+      "longTaskMs": 1244,
+      "longTaskMax": 432,
+      "worstFreezeMs": 467,
+      "mb": 0,
+      "heapMB": 139
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 2423,
+      "longTaskMs": 1830,
+      "longTaskMax": 675,
+      "worstFreezeMs": 733,
+      "heapMB": 97,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1732,
+      "longTaskMs": 1244,
+      "longTaskMax": 428,
+      "worstFreezeMs": 467,
+      "heapMB": 139,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2338,
+      "longTaskMs": 1876,
+      "longTaskMax": 677,
+      "worstFreezeMs": 717,
+      "heapMB": 86,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1701,
+      "longTaskMs": 1212,
+      "longTaskMax": 432,
+      "worstFreezeMs": 433,
+      "heapMB": 152,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 2369,
+      "longTaskMs": 1898,
+      "longTaskMax": 685,
+      "worstFreezeMs": 700,
+      "heapMB": 87,
+      "mb": 7.2,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 1866,
+      "longTaskMs": 1339,
+      "longTaskMax": 495,
+      "worstFreezeMs": 483,
+      "heapMB": 102,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

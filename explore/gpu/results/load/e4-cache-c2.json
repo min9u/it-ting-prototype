@@ -1,0 +1,100 @@
+{
+  "summary": {
+    "name": "e4-cache-c2",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 5301,
+      "longTaskMs": 1917,
+      "longTaskMax": 610,
+      "worstFreezeMs": 583,
+      "mb": 7.1,
+      "heapMB": 67
+    },
+    "warm": {
+      "readyMs": 3500,
+      "longTaskMs": 929,
+      "longTaskMax": 519,
+      "worstFreezeMs": 500,
+      "mb": 0,
+      "heapMB": 73,
+      "toSwitchMs": 1529,
+      "toLongTaskMs": 1215,
+      "backSwitchMs": 1552,
+      "backLongTaskMs": 147
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 5185,
+      "longTaskMs": 1917,
+      "longTaskMax": 510,
+      "worstFreezeMs": 500,
+      "heapMB": 67,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 4909,
+      "longTaskMs": 934,
+      "longTaskMax": 566,
+      "worstFreezeMs": 533,
+      "heapMB": 73,
+      "mb": 0,
+      "visit": "warm",
+      "toSwitchMs": 1529,
+      "toLongTaskMs": 1215,
+      "backSwitchMs": 1070,
+      "backLongTaskMs": 147
+    },
+    {
+      "readyMs": 5342,
+      "longTaskMs": 2071,
+      "longTaskMax": 685,
+      "worstFreezeMs": 683,
+      "heapMB": 67,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 3412,
+      "longTaskMs": 929,
+      "longTaskMax": 519,
+      "worstFreezeMs": 500,
+      "heapMB": 73,
+      "mb": 0,
+      "visit": "warm",
+      "toSwitchMs": 1532,
+      "toLongTaskMs": 1215,
+      "backSwitchMs": 1567,
+      "backLongTaskMs": 186
+    },
+    {
+      "readyMs": 5301,
+      "longTaskMs": 1769,
+      "longTaskMax": 610,
+      "worstFreezeMs": 583,
+      "heapMB": 68,
+      "mb": 7.1,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 3500,
+      "longTaskMs": 907,
+      "longTaskMax": 501,
+      "worstFreezeMs": 500,
+      "heapMB": 67,
+      "mb": 0,
+      "visit": "warm",
+      "toSwitchMs": 1512,
+      "toLongTaskMs": 1201,
+      "backSwitchMs": 1552,
+      "backLongTaskMs": 131
+    }
+  ]
+}

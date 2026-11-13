@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "name": "e5-split-c2",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5301/#/burrow",
+    "lab": null,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "cold": {
+      "readyMs": 5254,
+      "longTaskMs": 1902,
+      "longTaskMax": 533,
+      "worstFreezeMs": 533,
+      "mb": 5.5,
+      "heapMB": 65
+    },
+    "warm": {
+      "readyMs": 3722,
+      "longTaskMs": 885,
+      "longTaskMax": 542,
+      "worstFreezeMs": 533,
+      "mb": 0,
+      "heapMB": 66
+    }
+  },
+  "runs": [
+    {
+      "readyMs": 5117,
+      "longTaskMs": 1902,
+      "longTaskMax": 639,
+      "worstFreezeMs": 600,
+      "heapMB": 62,
+      "mb": 5.5,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 3722,
+      "longTaskMs": 885,
+      "longTaskMax": 549,
+      "worstFreezeMs": 517,
+      "heapMB": 70,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 5323,
+      "longTaskMs": 1914,
+      "longTaskMax": 533,
+      "worstFreezeMs": 533,
+      "heapMB": 65,
+      "mb": 5.5,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 3534,
+      "longTaskMs": 833,
+      "longTaskMax": 542,
+      "worstFreezeMs": 533,
+      "heapMB": 66,
+      "mb": 0,
+      "visit": "warm"
+    },
+    {
+      "readyMs": 5254,
+      "longTaskMs": 1594,
+      "longTaskMax": 511,
+      "worstFreezeMs": 433,
+      "heapMB": 69,
+      "mb": 5.5,
+      "visit": "cold",
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    {
+      "readyMs": 4849,
+      "longTaskMs": 908,
+      "longTaskMax": 539,
+      "worstFreezeMs": 667,
+      "heapMB": 62,
+      "mb": 0,
+      "visit": "warm"
+    }
+  ]
+}

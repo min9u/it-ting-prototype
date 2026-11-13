@@ -20,6 +20,10 @@ export interface Backdrop {
   blit(): void
   /** 깊이만 붙임 (색은 안 씀). 방을 다른 캔버스에 고해상도로 깔아 두고 두더지만 그릴 때 가림용 */
   blitDepth(): void
+  /** 배경용 렌더 타깃(선형 HalfFloat)에 맞는 셰이더를 미리 컴파일 (첫 capture 때 링크 대기로 멈추지 않게, docs/rendering-experiments.md 2번) */
+  precompile(scene: THREE.Scene, camera: THREE.Camera): Promise<void>
+  /** 배경 렌더 타깃 (없으면 만듦) */
+  target(): THREE.WebGLRenderTarget
   dispose(): void
 }
 
@@ -89,6 +93,15 @@ export function createBackdrop(renderer: THREE.WebGLRenderer): Backdrop {
       mat.colorWrite = false
       renderer.render(quadScene, quadCam)
       mat.colorWrite = true
+    },
+    target: () => ensure(),
+    async precompile(scene, camera) {
+      const target = ensure(), prev = renderer.getRenderTarget()
+      renderer.setRenderTarget(target)
+      const p = renderer.compileAsync(scene, camera)
+      renderer.setRenderTarget(prev)
+      await p.catch(() => {})
+      await renderer.compileAsync(quadScene, quadCam).catch(() => {})
     },
     dispose() {
       rt?.depthTexture?.dispose(); rt?.dispose(); rt = null

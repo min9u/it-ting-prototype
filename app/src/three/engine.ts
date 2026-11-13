@@ -6,7 +6,7 @@ import { getLab, type LabState } from '../lib/lowLab'
  * 품질 묶음 (docs/gpu-fallback-research.md "결정" 2번).
  * - high: GPU. 원래 품질 그대로 (해상도 기기 배율 최대 2, 안티앨리어싱, 그림자, 후처리, fps 제한 없음, 계속 그림)
  * - low: 그래픽 가속이 꺼져 CPU로 그리는 PC(WARP·SwiftShader). 해상도 0.55배를 CSS로 늘림, 안티앨리어싱·그림자·후처리 끔,
- *   움직일 때 15fps 제한, 가만히 1초 지나면 그리기를 멈춤 (메인 스레드가 놀아서 버튼·스크롤이 정상)
+ *   fps 제한 없음(2026-11-13부터, 실험실 B로 켤 수 있음), 가만히 1초 지나면 그리기를 멈춤 (메인 스레드가 놀아서 버튼·스크롤이 정상)
  * - 'gpu'로 감지돼도 처음 2초 평균 프레임 시간이 50ms를 넘으면 low로 내리고, 이 탭에서는 계속 low (startLoop)
  */
 export interface Quality {
@@ -36,8 +36,9 @@ const LOW = (): Quality => {
   const lab = getLab()
   return {
     level: 'low', pixelRatio: 0.55, antialias: false, shadows: false, post: false,
-    // B 스톱모션: 15fps 대신 lab.fps (기본 10)
-    maxFps: lab.B ? lab.fps : 15,
+    // fps 제한 없음 (2026-11-13: 실제 SSAFY PC(WARP 16스레드)는 제한 없이 걸을 때 60fps·멈춤 없음, docs/rendering-experiments.md).
+    // B 스톱모션을 켜면 lab.fps 로 제한 (더 약한 PC용)
+    maxFps: lab.B ? lab.fps : 0,
     idleStop: true, idleAfter: 1, lab,
     // I 가끔 숨쉬기: 4초마다 1.2초 깨움 (숨쉬기·깜빡임이 보일 만큼)
     breatheEvery: lab.I ? 4 : 0, breatheFor: 1.2,
