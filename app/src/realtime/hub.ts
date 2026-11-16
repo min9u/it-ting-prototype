@@ -9,7 +9,7 @@ import type {
  *
  * - 재연결: 끊기면 지수 백오프 + 지터(backoff.ts)로 다시 시도. 온라인 복귀·탭이 다시 보임·"지금 다시 연결"은 바로 시도
  * - 다시 받기: 연결될 때마다 구독한 방마다 "마지막 seq 이후" 기록을 받음 (구독 먼저 → 기록 나중, 겹치는 것은 저장소가 중복 제거)
- * - 보내기: clientMessageId 로 확인을 짝지음. 끊겨 있으면 붙을 때 보냄. 시간 안에 확인이 없으면 실패 → 화면에서 "다시 보내기"
+ * - 보내기: clientMessageId 로 확인을 짝지음. 끊겨 있으면 60초까지 쥐고 있다가 붙을 때 보냄. 보낸 뒤 10초 안에 확인이 없으면 실패 → 화면에서 "다시 보내기"
  *   (같은 clientMessageId 로 다시 보내므로 서버가 멱등이면 두 번 저장되지 않음)
  * - 탭이 숨겨지면: 연결 유지 (알림·안 읽은 수를 받으려고). 10분 넘게 숨겨지면 일부러 끊고(paused), 보이면 바로 다시 연결 + 기록 받기
  * - 오프라인: 시도를 멈추고(offline) 30초마다 한 번만 확인, online 이벤트가 오면 바로
@@ -95,7 +95,7 @@ export function createHub(transport: Transport, o: { onUnauthorized?: () => void
     transport.subscribe(TOPIC.errors)
     for (const id of rooms.keys()) { transport.subscribe(TOPIC.room(id)); resync(id) }
     // 끊긴 동안 쌓인 보내기·읽음
-    for (const p of pending.values()) publishSend(p.msg)
+    for (const [id, p] of pending) { publishSend(p.msg); armSend(id, TIMING.sendTimeout) }
     for (const [roomId, id] of readDirty) publishRead(roomId, id)
   }
 
@@ -193,6 +193,22 @@ export function createHub(transport: Transport, o: { onUnauthorized?: () => void
   const publishSend = (m: OutgoingMessage) =>
     transport.publish(DEST.send(m.roomId), { clientMessageId: m.clientMessageId, type: m.type, content: m.content, meetupId: m.meetupId })
 
+  /**
+   * 보내기 기다림 시간: 연결돼 있으면 보낸 뒤 sendTimeout(10초) 안에 확인이 와야 함.
+   * 끊겨 있으면 offlineHold(60초)까지 "보내는 중"으로 쥐고 있다가, 붙는 순간 보내고 그때부터 다시 10초 (onOpened → armSend)
+   */
+  function armSend(id: string, ms: number) {
+    const p = pending.get(id)
+    if (!p) return
+    clearTimeout(p.timer)
+    p.timer = setTimeout(() => {
+      const q = pending.get(id)
+      if (!q) return
+      pending.delete(id)
+      q.waiters.forEach((w) => w.reject(new SendFailure('TIMEOUT', connected ? '서버가 답하지 않아요' : '연결이 끊겨 보내지 못했어요')))
+    }, ms)
+  }
+
   function sendMessage(msg: OutgoingMessage): Promise<WireMessage> {
     return new Promise<WireMessage>((resolve, reject) => {
       const id = msg.clientMessageId
@@ -201,15 +217,10 @@ export function createHub(transport: Transport, o: { onUnauthorized?: () => void
         // 같은 메시지를 다시 보냄 (아직 기다리는 중) → 같은 확인을 같이 기다림
         prev.waiters.push({ resolve, reject })
       } else {
-        const timer = setTimeout(() => {
-          const p = pending.get(id)
-          if (!p) return
-          pending.delete(id)
-          p.waiters.forEach((w) => w.reject(new SendFailure('TIMEOUT', connected ? '서버가 답하지 않아요' : '연결이 끊겨 보내지 못했어요')))
-        }, TIMING.sendTimeout)
-        pending.set(id, { msg, waiters: [{ resolve, reject }], timer })
+        pending.set(id, { msg, waiters: [{ resolve, reject }], timer: setTimeout(() => {}, 0) })
       }
       stopTyping(msg.roomId)
+      armSend(id, connected ? TIMING.sendTimeout : TIMING.offlineHold)
       if (connected) publishSend(msg)
     })
   }

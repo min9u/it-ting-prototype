@@ -24,8 +24,10 @@ export const roomIdOfTopic = (topic: string) => /^\/topic\/chat\/rooms\/(.+)$/.e
 export const TIMING = {
   /** 처음 연결·다시 연결 시도 하나의 제한 */
   connectTimeout: 10_000,
-  /** 보내기: 이 안에 서버가 돌려주지 않으면 실패 → "다시 보내기" */
+  /** 보내기: 보낸 뒤 이 안에 서버가 돌려주지 않으면 실패 → "다시 보내기" */
   sendTimeout: 10_000,
+  /** 끊겨 있을 때 보낸 메시지를 "보내는 중"으로 쥐고 기다리는 시간 (이 안에 다시 붙으면 저절로 보냄) */
+  offlineHold: 60_000,
   /** STOMP 하트비트 (서버·클라이언트 둘 다 10초. Nginx proxy_read_timeout 은 이보다 넉넉히, docs/deploy-config.md) */
   heartbeat: 10_000,
   /** 입력 중: 보내는 간격 · 멈춘 뒤 false 보내기까지 · 받은 "입력 중"이 저절로 꺼지는 시간 */

@@ -310,6 +310,8 @@ function receive(w: WireMessage) {
   const r = roomOf(w.roomId)
   if (!r) return // 모르는 방 (새 대화방은 목록 다시 받기로. 문서 "남은 일")
   const m = fromWire(w)
+  // 이미 받은 서버 메시지 (내 확인이 약속 풀림·방송 두 길로 오는 경우 등) → 다시 그리지 않음
+  if (r.messages.some((x) => x.id === m.id && !x.status)) return
   const known = r.messages.some((x) => x.id === m.id || (!!m.clientId && x.clientId === m.clientId))
   const messages = mergeMessage(r.messages, m)
   if (messages === r.messages) return

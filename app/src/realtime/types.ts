@@ -106,8 +106,8 @@ export interface RealtimeClient {
   /** 방 구독. 돌려준 함수로 해제 */
   joinRoom(roomId: string, h: RoomHandlers): () => void
   /**
-   * 보내기. 서버가 같은 clientMessageId 로 돌려주면 풀림. 연결이 끊겨 있으면 다시 연결될 때 보냄.
-   * sendTimeoutMs 안에 못 보내면 실패(reject) → 화면은 "다시 보내기". 같은 clientMessageId 로 다시 보내도 서버가 한 번만 저장(멱등)
+   * 보내기. 서버가 같은 clientMessageId 로 돌려주면 풀림. 연결이 끊겨 있으면 60초까지 기다렸다가 다시 연결될 때 보냄.
+   * 보낸 뒤 10초 안에 확인이 없으면 실패(reject) → 화면은 "다시 보내기". 같은 clientMessageId 로 다시 보내도 서버가 한 번만 저장(멱등)
    */
   sendMessage(m: OutgoingMessage): Promise<WireMessage>
   /** 마지막으로 읽은 메시지 (바뀔 때만 보냄) */
