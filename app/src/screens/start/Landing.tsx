@@ -81,6 +81,8 @@ export default function Landing() {
   }, [])
 
   const sec = p < 0.2 ? 0 : p < 0.45 ? 1 : p < 0.75 ? 2 : 3
+  // 투명하게 숨긴 층의 3D 는 그리기 멈춤 (방 구간엔 밭, 나머지 구간엔 방). 그래픽 가속이 꺼진 PC 에서 CPU 를 아낌. 시험용 ?lpause=0
+  const pauseHidden = !/[?&]lpause=0/.test(window.location.href)
   // 방은 무거우니 땅 위 구간을 조금 내려오면 미리 만든다 (한 번 만들면 유지)
   useEffect(() => { if (p > 0.08 && !roomMade) setRoomMade(true) }, [p, roomMade])
 
@@ -99,7 +101,7 @@ export default function Landing() {
         {/* 01 · 02 · 04 밭 */}
         <div className={s.layer} style={{ opacity: sec === 2 ? 0 : 1, ...fade }}>
           <div className={s.fieldZoom} style={sec === 3 ? undefined : fieldTf}>
-            <FieldView label="두더지가 사는 밭" />
+            <FieldView label="두더지가 사는 밭" paused={pauseHidden && sec === 2} />
           </div>
           <div className={s.vignette} style={{ opacity: vignette }} />
           <div className={s.darken} style={{ opacity: dark }} />
@@ -108,7 +110,7 @@ export default function Landing() {
 
         {/* 03 방 */}
         <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 2 ? 1 : 0, pointerEvents: sec === 2 ? 'auto' : 'none', ...fade }}>
-          {roomMade && <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still onLoaded={() => setRoomOn(true)} />}
+          {roomMade && <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still paused={pauseHidden && sec !== 2} onLoaded={() => setRoomOn(true)} />}
           <div className={s.shadeLeft} />
           <div className={s.pinBox} style={{ top: `${PIN_BOX.top * 100}%`, height: `${PIN_BOX.h * 100}%` }}>
           {LABELS.map((l, i) => {

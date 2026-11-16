@@ -1,0 +1,245 @@
+{
+  "summary": {
+    "name": "after-nav-seq",
+    "mode": "hwoff",
+    "url": "http://localhost:5301/#/burrow",
+    "scenario": "nav",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 2922,
+      "longTaskMs": 693,
+      "longTaskMax": 183,
+      "worstFreezeMs": 183,
+      "heapMB": 72,
+      "mb": 5.6,
+      "cpuGpuSec": 13.78,
+      "cpuRendererSec": 5.17
+    },
+    "captures": {
+      "n": 9,
+      "bdMax": 11,
+      "sharpMed": 54,
+      "sharpMax": 54
+    },
+    "nav": [
+      {
+        "to": "/burrow/explore",
+        "switchMs": 1206,
+        "longTaskMs": 335,
+        "longTaskMax": 139,
+        "worstGap": 150
+      },
+      {
+        "to": "/burrow/yerin",
+        "switchMs": 1100,
+        "longTaskMs": 342,
+        "longTaskMax": 159,
+        "worstGap": 150
+      },
+      {
+        "to": "/burrow/explore",
+        "switchMs": 351,
+        "longTaskMs": 143,
+        "longTaskMax": 77,
+        "worstGap": 100
+      },
+      {
+        "to": "/chat/r-yerin",
+        "switchMs": 485,
+        "longTaskMs": 301,
+        "longTaskMax": 168,
+        "worstGap": 217
+      },
+      {
+        "to": "/burrow",
+        "switchMs": 638,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "worstGap": 50
+      }
+    ]
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 2941,
+        "longTaskMs": 858,
+        "longTaskMax": 214,
+        "worstFreezeMs": 217,
+        "heapMB": 73,
+        "warmMs": null,
+        "mb": 5.6,
+        "cpuGpuSec": 13.87,
+        "cpuRendererSec": 5.24
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "nav": [
+        {
+          "to": "/burrow/explore",
+          "switchMs": 1206,
+          "longTaskMs": 335,
+          "longTaskMax": 139,
+          "worstGap": 133
+        },
+        {
+          "to": "/burrow/yerin",
+          "switchMs": 1100,
+          "longTaskMs": 342,
+          "longTaskMax": 159,
+          "worstGap": 150
+        },
+        {
+          "to": "/burrow/explore",
+          "switchMs": 351,
+          "longTaskMs": 143,
+          "longTaskMax": 77,
+          "worstGap": 100
+        },
+        {
+          "to": "/chat/r-yerin",
+          "switchMs": 467,
+          "longTaskMs": 270,
+          "longTaskMax": 152,
+          "worstGap": 200
+        },
+        {
+          "to": "/burrow",
+          "switchMs": 609,
+          "longTaskMs": 0,
+          "longTaskMax": 0,
+          "worstGap": 17
+        }
+      ],
+      "captures": {
+        "n": 9,
+        "bdMax": 11,
+        "sharpMed": 52,
+        "sharpMax": 52,
+        "waitMed": null,
+        "waitMax": null
+      }
+    },
+    {
+      "rep": 1,
+      "load": {
+        "readyMs": 2849,
+        "longTaskMs": 693,
+        "longTaskMax": 177,
+        "worstFreezeMs": 183,
+        "heapMB": 72,
+        "warmMs": null,
+        "mb": 5.6,
+        "cpuGpuSec": 13.71,
+        "cpuRendererSec": 5.15
+      },
+      "nav": [
+        {
+          "to": "/burrow/explore",
+          "switchMs": 1110,
+          "longTaskMs": 323,
+          "longTaskMax": 108,
+          "worstGap": 150
+        },
+        {
+          "to": "/burrow/yerin",
+          "switchMs": 948,
+          "longTaskMs": 261,
+          "longTaskMax": 141,
+          "worstGap": 133
+        },
+        {
+          "to": "/burrow/explore",
+          "switchMs": 383,
+          "longTaskMs": 165,
+          "longTaskMax": 97,
+          "worstGap": 117
+        },
+        {
+          "to": "/chat/r-yerin",
+          "switchMs": 485,
+          "longTaskMs": 301,
+          "longTaskMax": 168,
+          "worstGap": 217
+        },
+        {
+          "to": "/burrow",
+          "switchMs": 638,
+          "longTaskMs": 0,
+          "longTaskMax": 0,
+          "worstGap": 50
+        }
+      ],
+      "captures": {
+        "n": 9,
+        "bdMax": 10,
+        "sharpMed": 54,
+        "sharpMax": 54,
+        "waitMed": null,
+        "waitMax": null
+      }
+    },
+    {
+      "rep": 2,
+      "load": {
+        "readyMs": 2922,
+        "longTaskMs": 476,
+        "longTaskMax": 183,
+        "worstFreezeMs": 183,
+        "heapMB": 72,
+        "warmMs": null,
+        "mb": 5.6,
+        "cpuGpuSec": 13.78,
+        "cpuRendererSec": 5.17
+      },
+      "nav": [
+        {
+          "to": "/burrow/explore",
+          "switchMs": 1275,
+          "longTaskMs": 442,
+          "longTaskMax": 148,
+          "worstGap": 167
+        },
+        {
+          "to": "/burrow/yerin",
+          "switchMs": 1403,
+          "longTaskMs": 406,
+          "longTaskMax": 197,
+          "worstGap": 183
+        },
+        {
+          "to": "/burrow/explore",
+          "switchMs": 351,
+          "longTaskMs": 141,
+          "longTaskMax": 71,
+          "worstGap": 100
+        },
+        {
+          "to": "/chat/r-yerin",
+          "switchMs": 522,
+          "longTaskMs": 340,
+          "longTaskMax": 201,
+          "worstGap": 250
+        },
+        {
+          "to": "/burrow",
+          "switchMs": 813,
+          "longTaskMs": 67,
+          "longTaskMax": 67,
+          "worstGap": 67
+        }
+      ],
+      "captures": {
+        "n": 9,
+        "bdMax": 12,
+        "sharpMed": 57,
+        "sharpMax": 57,
+        "waitMed": null,
+        "waitMax": null
+      }
+    }
+  ]
+}

@@ -59,6 +59,8 @@ interface Props {
   furniture?: FurnChoice
   /** 지금 고르는 가구 자리를 점선으로 표시할 세부 관심사 id (꾸미기 가구 탭) */
   highlight?: string | null
+  /** 안 보이는 동안 그리기 멈춤 (랜딩에서 투명하게 숨긴 층, docs/rendering-experiments-2.md) */
+  paused?: boolean
 }
 
 /**
@@ -100,7 +102,7 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
@@ -177,6 +179,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           focusX={focusX}
           className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
           label={label ?? '땅굴 방 모습'}
+          paused={paused}
           overlay={hostBubble != null && (
             <div ref={anchor} className={styles.hostAnchor}>{hostBubble}</div>
           )}

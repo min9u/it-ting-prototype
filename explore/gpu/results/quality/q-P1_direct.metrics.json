@@ -1,0 +1,17 @@
+{
+ "name": "q-P1_direct",
+ "ref": "q-gpu",
+ "psnr": 38.23,
+ "ssim": 0.992,
+ "psnrBg": 39.29,
+ "ssimBg": 0.9929,
+ "psnrMole": 28.8,
+ "ssimMole": 0.9593,
+ "ssimEdge": 0.952,
+ "shot": "explore/gpu/results/quality/q-P1_direct.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-P1_direct-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-P1_direct-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-P1_direct-hole.png"
+ }
+}

@@ -1,0 +1,175 @@
+{
+  "summary": {
+    "name": "after-land-start",
+    "mode": "hwoff",
+    "url": "http://localhost:5301/#/start",
+    "scenario": "landing",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": -1,
+      "longTaskMs": 1193,
+      "longTaskMax": 621,
+      "worstFreezeMs": 650,
+      "heapMB": 25,
+      "mb": 2.1,
+      "cpuGpuSec": 66.03,
+      "cpuRendererSec": 6.67
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 59.9,
+      "sceneFps": 27.1,
+      "worstGap": 17,
+      "sceneWorstGap": 20,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 14,
+      "cpuGpu": 89,
+      "drawsPerFrame": 23,
+      "ktrisPerFrame": 15
+    },
+    "scroll": {
+      "sec": 11.6,
+      "rafFps": 50.1,
+      "sceneFps": 45.8,
+      "worstGap": 233,
+      "sceneWorstGap": 255,
+      "longTaskMs": 565,
+      "longTaskMax": 247,
+      "cpuRenderer": 52,
+      "cpuGpu": 223,
+      "drawsPerFrame": 26,
+      "ktrisPerFrame": 16
+    },
+    "roomReadyMs": 3049
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": -1,
+        "longTaskMs": 1193,
+        "longTaskMax": 621,
+        "worstFreezeMs": 650,
+        "heapMB": 25,
+        "warmMs": null,
+        "mb": 2.1,
+        "cpuGpuSec": 66.03,
+        "cpuRendererSec": 6.67
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "scroll": {
+        "sec": 11.6,
+        "rafFps": 50.4,
+        "sceneFps": 46,
+        "worstGap": 233,
+        "sceneWorstGap": 243,
+        "longTaskMs": 478,
+        "longTaskMax": 236,
+        "cpuRenderer": 52,
+        "cpuGpu": 223,
+        "drawsPerFrame": 26,
+        "ktrisPerFrame": 16
+      },
+      "roomReadyMs": 2867,
+      "idle": {
+        "sec": 6,
+        "rafFps": 59.9,
+        "sceneFps": 28.5,
+        "worstGap": 17,
+        "sceneWorstGap": 20,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 14,
+        "cpuGpu": 89,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 15
+      }
+    },
+    {
+      "rep": 1,
+      "load": {
+        "readyMs": -1,
+        "longTaskMs": 1296,
+        "longTaskMax": 704,
+        "worstFreezeMs": 700,
+        "heapMB": 24,
+        "warmMs": null,
+        "mb": 2.1,
+        "cpuGpuSec": 65.4,
+        "cpuRendererSec": 6.67
+      },
+      "scroll": {
+        "sec": 12.1,
+        "rafFps": 50.1,
+        "sceneFps": 45.8,
+        "worstGap": 283,
+        "sceneWorstGap": 285,
+        "longTaskMs": 580,
+        "longTaskMax": 277,
+        "cpuRenderer": 51,
+        "cpuGpu": 219,
+        "drawsPerFrame": 26,
+        "ktrisPerFrame": 16
+      },
+      "roomReadyMs": 3049,
+      "idle": {
+        "sec": 6,
+        "rafFps": 58.6,
+        "sceneFps": 27.1,
+        "worstGap": 33,
+        "sceneWorstGap": 26,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 16,
+        "cpuGpu": 97,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 15
+      }
+    },
+    {
+      "rep": 2,
+      "load": {
+        "readyMs": -1,
+        "longTaskMs": 1029,
+        "longTaskMax": 559,
+        "worstFreezeMs": 583,
+        "heapMB": 25,
+        "warmMs": null,
+        "mb": 2.1,
+        "cpuGpuSec": 72.96,
+        "cpuRendererSec": 6.61
+      },
+      "scroll": {
+        "sec": 11.6,
+        "rafFps": 48.1,
+        "sceneFps": 43.7,
+        "worstGap": 217,
+        "sceneWorstGap": 255,
+        "longTaskMs": 565,
+        "longTaskMax": 247,
+        "cpuRenderer": 53,
+        "cpuGpu": 227,
+        "drawsPerFrame": 26,
+        "ktrisPerFrame": 16
+      },
+      "roomReadyMs": 3091,
+      "idle": {
+        "sec": 6,
+        "rafFps": 60,
+        "sceneFps": 12.1,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 11,
+        "cpuGpu": 41,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 15
+      }
+    }
+  ]
+}
