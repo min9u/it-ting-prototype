@@ -35,6 +35,7 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['방문자 뷰 – 대화 요청 완료 토스트', '/burrow/yerin?toast=request', '612:7718', true],
     ['꾸미기 모드 · 사이드바 변신', '/burrow?mode=decor', '682:7764', true],
     ['내 정보 수정 · 사이드바 교체', '/burrow?mode=edit', '683:8058', true],
+    ['🧪 땅굴 다양성 실험실 (칠하기·무늬·모양·자동)', '/lab/style', '실험', true],
   ] },
   { title: '커뮤니티', items: [
     ['커뮤니티 목록 (02 F8)', '/board', 'F8-01', true],
