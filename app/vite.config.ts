@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // three.js GLTFLoader의 AVIF 지원 확인용 작은 avif 이미지(data URL)를 뺌.
@@ -14,9 +14,19 @@ function stripAvifProbe(): Plugin {
   }
 }
 
+function devProxy(target?: string) {
+  if (!target) return undefined
+  return {
+    '/api': { target, changeOrigin: true },
+    '/ws': { target: target.replace(/^http/, 'ws'), ws: true, changeOrigin: true },
+  }
+}
+
 export default defineConfig(({ mode }) => ({
   plugins: [react(), stripAvifProbe()],
-  server: { port: 5173 },
+  // 실제 서버에 붙여 볼 때: app/.env.development.local 에 API_PROXY_TARGET=http://localhost:8080 + VITE_API_MODE=real
+  // → /api · /ws 를 같은 출처로 넘겨서 CORS · 쿠키 문제를 피함 (위험 B6, docs/backend/frontend-data-layer.md)
+  server: { port: 5173, proxy: devProxy(loadEnv(mode, '.', '').API_PROXY_TARGET) },
   // D 시험판(땅굴 Worker, three/worker/roomWorker.ts): Worker 안에서도 동적 import(roomScene·Draco)를 쓰려면 es 형식. avif 확인 코드도 같이 뺌
   worker: { format: 'es', plugins: () => [stripAvifProbe()] },
   // public/ 은 Draco wasm 해독기(일반 빌드용)뿐. 공유 빌드는 JS 해독기를 번들에 넣으므로 복사하지 않음 (three/glb.ts)

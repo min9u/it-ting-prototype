@@ -7,7 +7,7 @@ import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
 import { ChevronLeft } from '../../components/Icons'
 import { USERS } from '../../data/mock'
 import {
-  BOARD_CATS, PAGE_SIZE, commentCount, deletePost, isListed, isMine, myBigInterests, myCommentsOn, nickOf, scoreOf,
+  BOARD_CATS, PAGE_SIZE, deletePost, isListed, isMine, myCommentsOn,
   toggleSave, usePosts, type BoardPost,
 } from '../../data/boardStore'
 import type { PostCategory } from '../../data/types'
@@ -16,12 +16,18 @@ import {
   SearchBox, WriteButton, POST_DELETED_TOAST, SAVE_TOAST, UNSAVE_TOAST, useArrivalToast, type ActivityKind,
 } from './parts'
 import s from './Board.module.css'
+import { api } from '../../api'
+import { POST_CATEGORY_CODE } from '../../api/mappers'
+import { patch, useOptimistic, usePostList } from '../../api/queries'
+import { qk } from '../../api/queryClient'
+import { ErrorState, SkeletonRows } from '../../components/AsyncState'
 
 export { BoardPost } from './BoardPost'
 export { BoardWrite, BoardEdit } from './BoardWrite'
 
 type Sort = '최신순' | '인기순' | '댓글순'
 const SORTS: Sort[] = ['최신순', '인기순', '댓글순']
+const SORT_CODE: Record<Sort, 'LATEST' | 'POPULAR' | 'COMMENTS'> = { 최신순: 'LATEST', 인기순: 'POPULAR', 댓글순: 'COMMENTS' }
 const asCat = (v: string | null): '전체' | PostCategory => (BOARD_CATS.includes(v as PostCategory) ? (v as PostCategory) : '전체')
 
 /**
@@ -48,24 +54,26 @@ export function BoardList() {
     setParams(p, { replace: true })
   }
 
-  const list = useMemo(() => {
-    const myBig = myBigInterests()
-    const word = q.trim().toLowerCase()
-    let l = posts.filter(isListed)
-      .filter((p) => cat === '전체' || p.category === cat)
-      .filter((p) => !mineOnly || p.interests.some((t) => myBig.includes(t)))
-      .filter((p) => !interest || p.interests.includes(interest))
-    if (word) l = l.filter((p) => [p.title, p.body, nickOf(p.authorId)].some((x) => x.toLowerCase().includes(word)))
-    const byNew = (a: BoardPost, b: BoardPost) => b.at - a.at
-    if (sort === '최신순') return [...l].sort(byNew)
-    if (sort === '인기순') return [...l].sort((a, b) => scoreOf(b) - scoreOf(a) || byNew(a, b))
-    return [...l].sort((a, b) => commentCount(b) - commentCount(a) || byNew(a, b))
-  }, [posts, cat, mineOnly, interest, q, sort])
-  const total = Math.max(1, Math.ceil(list.length / PAGE_SIZE))
-  const cur = Math.min(page, total)
+  // 거르기 · 정렬 · 페이지는 서버가 함 (api/board.ts, 위험 B8). 페이지는 주소(?page)에 있어서 새로고침 · 뒤로 가기에도 유지
+  const res = usePostList({
+    category: cat === '전체' ? undefined : POST_CATEGORY_CODE[cat], mine: mineOnly || undefined, interest: interest ?? undefined,
+    q: q.trim() || undefined, sort: SORT_CODE[sort], page, size: PAGE_SIZE,
+  })
+  const list = res.data?.items ?? []
+  const total = res.data?.totalPages ?? 1
+  const cur = res.data?.page ?? page
   const filtered = cat !== '전체' || mineOnly || !!interest || !!q.trim()
+  const run = useOptimistic()
 
-  const onSave = (p: BoardPost) => setToast(toggleSave(p.id) ? SAVE_TOAST : UNSAVE_TOAST)
+  /** 저장: 목록 캐시를 먼저 바꾸고 실패하면 되돌림 */
+  const onSave = (p: BoardPost) => {
+    const on = !p.savedAt
+    setToast(on ? SAVE_TOAST : UNSAVE_TOAST)
+    run.mutate({
+      call: () => api.board.setBookmark(p.id, on), errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요', invalidate: [qk.posts],
+      patches: [patch<{ items: BoardPost[] }>(['posts', 'list'], (o) => ({ ...o, items: o.items.map((x) => (x.id === p.id ? { ...x, savedAt: on ? Date.now() : undefined } : x)) }))],
+    }, { onError: () => setToast(null) })
+  }
 
   return (
     <div className={s.wrap}>
@@ -94,9 +102,13 @@ export function BoardList() {
               <strong>#{interest}</strong> 글만 보고 있어요 <button type="button" onClick={() => set({ interest: null })}>해제</button>
             </p>
           )}
-          {list.length ? (
-            <ul className={s.posts}>
-              {list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE).map((p) => (
+          {res.isPending ? (
+            <SkeletonRows count={6} label="글을 불러오는 중" avatar={false} />
+          ) : res.isError && !res.data ? (
+            <ErrorState error={res.error} onRetry={() => void res.refetch()} retrying={res.isFetching} title="글을 불러오지 못했어요" />
+          ) : list.length ? (
+            <ul className={s.posts} aria-busy={res.isFetching}>
+              {list.map((p) => (
                 <PostCard key={p.id} p={p} onOpenUser={setProfile} right={<SaveToggle on={!!p.savedAt} onToggle={() => onSave(p)} />} />
               ))}
             </ul>

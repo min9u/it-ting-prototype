@@ -1,0 +1,44 @@
+/* 비동기 세 상태 (components/AsyncState.tsx). 색은 tokens.css 의 흙빛 톤 */
+.bone {
+  display: block; flex: none;
+  background: linear-gradient(90deg, #f1e3d4 0%, #f8eee3 40%, #f1e3d4 80%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .bone { animation: none; } }
+
+.lines { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.cardBody { display: flex; flex-direction: column; gap: 10px; padding: 0 4px 6px; }
+
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: 14px; padding: 16px 4px; border-bottom: 1px solid var(--line); }
+.rowsCompact .row { padding: 12px 10px; border-bottom: 0; }
+.rowBody { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.detail { width: min(1120px, 100%); margin: 0 auto; padding: 28px 24px 60px; }
+.detailCols { margin-top: 26px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; }
+.detailMain, .detailSide { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 880px) { .detailCols { grid-template-columns: 1fr; } }
+
+.error {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  margin: 24px auto; padding: 32px 24px; max-width: 460px; width: 100%;
+  border: 1px solid var(--line); border-radius: 16px; background: #fffaf5;
+}
+.error strong { font-size: 20px; font-weight: 400; color: var(--ink-900); }
+.error p { font-size: 13px; line-height: 1.6; color: var(--ink-700); }
+.error :global(.btn) { margin-top: 6px; min-width: 120px; }
+.errorCompact { margin: 12px auto; padding: 18px 14px; border-style: dashed; background: var(--surface-item); }
+.errorCompact strong { font-size: 16px; }
+
+.knob {
+  position: fixed; left: 12px; bottom: 12px; z-index: 130;
+  display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; border-radius: 999px;
+  background: #402b20; color: #fbf1e6; font-size: 12px; box-shadow: 0 6px 18px rgba(40, 22, 12, .25);
+}
+.knob button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: inherit; cursor: pointer; font-size: 11px; }
+.knob button:hover { background: rgba(255, 255, 255, .26); }

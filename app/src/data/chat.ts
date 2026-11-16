@@ -153,6 +153,8 @@ const subs = new Set<() => void>()
 const emit = () => { state = { ...state }; subs.forEach((f) => f()) }
 const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
 export function useChat() { return useSyncExternalStore(subscribe, () => state) }
+/** 훅 바깥에서 지금 상태 (목 서버 api/chat.ts 가 방·요청 목록을 만들 때) */
+export const getChatState = () => state
 
 const live = (r: Req) => Date.now() - r.at < REQUEST_TTL_DAYS * day
 export const liveRequests = (s = state) => s.requests.filter(live).sort((a, b) => b.at - a.at)
