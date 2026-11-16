@@ -1,0 +1,491 @@
+{
+ "counts_total": {
+  "holes": 150,
+  "grass": 264,
+  "grass_tufts": 657,
+  "pumpkin_groups": 224,
+  "pumpkins": 522,
+  "flowers": 864,
+  "path_tiles_final": 672,
+  "path_tile_kinds_final": {
+   "path_straight": 499,
+   "path_t": 89,
+   "path_corner": 68,
+   "path_cross": 15,
+   "path_end": 1
+  },
+  "fence": 174,
+  "ladder": 1,
+  "house": 0
+ },
+ "zones": [
+  {
+   "zone": 1,
+   "name": "south_center",
+   "transform": "identity",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 106,
+    "links_add": 0,
+    "links_replace": 0,
+    "grass": 48,
+    "grass_tufts": 113,
+    "pumpkin_groups": 37,
+    "pumpkins": 86,
+    "flowers": 143
+   },
+   "stats": {
+    "grass_patches": 48,
+    "grass_area": 285.4,
+    "pumpkins": 86,
+    "pumpkin_groups": 37,
+    "flowers": 143,
+    "grass_tufts": 113,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.42,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10455,
+    "grass": 45072,
+    "grass_tufts": 7232,
+    "pumpkins": 31942,
+    "flowers": 68622,
+    "total": 173523
+   },
+   "links_with": []
+  },
+  {
+   "zone": 2,
+   "name": "north_center",
+   "transform": "rot180",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 103,
+    "links_add": 8,
+    "links_replace": 4,
+    "grass": 46,
+    "grass_tufts": 111,
+    "pumpkin_groups": 38,
+    "pumpkins": 89,
+    "flowers": 147
+   },
+   "stats": {
+    "grass_patches": 46,
+    "grass_area": 293.6,
+    "pumpkins": 89,
+    "pumpkin_groups": 38,
+    "flowers": 147,
+    "grass_tufts": 111,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.43,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10019,
+    "grass": 43536,
+    "grass_tufts": 7104,
+    "pumpkins": 32990,
+    "flowers": 70358,
+    "total": 174207
+   },
+   "links_with": [
+    1
+   ]
+  },
+  {
+   "zone": 3,
+   "name": "south_left",
+   "transform": "mirror_x",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 103,
+    "links_add": 6,
+    "links_replace": 4,
+    "grass": 40,
+    "grass_tufts": 103,
+    "pumpkin_groups": 37,
+    "pumpkins": 86,
+    "flowers": 143
+   },
+   "stats": {
+    "grass_patches": 40,
+    "grass_area": 286.1,
+    "pumpkins": 86,
+    "pumpkin_groups": 37,
+    "flowers": 143,
+    "grass_tufts": 103,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.42,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10019,
+    "grass": 37536,
+    "grass_tufts": 6592,
+    "pumpkins": 31942,
+    "flowers": 68622,
+    "total": 164911
+   },
+   "links_with": [
+    1
+   ]
+  },
+  {
+   "zone": 4,
+   "name": "north_left",
+   "transform": "mirror_y",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 103,
+    "links_add": 14,
+    "links_replace": 7,
+    "grass": 42,
+    "grass_tufts": 110,
+    "pumpkin_groups": 37,
+    "pumpkins": 86,
+    "flowers": 143
+   },
+   "stats": {
+    "grass_patches": 42,
+    "grass_area": 286.4,
+    "pumpkins": 86,
+    "pumpkin_groups": 37,
+    "flowers": 143,
+    "grass_tufts": 110,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.43,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10019,
+    "grass": 39456,
+    "grass_tufts": 7040,
+    "pumpkins": 31942,
+    "flowers": 68622,
+    "total": 167279
+   },
+   "links_with": [
+    2,
+    3
+   ]
+  },
+  {
+   "zone": 5,
+   "name": "south_right",
+   "transform": "mirror_y",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 103,
+    "links_add": 6,
+    "links_replace": 4,
+    "grass": 41,
+    "grass_tufts": 105,
+    "pumpkin_groups": 38,
+    "pumpkins": 89,
+    "flowers": 145
+   },
+   "stats": {
+    "grass_patches": 41,
+    "grass_area": 289.7,
+    "pumpkins": 89,
+    "pumpkin_groups": 38,
+    "flowers": 145,
+    "grass_tufts": 105,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.33,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10019,
+    "grass": 38592,
+    "grass_tufts": 6720,
+    "pumpkins": 32990,
+    "flowers": 69608,
+    "total": 168129
+   },
+   "links_with": [
+    1
+   ]
+  },
+  {
+   "zone": 6,
+   "name": "north_right",
+   "transform": "mirror_x",
+   "counts": {
+    "holes": 25,
+    "path_tiles": 103,
+    "links_add": 17,
+    "links_replace": 10,
+    "grass": 47,
+    "grass_tufts": 115,
+    "pumpkin_groups": 37,
+    "pumpkins": 86,
+    "flowers": 143
+   },
+   "stats": {
+    "grass_patches": 47,
+    "grass_area": 285.4,
+    "pumpkins": 86,
+    "pumpkin_groups": 37,
+    "flowers": 143,
+    "grass_tufts": 115,
+    "pumpkin_outside_grass": 0,
+    "flower_outside_grass": 0,
+    "min_pumpkin_path_gap": 0.33,
+    "min_grass_to_hole_center": 1.5
+   },
+   "triangles": {
+    "holes": 10200,
+    "path_tiles": 10019,
+    "grass": 44496,
+    "grass_tufts": 7360,
+    "pumpkins": 31942,
+    "flowers": 68622,
+    "total": 172639
+   },
+   "links_with": [
+    2,
+    5
+   ]
+  }
+ ],
+ "common_triangles": {
+  "fence": 75168,
+  "ladder": 580,
+  "ground": 612
+ },
+ "ring_adjacent_conflicts_by_zone": {
+  "1": 2,
+  "2": 0,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0
+ },
+ "min_hole_dist": 6.0,
+ "connectors": [
+  {
+   "zones": [
+    1,
+    2
+   ],
+   "from": [
+    -14,
+    32
+   ],
+   "to": [
+    -14,
+    42
+   ]
+  },
+  {
+   "zones": [
+    1,
+    2
+   ],
+   "from": [
+    14,
+    32
+   ],
+   "to": [
+    14,
+    42
+   ]
+  },
+  {
+   "zones": [
+    1,
+    3
+   ],
+   "from": [
+    -14,
+    14
+   ],
+   "to": [
+    -22,
+    14
+   ]
+  },
+  {
+   "zones": [
+    1,
+    3
+   ],
+   "from": [
+    -14,
+    26
+   ],
+   "to": [
+    -22,
+    26
+   ]
+  },
+  {
+   "zones": [
+    1,
+    5
+   ],
+   "from": [
+    14,
+    6
+   ],
+   "to": [
+    22,
+    6
+   ]
+  },
+  {
+   "zones": [
+    1,
+    5
+   ],
+   "from": [
+    12,
+    20
+   ],
+   "to": [
+    22,
+    18
+   ]
+  },
+  {
+   "zones": [
+    2,
+    4
+   ],
+   "from": [
+    -14,
+    42
+   ],
+   "to": [
+    -22,
+    42
+   ]
+  },
+  {
+   "zones": [
+    2,
+    4
+   ],
+   "from": [
+    -14,
+    62
+   ],
+   "to": [
+    -22,
+    62
+   ]
+  },
+  {
+   "zones": [
+    2,
+    6
+   ],
+   "from": [
+    14,
+    42
+   ],
+   "to": [
+    22,
+    42
+   ]
+  },
+  {
+   "zones": [
+    2,
+    6
+   ],
+   "from": [
+    14,
+    54
+   ],
+   "to": [
+    24,
+    56
+   ]
+  },
+  {
+   "zones": [
+    3,
+    4
+   ],
+   "from": [
+    -50,
+    32
+   ],
+   "to": [
+    -50,
+    42
+   ]
+  },
+  {
+   "zones": [
+    3,
+    4
+   ],
+   "from": [
+    -22,
+    32
+   ],
+   "to": [
+    -22,
+    42
+   ]
+  },
+  {
+   "zones": [
+    5,
+    6
+   ],
+   "from": [
+    32,
+    30
+   ],
+   "to": [
+    34,
+    42
+   ]
+  },
+  {
+   "zones": [
+    5,
+    6
+   ],
+   "from": [
+    44,
+    30
+   ],
+   "to": [
+    46,
+    44
+   ]
+  }
+ ],
+ "camera_limit_full": {
+  "x": [
+   -45.3,
+   45.3
+  ],
+  "y": [
+   3.8,
+   65.1
+  ]
+ },
+ "overflow": {
+  "x": 4.7,
+  "y_north": 2.9,
+  "y_south": 0
+ },
+ "min_branches_per_hole": 2
+}

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import type { SceneHandle } from '../three/engine'
+import type { RoomSceneHandle } from '../three/roomScene'
 import { ROOM_FRAME } from '../three/roomFrame'
 import roomCutout from '../assets/room-v2.webp'
 import styles from './RoomView.module.css'
@@ -43,6 +43,10 @@ interface Props {
   loader?: boolean
   /** 3D 가 다 차려짐 (loader 와 같이 씀) */
   onLoaded?: () => void
+  /** 방명록 우체통: 새 방명록이 있음 (깃발 올림·편지·발광). 바뀌면 장면을 다시 만들지 않고 바꿈 */
+  mailbox?: boolean
+  /** 우체통을 누름 → 방명록 전체 보기 */
+  onMailbox?: () => void
 }
 
 /**
@@ -84,14 +88,20 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
   const [gaveUp, setGaveUp] = useState(false)
-  const handle = useRef<SceneHandle | null>(null)
+  const handle = useRef<RoomSceneHandle | null>(null)
   const wornKey = (worn ?? []).join(',')
   useEffect(() => { handle.current?.setWorn?.(worn ?? []) }, [wornKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 우체통: 처음 값은 장면을 만들 때 넘기고(mailboxRef), 그 뒤 바뀌면 setMailbox. 누르기 콜백은 최신 것을 부름
+  const mailboxRef = useRef(mailbox)
+  mailboxRef.current = mailbox
+  useEffect(() => { handle.current?.setMailbox?.(mailbox) }, [mailbox])
+  const onMailboxRef = useRef(onMailbox)
+  onMailboxRef.current = onMailbox
   useEffect(() => {
     if (!loader || ready) return
     const id = setTimeout(() => setGaveUp(true), 8000)
@@ -125,11 +135,14 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           hostName={hostName}
           hostWorn={hostWorn}
           worn={worn}
+          mailbox={mailboxRef.current}
+          onMailbox={() => onMailboxRef.current?.()}
           focusX={focusX}
           className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
           label={label ?? '땅굴 방 모습'}
           onReady={(h) => {
             handle.current = h; setReady(true)
+            ;(h as RoomSceneHandle).setMailbox?.(mailboxRef.current)
             ;(h.loaded ?? Promise.resolve()).then(() => { if (handle.current !== h) return; setLoaded(true); latestLoaded.current?.() })
           }}
         />

@@ -5,7 +5,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import shellUrl from '../assets/models/room_shell_v3_draco_webp.glb?url'
 import holeUrl from '../assets/models/room_ceiling_hole.glb?url'
 import dustUrl from '../assets/models/dust_puff_v1.glb?url'
-import { BLOCK_COLORS, FURNITURE_CATALOG, planRoom, type FurnitureRow, type PlannedItem } from '../data/roomPlan'
+import { BLOCK_COLORS, FURNITURE_CATALOG, SLOTS, planRoom, type FurnitureRow, type PlannedItem } from '../data/roomPlan'
+import { createMailbox, type Mailbox } from './mailbox'
 import { loadGlb } from './glb'
 import { DROP_DURATION, DUST_AT, dustOpacity, furnitureDrop } from './furnitureDrop'
 import { bindDriveKeys } from './keys'
@@ -45,6 +46,15 @@ export interface RoomSceneOptions {
   canvas?: OffscreenCanvas
   /** 연출 없이 다 차려진 방으로 시작 (시작 화면): 천장 구멍·두더지 낙하·가구 낙하 없음 */
   still?: boolean
+  /** 방명록 우체통: 새 방명록이 있음 (깃발 올림·편지·발광). 그 뒤 바뀌는 건 handle.setMailbox */
+  mailbox?: boolean
+  /** 우체통을 누름 → 방명록 전체 보기 (Worker 시험판에는 안 넘어감) */
+  onMailbox?: () => void
+}
+
+/** 땅굴 장면 손잡이: 공통 + 우체통 상태 바꾸기 */
+export interface RoomSceneHandle extends SceneHandle {
+  setMailbox?(hasNew: boolean): void
 }
 
 /** S 선명한 방 그림 (같은 탭 안에서만, 최근 3개). 키 = 방 주인·관심사·벽지·크기·카메라 */
@@ -104,7 +114,7 @@ function makeBlock(row: FurnitureRow, size: { w: number; d: number; h: number },
   return m
 }
 
-export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = {}): SceneHandle {
+export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = {}): RoomSceneHandle {
   // 품질 (engine.ts): 저사양이면 해상도 0.55배·안티앨리어싱 끔·15fps·가만히 있으면 멈춤. 그림자·후처리는 원래 안 씀
   const q = quality()
   /*
@@ -306,6 +316,18 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const fixedUrls = [...new Set(fixedRows.map((r) => urlOf(r)!))]
   const planUrls = [...new Set(plan.items.filter((it) => it.built).map((it) => urlOf(it.row)).filter((u): u is string => !!u))]
   const softLoad = (u: string) => loadModel(u).catch((e) => { console.warn('[3D] 관심사 가구 모델을 못 불러와서 블록으로 대신해요', u, e); return null })
+  /*
+   * 방명록 우체통 (v3.6, three/mailbox.ts): slots.json mailbox_slot 고정 자리, 관심사와 상관없이 항상, 낙하 없음.
+   * 깃발·편지·발광이 바뀌는 작은 물건이라 움직이는 층(layer 1)에 둠 → 저사양 배경(A)·선명한 방(S) 그림에는 안 들어가고,
+   * 바뀔 때만 우체통 자리를 부분으로 다시 그림
+   */
+  const mailboxRow = FURNITURE_CATALOG.find((r) => r.id === 'mailbox')
+  const mailboxSlot = SLOTS.find((sl) => sl.name === 'mailbox_slot')
+  const mailboxUrl = mailboxRow ? urlOf(mailboxRow) : undefined
+  let mailbox: Mailbox | null = null
+  let mailboxNew = !!opts.mailbox
+  /** 우체통이 이번(또는 지난) 프레임에 바뀜 → 부분 그리기 사각형에 넣음 */
+  let mailboxDirty = false
 
   /** 떨어지는 가구 하나 (슬롯 자리에 놓인 묶음) */
   interface Drop { g: THREE.Group; it: PlannedItem; pos: [number, number, number]; dir: THREE.Vector3; ry: number; dustDone: boolean }
@@ -321,7 +343,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     Promise.all(planUrls.map(softLoad)),
     loadGlb(dustUrl).catch(() => null),
     tileSrc ? loadTile(tileSrc) : Promise.resolve(null),
-  ]).then(async ([shell, hole, moleG, acc, fixedG, planG, dust, tile]) => {
+    mailboxUrl ? loadModel(mailboxUrl).catch((e) => { console.warn('[3D] 우체통 모델을 못 불러왔어요', e); return null }) : Promise.resolve(null),
+  ]).then(async ([shell, hole, moleG, acc, fixedG, planG, dust, tile, mailboxG]) => {
     if (disposed) { tile?.dispose(); return }
     dustG = dust
     // glb 는 캐시를 같이 씀 → 장면마다 복제 (재질·텍스처는 공유)
@@ -408,6 +431,16 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       }
       drops.push({ g, it, pos, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
       if (furnDrop) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
+    }
+
+    // 방명록 우체통
+    if (mailboxG && mailboxSlot) {
+      const mb = mailbox = createMailbox(mailboxG, { pos: mailboxSlot.pos_three, ryDeg: mailboxSlot.ry_deg }, { pulse: q.level === 'high' && !reduce })
+      scene.add(mb.root, mb.hit)
+      toDynamicLayer(mb.root)
+      mb.setNew(mailboxNew, true)
+      const [mx, , mz] = mailboxSlot.pos_three
+      feet.push({ x0: mx - mb.half.x - MOLE_R, x1: mx + mb.half.x + MOLE_R, z0: mz - mb.half.z - MOLE_R, z1: mz + mb.half.z + MOLE_R })
     }
 
     // 천장 구멍
@@ -569,7 +602,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const d2 = ray.ray.distanceSqToSegment(a, b2, pr, ps)
       onHost = d2 < .45 ** 2 && (!hit || pr.distanceTo(ray.ray.origin) < hit.distance)
     }
-    return { g: hit && !onHost ? furnitureOf(hit.object) : null, onHost }
+    // 우체통: 보이지 않는 큰 상자. 앞에 가구·집주인이 더 가까우면 그쪽
+    const mbHit = mailbox ? ray.intersectObject(mailbox.hit, false)[0] : undefined
+    const onMailbox = !!mbHit && !onHost && (!hit || mbHit.distance < hit.distance + .2)
+    return { g: hit && !onHost && !onMailbox ? furnitureOf(hit.object) : null, onHost, onMailbox }
   }
   const actionOf = (g: THREE.Object3D | null) => {
     const f = g?.userData.furniture as FurnitureData | undefined
@@ -610,8 +646,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
     down = null
     if (!mole) return
-    const { g, onHost } = pick(e)
+    const { g, onHost, onMailbox } = pick(e)
     if (onHost) return
+    // 우체통: 방명록 전체 보기 (두더지는 움직이지 않음)
+    if (onMailbox) { opts.onMailbox?.(); return }
     if (g && mole.interact(g)) return
     if (g) return // 동작 없는 가구는 interact 가 앞까지 걸어감
     const o = ray.ray.origin, dir = ray.ray.direction; if (dir.y >= 0) return
@@ -623,7 +661,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     // 루프가 쉬는 중(저사양)이면 다시 그리지 않고 이름표만 바로 갱신
     if (!loop.isRunning()) showHint()
   }
-  const onLeave = () => { moveQueued = null; hint.style.opacity = '0'; el.style.cursor = 'pointer' }
+  const onLeave = () => { moveQueued = null; hint.style.opacity = '0'; el.style.cursor = 'pointer'; if (mailbox?.setHover(false)) loop.wake() }
   el.addEventListener('pointerdown', onDown); el.addEventListener('pointerup', onUp)
   el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave)
   el.style.cursor = 'pointer'
@@ -633,7 +671,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (!moveQueued) return
     const e = moveQueued; moveQueued = null
     const pk = pick(e), rect = el.getBoundingClientRect()
-    const label = pk.onHost ? opts.hostName ?? null : actionOf(pk.g)
+    const label = pk.onHost ? opts.hostName ?? null : pk.onMailbox ? '방명록 보기' : actionOf(pk.g)
+    if (mailbox?.setHover(pk.onMailbox)) loop.wake()
+    el.style.cursor = 'pointer'
     hint.textContent = label ?? ''
     hint.style.opacity = label ? '1' : '0'
     hint.style.left = `${e.clientX - rect.left}px`; hint.style.top = `${e.clientY - rect.top}px`
@@ -694,6 +734,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     const pad = .5 * s
     for (const b of bones) { b.getWorldPosition(boneP); addBox(r, boneP.x, boneP.y - pad, boneP.y + pad, boneP.z, pad) }
   }
+  /** 우체통 + 빛무리 + 외곽선을 덮는 상자 */
+  const mailboxRect = (r: Rect) => {
+    if (!mailbox) return
+    const p = mailbox.root.position
+    addBox(r, p.x, p.y - .05, p.y + .8, p.z, .48)
+  }
   const drawFull = () => {
     renderer.setScissorTest(false); renderer.autoClear = true
     renderer.render(scene, camera)
@@ -705,6 +751,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (sharp && !sharpOk && mole && settle >= .35) { captureSharp(); full = true }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
+    if (mailboxDirty) mailboxRect(cur)
     const prev = prevRect
     prevRect = cur
     let scissor = false
@@ -728,6 +775,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (!partial || !mole) { drawFull(); return }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
+    if (mailboxDirty) mailboxRect(cur)
     const prev = prevRect
     prevRect = cur
     if (full || !prev) { drawFull(); return }
@@ -780,6 +828,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         if (holeT > HOLE_CLOSE + .7 && holeObj) { holeT = -1; holeMixer.stopAllAction(); holeObj.visible = false }
       }
       if (seqT >= 0) stepDrops(dt)
+      mailboxDirty = !!mailbox && mailbox.update(dt, t)
       stepDust(dt)
       host?.update(dt)
       mole?.update(dt)
@@ -795,6 +844,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (mole && !mole.isResting()) return true
       if (host && !host.isResting()) return true
       if (holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)) return true
+      if (mailbox?.busy()) return true
       if (camMoving || focus !== focusTarget) return true
       if (Math.abs(camera.position.distanceTo(controls.target) - zoomGoal) > 1e-3) return true
       return bubbles.some((b) => b.who && clock < b.until + .3)
@@ -814,6 +864,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       focusTarget = x
       // 루프가 안 도는 환경(헤드리스·숨은 탭)에서도 최종 위치는 맞게
       if (document.hidden) { focus = x; applyFrame() }
+      loop.wake()
+    },
+    setMailbox(hasNew) {
+      mailboxNew = hasNew
+      mailbox?.setNew(hasNew)
       loop.wake()
     },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
@@ -843,7 +898,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       loop.stop()
       controls.dispose()
       unbindKeys()
-      mole?.dispose(); host?.dispose()
+      mole?.dispose(); host?.dispose(); mailbox?.dispose()
       holeMixer?.stopAllAction()
       for (const d of dusts) d.mixer.stopAllAction()
       // 이 장면에서 만든 블록·먼지 재질만 해제 (glb 것은 캐시가 다시 씀)

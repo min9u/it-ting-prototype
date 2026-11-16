@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWallpaper, wallpaperForPicks } from '../../data/wallpapers'
@@ -47,6 +47,13 @@ export default function MyBurrow() {
   const startDecor = () => { setDraft(worn); setFurnDraft(furn); setMode('decor'); setHint(false); markSeen(HINT_KEY) }
   const [entries, setEntries] = useState(() => (params.get('guestbook') === '0' ? [] : liveGuestbook(GUESTBOOK)))
   const [allOpen, setAllOpen] = useState(params.get('modal') === 'guestbook')
+  /*
+   * 방명록 우체통 (3D 핸드오프 v3.6): 읽지 않은 방명록이 있으면 깃발이 올라가고 빛남. 방명록 전체 보기를 열면 읽음 → 내려감.
+   * 목 데이터: 읽음은 이 탭 안에서만 기억(sessionStorage). ?mailbox=1 이면 다시 새 방명록 있음으로 시작
+   */
+  const [gbRead, setGbRead] = useState(() => params.get('mailbox') !== '1' && gbSeen())
+  useEffect(() => { if (allOpen && !gbRead) { setGbRead(true); markGbSeen() } }, [allOpen, gbRead])
+  const hasNewGb = entries.length > 0 && !gbRead
   const [visitorsOpen, setVisitorsOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -56,7 +63,8 @@ export default function MyBurrow() {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={me.id} interests={profile.interests} wallpaper={getMyWallpaper(wallpaperForPicks(profile.interests))} worn={mode === 'decor' ? draft : worn} focusX={focusX} label="내 땅굴">
+      <RoomView ownerId={me.id} interests={profile.interests} wallpaper={getMyWallpaper(wallpaperForPicks(profile.interests))} worn={mode === 'decor' ? draft : worn} focusX={focusX} label="내 땅굴"
+        mailbox={hasNewGb} onMailbox={() => setAllOpen(true)}>
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 <span>바뀐 모습이 바로 보여요</span></span>
         ) : (
@@ -236,6 +244,9 @@ function EditPanel({ profile, affiliation, onCancel, onSave, onDecorate }: {
 }
 
 const HINT_KEY = 'digul.decorHintSeen'
+const GB_READ_KEY = 'digul.guestbookRead'
+const gbSeen = () => { try { return sessionStorage.getItem(GB_READ_KEY) === '1' } catch { return false } }
+const markGbSeen = () => { try { sessionStorage.setItem(GB_READ_KEY, '1') } catch { /* 무시 */ } }
 const seen = (k: string) => { try { return localStorage.getItem(k) === '1' } catch { return false } }
 const markSeen = (k: string) => { try { localStorage.setItem(k, '1') } catch { /* 무시 */ } }
 

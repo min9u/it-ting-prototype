@@ -37,6 +37,8 @@
   - 땅굴 방 두더지는 이 glb로 교체: `app/src/assets/models/mole.glb`(원본에서 텍스처만 1024 WebP, Draco 없음) + `app/src/three/moleActor.ts`(동작 순서). 탐색하기 밭은 아직 예전 코드 두더지(`mole.ts`)
 - **3D 핸드오프 v1.1·v2** (`design/digul_3d_handoff_v1_1/`, `design/digul_3d_handoff_v2/`, 2026-11-11): 액세서리 41개(`three/moleDress.ts`, 목록·규칙 `data/moleItems.ts`)와 땅굴 방 glb(`three/roomScene.ts`, 가구는 `data/furnitureCatalog.json`을 읽음). 변환·판단은 [docs/3d-handoff-v2-integration.md](docs/3d-handoff-v2-integration.md). 관심사 가구 31개는 아직 안 옴
   - 가구 클릭: 방석·빈백 앉기, 부엌·찻병 선반 커피. 리액션 버튼 👋👀🐾☕. 남의 땅굴엔 집주인 두더지가 있고 인사하면 마주 보고 인사. 엉덩이 씰룩은 굴 입구 전용 자세라 방에서 뺌
+- **탐색 화면 (2026-11-16 새로 만듦)**: 02 F5 명세 + 3D 핸드오프 v3.9 들판(층 단위 150자리, 구역 6칸) + v3.8 두더지 잡기 이동(구멍에서 구멍으로 점프). 장면 `three/holeField.ts`, 화면 `screens/burrow/ExploreBurrow.tsx`·`ExploreModals.tsx`(단골·추천 친구·캠퍼스-층), 목 데이터 `data/field.ts`, 배치는 `node app/scripts/build-field-layout.mjs`로 만든 `data/fieldLayout150.json`. 두더지 `mole.glb`는 v1_3(동작 25개). 시작 화면 둘러보기·랜딩은 아직 예전 밭(`fieldScene.ts`). 자세한 것은 [docs/explore-field-v3-9.md](docs/explore-field-v3-9.md)
+- **방명록 우체통 (v3.6, 2026-11-16)**: 땅굴 방에 항상 있음(`three/mailbox.ts`), 새 방명록이면 깃발·편지·발광, 누르면 방명록 전체 보기. 블룸 대신 빛무리 스프라이트 → [docs/mailbox-integration.md](docs/mailbox-integration.md)
 - **온보딩 새 디자인**: 시안 PNG는 `design/figma/onboarding/`, 2D 아바타는 `app/src/components/MoleAvatar.tsx`, `#/onboarding?demo`로 열면 예시 값이 채워짐
 - 3D 재현 시험판: `explore/3d/room.html` (게시: https://claude.ai/artifact/JehojQcDbUwxys5R6mQo3n), 탐색하기 `explore/3d/field.html`
 - 3D 엔진 비교: `explore/{3d,babylon,playcanvas}/` 같은 과제(`explore/BRIEF.md`), 미리보기 `node explore/serve.js <포트>`. 비교 페이지 https://claude.ai/artifact/7saUop5kLtVnDDXCdU8UDT
@@ -143,6 +145,8 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-12 [시작 화면 로딩 정리](docs/landing-loading.md): 그림 → 사라짐 → 가구가 하나씩 → 이름표가 먼저 뜨던 번잡함을 없앰. 3D가 다 차려질 때까지 문장 + 로딩 애니메이션(흙더미 두더지), 그 뒤 연출 없이 다 차려진 방을 한 번에 페이드 인하고 이름표. `RoomView loader·still`, `SceneHandle.loaded`
 - 2026-11-13 [3D 렌더링 방식 정리와 개선 방향](docs/rendering-overview.md): React는 div 하나, 화면마다 three.js 렌더러를 lazy 로 만들고 버림. 땅굴은 구운 조명 glb(그림자·후처리 없음), 탐색하기는 그림자 맵 + N8AO. 가속 꺼짐은 failIfMajorPerformanceCaveat로 감지 → 저사양 묶음(0.55배·10fps·쉬면 멈춤·A 배경 한 번·S 선명한 방). 개선 추천: 실제 PC 측정 → 첫 로딩 멈춤(셰이더·Draco) → Worker 기본 → 선명한 방 캐시, 공통으로 관심사 glb 분할(공유 빌드 땅굴 청크 약 12MB)·Draco 중복·렌더러 공유
 - 2026-11-13 [렌더링 개선 실험 (실제 SSAFY PC)](docs/rendering-experiments.md): 이 PC는 RTX가 있지만 크롬 가속이 꺼져 WARP(16스레드). 걷기는 이미 매끄럽고(10fps 제한을 풀면 60fps 가능) 문제는 첫 진입 멈춤 → base64 내장 해독·Draco Worker·셰이더/그리기 예열(예열 중 루프 쉼)로 가장 긴 멈춤 0.72→0.15초. 선명한 방 그림 탭 안 기억(다시 들어올 때 긴 작업 0), 공유 빌드 방 모델을 파일마다 따로(7.1→5.5MB). D Worker는 공유 빌드에서 빈 화면이라 끔. 측정 도구 explore/gpu/cdp-load.mjs. 같은 날 오후 **저사양 fps 제한 해제**(B 기본 끔, 실험실 저장 키 digul.lowlab.v2, 걷기 장면 60fps·긴 작업 0) 후 팀 아티팩트 version 28 배포
+- 2026-11-16 [탐색 화면 새로 만들기: 02 F5 + 3D v3.8·v3.9](docs/explore-field-v3-9.md): 걸어 다니는 밭 → 구멍에서 구멍으로 점프하는 층 단위 들판(구역 6칸·150자리, 켜진 구역만, 안 켠 구역은 잔디 평면). 방향키 ±45° 가장 가까운 구멍·클릭은 바로, Enter는 어두워진 뒤 땅굴로. 명세의 안내판·주인 카드·단골 목록·오늘의 추천 친구(설정 → 결과 → 뒤집기, 하루 한 번)·캠퍼스-층 고르기(사다리도)·내 땅굴로 돌아가기·방문자 뷰 단골 추가. 12m 칸 인스턴싱으로 컬링. 탈퇴 빈 번호는 "가장 작은 번호 재사용 + 30일 보류" 제안
+- 2026-11-16 [방명록 우체통 반영 (v3.6)](docs/mailbox-integration.md): 땅굴 방 고정 슬롯, FlagUp·편지·발광, 호버 외곽선(뒷면 껍데기)·클릭 상자, 블룸 대신 가산 빛무리, 저사양은 움직이는 층(layer 1)에 두고 부분 다시 그리기. 남의 땅굴에서는 내가 방명록을 남겼을 때만 깃발(확인받을 것)
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

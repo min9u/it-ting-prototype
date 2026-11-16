@@ -24,3 +24,6 @@ explore/gpu/results/win/*.png
 !explore/gpu/results/win/keep-*.png
 explore/gpu/results/load/*.png
 explore/gpu/results/load/*.cpuprofile
+# 3D 핸드오프 v3.8·v3.9: 확인용 탑뷰 이미지는 zip에만
+design/digul_3d_handoff_v3_8/images/
+design/digul_3d_handoff_v3_9/images/

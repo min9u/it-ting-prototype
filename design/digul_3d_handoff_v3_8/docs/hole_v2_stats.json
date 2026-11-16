@@ -1,0 +1,54 @@
+{
+ "hole_rim": 240,
+ "hole_inner": 168,
+ "hole_mine_halo": 108,
+ "hole_total": 408,
+ "halo_dims": [
+  2.92,
+  2.88,
+  0.06
+ ],
+ "ring_palette": [
+  [
+   "yellow",
+   "#F6D07B"
+  ],
+  [
+   "mint",
+   "#BCD494"
+  ],
+  [
+   "sky",
+   "#BCD8E4"
+  ],
+  [
+   "peach",
+   "#F0B389"
+  ],
+  [
+   "wood_cream",
+   "#E0B891"
+  ],
+  [
+   "wall_cream",
+   "#F4CDA1"
+  ],
+  [
+   "green_yellow",
+   "#C0C45E"
+  ],
+  [
+   "green_sky",
+   "#B6D4B4"
+  ],
+  [
+   "orange_yellow",
+   "#EE9C46"
+  ],
+  [
+   "sky_cream",
+   "#D7DFD7"
+  ]
+ ],
+ "mine_ring": "#F2A3A1"
+}

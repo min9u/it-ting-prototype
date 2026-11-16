@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWorn } from '../../data/moleItems'
@@ -12,6 +12,8 @@ import { GUESTBOOK, ME_ID, USERS, overlapCount } from '../../data/mock'
 import type { GuestbookEntry } from '../../data/types'
 import { liveGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
+import SceneButton from '../../components/SceneButton'
+import { affOf, exploreHref, fieldUserOf, getRegulars, locateUser, setRegular, subscribeRegulars } from '../../data/field'
 import s from './Burrow.module.css'
 
 const GB_MAX = 100
@@ -26,7 +28,12 @@ const QUICK = ['땅굴 구경 잘했어요!', '같이 게임 한 판 해요', '�
 export default function VisitBurrow() {
   const { userId = 'yerin' } = useParams()
   const [params] = useSearchParams()
-  const owner = USERS[userId] ?? USERS.yerin
+  // 탐색 들판에서 만든 사람도 찾음 (data/field.ts)
+  const owner = USERS[userId] ?? fieldUserOf(userId) ?? USERS.yerin
+  const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
+  const regular = regulars.includes(owner.id)
+  const [regToast, setRegToast] = useState<string | null>(null)
+  const spot = locateUser(owner.id)
   const me = USERS[ME_ID]
   const [panelOpen, setPanelOpen] = useState(true)
   const [entries, setEntries] = useState<GuestbookEntry[]>(() => liveGuestbook(GUESTBOOK))
@@ -35,6 +42,8 @@ export default function VisitBurrow() {
   const [reqOpen, setReqOpen] = useState(params.get('modal') === 'request')
   const [reqMsg, setReqMsg] = useState('')
   const [sent, setSent] = useState(params.get('toast') === 'request')
+  // 우체통 (v3.6): 남의 땅굴에서는 내가 방명록을 남기면 깃발이 올라감 (집주인의 "읽지 않음" 상태는 방문자에게 보이지 않음)
+  const [posted, setPosted] = useState(params.get('mailbox') === '1')
 
   if (userId === ME_ID) return <Navigate to="/burrow" replace />
   const shared = owner.interests.filter((i) => me.interests.includes(i))
@@ -43,16 +52,25 @@ export default function VisitBurrow() {
     if (!draft.trim()) return
     setEntries((l) => [{ id: `new${Date.now()}`, authorId: ME_ID, text: draft.trim(), createdAt: new Date().toISOString() }, ...l])
     setDraft('')
+    setPosted(true)
   }
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}>
+      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
+        mailbox={posted} onMailbox={() => setAllOpen(true)}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
+        {/* 단골 추가 (02 F5 방문자 뷰 2번): 상대 수락 없이 내 단골 목록에 들어감. 다시 누르면 해제(알리지 않음) */}
+        <div className={s.sceneTools} style={{ top: 112 }}>
+          <SceneButton tone={regular ? 'mint' : 'paper'} aria-pressed={regular}
+            onClick={() => { setRegular(owner.id, !regular); setRegToast(regular ? `${owner.nickname}님을 단골에서 뺐어요` : '단골 땅굴에 추가했어요') }}>
+            {regular ? '✓ 단골' : '+ 단골 추가'}
+          </SceneButton>
+        </div>
         <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => setReqOpen(true)}>
           💬 대화 요청하기
         </button>
-        <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.515) * 100}%` }} />
+        <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.515) * 100}%` }} exploreTo={spot ? exploreHref(spot.floor, spot.seat) : undefined} />
       </RoomView>
 
       {panelOpen ? (
@@ -67,7 +85,7 @@ export default function VisitBurrow() {
               <p className={`display ${s.nick}`}>
                 {owner.nickname} {owner.online && <small className={s.online}>● 접속 중</small>}
               </p>
-              <p className={s.aff}>{owner.affiliation}</p>
+              <p className={s.aff}>{affOf(owner)}</p>
             </div>
           </div>
           <div className={`${s.introBox} ${s.introRead}`}>
@@ -121,6 +139,7 @@ export default function VisitBurrow() {
         </div>
       </Modal>
 
+      <Toast open={!!regToast} onClose={() => setRegToast(null)} title={regToast ?? ''} />
       <Toast open={sent} onClose={() => setSent(false)} duration={6000} {...TOAST.chatRequest(owner.nickname)} />
     </main>
   )

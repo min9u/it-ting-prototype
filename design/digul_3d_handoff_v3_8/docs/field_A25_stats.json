@@ -1,0 +1,184 @@
+{
+ "holes": [
+  [
+   1,
+   -10,
+   8,
+   "green_sky"
+  ],
+  [
+   2,
+   -4,
+   8,
+   "wall_cream"
+  ],
+  [
+   3,
+   8,
+   8,
+   "mint"
+  ],
+  [
+   4,
+   14,
+   12,
+   "orange_yellow"
+  ],
+  [
+   5,
+   -14,
+   14,
+   "green_sky"
+  ],
+  [
+   6,
+   -6,
+   14,
+   "green_yellow"
+  ],
+  [
+   7,
+   2,
+   14,
+   "sky_cream"
+  ],
+  [
+   8,
+   8,
+   14,
+   "peach"
+  ],
+  [
+   9,
+   -8,
+   20,
+   "wood_cream"
+  ],
+  [
+   10,
+   0,
+   20,
+   "yellow"
+  ],
+  [
+   11,
+   6,
+   20,
+   "sky_cream"
+  ],
+  [
+   12,
+   12,
+   20,
+   "wall_cream"
+  ],
+  [
+   13,
+   -14,
+   26,
+   "mine"
+  ],
+  [
+   14,
+   -8,
+   26,
+   "orange_yellow"
+  ],
+  [
+   15,
+   4,
+   26,
+   "peach"
+  ],
+  [
+   16,
+   10,
+   26,
+   "sky"
+  ],
+  [
+   17,
+   -8,
+   32,
+   "mint"
+  ],
+  [
+   18,
+   -2,
+   32,
+   "sky"
+  ],
+  [
+   19,
+   4,
+   32,
+   "wood_cream"
+  ],
+  [
+   20,
+   14,
+   32,
+   "yellow"
+  ],
+  [
+   21,
+   -14,
+   20,
+   "peach"
+  ],
+  [
+   22,
+   -14,
+   32,
+   "wall_cream"
+  ],
+  [
+   23,
+   -2,
+   26,
+   "green_sky"
+  ],
+  [
+   24,
+   2,
+   6,
+   "sky"
+  ],
+  [
+   25,
+   14,
+   6,
+   "wood_cream"
+  ]
+ ],
+ "mine": 13,
+ "house": [
+  16,
+  18
+ ],
+ "ladder": [
+  0,
+  2
+ ],
+ "tiles": {
+  "path_straight": 78,
+  "path_t": 13,
+  "path_corner": 13,
+  "path_end": 1,
+  "path_cross": 1
+ },
+ "tile_total": 106,
+ "grass": {
+  "patches": 48,
+  "area": 289.8
+ },
+ "pumpkins": 89,
+ "flowers": 145,
+ "fence_pieces": 66,
+ "slab_tris": 610,
+ "overflow_when_centering_hole": {
+  "x": 4.699999999999999,
+  "y_north": 2.8999999999999986,
+  "y_south": 0
+ }
+}

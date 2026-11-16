@@ -100,6 +100,11 @@ export interface MoleActor {
   /** delay초 뒤 인사 */
   greet(delay: number): void
   /** 하는 일이 없는지 */
+  /**
+   * 탐색 들판 구멍 점프 (3D 핸드오프 v3.8 mole_hop_spec, mole_v1_3): down = 구멍으로 쏙 (끝 자세 유지, 숨기는 건 부르는 쪽),
+   * up = 구멍에서 뿅 → mole_idle. 제자리·회전 없음·1배속. 돌려주는 값 = 클립 길이(초)
+   */
+  hop(phase: 'down' | 'up'): number
   isIdle(): boolean
   /** 조종·걷기·동작이 하나도 없음 (제자리 숨쉬기만). 저사양 모드에서 그리기를 멈춰도 되는지 */
   isResting(): boolean
@@ -529,6 +534,24 @@ export function createMoleActor(gltf: GLTF, opts: {
     object, update, walkTo, drive, interact, react, greetWith,
     faceTowards(p) { const q = p.clone(); setPlan([...standUp(), turnStep(() => yawTo(q))]) },
     greet(delay) { setPlan([...standUp(), waitStep(delay), clipStep('mole_greet')]) },
+    hop(phase) {
+      const name = phase === 'down' ? 'mole_hop_down' : 'mole_hop_up'
+      const dur = clip(name).duration
+      let t = 0
+      idleFor = 0
+      setPlan([{
+        hold: true,
+        begin() { t = 0; play(name, { once: true, fade: 0 }) },
+        tick(dt) {
+          t += dt
+          if (t < dur) return false
+          if (phase === 'up') play('mole_idle', { fade: 0 })
+          return true
+        },
+      }])
+      if (cur?.hold) { cur = null } // 앞 점프가 끝나기 전에 불려도 바로 바꿈
+      return dur
+    },
     isIdle: () => !cur && !plan.length,
     isResting: () => !cur && !plan.length && !driving && driveDir.lengthSq() === 0,
     isGreeting: () => current === act('mole_greet') && current.isRunning(),

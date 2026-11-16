@@ -44,7 +44,7 @@ export function mountRoomWorker(container: HTMLElement, opts: RoomSceneOptions, 
   worker.onerror = (e) => { e.preventDefault(); if (!ready) switchToFallback(e.message || 'worker error') }
   let ready = false
 
-  post({ type: 'init', canvas: off, w: container.clientWidth || 1, h: container.clientHeight || 1, opts: { ...opts, canvas: undefined }, lab: getLab() }, [off])
+  post({ type: 'init', canvas: off, w: container.clientWidth || 1, h: container.clientHeight || 1, opts: { ...opts, canvas: undefined, onMailbox: undefined }, lab: getLab() }, [off])
 
   // 크기
   const ro = new ResizeObserver(() => post({ type: 'resize', w: container.clientWidth || 1, h: container.clientHeight || 1 }))
