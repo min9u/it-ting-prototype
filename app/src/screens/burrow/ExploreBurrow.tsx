@@ -10,6 +10,7 @@ import { getMyWorn } from '../../data/moleItems'
 import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
 import type { HoleFieldHandle } from '../../three/holeField'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
+import Minimap from './Minimap'
 import rv from '../../components/RoomView.module.css'
 import s from './Burrow.module.css'
 import x from './Explore.module.css'
@@ -196,6 +197,9 @@ export default function ExploreBurrow() {
             <HomeIcon size={16} /> 내 땅굴로 돌아가기
           </SceneButton>
         )}
+
+        {/* 미니맵 (전체 마을 지도, docs/explore-designs.md) */}
+        {ready && <Minimap field={field} floor={floor} seat={seat} moving={moving} view={{ kind: 'camera', focusX, coverRight: panelOpen ? 372 : 0 }} onGo={(n) => { handle.current?.goSeat(n) }} onLadder={() => setModal('floor')} />}
 
         <p className={x.hint} style={{ left: `${focusX * 100}%` }}>
           <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 옆 구멍으로 · 구멍을 누르면 바로 이동 · <kbd>Enter</kbd> 땅굴에 들어가기

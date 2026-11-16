@@ -1,0 +1,147 @@
+/* 디자인 C 땅속 굴길 (ExploreTunnel.tsx). --surf = 땅 위 선, --tun = 굴길 높이 (px, 장면 위에서부터) */
+.scene { background: #c98450; cursor: grab; user-select: none; touch-action: pan-y; }
+.scene:active { cursor: grabbing; }
+
+/* 하늘 (조금 느리게 따라 움직임) */
+.sky {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--surf);
+  background:
+    radial-gradient(ellipse 70px 22px at 120px 70px, rgba(255, 255, 255, .85) 60%, transparent 62%),
+    radial-gradient(ellipse 46px 18px at 170px 62px, rgba(255, 255, 255, .85) 60%, transparent 62%),
+    radial-gradient(ellipse 60px 18px at 560px 116px, rgba(255, 255, 255, .7) 60%, transparent 62%),
+    radial-gradient(ellipse 38px 15px at 600px 108px, rgba(255, 255, 255, .7) 60%, transparent 62%),
+    linear-gradient(#a9d8f2, #d5eef8 85%, #e6f4f8);
+  background-size: 820px 100%, 820px 100%, 820px 100%, 820px 100%, 100% 100%;
+  background-repeat: repeat-x;
+}
+
+.world { position: absolute; left: 0; top: 0; bottom: 0; transition: transform .62s var(--ease-out); will-change: transform; }
+.world[data-free] { transition: transform .08s linear; }
+@media (prefers-reduced-motion: reduce) { .world { transition: none; } }
+/* 흙: 층 무늬 + 자갈 (그라데이션만, 그림 파일 없음) */
+.soil {
+  position: absolute; left: -400px; right: -400px; top: calc(var(--surf) + 4px); bottom: 0;
+  background:
+    radial-gradient(ellipse 9px 6px at 40px 60px, #a9683a 90%, transparent 100%),
+    radial-gradient(ellipse 6px 4px at 150px 210px, #e0a874 90%, transparent 100%),
+    radial-gradient(ellipse 11px 7px at 260px 380px, #9f5f33 90%, transparent 100%),
+    radial-gradient(ellipse 5px 4px at 330px 140px, #a9683a 90%, transparent 100%),
+    radial-gradient(ellipse 8px 5px at 90px 470px, #e3ad7a 90%, transparent 100%),
+    linear-gradient(#e2a46b 0, #d79558 18%, #cd8a4f 45%, #c07c45 70%, #b06e3c 100%);
+  background-size: 380px 520px, 380px 520px, 380px 520px, 380px 520px, 380px 520px, 100% 100%;
+}
+.soil::before {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(176deg, transparent 0 58px, rgba(120, 66, 30, .09) 58px 64px, transparent 64px 130px);
+}
+.grass {
+  position: absolute; left: -400px; right: -400px; top: calc(var(--surf) - 16px); height: 26px;
+  background:
+    radial-gradient(circle 6px at 10px 4px, #9ccf72 98%, transparent) 0 0 / 22px 10px repeat-x,
+    linear-gradient(#93c96a, #7fb85a 70%, #6a9f48);
+  border-radius: 0 0 6px 6px; box-shadow: 0 3px 0 rgba(90, 55, 30, .18);
+}
+
+/* 굴길 · 목 · 세로 굴 */
+.tunnel { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.tubeOuter, .tubeInner, .tubeLine, .neck, .neckInner, .shaft, .shaftInner { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.tubeOuter { stroke: #f1c08c; stroke-width: 46; }
+.tubeInner { stroke: #a9673a; stroke-width: 36; }
+.tubeLine { stroke: rgba(70, 38, 18, .28); stroke-width: 5; transform: translateY(13px); }
+.neck { stroke: #f1c08c; stroke-width: 34; }
+.neckInner { stroke: #a9673a; stroke-width: 25; }
+.shaft { stroke: #ebb57f; stroke-width: 16; }
+.shaftInner { stroke: #a9673a; stroke-width: 9; }
+
+/* 땅굴 입구 (땅 위) */
+.slot { display: contents; }
+.mound {
+  position: absolute; z-index: 2; width: 84px; height: 30px; transform: translate(-50%, -100%);
+}
+.moundHill {
+  position: absolute; left: 6px; right: 6px; bottom: 0; height: 26px;
+  border-radius: 50% 50% 6px 6px / 100% 100% 6px 6px; background: var(--ring);
+  box-shadow: inset 0 -4px 0 rgba(90, 55, 30, .18), 0 2px 0 rgba(90, 55, 30, .2);
+}
+.moundHill::after {
+  content: ''; position: absolute; left: 50%; top: 5px; width: 34px; height: 9px; transform: translateX(-50%);
+  border-radius: 50%; background: #3a2416; box-shadow: inset 0 3px 0 rgba(0, 0, 0, .35);
+}
+.mound:hover .moundHill { filter: brightness(1.05); }
+.post {
+  position: absolute; left: 54px; bottom: 14px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 4px; border-radius: 6px; white-space: nowrap;
+  background: #f7e6c8; border: 1.5px solid #b5794a; box-shadow: 0 2px 0 rgba(90, 55, 30, .25);
+  font-family: var(--font-display); font-size: 12px; color: var(--ink-900); transform: rotate(-2deg);
+}
+.post b { padding: 0 5px; border-radius: 4px; background: #b5794a; color: #fff8ec; font-family: var(--font-body); font-size: 10px; font-weight: 800; }
+.post::after { content: ''; position: absolute; left: 14px; top: 100%; width: 4px; height: 14px; background: #9c6438; }
+.on { width: 7px; height: 7px; border-radius: 50%; background: #5fbf3a; box-shadow: 0 0 0 1.5px #fff; }
+.slot[data-cur] .post { background: #fff7ea; border-color: var(--cta); }
+.slot[data-mine] .post b { background: var(--cta); }
+
+/* 땅속 방 (돔 단면) */
+.room { position: absolute; z-index: 2; transform: translateX(-50%); transition: transform .25s var(--ease-out), filter .25s; filter: saturate(.92) brightness(.97); }
+.room:hover { transform: translateX(-50%) translateY(-3px); filter: none; }
+.peek { box-shadow: 0 4px 0 rgba(90, 50, 25, .3), 0 10px 22px rgba(70, 35, 15, .25); }
+.slot[data-cur] .room { transform: translateX(-50%) scale(1.06); filter: none; z-index: 3; }
+.slot[data-cur] .peek { border-color: var(--cta); box-shadow: 0 0 0 5px rgba(255, 236, 214, .55), 0 4px 0 rgba(90, 50, 25, .3), 0 12px 26px rgba(70, 35, 15, .3); }
+.slot[data-mine] .peek { border-color: #e98d8a; }
+.shared {
+  position: absolute; right: -10px; bottom: -8px; z-index: 1;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  background: #fffaf2; color: var(--green-ink); box-shadow: 0 2px 0 rgba(90, 55, 30, .25);
+  font-size: 11px; font-weight: 700;
+}
+.shared::before { content: '같은 관심사 '; font-weight: 500; color: var(--ink-500); }
+.shared[data-rare] { background: #fff3cf; color: #8a5a1a; }
+.mineTag {
+  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); z-index: 1;
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  background: var(--cta); color: #fff8f0; font-family: var(--font-display); font-size: 12px;
+}
+
+/* 내 두더지 (발이 굴길 바닥) */
+.mole { position: absolute; z-index: 4; transform: translate(-50%, -100%); pointer-events: none; }
+.mole svg { display: block; transform-origin: 50% 100%; }
+.mole[data-facing='-1'] svg { transform: scaleX(-1); }
+.mole[data-digging] svg { animation: dig .26s ease-in-out infinite; }
+@keyframes dig { 50% { translate: 0 -4px; rotate: 6deg; } }
+.mole i {
+  position: absolute; bottom: 12px; left: 50%; width: 8px; height: 8px; border-radius: 50%;
+  background: #7a4a2b; opacity: 0;
+}
+.mole[data-digging] i { animation: dirt .5s ease-out infinite; }
+.mole i:nth-child(2) { animation-delay: .16s !important; width: 6px; height: 6px; --dx: -26px; }
+.mole i:nth-child(3) { animation-delay: .32s !important; --dx: 22px; }
+.mole i:nth-child(1) { --dx: -14px; }
+@keyframes dirt { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), -26px); } }
+@media (prefers-reduced-motion: reduce) { .mole[data-digging] svg, .mole[data-digging] i { animation: none; } }
+
+/* 안내판: 땅 위 입구 옆에 꽂힘 */
+.sign { position: absolute; z-index: 6; transform: translateY(-100%); animation: signUp .25s var(--ease-out); }
+.sign > div { border-radius: 14px 14px 14px 4px; }
+.sign::after { content: ''; position: absolute; left: 22px; top: 100%; width: 6px; height: 12px; background: #9c6438; border-radius: 0 0 2px 2px; }
+@keyframes signUp { from { opacity: 0; transform: translateY(calc(-100% + 10px)); } }
+
+/* 사다리 (굴길 시작) */
+.ladder { position: absolute; z-index: 2; width: 60px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+.ladderRails {
+  position: absolute; top: 40px; left: 50%; width: 26px; transform: translateX(-50%);
+  border-left: 4px solid #7a4a2b; border-right: 4px solid #7a4a2b;
+  background: repeating-linear-gradient(transparent 0 10px, #7a4a2b 10px 14px);
+}
+.ladderSign {
+  position: relative; padding: 5px 10px; border-radius: 7px; white-space: nowrap;
+  background: #f7e6c8; border: 1.5px solid #b5794a; box-shadow: 0 2px 0 rgba(90, 55, 30, .25);
+  font-family: var(--font-display); font-size: 13px; color: var(--brown-600);
+}
+.ladder:hover .ladderSign { background: #fff6e6; }
+.end { position: absolute; z-index: 1; width: 230px; transform: translateY(-100%); font-family: var(--font-display); font-size: 13px; color: rgba(255, 244, 230, .9); text-align: center; }
+
+.back {
+  position: absolute; top: 48px; z-index: 5; transform: translateX(-50%);
+  height: 40px; padding: 0 16px; border-radius: 10px; background: var(--scene-btn-cream);
+  border: 1.5px solid rgba(116, 74, 50, .55); box-shadow: 0 2px 0 rgba(116, 74, 50, .25);
+  font-family: var(--font-display); font-size: 15px; color: var(--brown-600);
+}
