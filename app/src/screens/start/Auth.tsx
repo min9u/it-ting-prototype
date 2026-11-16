@@ -4,6 +4,7 @@ import roomCutout from '../../assets/room-cutout.png'
 import Modal from '../../components/Modal'
 import { Toast } from '../../components/Feedback'
 import {
+  LOGIN_FREE,
   CAMPUSES, CAMPUS_FLOORS, CODE_EXPIRED, CODE_LEN, CODE_NOT_DIGIT, CODE_TTL, CODE_WRONG, EMAIL_BAD, GENERATIONS,
   PW_BAD_CHAR, PW_MISMATCH, PW_RULE_TEXT, RESEND_GAP, checkPassword, confirmMismatch, consumeResetToken, emailHasBadChar,
   emailValid, googleLogin, lastResetToken, login, registerAccount, requestReset, resetTokenValid, setAuthState, signupDraft,
@@ -136,8 +137,11 @@ export function Login() {
   }
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.value || !pw || busy) return
-    if (!email.valid) { email.touch(); return }
+    if (busy) return
+    if (!LOGIN_FREE) {
+      if (!email.value || !pw) return
+      if (!email.valid) { email.touch(); return }
+    }
     setFailed(false); setBusy('pw')
     done(await login(email.value, pw))
   }
@@ -162,7 +166,7 @@ export function Login() {
             {failed && <span className={s.err} role="alert">이메일 또는 비밀번호가 맞지 않아요</span>}
           </div>
         </div>
-        <button className={s.primary} disabled={!email.value || !pw || !!busy} aria-busy={busy === 'pw'}>
+        <button className={s.primary} disabled={(!LOGIN_FREE && (!email.value || !pw)) || !!busy} aria-busy={busy === 'pw'}>
           {busy === 'pw' ? <><Spinner />로그인 중</> : '로그인'}
         </button>
       </form>

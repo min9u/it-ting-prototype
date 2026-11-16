@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { authState, isMobileDevice } from '../../data/auth'
+import { LOGIN_FREE, authState, isMobileDevice } from '../../data/auth'
 import StartHeader, { PeekMole } from './StartHeader'
 import s from './Start.module.css'
 
@@ -10,7 +10,7 @@ import s from './Start.module.css'
  */
 export function RequireLogin({ children }: { children: ReactNode }) {
   const loc = useLocation()
-  if (authState() === 'guest') return <Navigate to="/login" replace state={{ from: `${loc.pathname}${loc.search}` }} />
+  if (!LOGIN_FREE && authState() === 'guest') return <Navigate to="/login" replace state={{ from: `${loc.pathname}${loc.search}` }} />
   return <>{children}</>
 }
 

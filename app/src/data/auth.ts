@@ -66,6 +66,12 @@ export const CAMPUSES = Object.keys(CAMPUS_FLOORS)
  * ?guest=1 을 붙이면 언제든 비로그인으로.
  */
 export type AuthState = 'guest' | 'member'
+/**
+ * 지금은 로그인 검사를 끔 (2026-11-16 사용자 요청: "일단 그냥 로그인되게").
+ * true 면 로그인 · Google 로 계속하기가 입력과 관계없이 바로 내 땅굴로, 로그인 안 한 상태로도 모든 화면이 열림.
+ * 명세대로 막으려면 false 로 (실패·정지·SSAFY 인증 시연 계정, 비로그인 → 로그인 화면 보내기가 다시 켜짐)
+ */
+export const LOGIN_FREE = true
 const KEY = 'digul.auth'
 export const START_PATHS = ['/start', '/look', '/login', '/signup', '/password-reset']
 const isStartPath = (p: string) => p === '/' || START_PATHS.some((s) => p === s || p.startsWith(`${s}/`))
@@ -111,7 +117,8 @@ const addDays = (d: number) => {
 
 /** 로그인 (요청 중 로딩을 보여 주려고 조금 기다림) */
 export async function login(email: string, pw: string): Promise<LoginResult> {
-  await new Promise((r) => setTimeout(r, 700))
+  await new Promise((r) => setTimeout(r, LOGIN_FREE ? 250 : 700))
+  if (LOGIN_FREE) { setAuthState('member'); return { ok: true, next: '/burrow' } }
   const e = email.trim().toLowerCase()
   if (e === 'wrong@ssafy.com') return { ok: false, kind: 'mismatch' }
   if (accounts.has(e) && accounts.get(e) !== pw) return { ok: false, kind: 'mismatch' }
@@ -124,7 +131,8 @@ export async function login(email: string, pw: string): Promise<LoginResult> {
 
 /** Google 로 계속하기 (목): 처음 쓰는 Google 계정으로 보고 회원가입 3 으로 */
 export async function googleLogin(): Promise<LoginResult> {
-  await new Promise((r) => setTimeout(r, 700))
+  await new Promise((r) => setTimeout(r, LOGIN_FREE ? 250 : 700))
+  if (LOGIN_FREE) { setAuthState('member'); return { ok: true, next: '/burrow' } }
   return { ok: true, next: '/signup/ssafy?via=google' }
 }
 
