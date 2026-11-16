@@ -13,9 +13,15 @@ import { groupRoomId, leaveRoom, roomOf, useChat } from '../../data/chat'
 import { MEETUP_APPLY_MESSAGE_MAX } from '../../lib/validation'
 import type { User } from '../../data/types'
 import {
-  type MeetupX, apply, canQuit, deadlineLabel, deadlinePassed, findMeetup, hourLabel, leftOf, membersOf, myOf,
-  parseHour, quit, recruitOf, report, toggleWish, useMeetups, withdraw,
+  type MeetupState, type MeetupX, canQuit, deadlineLabel, deadlinePassed, hourLabel, leftOf, membersOf, myOf,
+  parseHour, recruitOf,
 } from '../../data/meetupStore'
+import { api } from '../../api'
+import { toMeetupState, type MeetupCardVM, type MeetupDetailVM } from '../../api/mappers'
+import { patch, useMeetupDetail, useOptimistic } from '../../api/queries'
+import { qk } from '../../api/queryClient'
+import { reportBody } from '../../api/reports'
+import { DetailSkeleton, QueryGate } from '../../components/AsyncState'
 import { dateParts } from '../../lib/format'
 import { ActionToast, type MToast, SignHero, useOutside } from './parts'
 import s from './Meetups.module.css'
@@ -27,12 +33,12 @@ const VIEWS: View[] = ['open', 'blocked', 'pending', 'rejected', 'joined', 'host
 const KO = ['영', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열']
 const num = (n: number) => KO[n] ?? String(n)
 
-function viewOf(m: MeetupX): View {
-  const rec = recruitOf(m)
+function viewOf(m: MeetupX, st: MeetupState): View {
+  const rec = recruitOf(m, st)
   if (rec === 'cancelled') return 'cancelled'
   if (rec === 'past') return 'past'
-  const r = myOf(m.id)
-  if (r?.st === 'host') return membersOf(m.id).length === 0 ? 'hostZero' : 'host'
+  const r = myOf(m.id, st)
+  if (r?.st === 'host') return membersOf(m.id, st).length === 0 ? 'hostZero' : 'host'
   if (r?.st === 'joined') return 'joined'
   if (r?.st === 'pending') return 'pending'
   if (r?.st === 'rejected') return 'rejected'
@@ -62,9 +68,29 @@ function whenText(m: MeetupX) {
 export default function MeetupDetail() {
   const { id = '' } = useParams()
   const [params] = useSearchParams()
-  const st = useMeetups()
+  // 서버에서 받기 (api/queries). 로딩 · 오류(다시 시도) · 진짜 없음(404) 을 나눠 그림 → 위험 B1
+  const q = useMeetupDetail(id)
+  if (params.get('modal') === 'applicants') return <Navigate to={`/meetups/me?tab=hosting&manage=${id}`} replace />
+  return (
+    <QueryGate q={q} skeleton={<DetailSkeleton label="모임을 불러오는 중" />} notFound={<NotFound what="meetup" />}>
+      {(d) => <MeetupDetailView key={id} d={d} />}
+    </QueryGate>
+  )
+}
+
+/** 찜 켜고 끄기를 상세 · 목록 캐시에 같이 반영 */
+const likePatches = (id: string, on: boolean) => [
+  patch<MeetupDetailVM>(qk.meetup(id), (o) => ({ ...o, liked: on, meetup: { ...o.meetup, likes: Math.max(0, o.meetup.likes + (on ? 1 : -1)) } })),
+  patch<{ items: MeetupCardVM[] }>(['meetups', 'list'], (o) => ({ ...o, items: o.items.map((c) => (c.meetup.id === id ? { ...c, liked: on } : c)) })),
+]
+
+function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
+  const [params] = useSearchParams()
   const chat = useChat()
-  const m = findMeetup(id, st)
+  const m = data.meetup
+  // 서버가 준 값으로 모임 저장소와 같은 모양을 만들어 계산 함수(recruitOf · myOf …)를 그대로 씀
+  const st = toMeetupState(data)
+  const run = useOptimistic()
   const asParam = params.get('as') as View | null
   const [demo, setDemo] = useState<View | null>(asParam && VIEWS.includes(asParam) ? asParam : null)
   const [note, setNote] = useState('')
@@ -81,11 +107,10 @@ export default function MeetupDetail() {
   const [reportOpen, setReportOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   useOutside(menuRef, menu, () => setMenu(false))
+  /** 찜: 화면을 먼저 바꾸고 실패하면 되돌림 (오류 토스트는 api/queries) */
+  const setLike = (on: boolean) => run.mutate({ call: () => api.meetups.setLike(m.id, on), patches: likePatches(m.id, on), errorTitle: on ? '찜하지 못했어요' : '찜을 해제하지 못했어요' }, { onError: () => setToast(null) })
 
-  if (params.get('modal') === 'applicants') return <Navigate to={`/meetups/me?tab=hosting&manage=${id}`} replace />
-  if (!m) return <NotFound what="meetup" />
-
-  const view: View = demo ?? viewOf(m)
+  const view: View = demo ?? viewOf(m, st)
   const act = (fn: () => void) => { setDemo(null); fn() }
   const me = USERS[ME_ID]
   const host = USERS[m.hostId] ?? me
@@ -143,7 +168,7 @@ export default function MeetupDetail() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
           </button>
           <button className={st.wish.includes(m.id) ? s.utilOn : s.util} aria-pressed={st.wish.includes(m.id)} aria-label="찜하기"
-            onClick={() => { const on = st.wish.includes(m.id); toggleWish(m.id); setToast(on ? { title: '찜을 해제했어요', undo: () => toggleWish(m.id) } : { title: '찜한 모임에 담았어요', desc: rec === 'closed' ? '찜한 모임에서 빈자리 알림을 받을 수 있어요' : undefined, link: { label: '찜한 모임 보기', to: '/meetups/me?tab=wish' } }) }}>
+            onClick={() => { const on = st.wish.includes(m.id); setLike(!on); setToast(on ? { title: '찜을 해제했어요', undo: () => setLike(true) } : { title: '찜한 모임에 담았어요', desc: rec === 'closed' ? '찜한 모임에서 빈자리 알림을 받을 수 있어요' : undefined, link: { label: '찜한 모임 보기', to: '/meetups/me?tab=wish' } }) }}>
             <HeartIcon size={20} />
           </button>
         </div>
@@ -209,7 +234,13 @@ export default function MeetupDetail() {
                   <span>{note.length} / 100</span>
                 </div>
               </>}
-              <button className={`btn btn-cta btn-block ${s.applyBtn}`} disabled={left <= 0} onClick={() => act(() => { apply(m.id, note); setNote(''); setToast(APPLIED) })}>참여 신청하기</button>
+              <button className={`btn btn-cta btn-block ${s.applyBtn}`} disabled={left <= 0 || run.isPending} onClick={() => act(() => {
+                const msg = note.trim()
+                run.mutate({
+                  call: () => api.meetups.apply(m.id, msg || null), errorTitle: '참여 신청을 보내지 못했어요', invalidate: [qk.meetups],
+                  patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'pending', note: msg || undefined, at: Date.now() } }))],
+                }, { onSuccess: () => { setNote(''); setToast(APPLIED) } })
+              })}>참여 신청하기</button>
             </>}
             {view === 'blocked' && <>
               <p className={s.actText}>신청하면 주최자가 확인한 뒤 확정돼요. 확정되면 모임 채팅방이 열려요.</p>
@@ -285,10 +316,19 @@ export default function MeetupDetail() {
       <Footer />
 
       <ConfirmDialog open={confirm === 'withdraw'} onClose={() => setConfirm(null)} title="신청을 취소할까요?" desc="취소하면 주최자에게 보낸 신청과 남긴 말이 사라져요. 스스로 취소한 신청은 다시 신청할 수 있어요." confirmLabel="신청 취소"
-        onConfirm={() => act(() => { withdraw(m.id); setToast({ title: '신청을 취소했어요', desc: '마감 전까지 다시 신청할 수 있어요' }) })} />
+        onConfirm={() => act(() => run.mutate({
+          call: () => api.meetups.withdraw(m.id), errorTitle: '신청을 취소하지 못했어요', invalidate: [qk.meetups],
+          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'withdrawn' } }))],
+        }, { onSuccess: () => setToast({ title: '신청을 취소했어요', desc: '마감 전까지 다시 신청할 수 있어요' }) }))} />
       <ConfirmDialog open={confirm === 'quit'} onClose={() => setConfirm(null)} title="참여를 취소할까요?" desc="주최자에게 알림이 가고 모임 대화방에서도 나가요. 확정 후 참여를 취소하면 이 모임에는 다시 신청할 수 없어요." confirmLabel="참여 취소"
-        onConfirm={() => act(() => { quit(m.id); leaveRoom(groupRoomId(m.id)); setToast({ title: '참여를 취소했어요', desc: '주최자에게 알림으로 전했어요' }) })} />
-      <ReportDialog open={reportOpen} target="모임" onClose={() => setReportOpen(false)} onConfirm={() => { report(m.id); setToast(TOAST.reported) }} />
+        onConfirm={() => act(() => run.mutate({
+          call: () => api.meetups.quit(m.id), errorTitle: '참여를 취소하지 못했어요', invalidate: [qk.meetups],
+          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'quit' }, members: o.members.filter((u) => u !== ME_ID) }))],
+        }, { onSuccess: () => { leaveRoom(groupRoomId(m.id)); setToast({ title: '참여를 취소했어요', desc: '주최자에게 알림으로 전했어요' }) } }))} />
+      <ReportDialog open={reportOpen} target="모임" onClose={() => setReportOpen(false)} onConfirm={(why) => run.mutate({
+          call: () => { const b = reportBody('MEETUP', m.id, why); return api.meetups.report(m.id, b.reason, b.detail) }, errorTitle: '신고를 접수하지 못했어요',
+          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, reported: true }))],
+        }, { onSuccess: () => setToast(TOAST.reported) })} />
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />
       <ActionToast toast={toast} onClose={() => setToast(null)} duration={5000} />
     </div>

@@ -1,21 +1,28 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmDialog, EmptyMole } from '../../components/Feedback'
 import MeetupCard from '../../components/MeetupCard'
 import Pagination from '../../components/Pagination'
 import InterestChip from '../../components/InterestChip'
 import { ChevronLeft, SearchIcon } from '../../components/Icons'
-import { CATEGORIES, TODAY, categoryOf } from '../../data/mock'
+import { CATEGORIES, TODAY } from '../../data/mock'
 import { groupRoomId, roomOf, useChat } from '../../data/chat'
 import {
   CAMPUSES, type MeetupX, applicantsOf, canReapply, confirmedOf, ddayOf, hourLabel, leftOf, mineGroups, myOf, placeLine,
-  recruitOf, startMs, toggleAlert, toggleWish, useMeetups, withdraw,
+  recruitOf, toggleAlert, toggleWish, useMeetups, withdraw,
 } from '../../data/meetupStore'
 import { ActionToast, Dropdown, ManageModal, type MToast, MY_LABEL, RangePicker, dot, fullDate } from './parts'
+import { api } from '../../api'
+import type { MeetupCardVM } from '../../api/mappers'
+import { patch, useMeetupList, useOptimistic } from '../../api/queries'
+import { qk } from '../../api/queryClient'
+import type { MeetupListQuery } from '../../api/types'
+import { ErrorState, SkeletonCards } from '../../components/AsyncState'
 import s from './Meetups.module.css'
 
 const PAGE_SIZES = [6, 12, 24] as const
 const SORTS = ['가까운 날짜순', '최신등록순', '인기순', '인원순'] as const
+const SORT_CODE: Record<(typeof SORTS)[number], NonNullable<MeetupListQuery['sort']>> = { '가까운 날짜순': 'STARTS_AT', 최신등록순: 'NEWEST', 인기순: 'POPULAR', 인원순: 'MEMBERS' }
 const DATES = ['전체', '오늘', '이번 주', '이번 주말'] as const
 const MODES = ['전체', '오프라인', '온라인'] as const
 const CAMPUS_OPTS = ['전체', ...CAMPUSES] as const
@@ -41,7 +48,6 @@ function weekRange(kind: '이번 주' | '이번 주말'): [string, string] {
  * 데모용 쿼리: ?cat=<분야 id>
  */
 export function MeetupList() {
-  const st = useMeetups()
   const [params] = useSearchParams()
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<string[]>(() => (params.get('cat') ? [params.get('cat')!] : []))
@@ -56,32 +62,27 @@ export function MeetupList() {
   const [toast, setToast] = useState<MToast | null>(null)
   const reset = () => setPage(1)
 
-  const list = useMemo(() => {
-    let l = st.list.filter((m) => recruitOf(m, st) !== 'past' && recruitOf(m, st) !== 'cancelled')
-    const k = q.trim()
-    if (k) l = l.filter((m) => m.title.includes(k) || m.intro.includes(k))
-    if (cats.length) l = l.filter((m) => cats.includes(categoryOf(m.interest)?.id ?? ''))
-    if (campus !== '전체') l = l.filter((m) => m.mode === '온라인' || m.campus === campus)
-    const r = range ?? (date === '오늘' ? [TODAY, TODAY] : date === '이번 주' || date === '이번 주말' ? weekRange(date) : null)
-    if (r) l = l.filter((m) => m.date >= r[0] && m.date <= r[1])
-    if (mode !== '전체') l = l.filter((m) => m.mode === mode)
-    const by: Record<string, (a: MeetupX, b: MeetupX) => number> = {
-      '가까운 날짜순': (a, b) => startMs(a) - startMs(b),
-      최신등록순: (a, b) => b.seq - a.seq,
-      인기순: (a, b) => b.likes - a.likes || startMs(a) - startMs(b),
-      인원순: (a, b) => confirmedOf(b, st) - confirmedOf(a, st) || startMs(a) - startMs(b),
-    }
-    l.sort(by[sort])
-    const closed = (m: MeetupX) => recruitOf(m, st) === 'closed'
-    return [...l.filter((m) => !closed(m)), ...l.filter(closed)]
-  }, [st, q, cats, campus, date, range, mode, sort])
-  const total = Math.max(1, Math.ceil(list.length / size))
-  const cur = Math.min(page, total)
+  // 거르기 · 정렬 · 페이지는 서버가 함 (api/meetups.ts, 목 서버도 같은 규칙). 바꾸면 이전 목록을 보여 주다가 바꿔 낌
+  const r = range ?? (date === '오늘' ? [TODAY, TODAY] : date === '이번 주' || date === '이번 주말' ? weekRange(date) : null)
+  const query: MeetupListQuery = {
+    q: q.trim() || undefined, categoryIds: cats.length ? cats : undefined, campus: campus === '전체' ? undefined : campus,
+    from: r?.[0], to: r?.[1], mode: mode === '전체' ? undefined : mode === '온라인' ? 'ONLINE' : 'OFFLINE',
+    sort: SORT_CODE[sort], page, size,
+  }
+  const res = useMeetupList(query)
+  const items = res.data?.items ?? []
+  const total = res.data?.totalPages ?? 1
+  const cur = res.data?.page ?? page
+  const run = useOptimistic()
   const toggleCat = (id: string) => { setCats((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id])); reset() }
-  const wish = (m: MeetupX) => {
-    const on = st.wish.includes(m.id)
-    toggleWish(m.id)
-    setToast(on ? { title: '찜을 해제했어요', undo: () => toggleWish(m.id) } : { title: '찜한 모임에 담았어요', link: { label: '찜한 모임 보기', to: '/meetups/me?tab=wish' } })
+  const setLike = (id: string, on: boolean) => run.mutate({
+    call: () => api.meetups.setLike(id, on), errorTitle: on ? '찜하지 못했어요' : '찜을 해제하지 못했어요', invalidate: [qk.meetups],
+    patches: [patch<{ items: MeetupCardVM[] }>(['meetups', 'list'], (o) => ({ ...o, items: o.items.map((c) => (c.meetup.id === id ? { ...c, liked: on } : c)) }))],
+  }, { onError: () => setToast(null) })
+  const wish = (c: MeetupCardVM) => {
+    const on = c.liked
+    setLike(c.meetup.id, !on)
+    setToast(on ? { title: '찜을 해제했어요', undo: () => setLike(c.meetup.id, true) } : { title: '찜한 모임에 담았어요', link: { label: '찜한 모임 보기', to: '/meetups/me?tab=wish' } })
   }
 
   return (
@@ -118,20 +119,26 @@ export function MeetupList() {
           )
         })}
       </div>
-      <div className={s.grid}>
-        {list.slice((cur - 1) * size, cur * size).map((m) => {
-          const closed = recruitOf(m, st) === 'closed'
-          return (
-            <MeetupCard key={m.id} m={m} done={closed}
-              badge={closed ? { label: '모집 완료', tone: 'done' } : { label: '모집 중', tone: 'open' }}
-              people={`${confirmedOf(m, st)} / ${m.capacity}명`} place={placeLine(m)}
-              wish={{ on: st.wish.includes(m.id), onToggle: () => wish(m) }} />
-          )
-        })}
-        {list.length === 0 && (
-          <div className={s.none}><EmptyMole message="조건에 맞는 모임이 없어요. 직접 열어 보는 건 어때요?"><Link to="/meetups/new" className="btn btn-cta btn-sm">모임 만들기</Link></EmptyMole></div>
-        )}
-      </div>
+      {res.isPending ? (
+        <SkeletonCards count={size} />
+      ) : res.isError && !res.data ? (
+        <ErrorState error={res.error} onRetry={() => void res.refetch()} retrying={res.isFetching} title="모임을 불러오지 못했어요" />
+      ) : (
+        <div className={s.grid} aria-busy={res.isFetching}>
+          {items.map(({ meetup: m, confirmed, recruit, liked }) => {
+            const closed = recruit === 'closed'
+            return (
+              <MeetupCard key={m.id} m={m} done={closed}
+                badge={closed ? { label: '모집 완료', tone: 'done' } : { label: '모집 중', tone: 'open' }}
+                people={`${confirmed} / ${m.capacity}명`} place={placeLine(m)}
+                wish={{ on: liked, onToggle: () => wish({ meetup: m, confirmed, recruit, liked }) }} />
+            )
+          })}
+          {items.length === 0 && (
+            <div className={s.none}><EmptyMole message="조건에 맞는 모임이 없어요. 직접 열어 보는 건 어때요?"><Link to="/meetups/new" className="btn btn-cta btn-sm">모임 만들기</Link></EmptyMole></div>
+          )}
+        </div>
+      )}
       <div className={s.pagerRow}>
         <span />
         <Pagination page={cur} total={total} onChange={setPage} />

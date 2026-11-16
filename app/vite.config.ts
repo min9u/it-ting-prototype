@@ -17,7 +17,8 @@ function stripAvifProbe(): Plugin {
 export default defineConfig(({ mode }) => {
   // 개발 서버 프록시 (docs/dev-deploy-risks.md B6): DEV_PROXY_TARGET=http://localhost:8080 을 app/.env.local 에 두면
   // /api 와 /ws(WebSocket) 를 백엔드로 넘김 → 브라우저에는 같은 출처라 CORS·쿠키 SameSite 문제가 없음. 비우면 프록시 없음
-  const target = loadEnv(mode, '.', '').DEV_PROXY_TARGET
+  const env = loadEnv(mode, '.', '')
+  const target = env.DEV_PROXY_TARGET || env.API_PROXY_TARGET
   const proxy = target ? { '/api': { target, changeOrigin: true }, '/ws': { target, ws: true, changeOrigin: true } } : undefined
   return {
   plugins: [react(), stripAvifProbe()],

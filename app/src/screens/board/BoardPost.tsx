@@ -6,18 +6,25 @@ import InterestChip from '../../components/InterestChip'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, ReportDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import { CalendarIcon, ChatIcon, ChevronLeft, ChevronRight, HomeIcon } from '../../components/Icons'
-import { ME_ID, USERS, meetupOf, toneOf } from '../../data/mock'
+import { ME_ID, USERS, toneOf } from '../../data/mock'
 import { getMyInterests } from '../../data/interests'
 import {
-  COMMENT_MAX, COMMENT_PAGE, addComment, addReply, ago, bigOf, commentCount, dateLabel, deleteComment, deletePost, editComment,
-  isGone, isListed, isMine, scoreOf, isRecruiting, likesOf, meetupWhen, nickOf, reportComment, reportPost, toggleCommentLike, toggleLike,
-  toggleSave, usePosts, viewPost, type BoardComment, type BoardPost as Post,
+  COMMENT_MAX, COMMENT_PAGE, ago, bigOf, commentCount, dateLabel, isGone, isMine, likesOf, meetupWhen, nickOf,
+  type BoardComment,
 } from '../../data/boardStore'
 import {
   BookmarkIcon, CatPill, GonePage, HeartFill, MoreMenu, POST_DELETED_TOAST, SAVE_TOAST, ShareIcon, UNSAVE_TOAST, Who, affLine,
   useArrivalToast, type MenuItem,
 } from './parts'
 import s from './Board.module.css'
+import { api, isApiError } from '../../api'
+import type { BoardPostVM } from '../../api/mappers'
+import { patch, useOptimistic, usePostDetail, usePostList } from '../../api/queries'
+import { qk } from '../../api/queryClient'
+import { reportBody } from '../../api/reports'
+import { DetailSkeleton, ErrorState, QueryGate } from '../../components/AsyncState'
+
+type Post = BoardPostVM
 
 const ALREADY: ToastSpec = { title: '이미 신고했어요' }
 
@@ -27,18 +34,66 @@ const ALREADY: ToastSpec = { title: '이미 신고했어요' }
  */
 export function BoardPost() {
   const { postId = '' } = useParams()
-  const posts = usePosts()
-  const p = posts.find((x) => x.id === postId)
   const { hash } = useLocation()
-  // 특정 댓글로 오면(#댓글id) 댓글 쪽에서 스크롤하므로 맨 위로 올리지 않음
-  useEffect(() => { viewPost(postId); if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 서버에서 받기 (api/queries). 로딩 · 오류(다시 시도) · 진짜 없음(404) 을 나눠 그림 → 위험 B1
+  const q = usePostDetail(postId)
+  // 조회수: 글을 열 때 한 번 (같은 사람 중복은 서버가 거름). 특정 댓글로 오면(#댓글id) 댓글 쪽에서 스크롤하므로 맨 위로 올리지 않음
+  useEffect(() => { api.board.view(postId).catch(() => {}); if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!p || p.status === 'deleted') return <GonePage message="삭제된 글이에요" />
-  if (p.status === 'hidden' && !isMine(p)) return <GonePage message="신고로 가려진 글이에요" />
-  return <PostView key={p.id} p={p} posts={posts} />
+  // 404 = 없거나 삭제된 글, 403 POST_HIDDEN = 신고로 가려진 남의 글
+  return (
+    <QueryGate q={q} skeleton={<DetailSkeleton label="글을 불러오는 중" />}
+      notFound={<GonePage message="삭제된 글이에요" />}
+      error={(retry, e) => (isApiError(e) && e.code === 'POST_HIDDEN'
+        ? <GonePage message="신고로 가려진 글이에요" />
+        : <div className={s.wrap}><ErrorState error={e} onRetry={retry} retrying={q.isFetching} title="글을 불러오지 못했어요" /></div>)}>
+      {(p) => (p.status === 'deleted' ? <GonePage message="삭제된 글이에요" /> : <PostView key={p.id} p={p} />)}
+    </QueryGate>
+  )
 }
 
-function PostView({ p, posts }: { p: Post; posts: Post[] }) {
+/** 글 · 댓글 쓰기: 캐시를 먼저 바꾸고(낙관적) 실패하면 되돌림 + 오류 토스트 (api/queries useOptimistic) */
+function usePostActions(p: Post, onToast: (t: ToastSpec | null) => void) {
+  const run = useOptimistic()
+  const key = qk.post(p.id)
+  const edit = (f: (o: Post) => Post) => patch<Post>(key, f)
+  const mapC = (f: (l: BoardComment[]) => BoardComment[]) => edit((o) => ({ ...o, comments: f(o.comments) }))
+  const mapOne = (cid: string, f: (c: BoardComment) => BoardComment) =>
+    mapC((l) => l.map((c) => (c.id === cid ? f(c) : { ...c, replies: c.replies.map((r) => (r.id === cid ? f(r) : r)) })))
+  const temp = (text: string, mention?: string): BoardComment => ({ id: `tmp-${Date.now()}`, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] })
+  const all = [qk.posts]
+  return {
+    like: () => { const on = !p.liked; run.mutate({ call: () => api.board.setLike(p.id, on), patches: [edit((o) => ({ ...o, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
+    save: () => {
+      const on = !p.savedAt
+      onToast(on ? SAVE_TOAST : UNSAVE_TOAST)
+      run.mutate({ call: () => api.board.setBookmark(p.id, on), patches: [edit((o) => ({ ...o, savedAt: on ? Date.now() : undefined }))], invalidate: all, errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요' }, { onError: () => onToast(null) })
+    },
+    remove: (then: () => void) => run.mutate({ call: () => api.board.remove(p.id), invalidate: all, errorTitle: '게시물을 삭제하지 못했어요' }, { onSuccess: then }),
+    report: (why: string) => run.mutate({
+      call: () => { const b = reportBody('POST', p.id, why); return api.board.report(p.id, b.reason, b.detail) },
+      patches: [edit((o) => ({ ...o, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
+    }, { onSuccess: () => onToast(TOAST.reported) }),
+    comment: (text: string) => run.mutate({ call: () => api.board.addComment(p.id, { content: text }), patches: [mapC((l) => [...l, temp(text)])], invalidate: all, errorTitle: '댓글을 등록하지 못했어요' }),
+    reply: (parentId: string, text: string, mention?: string) => run.mutate({
+      call: () => api.board.addComment(p.id, { content: text, parentId, mentionNickname: mention ?? null, mentionMemberId: mention ? Object.values(USERS).find((u) => u.nickname === mention)?.id ?? null : null }),
+      patches: [mapC((l) => l.map((c) => (c.id === parentId ? { ...c, replies: [...c.replies, temp(text, mention)] } : c)))], invalidate: all, errorTitle: '답글을 등록하지 못했어요',
+    }),
+    editComment: (cid: string, text: string) => run.mutate({ call: () => api.board.editComment(p.id, cid, text), patches: [mapOne(cid, (c) => ({ ...c, text, editedAt: Date.now() }))], invalidate: all, errorTitle: '댓글을 고치지 못했어요' }),
+    deleteComment: (cid: string) => run.mutate({
+      call: () => api.board.deleteComment(p.id, cid), invalidate: all, errorTitle: '댓글을 삭제하지 못했어요',
+      patches: [mapC((l) => l.filter((c) => c.id !== cid).map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== cid) })))],
+    }, { onSuccess: () => onToast({ title: '댓글을 삭제했어요' }) }),
+    likeComment: (c: BoardComment) => { const on = !c.liked; run.mutate({ call: () => api.board.setCommentLike(p.id, c.id, on), patches: [mapOne(c.id, (x) => ({ ...x, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
+    reportComment: (cid: string, why: string) => run.mutate({
+      call: () => { const b = reportBody('COMMENT', cid, why); return api.board.reportComment(cid, b.reason, b.detail) },
+      patches: [mapOne(cid, (x) => ({ ...x, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
+    }, { onSuccess: () => onToast(TOAST.reported) }),
+  }
+}
+type PostActions = ReturnType<typeof usePostActions>
+
+function PostView({ p }: { p: Post }) {
   const nav = useNavigate()
   const loc = useLocation()
   const mine = isMine(p)
@@ -51,9 +106,13 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
   const myPicks = getMyInterests(USERS[ME_ID].interests)
   const authorPicks = isGone(p.authorId) ? [] : USERS[p.authorId].interests
   const overlap = mine ? [] : authorPicks.filter((i) => myPicks.includes(i))
-  const meetup = p.meetupId ? meetupOf(p.meetupId) : undefined
+  const card = p.meetupCard
+  const meetup = card?.meetup
   const main = p.interests[0]
-  const next = useMemo(() => (main ? posts.filter((x) => isListed(x) && x.id !== p.id && x.interests.includes(main)).sort((a, b) => scoreOf(b) - scoreOf(a) || b.at - a.at).slice(0, 3) : []), [posts, main, p.id])
+  // 다음 읽을 글: 같은 대분류 인기 글 3개 (목록 API 재사용. 실패하면 이 칸만 안 보임)
+  const related = usePostList({ interest: main, sort: 'POPULAR', size: 4 }, !!main)
+  const next = useMemo(() => (related.data?.items ?? []).filter((x) => x.id !== p.id).slice(0, 3), [related.data, p.id])
+  const act = usePostActions(p, (t) => setToast(t))
   const folded = p.reportedByMe && !unfold && !hidden
 
   const menu: MenuItem[] = mine
@@ -78,14 +137,14 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
       <div className={s.detail}>
         {/* 3 액션 레일: 좋아요 · 댓글 · 저장 · 공유. 스크롤해도 따라옴 */}
         <nav className={s.rail} aria-label="글 반응">
-          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={!!p.liked} onClick={() => toggleLike(p.id)} disabled={hidden} aria-label={`좋아요 ${likesOf(p)}개`}>
+          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={!!p.liked} onClick={act.like} disabled={hidden} aria-label={`좋아요 ${likesOf(p)}개`}>
             <span><HeartFill on={p.liked} size={18} /></span><em>{likesOf(p)}</em>
           </button>
           <button type="button" onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={`댓글 ${commentCount(p)}개 보기`}>
             <span><ChatIcon size={18} /></span><em>{commentCount(p)}</em>
           </button>
           <button type="button" className={p.savedAt ? s.railOn : undefined} aria-pressed={!!p.savedAt} disabled={hidden}
-            onClick={() => setToast(toggleSave(p.id) ? SAVE_TOAST : UNSAVE_TOAST)}>
+            onClick={act.save}>
             <span><BookmarkIcon on={!!p.savedAt} size={18} /></span><em>저장</em>
           </button>
           <button type="button" onClick={share} disabled={hidden}><span><ShareIcon /></span><em>공유</em></button>
@@ -146,11 +205,11 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
                   <span className={s.meetupSign}><span>{meetup.sign ?? meetup.title}</span></span>
                   <div className={s.meetupText}>
                     <p className={s.meetupState}>
-                      {isRecruiting(meetup) ? <em className={s.recruiting}>● 모집 중</em> : <em className={s.closed}>{meetup.cancelled ? '취소된 모임' : '모집 마감'}</em>}
+                      {card?.recruit === 'open' ? <em className={s.recruiting}>● 모집 중</em> : <em className={s.closed}>{card?.recruit === 'cancelled' ? '취소된 모임' : card?.recruit === 'past' ? '끝난 모임' : '모집 마감'}</em>}
                       <span>글에 나온 모임</span>
                     </p>
                     <strong>{meetup.title}</strong>
-                    <p className={s.meetupInfo}><span><CalendarIcon size={13} /> {meetupWhen(meetup)}</span><span>👤 {meetup.memberIds.length} / {meetup.capacity}명</span></p>
+                    <p className={s.meetupInfo}><span><CalendarIcon size={13} /> {meetupWhen(meetup)}</span><span>👤 {card?.confirmed} / {meetup.capacity}명</span></p>
                   </div>
                   <Link to={`/meetups/${meetup.id}`} className={`btn btn-sm ${s.meetupGo}`}>모임 보기 <ChevronRight size={14} /></Link>
                 </div>
@@ -166,7 +225,7 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
           )}
 
           {/* 10~13 댓글 */}
-          <Comments ref_={commentsRef} p={p} hash={loc.hash.slice(1)} onToast={setToast} onOpenUser={setProfile} />
+          <Comments ref_={commentsRef} p={p} act={act} hash={loc.hash.slice(1)} onToast={setToast} onOpenUser={setProfile} />
         </article>
       </div>
 
@@ -199,10 +258,10 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
 
       <ProfilePopup user={profile ? USERS[profile] : null} onClose={() => setProfile(null)} />
       <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)}
-        onConfirm={() => { deletePost(p.id); nav('/board', { state: { toast: POST_DELETED_TOAST } }) }}
+        onConfirm={() => act.remove(() => nav('/board', { state: { toast: POST_DELETED_TOAST } }))}
         title="게시물을 삭제할까요?" desc="게시물에 달린 댓글과 답글도 함께 사라지고 되돌릴 수 없어요." />
       <ReportDialog open={dialog === 'report'} target="게시물" onClose={() => setDialog(null)}
-        onConfirm={() => { reportPost(p.id); setToast(TOAST.reported) }} />
+        onConfirm={act.report} />
       <Toast open={!!toast} {...(toast ?? { title: '' })} onClose={() => setToast(null)} />
     </div>
   )
@@ -211,8 +270,8 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
 /* ===== 댓글 (10 · 11 · 13) ===== */
 type Pending = { kind: 'delete' | 'report'; c: BoardComment; hasReplies: boolean } | null
 
-function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
-  p: Post; hash: string; onToast: (t: ToastSpec) => void; onOpenUser: (id: string) => void; ref_: React.RefObject<HTMLElement | null>
+function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
+  p: Post; act: PostActions; hash: string; onToast: (t: ToastSpec) => void; onOpenUser: (id: string) => void; ref_: React.RefObject<HTMLElement | null>
 }) {
   const top = p.comments.filter((c) => c.status !== 'deleted')
   // 알림·댓글 단 글에서 특정 댓글로 오면 그 댓글이 보이도록 펼침
@@ -232,7 +291,7 @@ function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
     if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add(s.flash) }
   }, [hash])
 
-  const submit = () => { const t = draft.trim(); if (!t) return; addComment(p.id, t); setDraft('') }
+  const submit = () => { const t = draft.trim(); if (!t) return; act.comment(t); setDraft('') }
 
   const row = (c: BoardComment, parent: BoardComment) => {
     const mineC = c.authorId === ME_ID
@@ -256,12 +315,12 @@ function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
           </p>
           {editing === c.id ? (
             <EditBox initial={c.text} onCancel={(changed) => (changed ? setDiscard(() => () => setEditing(null)) : setEditing(null))}
-              onSave={(t) => { editComment(p.id, c.id, t); setEditing(null) }} />
+              onSave={(t) => { act.editComment(c.id, t); setEditing(null) }} />
           ) : (
             <>
               <p className={s.cText}>{c.mention && <span className={s.mention}>@{c.mention} </span>}{c.text}</p>
               <p className={s.cActions}>
-                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={!!c.liked} disabled={disabled} onClick={() => toggleCommentLike(p.id, c.id)} aria-label={`댓글 좋아요 ${c.likes + (c.liked ? 1 : 0)}개`}>
+                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={!!c.liked} disabled={disabled || c.id.startsWith('tmp-')} onClick={() => act.likeComment(c)} aria-label={`댓글 좋아요 ${c.likes + (c.liked ? 1 : 0)}개`}>
                   <HeartFill on={c.liked} size={13} /> {c.likes + (c.liked ? 1 : 0)}
                 </button>
                 {!disabled && (
@@ -299,7 +358,7 @@ function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
               {c.replies.filter((r) => r.status !== 'deleted').map((r) => <div key={r.id} id={r.id} className={s.reply}>{row(r, c)}</div>)}
               {replyTo?.parent === c.id && (
                 <ReplyBox key={`${c.id}-${replyTo.mention ?? ''}`} to={replyTo.mention ?? nickOf(c.authorId)} onCancel={() => setReplyTo(null)}
-                  onSubmit={(t) => { addReply(p.id, c.id, t, replyTo.mention); setReplyTo(null) }} />
+                  onSubmit={(t) => { act.reply(c.id, t, replyTo.mention); setReplyTo(null) }} />
               )}
             </li>
           ))}
@@ -314,10 +373,10 @@ function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
       )}
 
       <ConfirmDialog open={pending?.kind === 'delete'} onClose={() => setPending(null)}
-        onConfirm={() => { if (pending) { deleteComment(p.id, pending.c.id); onToast({ title: '댓글을 삭제했어요' }) } }}
+        onConfirm={() => { if (pending) act.deleteComment(pending.c.id) }}
         title="댓글을 삭제할까요?" desc={pending?.hasReplies ? '달린 답글도 함께 사라지고 되돌릴 수 없어요.' : '삭제한 댓글은 되돌릴 수 없어요.'} />
       <ReportDialog open={pending?.kind === 'report'} target="댓글" onClose={() => setPending(null)}
-        onConfirm={() => { if (pending) { reportComment(p.id, pending.c.id); onToast(TOAST.reported) } }} />
+        onConfirm={(why) => { if (pending) act.reportComment(pending.c.id, why) }} />
       {/* 00 공통 18 저장 전 취소 (댓글 수정 중 취소) */}
       <ConfirmDialog open={!!discard} onClose={() => setDiscard(null)} onConfirm={() => discard?.()}
         title="아직 저장되지 않았습니다" desc="나가면 고친 내용이 사라져요." confirmLabel="나가기" cancelLabel="계속 수정" />

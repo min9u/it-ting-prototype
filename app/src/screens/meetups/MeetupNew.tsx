@@ -93,7 +93,7 @@ export default function MeetupNew() {
   const preview: MeetupX = {
     id: 'preview', title: d.title || '모임 이름', interest: d.interest || '관심사', date: d.ymd || `${TODAY_PARTS.y}-11-08`, start: d.start || '오후 2:00', end: d.end,
     area: d.mode === '온라인' ? '온라인' : d.place.split(/\s+/).slice(0, 2).join(' ') || '장소', place: d.place, mode: d.mode, capacity: d.cap,
-    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, closesAt: '', sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0, campus: d.campus,
+    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0, campus: d.campus,
   }
   const previewPlace = d.mode === '온라인' ? `온라인 · ${d.platform === '기타' ? d.platformEtc || '플랫폼' : d.platform}` : `${d.campus} · ${preview.area} · 오프라인`
 

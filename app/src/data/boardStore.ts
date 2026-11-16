@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from 'react'
 import { CATEGORIES, ME_ID, MEETUPS, TODAY, USERS, categoryOf } from './mock'
 import { getMyInterests } from './interests'
+import { agoBoard, monthDay, ymdLabel } from '../lib/time'
 import type { Meetup, PostCategory, Tone } from './types'
 
 /* ===== 모양 ===== */
@@ -61,6 +62,8 @@ export interface BoardPost {
   reports: number
   reportedByMe?: boolean
   comments: BoardComment[]
+  /** 목록 응답처럼 댓글 본문 없이 수만 받았을 때 (api/mappers) */
+  commentTotal?: number
 }
 
 /* ===== 상수 (명세 숫자) ===== */
@@ -73,7 +76,6 @@ export const PHOTO_MAX = 3
 export const COMMENT_PAGE = 10
 export const HIDE_AT = 3
 const DAY = 86_400_000
-const HOUR = 3_600_000
 
 /** 관심사 대분류 11개 이름 (카탈로그 순서) */
 export const BIG_INTERESTS = CATEGORIES.map((c) => c.name)
@@ -86,21 +88,9 @@ export function nickOf(id: string) {
   return isGone(id) ? '탈퇴한 사용자' : USERS[id].nickname
 }
 
-/* ===== 시간 표기 (F0 공통 8: 방금 · N시간 전 · 어제 · N일 전, 그보다 오래되면 날짜) ===== */
-const dayStart = (t: number) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime() }
-export function dateLabel(t: number) {
-  const d = new Date(t), now = new Date()
-  return d.getFullYear() === now.getFullYear() ? `${d.getMonth() + 1}월 ${d.getDate()}일` : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`
-}
-export function ago(t: number) {
-  const now = Date.now()
-  if (now - t < HOUR) return '방금'
-  const days = Math.round((dayStart(now) - dayStart(t)) / DAY)
-  if (days === 0) return `${Math.floor((now - t) / HOUR)}시간 전`
-  if (days === 1) return '어제'
-  if (days < 7) return `${days}일 전`
-  return dateLabel(t)
-}
+/* ===== 시간 표기 (F0 공통 8: 방금 · N시간 전 · 어제 · N일 전, 그보다 오래되면 날짜) — 문구는 lib/time.ts 한 곳 ===== */
+export const dateLabel = (t: number) => monthDay(t)
+export const ago = (t: number) => agoBoard(t)
 
 /* ===== 목 데이터 ===== */
 const NOW = Date.now()
@@ -311,12 +301,15 @@ const snap = () => posts
 /** 모든 글 (삭제 포함). 화면에서는 아래 골라내기 함수와 같이 씀 */
 export function usePosts() { return useSyncExternalStore(subscribe, snap, snap) }
 export const getPost = (id: string) => posts.find((p) => p.id === id)
+/** 훅 바깥에서 지금 글 목록 (목 서버 api/board.ts) */
+export const getPosts = () => posts
 
 /* ===== 계산 ===== */
 const live = (c: BoardComment) => c.status !== 'deleted'
 /** 댓글 수 = 댓글 + 답글 (삭제 빼고) */
 export function commentCount(p: BoardPost) {
-  return p.comments.filter(live).reduce((n, c) => n + 1 + c.replies.filter(live).length, 0)
+  const n = p.comments.filter(live).reduce((a, c) => a + 1 + c.replies.filter(live).length, 0)
+  return p.comments.length ? n : p.commentTotal ?? n
 }
 export const savesOf = (p: BoardPost) => p.saves + (p.savedAt ? 1 : 0)
 export const likesOf = (p: BoardPost) => p.likes + (p.liked ? 1 : 0)
@@ -358,12 +351,10 @@ const joined = (mt: Meetup) => mt.hostId === ME_ID || mt.memberIds.includes(ME_I
 export function linkableMeetups(cat: PostCategory | null) {
   return cat === '모임 홍보' ? MEETUPS.filter((mt) => mt.hostId === ME_ID && isRecruiting(mt)) : MEETUPS.filter(joined)
 }
-const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 export function meetupWhen(mt: Meetup) {
-  const d = new Date(`${mt.date}T00:00:00`)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]}) ${mt.start}`
+  return `${ymdLabel(mt.date)} ${mt.start}`
 }
-export const meetupShortDate = (mt: Meetup) => { const d = new Date(`${mt.date}T00:00:00`); return `${d.getMonth() + 1}월 ${d.getDate()}일` }
+export const meetupShortDate = (mt: Meetup) => { const [, m, d] = mt.date.split('-').map(Number); return `${m}월 ${d}일` }
 
 /* ===== 바꾸기 ===== */
 export interface PostDraft {

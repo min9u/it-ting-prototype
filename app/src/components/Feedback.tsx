@@ -100,7 +100,7 @@ export const TOAST = {
  * 완료 토스트 621:3239 (227×47 기본형) — 대화 요청 완료 612:7718 · 참여 신청 완료 642:7955
  * 제목 + 설명 + 오른쪽 이동 버튼. 4초 뒤 사라진다.
  */
-export function Toast({ open, title, desc, action, onClose, duration = 4000, placement = 'bottom' }: {
+export function Toast({ open, title, desc, action, onClose, duration = 4000, placement = 'bottom', tone = 'ok' }: {
   open: boolean
   title: string
   desc?: string
@@ -108,6 +108,8 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   onClose: () => void
   duration?: number
   placement?: 'bottom' | 'top'
+  /** error: 쓰기가 실패해 되돌렸을 때 (api/queries useOptimistic) */
+  tone?: 'ok' | 'error'
 }) {
   useEffect(() => {
     if (!open) return
@@ -116,9 +118,11 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   }, [open, duration, onClose])
   if (!open) return null
   return createPortal(
-    <div className={`${styles.toast} ${placement === 'top' ? styles.top : ''}`} role="status">
-      <span className={styles.check} aria-hidden>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+    <div className={`${styles.toast} ${placement === 'top' ? styles.top : ''}`} role={tone === 'error' ? 'alert' : 'status'}>
+      <span className={tone === 'error' ? `${styles.check} ${styles.checkError}` : styles.check} aria-hidden>
+        {tone === 'error'
+          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 6.5v7M12 17.5v.01" /></svg>
+          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </span>
       <span className={styles.text}>
         <strong>{title}</strong>
