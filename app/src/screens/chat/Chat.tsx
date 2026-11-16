@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocked } from '../../data/account'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
@@ -45,7 +46,9 @@ export default function Chat({ requests }: { requests?: boolean }) {
   const room = roomId ? roomOf(roomId, st) : undefined
   const reqN = receivedCount(st)
 
+  const blocked = useBlocked()
   const list = st.rooms
+    .filter((r) => !(r.kind === 'dm' && blocked.some((b) => b.id === r.partnerId)))
     .filter((r) => filter === 'all' || r.kind === filter)
     .filter((r) => !q.trim() || roomTitle(r).includes(q.trim()) || r.messages.some((m) => m.text.includes(q.trim())))
     .sort((a, b) => (lastMsg(b)?.at ?? 0) - (lastMsg(a)?.at ?? 0))
@@ -408,7 +411,8 @@ function Requests({ onProfile, onToast }: { onProfile: (id: string) => void; onT
   const [dir, setDir] = useState<'received' | 'sent'>(params.get('dir') === 'sent' ? 'sent' : 'received')
   const [picked, setPicked] = useState<string | null>(null)
   const [decline, setDecline] = useState<Req | null>(null)
-  const all = liveRequests(st)
+  const blocked = useBlocked()
+  const all = liveRequests(st).filter((r) => !blocked.some((b) => b.id === r.userId))
   const list = all.filter((r) => r.direction === dir)
   const count = (d: Req['direction']) => all.filter((r) => r.direction === d).length
   const focus = list.find((r) => r.id === picked) ?? list[0]

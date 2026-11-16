@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { setAuthState } from '../../data/auth'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../../components/Feedback'
 import { hasPassword, LEAVE_REASONS, useAccount, withdraw } from '../../data/account'
@@ -117,7 +118,7 @@ export function LeavePage() {
         if (email === acc.googleEmail) { setGDone(true); setGErr(false) } else setGErr(true)
       }} />
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)}
-        onConfirm={() => { setLeaving(true); withdraw(reason || null); setTimeout(() => navigate('/start', { replace: true }), 0) }}
+        onConfirm={() => { setLeaving(true); withdraw(reason || null); setAuthState('guest'); setTimeout(() => navigate('/start', { replace: true }), 0) }}
         title="정말 탈퇴할까요?" desc="탈퇴하면 계정을 되돌릴 수 없어요." confirmLabel="탈퇴하기" />
     </>
   )

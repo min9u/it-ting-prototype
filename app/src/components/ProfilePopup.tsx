@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Modal from './Modal'
 import Avatar from './Avatar'
-import { ReportDialog, Toast } from './Feedback'
+import { ConfirmDialog, ReportDialog, Toast } from './Feedback'
+import { blockUser, isBlocked } from '../data/account'
 import { HomeIcon } from './Icons'
 import { ME_ID, USERS, toneOf } from '../data/mock'
 import { affOf } from '../data/field'
@@ -17,18 +18,28 @@ import s from './ProfilePopup.module.css'
  */
 export default function ProfilePopup({ user, onClose }: { user: User | null; onClose: () => void }) {
   const [report, setReport] = useState(false)
-  const [done, setDone] = useState(false)
+  const [block, setBlock] = useState(false)
+  const [menu, setMenu] = useState(false)
+  const [done, setDone] = useState<string | null>(null)
   const mine = getMyInterests(USERS[ME_ID].interests)
   const isMe = user?.id === ME_ID
   return (
     <>
-      <Modal open={!!user && !report} onClose={onClose} width={380} labelledBy="profile-title">
+      <Modal open={!!user && !report && !block} onClose={() => { setMenu(false); onClose() }} width={380} labelledBy="profile-title">
         {user && (
           <div className={s.box}>
             {!isMe && (
-              <button className={s.report} onClick={() => setReport(true)} aria-label={`${user.nickname}님 신고하기`} title="신고하기">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
-              </button>
+              <span className={s.moreWrap}>
+                <button className={s.report} onClick={() => setMenu((v) => !v)} aria-label={`${user.nickname}님 신고 · 차단`} aria-expanded={menu} title="신고 · 차단">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
+                </button>
+                {menu && (
+                  <span className={s.menu} role="menu">
+                    <button role="menuitem" onClick={() => { setMenu(false); setReport(true) }}>신고하기</button>
+                    <button role="menuitem" disabled={isBlocked(user.id)} onClick={() => { setMenu(false); setBlock(true) }}>{isBlocked(user.id) ? '차단한 사용자' : '차단하기'}</button>
+                  </span>
+                )}
+              </span>
             )}
             <span className={s.mole}><Avatar size={96} /></span>
             <h2 id="profile-title" className="display">{user.nickname}{isMe && <em className={s.me}>나</em>}</h2>
@@ -46,8 +57,13 @@ export default function ProfilePopup({ user, onClose }: { user: User | null; onC
           </div>
         )}
       </Modal>
-      <ReportDialog open={report} target="사용자" onClose={() => setReport(false)} onConfirm={() => { setReport(false); onClose(); setDone(true) }} />
-      <Toast open={done} onClose={() => setDone(false)} title="신고가 접수됐어요" desc="운영진이 확인한 뒤 조치할게요" />
+      <ReportDialog open={report} target="사용자" onClose={() => setReport(false)} onConfirm={() => { setReport(false); onClose(); setDone('report') }} />
+      {/* 차단 (F10 차단 관리에서 해제). 차단한 사람의 대화·요청은 채팅 목록에서 숨김 */}
+      <ConfirmDialog open={block} onClose={() => setBlock(false)} confirmLabel="차단" title={`${user?.nickname ?? ''}님을 차단할까요?`}
+        desc="서로 대화 요청을 보낼 수 없고, 이 사람의 대화가 내 목록에서 숨겨져요. 설정 › 차단 관리에서 풀 수 있어요."
+        onConfirm={() => { if (user) blockUser({ id: user.id, nickname: user.nickname }); onClose(); setDone('block') }} />
+      <Toast open={!!done} onClose={() => setDone(null)} title={done === 'block' ? '차단했어요' : '신고가 접수됐어요'}
+        desc={done === 'block' ? '설정 › 차단 관리에서 풀 수 있어요' : '운영진이 확인한 뒤 조치할게요'} />
     </>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { setAuthState } from '../../data/auth'
 import { Navigate, NavLink, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight } from '../../components/Icons'
 import { ConfirmDialog } from '../../components/Feedback'
@@ -73,7 +74,7 @@ export default function Settings() {
         </section>
       </div>
 
-      <ConfirmDialog open={logout} onClose={() => setLogout(false)} onConfirm={() => navigate('/start')}
+      <ConfirmDialog open={logout} onClose={() => setLogout(false)} onConfirm={() => { setAuthState('guest'); navigate('/start') }}
         title="로그아웃할까요?" desc="다시 들어오려면 로그인해야 해요." confirmLabel="로그아웃" tone="primary" />
     </main>
   )

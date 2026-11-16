@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import NotFound from '../../components/NotFound'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import Footer from '../../components/Footer'
@@ -81,7 +82,7 @@ export default function MeetupDetail() {
   useOutside(menuRef, menu, () => setMenu(false))
 
   if (params.get('modal') === 'applicants') return <Navigate to={`/meetups/me?tab=hosting&manage=${id}`} replace />
-  if (!m) return <Navigate to="/meetups" replace />
+  if (!m) return <NotFound what="meetup" />
 
   const view: View = demo ?? viewOf(m)
   const act = (fn: () => void) => { setDemo(null); fn() }

@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from 'react'
+import NotFound from '../../components/NotFound'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWorn } from '../../data/moleItems'
@@ -31,7 +32,8 @@ export default function VisitBurrow() {
   const { userId = 'yerin' } = useParams()
   const [params] = useSearchParams()
   // 탐색 들판에서 만든 사람도 찾음 (data/field.ts)
-  const owner = USERS[userId] ?? fieldUserOf(userId) ?? USERS.yerin
+  const found = USERS[userId] ?? fieldUserOf(userId)
+  const owner = found ?? USERS.yerin
   const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
   const regular = regulars.includes(owner.id)
   const [regToast, setRegToast] = useState<string | null>(null)
@@ -52,6 +54,7 @@ export default function VisitBurrow() {
   const [posted, setPosted] = useState(params.get('mailbox') === '1')
 
   if (userId === ME_ID) return <Navigate to="/burrow" replace />
+  if (!found) return <NotFound what="burrow" />
   const shared = owner.interests.filter((i) => me.interests.includes(i))
 
   const submitGb = () => {
