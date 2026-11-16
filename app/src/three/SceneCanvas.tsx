@@ -10,7 +10,7 @@ import { labVersion, subscribeLab } from '../lib/lowLab'
  * - G 3D 창 작게: 저사양일 때 장면 div 를 화면 가운데 액자로 줄임 (그릴 픽셀이 약 절반)
  * - H 가볍게 보기: 저사양일 때 버튼으로 3D 그리기를 멈춤
  */
-export default function SceneCanvas({ mount, deps, focusX, className, label, onReady, overlay }: {
+export default function SceneCanvas({ mount, deps, focusX, className, label, onReady, overlay, paused = false }: {
   mount: (el: HTMLElement, focusX: number) => SceneHandle
   /** 이 값이 바뀌면 장면을 새로 만든다 (예: 방 주인 id) */
   deps: string
@@ -23,6 +23,8 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
    * (G 액자로 줄어도 같이 따라감, role="img" 밖이라 버튼이 접근성 트리에 남음). 바탕은 클릭이 통과함
    */
   overlay?: ReactNode
+  /** 화면에 안 보이는 동안(예: 랜딩에서 투명하게 숨긴 층) 그리기를 멈춤. docs/rendering-experiments-2.md */
+  paused?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const handle = useRef<SceneHandle | null>(null)
@@ -32,6 +34,8 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   const q = quality()
   const lab = q.level === 'low' ? q.lab : null
   const [frozen, setFrozen] = useState(false)
+  const pausedRef = useRef(paused)
+  pausedRef.current = paused
   const small = !!lab?.G
   // G 일 때는 액자를 focusX 자리에 두고 장면은 액자 가운데(0.5)에 그림
   const sceneFx = small ? 0.5 : focusX
@@ -50,6 +54,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
     }
     handle.current = h
     setFrozen(false)
+    if (pausedRef.current) h.setFrozen?.(true)
     latest.current.onReady?.(h)
     return () => {
       h.dispose()
@@ -58,6 +63,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   }, [deps, ver])
 
   useEffect(() => { handle.current?.setFocusX(sceneFx) }, [sceneFx])
+  useEffect(() => { handle.current?.setFrozen?.(paused || frozen) }, [paused]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const style = small
     ? { inset: 'auto', top: '9%', bottom: '16%', left: `calc(${focusX * 100}% - 36%)`, width: '72%', height: 'auto', borderRadius: 28, overflow: 'hidden', transition: 'left .45s', boxShadow: '0 0 0 6px rgba(251,244,236,.55), 0 18px 40px rgba(60,35,20,.25)' }
@@ -74,7 +80,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
       {lab?.H && (
         <button
           type="button"
-          onClick={() => { const on = !frozen; setFrozen(on); handle.current?.setFrozen?.(on) }}
+          onClick={() => { const on = !frozen; setFrozen(on); handle.current?.setFrozen?.(on || paused) }}
           style={{
             position: 'absolute', left: 12, top: 12, zIndex: 6, padding: '8px 12px', borderRadius: 999,
             border: 0, font: '600 13px/1 Pretendard, system-ui, sans-serif', cursor: 'pointer',

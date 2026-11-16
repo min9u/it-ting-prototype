@@ -1,0 +1,33 @@
+{
+  "name": "q-A_noenv",
+  "mode": "hwoff",
+  "url": "http://localhost:5301/#/burrow/explore?fenv=0&qshot=1",
+  "mole": {
+    "x0": 684,
+    "y0": 375,
+    "x1": 831,
+    "y1": 562,
+    "scene": {
+      "x0": 0,
+      "y0": 64,
+      "x1": 1904,
+      "y1": 985
+    }
+  },
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "dpr": 1,
+  "captures": [
+    [
+      "bd",
+      1
+    ],
+    [
+      "bd",
+      0
+    ],
+    [
+      "bd",
+      11
+    ]
+  ]
+}

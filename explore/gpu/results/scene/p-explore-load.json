@@ -1,0 +1,38 @@
+{
+  "summary": {
+    "name": "p-explore-load",
+    "mode": "hwoff",
+    "url": "http://localhost:5301/#/burrow/explore",
+    "scenario": "still",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 1514,
+      "longTaskMs": 891,
+      "longTaskMax": 660,
+      "worstFreezeMs": 667,
+      "heapMB": 30,
+      "mb": 2.4,
+      "cpuGpuSec": 12.96,
+      "cpuRendererSec": 1.94
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 1514,
+        "longTaskMs": 891,
+        "longTaskMax": 660,
+        "worstFreezeMs": 667,
+        "heapMB": 30,
+        "mb": 2.4,
+        "cpuGpuSec": 12.96,
+        "cpuRendererSec": 1.94
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    }
+  ]
+}

@@ -14,8 +14,8 @@ export interface Backdrop {
   /** 배경을 다시 그려야 함 (크기·카메라 구도가 바뀜) */
   invalidate(): void
   isDirty(): boolean
-  /** 배경 렌더 (layer 0 만, 두더지 빼고) */
-  capture(scene: THREE.Scene, camera: THREE.Camera): void
+  /** 배경 렌더 (기본 layer 0 만, 두더지 빼고. mask 를 주면 그 층들) */
+  capture(scene: THREE.Scene, camera: THREE.Camera, mask?: number): void
   /** 저장해 둔 배경을 지금 그리기 대상에 붙임 (색 + 깊이) */
   blit(): void
   /** 깊이만 붙임 (색은 안 씀). 방을 다른 캔버스에 고해상도로 깔아 두고 두더지만 그릴 때 가림용 */
@@ -27,7 +27,9 @@ export interface Backdrop {
   dispose(): void
 }
 
-export function createBackdrop(renderer: THREE.WebGLRenderer): Backdrop {
+/** scale: 렌더 타깃 크기 = 캔버스 그리기 버퍼 × scale (1보다 작으면 낮은 해상도로 그려 붙일 때 늘림. 탐색 들판 점프 카메라 이동용) */
+export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: number } = {}): Backdrop {
+  const scale = o.scale ?? 1
   const size = new THREE.Vector2()
   let rt: THREE.WebGLRenderTarget | null = null
   let dirty = true
@@ -55,6 +57,7 @@ export function createBackdrop(renderer: THREE.WebGLRenderer): Backdrop {
 
   const ensure = () => {
     renderer.getDrawingBufferSize(size)
+    if (scale !== 1) size.set(Math.max(1, Math.round(size.x * scale)), Math.max(1, Math.round(size.y * scale)))
     if (rt && rt.width === size.x && rt.height === size.y) return rt
     rt?.dispose()
     rt = new THREE.WebGLRenderTarget(size.x, size.y, {
@@ -69,10 +72,10 @@ export function createBackdrop(renderer: THREE.WebGLRenderer): Backdrop {
   return {
     invalidate() { dirty = true },
     isDirty: () => dirty,
-    capture(scene, camera) {
+    capture(scene, camera, mask) {
       const target = ensure()
       const layers = camera.layers.mask
-      camera.layers.set(0)
+      if (mask === undefined) camera.layers.set(0); else camera.layers.mask = mask
       const prevTarget = renderer.getRenderTarget(), prevClear = renderer.autoClear
       renderer.setRenderTarget(target)
       renderer.autoClear = true

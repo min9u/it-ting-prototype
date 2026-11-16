@@ -9,7 +9,7 @@ import type { FurnChoice } from '../data/myBurrow'
 const useWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
 
 /** 땅굴 방 3D (RoomView 가 React.lazy 로 불러옴 → three.js 는 별도 청크) */
-export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, mailbox, onMailbox, focusX, className, label, onReady, overlay, furniture }: {
+export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, mailbox, onMailbox, focusX, className, label, onReady, overlay, furniture, paused }: {
   /** 처음 고른 가구 (그 뒤 바뀌는 건 handle.setFurniture) */
   furniture?: FurnChoice
   ownerId: string
@@ -33,6 +33,8 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
   onReady?: (handle: SceneHandle) => void
   /** 장면 위 UI (SceneCanvas overlay) */
   overlay?: ReactNode
+  /** 안 보이는 동안 그리기 멈춤 (SceneCanvas paused) */
+  paused?: boolean
 }) {
   return (
     <SceneCanvas
@@ -46,6 +48,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
       label={label}
       onReady={onReady}
       overlay={overlay}
+      paused={paused}
     />
   )
 }

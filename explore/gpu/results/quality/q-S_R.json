@@ -1,0 +1,37 @@
+{
+  "name": "q-S_R",
+  "mode": "hwoff",
+  "url": "http://localhost:5301/#/burrow/explore?fsharp=1&panscale=0_6&qshot=1",
+  "mole": {
+    "x0": 683,
+    "y0": 372,
+    "x1": 832,
+    "y1": 563,
+    "scene": {
+      "x0": 0,
+      "y0": 64,
+      "x1": 1904,
+      "y1": 985
+    }
+  },
+  "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "dpr": 1,
+  "captures": [
+    [
+      "bd",
+      1
+    ],
+    [
+      "bd",
+      0
+    ],
+    [
+      "bd",
+      10
+    ],
+    [
+      "sharp",
+      158
+    ]
+  ]
+}
