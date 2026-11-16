@@ -1,161 +1,273 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { groupRoomId } from '../../data/chat'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ConfirmDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ConfirmDialog, EmptyMole } from '../../components/Feedback'
 import MeetupCard from '../../components/MeetupCard'
 import Pagination from '../../components/Pagination'
-import { SearchIcon } from '../../components/Icons'
-import { ME_ID, MEETUPS, USERS, categoryOf, dday, toneOf } from '../../data/mock'
-import type { Meetup } from '../../data/types'
+import InterestChip from '../../components/InterestChip'
+import { ChevronLeft, SearchIcon } from '../../components/Icons'
+import { CATEGORIES, TODAY, categoryOf } from '../../data/mock'
+import { groupRoomId, roomOf, useChat } from '../../data/chat'
+import {
+  CAMPUSES, type MeetupX, applicantsOf, canReapply, confirmedOf, ddayOf, hourLabel, leftOf, mineGroups, myOf, placeLine,
+  recruitOf, startMs, toggleAlert, toggleWish, useMeetups, withdraw,
+} from '../../data/meetupStore'
+import { ActionToast, Dropdown, ManageModal, type MToast, MY_LABEL, RangePicker, dot, fullDate } from './parts'
 import s from './Meetups.module.css'
 
-/** 2026-11-12 Figma 751:8069 "12개씩 보기" 드롭다운 (Figma 메모 677:10983 '00개씩 보기' 완료) */
-const PAGE_SIZES = [12, 24, 36] as const
-/** Figma 메모(675:10975): "정렬: 최신등록순, 게시순, 마감임박순?, 인원순?(관련도순 제외)" — ?는 아직 미정. 2026-11-12 화면 이름은 최신등록순 */
-const SORTS = ['최신등록순', '마감임박순', '인원순'] as const
+const PAGE_SIZES = [6, 12, 24] as const
+const SORTS = ['가까운 날짜순', '최신등록순', '인기순', '인원순'] as const
+const DATES = ['전체', '오늘', '이번 주', '이번 주말'] as const
+const MODES = ['전체', '오프라인', '온라인'] as const
+const CAMPUS_OPTS = ['전체', ...CAMPUSES] as const
 
-/** 정렬 · 개수 보기 드롭다운 (2026-11-12 Figma 751:7849 정렬 열림 · 751:8069 개수 보기 열림): 진한 갈색 목록이 버튼 아래로 펼쳐짐 */
-function Dropdown<T extends string | number>({ value, options, label, render, onChange }: { value: T; options: readonly T[]; label: string; render: (v: T) => string; onChange: (v: T) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [open])
-  return (
-    <div className={s.dd} ref={ref}>
-      <button type="button" className={s.ddBtn} aria-haspopup="listbox" aria-expanded={open} aria-label={label} onClick={() => setOpen((v) => !v)}>
-        {render(value)}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
-      </button>
-      {open && (
-        <ul className={s.ddList} role="listbox" aria-label={label}>
-          {options.map((o) => (
-            <li key={String(o)}><button type="button" role="option" aria-selected={o === value} className={o === value ? s.ddOn : ''} onClick={() => { onChange(o); setOpen(false) }}>{render(o)}</button></li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
+/** 이번 주 = 오늘부터 이번 주 일요일까지, 이번 주말 = 이번 주 토요일과 일요일 */
+function weekRange(kind: '이번 주' | '이번 주말'): [string, string] {
+  const [y, m, d] = TODAY.split('-').map(Number)
+  const t = new Date(y, m - 1, d)
+  const toSun = (7 - t.getDay()) % 7
+  const iso = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+  const sun = new Date(y, m - 1, d + toSun)
+  const sat = new Date(y, m - 1, d + toSun - 1)
+  return kind === '이번 주' ? [TODAY, iso(sun)] : [iso(sat < t ? t : sat), iso(sun)]
 }
-const FILTER_TAGS = ['독서', '캠핑', '보드게임', '그림', '러닝', '게임', '음악']
 
 /**
- * 모임 (리스트) 494:13691 — 2026-11-11 스크린샷 대조
- * 나무 팻말 제목, 관심사 칩 필터(전체 / 내 관심사 | 관심사별), 검색 + 정렬 드롭다운, 3열 카드, 모집 완료는 맨 뒤
+ * 모임 – 리스트 (Figma 02 F7 1071:9749 · 날짜 필터 1074:9747 · 직접 설정 1074:10147 · 정렬 열림 · 개수 보기 열림)
+ * 2 검색: 모임 이름·소개 글에서만, 입력하면 바로 (M12)
+ * 3 관심사 필터: 전체 / 여러 개 골라 좁힘 (M15: 대표 관심사의 분야로 거름)
+ * 4 캠퍼스 · 날짜 · 방식 · 정렬: 모두 AND. 캠퍼스를 고르면 그 캠퍼스의 오프라인 + 모든 온라인 모임
+ * 5 카드: 상태 배지(모집 중 / 모집 완료), 모집 완료는 흐리게 맨 뒤, 지난·취소된 모임은 안 보임, 인원 = 주최자 포함 확정 / 정원
+ * 6 N개씩 보기 6(기본) / 12 / 24 + 페이지 번호
+ * 데모용 쿼리: ?cat=<분야 id>
  */
 export function MeetupList() {
-  const me = USERS[ME_ID]
-  const [scope, setScope] = useState<'전체' | '내 관심사'>('내 관심사')
-  // 내 관심사 = 내가 고른 세부 관심사의 카테고리 (모임 주제는 더 넓은 말이라 카테고리로 맞춤, 관심사 v2)
-  const myCats = useMemo(() => new Set(me.interests.map((i) => categoryOf(i)?.id)), [me.interests])
-  const mine = (topic: string) => me.interests.includes(topic) || myCats.has(categoryOf(topic)?.id)
-  const [tags, setTags] = useState<string[]>(FILTER_TAGS.filter(mine))
-  const [sort, setSort] = useState<(typeof SORTS)[number]>('최신등록순')
-  const [PAGE, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(12)
+  const st = useMeetups()
   const [params] = useSearchParams()
-  const [q, setQ] = useState(params.get('q') ?? '')
+  const [q, setQ] = useState('')
+  const [cats, setCats] = useState<string[]>(() => (params.get('cat') ? [params.get('cat')!] : []))
+  const [campus, setCampus] = useState<(typeof CAMPUS_OPTS)[number]>('전체')
+  const [date, setDate] = useState<(typeof DATES)[number]>('전체')
+  const [range, setRange] = useState<[string, string] | null>(null)
+  const [rangeOpen, setRangeOpen] = useState(params.get('modal') === 'range')
+  const [mode, setMode] = useState<(typeof MODES)[number]>('전체')
+  const [sort, setSort] = useState<(typeof SORTS)[number]>('가까운 날짜순')
+  const [size, setSize] = useState<(typeof PAGE_SIZES)[number]>(6)
   const [page, setPage] = useState(1)
+  const [toast, setToast] = useState<MToast | null>(null)
+  const reset = () => setPage(1)
 
   const list = useMemo(() => {
-    let l = [...MEETUPS]
-    if (scope === '내 관심사' && tags.length) l = l.filter((m) => tags.includes(m.interest) || mine(m.interest))
-    if (scope === '전체' && tags.length) l = l.filter((m) => tags.includes(m.interest))
-    if (q) l = l.filter((m) => m.title.includes(q) || m.interest.includes(q))
-    if (sort === '마감임박순') l.sort((a, b) => (a.capacity - a.memberIds.length) - (b.capacity - b.memberIds.length))
-    else if (sort === '인원순') l.sort((a, b) => b.memberIds.length - a.memberIds.length)
-    else l.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }))
-    const full = (m: Meetup) => m.memberIds.length >= m.capacity || !!m.past
-    return [...l.filter((m) => !full(m)), ...l.filter(full)]
-  }, [scope, tags, sort, q]) // eslint-disable-line react-hooks/exhaustive-deps
-  // "비슷한 ○○ 모임 보기"(?q=)로 왔으면 관심사 필터를 풀고 검색어만으로
-  useEffect(() => { if (params.get('q')) { setScope('전체'); setTags([]) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const total = Math.max(1, Math.ceil(list.length / PAGE))
-  const toggle = (t: string) => { setTags((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t])); setPage(1) }
+    let l = st.list.filter((m) => recruitOf(m, st) !== 'past' && recruitOf(m, st) !== 'cancelled')
+    const k = q.trim()
+    if (k) l = l.filter((m) => m.title.includes(k) || m.intro.includes(k))
+    if (cats.length) l = l.filter((m) => cats.includes(categoryOf(m.interest)?.id ?? ''))
+    if (campus !== '전체') l = l.filter((m) => m.mode === '온라인' || m.campus === campus)
+    const r = range ?? (date === '오늘' ? [TODAY, TODAY] : date === '이번 주' || date === '이번 주말' ? weekRange(date) : null)
+    if (r) l = l.filter((m) => m.date >= r[0] && m.date <= r[1])
+    if (mode !== '전체') l = l.filter((m) => m.mode === mode)
+    const by: Record<string, (a: MeetupX, b: MeetupX) => number> = {
+      '가까운 날짜순': (a, b) => startMs(a) - startMs(b),
+      최신등록순: (a, b) => b.seq - a.seq,
+      인기순: (a, b) => b.likes - a.likes || startMs(a) - startMs(b),
+      인원순: (a, b) => confirmedOf(b, st) - confirmedOf(a, st) || startMs(a) - startMs(b),
+    }
+    l.sort(by[sort])
+    const closed = (m: MeetupX) => recruitOf(m, st) === 'closed'
+    return [...l.filter((m) => !closed(m)), ...l.filter(closed)]
+  }, [st, q, cats, campus, date, range, mode, sort])
+  const total = Math.max(1, Math.ceil(list.length / size))
+  const cur = Math.min(page, total)
+  const toggleCat = (id: string) => { setCats((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id])); reset() }
+  const wish = (m: MeetupX) => {
+    const on = st.wish.includes(m.id)
+    toggleWish(m.id)
+    setToast(on ? { title: '찜을 해제했어요', undo: () => toggleWish(m.id) } : { title: '찜한 모임에 담았어요', link: { label: '찜한 모임 보기', to: '/meetups/me?tab=wish' } })
+  }
 
   return (
     <>
       <h1 className="page-sign">모임</h1>
-      <div className={s.filters}>
+      <div className={s.listTools}>
+        <label className={s.search}><SearchIcon size={18} /><input value={q} onChange={(e) => { setQ(e.target.value); reset() }} placeholder="모임 이름, 소개 검색" aria-label="모임 검색" /></label>
+        <div className={s.ddRow}>
+          <Dropdown label="캠퍼스" prefix="캠퍼스" value={campus} options={CAMPUS_OPTS} onChange={(v) => { setCampus(v); reset() }} />
+          <div className={s.ddWrap}>
+            <Dropdown label="날짜" prefix="날짜" value={date} options={DATES} onChange={(v) => { setDate(v); setRange(null); reset() }}
+              extra={{ label: range ? `${dot(range[0])} ~ ${dot(range[1])}` : '직접 설정 ›', on: !!range, onClick: () => setRangeOpen(true) }} />
+            {rangeOpen && (
+              <RangePicker value={range} onClose={() => setRangeOpen(false)}
+                onReset={() => { setRange(null); setDate('전체'); reset() }}
+                onApply={(r) => { setRange(r); setRangeOpen(false); reset() }} />
+            )}
+          </div>
+          <Dropdown label="방식" prefix="방식" value={mode} options={MODES} onChange={(v) => { setMode(v); reset() }} />
+          <Dropdown label="정렬" prefix="정렬" value={sort} options={SORTS} onChange={(v) => { setSort(v); reset() }} />
+        </div>
+      </div>
+      <div className={s.filters} role="group" aria-label="관심사 필터">
         <span className={s.filterLabel}>관심사</span>
-        {(['전체', '내 관심사'] as const).map((x) => (
-          <button key={x} className={scope === x ? s.fOn : s.f} onClick={() => { setScope(x); if (x === '전체') setTags([]); setPage(1) }}>{scope === x && x !== '전체' && '✓ '}{x}</button>
-        ))}
+        <button className={cats.length === 0 ? s.fOn : s.f} aria-pressed={cats.length === 0} onClick={() => { setCats([]); reset() }}>전체</button>
         <span className={s.sep} />
-        {FILTER_TAGS.map((t) => {
-          const on = tags.includes(t)
+        {CATEGORIES.map((c) => {
+          const on = cats.includes(c.id)
           return (
-            <button key={t} className={on ? s.tagOn : s.tag} onClick={() => toggle(t)} aria-pressed={on}
-              style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>
-              {on && '✓ '}{t}
+            <button key={c.id} className={on ? s.tagOn : s.tag} onClick={() => toggleCat(c.id)} aria-pressed={on}
+              style={{ background: `var(--tone-${c.tone}-bg)`, color: `var(--tone-${c.tone}-fg)` }}>
+              {on && '✓ '}{c.name}
             </button>
           )
         })}
       </div>
-      <div className={s.tools}>
-        <label className={s.search}><SearchIcon size={18} /><input value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} placeholder="모임, 관심사 검색" /></label>
-        <Dropdown label="정렬" value={sort} options={SORTS} render={(v) => v} onChange={(v) => { setSort(v); setPage(1) }} />
-        <Dropdown label="한 번에 볼 개수" value={PAGE} options={PAGE_SIZES} render={(v) => `${v}개씩 보기`} onChange={(v) => { setPageSize(v); setPage(1) }} />
-      </div>
       <div className={s.grid}>
-        {list.slice((page - 1) * PAGE, page * PAGE).map((m) => <MeetupCard key={m.id} m={m} />)}
-        {list.length === 0 && <p className={s.none}>조건에 맞는 모임이 없어요. 직접 열어보는 건 어때요?</p>}
+        {list.slice((cur - 1) * size, cur * size).map((m) => {
+          const closed = recruitOf(m, st) === 'closed'
+          return (
+            <MeetupCard key={m.id} m={m} done={closed}
+              badge={closed ? { label: '모집 완료', tone: 'done' } : { label: '모집 중', tone: 'open' }}
+              people={`${confirmedOf(m, st)} / ${m.capacity}명`} place={placeLine(m)}
+              wish={{ on: st.wish.includes(m.id), onToggle: () => wish(m) }} />
+          )
+        })}
+        {list.length === 0 && (
+          <div className={s.none}><EmptyMole message="조건에 맞는 모임이 없어요. 직접 열어 보는 건 어때요?"><Link to="/meetups/new" className="btn btn-cta btn-sm">모임 만들기</Link></EmptyMole></div>
+        )}
       </div>
-      <div className={s.pager}><Pagination page={page} total={total} onChange={setPage} /></div>
+      <div className={s.pagerRow}>
+        <span />
+        <Pagination page={cur} total={total} onChange={setPage} />
+        <Dropdown label="한 페이지에 볼 개수" value={size} options={PAGE_SIZES} up render={(v) => `${v}개씩 보기`} onChange={(v) => { setSize(v); setPage(1) }} />
+      </div>
+      <ActionToast toast={toast} onClose={() => setToast(null)} />
     </>
   )
 }
 
-const TABS = ['다가오는 모임', '지난 모임', '찜한 모임'] as const
+const TABS = [
+  { id: 'upcoming', label: '다가오는 모임' }, { id: 'pending', label: '신청 대기' }, { id: 'hosting', label: '내가 연 모임' },
+  { id: 'wish', label: '찜한 모임' }, { id: 'past', label: '지난 모임' },
+] as const
+type TabId = (typeof TABS)[number]['id']
+const EMPTY: Record<TabId, string> = {
+  upcoming: '다가오는 모임이 없어요. 모임을 둘러보세요.', pending: '확인을 기다리는 신청이 없어요.', hosting: '아직 연 모임이 없어요.',
+  wish: '찜한 모임이 없어요. 모임 카드나 상세의 ♡를 눌러 보세요.', past: '지난 모임 기록이 없어요.',
+}
 
 /**
- * 내 모임 (카드 + 액션형) 546:7282 — 2026-11-11 스크린샷 대조
- * 탭 3개(다가오는 4 · 지난 4 · 찜한 3), 카드 위 상태 알약(신청 대기 · D-3), 카드 아래 버튼 두 개
+ * 모임 – 내 모임 (1075:11219) · 찜한 모임 (1075:11830)
+ * 2 상태 탭 5개 (숫자 = 개수). 신청 대기 중 주최자가 수락하면 다가오는 모임으로 옮겨짐. 지난 모임은 기록으로만(지울 수 없음)
+ * 3 가까운 날짜순 목록. 승인되지 않은 신청(거절·자동 미승인)은 신청 대기 탭에 "승인되지 않음"으로 남고, 모임이 시작되면 빠짐
+ * 4 상태별 버튼: 신청 대기 = 신청 취소 / 참여 확정 = 모임 채팅 / 내가 연 모임 = 신청 관리(신청 수), 모임 수정
+ * 5 확인 필요 알림 한 줄: 새 메시지 · 새 참여 신청 · 주최자 확인 대기
+ * 찜: 하트 = 찜 해제(토스트 되돌리기), 참여 신청 = 상세로, 모집 완료 모임은 빈자리 알림 받기 (F9 "빈자리 생김")
+ * 데모용 쿼리: ?tab=upcoming|pending|hosting|wish|past, ?manage=<모임 id> (신청 관리 팝업, F9 알림에서 들어올 때)
  */
 export function MyMeetups() {
-  const [tab, setTab] = useState<(typeof TABS)[number]>('다가오는 모임')
-  const [params] = useSearchParams()
-  // 내 모임 – 모임 삭제 확인 팝업 810:9 (2026-11-12). 데모용 ?modal=delete
-  const [delOpen, setDelOpen] = useState(params.get('modal') === 'delete')
-  const [deleted, setDeleted] = useState<string[]>([])
-  const [toast, setToast] = useState<ToastSpec | null>(null)
-  const counts: Record<string, number> = { '다가오는 모임': 4, '지난 모임': 4, '찜한 모임': 3 }
-  const list = MEETUPS.filter((m) => {
-    if (tab === '다가오는 모임') return m.myStatus && m.myStatus !== '찜' && ['m1', 'm2', 'm3', 'm4'].includes(m.id)
-    if (tab === '찜한 모임') return m.myStatus === '찜'
-    return false
-  }).filter((m) => !deleted.includes(m.id)).sort((a, b) => a.date.localeCompare(b.date))
+  const st = useMeetups()
+  const chat = useChat()
+  const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const legacy = params.get('modal') === 'pending' ? 'pending' : null
+  const tab = ((params.get('tab') ?? legacy) as TabId | null) ?? 'upcoming'
+  const setTab = (t: TabId) => setParams((p) => { p.set('tab', t); p.delete('modal'); return p }, { replace: true })
+  const g = mineGroups(st)
+  const lists: Record<TabId, MeetupX[]> = { upcoming: g.upcoming, pending: g.pending, hosting: g.hosting, wish: g.wished, past: g.past }
+  const list = lists[tab] ?? g.upcoming
+  const [cancelAsk, setCancelAsk] = useState<string | null>(null)
+  const [toast, setToast] = useState<MToast | null>(() => (params.get('toast') === 'cancelled' ? { title: '모임을 취소했어요', desc: '신청자와 참여자에게 알림이 갔어요' } : params.get('toast') === 'deleted' ? { title: '삭제가 완료되었어요', desc: '삭제한 내용은 되돌릴 수 없어요' } : null))
+  const manage = params.get('manage')
+  const setManage = (id: string | null) => setParams((p) => { if (id) p.set('manage', id); else p.delete('manage'); return p }, { replace: true })
 
   return (
     <>
-      <h1 className="page-sign">내 모임</h1>
-      <div className={s.myTabs} role="tablist">
+      <Link to="/meetups" className={s.back}><ChevronLeft size={16} /> 모임</Link>
+      <h1 className={`display ${s.myTitle}`}>내 모임</h1>
+      <div className={s.tabs} role="tablist">
         {TABS.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? s.myTabOn : s.myTab} onClick={() => setTab(t)}>{t} {counts[t]}</button>
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? s.tOn : s.t} onClick={() => setTab(t.id)}>
+            {t.label} <span className={s.tCnt}>{lists[t.id].length}</span>
+          </button>
         ))}
       </div>
-      <div className={s.grid}>
-        {list.length === 0 && <p className={s.none}>지난 모임은 아직 목 데이터가 없어요.</p>}
+      {tab === 'wish' && <p className={s.tabLead}>모임 카드나 상세의 ♡를 누르면 여기에 모여요. 가까운 날짜순으로 보여줘요.</p>}
+      <ul className={s.rows}>
+        {list.length === 0 && <li><EmptyMole message={EMPTY[tab]}>{tab !== 'past' && <Link to="/meetups" className="btn btn-line btn-sm">모임 둘러보기</Link>}</EmptyMole></li>}
         {list.map((m) => {
-          const label = m.myStatus === '신청 대기' ? '신청 대기' : m.myStatus === '내가 주최' ? '내가 연 모임' : m.myStatus === '찜' ? '찜한 모임' : '참여 확정'
+          const r = myOf(m.id, st)
+          const rec = recruitOf(m, st)
+          const left = leftOf(m, st)
+          const apps = applicantsOf(m.id, st).length
+          const unread = roomOf(groupRoomId(m.id), chat)?.unread ?? 0
+          const isWish = tab === 'wish'
+          const status = isWish
+            ? (rec === 'closed' ? { label: '모집 완료', cls: s.stDone } : { label: '모집 중', cls: s.stOk })
+            : m.cancelled ? { label: '취소됨', cls: s.stNo } : tab === 'past' ? { label: '지난 모임', cls: s.stDone }
+            : r?.st === 'host' ? { label: '내가 연 모임', cls: s.stHost } : (MY_LABEL[r?.st ?? ''] ?? MY_LABEL.pending)
+          let note: React.ReactNode = null
+          if (isWish) note = rec === 'closed' ? (st.alerts.includes(m.id) ? <span className={s.noteMuted}>● 자리가 나면 알려드릴게요</span> : null) : left <= 2 ? <span className={s.noteHot}>● {left}자리 남았어요</span> : null
+          else if (tab !== 'past' && r?.st === 'host' && apps > 0) note = <span className={s.noteHot}>● 새 참여 신청 {apps}건</span>
+          else if (tab !== 'past' && r?.st === 'pending') note = <span className={s.noteMuted}>● 주최자 확인을 기다리고 있어요</span>
+          else if (r?.st === 'rejected') note = <span className={s.noteMuted}>아쉽게도 모임 참여가 승인되지 않았어요</span>
+          else if (unread > 0) note = <span className={s.noteHot}>● 새 메시지 {unread}개</span>
+          const closed = isWish && rec === 'closed'
           return (
-            <MeetupCard key={m.id} m={m}
-              badge={{ label: `${label} · ${dday(m.date)}`, tone: m.myStatus === '신청 대기' ? 'wait' : 'open' }}
-              actions={
-                m.myStatus === '신청 대기' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><button className="btn btn-line">신청 취소</button></>
-                : m.myStatus === '내가 주최' ? <><Link to={`/meetups/${m.id}/edit`} className="btn btn-line">모임 수정</Link><button className="btn btn-line" onClick={() => setDelOpen(true)}>모임 삭제</button><Link to={`/meetups/${m.id}?modal=applicants`} className="btn btn-primary">신청 관리 1</Link></>
-                : m.myStatus === '찜' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to={`/meetups/${m.id}`} className="btn btn-primary">신청하기</Link></>
-                : <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary">모임 채팅</Link></>
-              } />
+            <li key={m.id} className={`${s.row} ${closed || m.cancelled || r?.st === 'rejected' ? s.rowDim : ''}`}>
+              <Link to={`/meetups/${m.id}`} className={s.rowThumb}><span>{m.sign ?? m.interest}</span></Link>
+              <div className={s.rowBody}>
+                <p className={s.rowBadges}>
+                  <em className={status.cls}>{isWish && rec !== 'closed' && '● '}{status.label}</em>
+                  {tab !== 'past' && <em className={s.stDday}>{ddayOf(m.date)}</em>}
+                  <InterestChip label={m.interest} />
+                </p>
+                <Link to={`/meetups/${m.id}`} className={s.rowTitle}>{m.title}</Link>
+                <p className={s.rowMeta}>
+                  <span>🗓 {fullDate(m.date)} {hourLabel(m.start)}</span><span>📍 {placeLine(m)}</span><span>👤 {confirmedOf(m, st)} / {m.capacity}명</span>
+                </p>
+                {note && <p className={s.rowNote}>{note}</p>}
+              </div>
+              <div className={s.rowActions}>
+                {isWish ? (
+                  <>
+                    <button type="button" className={s.heartBtn} aria-label="찜 해제" onClick={() => { toggleWish(m.id); setToast({ title: '찜을 해제했어요', undo: () => toggleWish(m.id) }) }}>♥</button>
+                    {rec === 'closed'
+                      ? <button type="button" className={`btn btn-line btn-sm ${st.alerts.includes(m.id) ? s.alertOn : ''}`} aria-pressed={st.alerts.includes(m.id)}
+                          onClick={() => { const on = st.alerts.includes(m.id); toggleAlert(m.id); setToast({ title: on ? '빈자리 알림을 껐어요' : '빈자리 알림을 켰어요', desc: on ? undefined : '자리가 나면 알림으로 알려드릴게요' }) }}>
+                          🔔 {st.alerts.includes(m.id) ? '빈자리 알림 받는 중' : '빈자리 알림 받기'}
+                        </button>
+                      : canReapply(r) ? <Link to={`/meetups/${m.id}`} className="btn btn-cta btn-sm">참여 신청</Link>
+                      : <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm">모임 상세</Link>}
+                  </>
+                ) : tab === 'past' ? (
+                  <>
+                    <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm">모임 상세</Link>
+                    <Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary btn-sm">모임 채팅</Link>
+                  </>
+                ) : r?.st === 'host' ? (
+                  <>
+                    <Link to={`/meetups/${m.id}/edit`} className="btn btn-line btn-sm">모임 수정</Link>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setManage(m.id)}>신청 관리{apps > 0 && ` ${apps}`}</button>
+                  </>
+                ) : r?.st === 'pending' ? (
+                  <>
+                    <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm">모임 상세</Link>
+                    <button type="button" className={`btn btn-line btn-sm ${s.cancelBtn}`} onClick={() => setCancelAsk(m.id)}>신청 취소</button>
+                  </>
+                ) : r?.st === 'rejected' ? (
+                  <button type="button" className="btn btn-line btn-sm" onClick={() => nav('/meetups')}>다른 모임 보기</button>
+                ) : (
+                  <>
+                    <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm">모임 상세</Link>
+                    <Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary btn-sm">모임 채팅</Link>
+                  </>
+                )}
+              </div>
+            </li>
           )
         })}
-      </div>
-      <div className={s.pager}><Pagination page={1} total={1} onChange={() => {}} /></div>
-      <ConfirmDialog open={delOpen} onClose={() => setDelOpen(false)} title="모임을 삭제할까요?" confirmLabel="삭제"
-        desc="참여자와 신청자에게 알림이 가고, 모임 채팅도 함께 사라져요. 삭제한 모임은 되돌릴 수 없어요."
-        onConfirm={() => { setDeleted((l) => [...l, ...MEETUPS.filter((m) => m.myStatus === '내가 주최').map((m) => m.id)]); setToast(TOAST.deleted) }} />
-      <Toast open={!!toast} onClose={() => setToast(null)} {...(toast ?? { title: '' })} />
+      </ul>
+      <ConfirmDialog open={!!cancelAsk} onClose={() => setCancelAsk(null)} title="신청을 취소할까요?" desc="취소하면 주최자에게 보낸 신청과 남긴 말이 사라져요. 마감 전이면 다시 신청할 수 있어요." confirmLabel="신청 취소"
+        onConfirm={() => { if (cancelAsk) { withdraw(cancelAsk); setToast({ title: '신청을 취소했어요', desc: '마감 전까지 다시 신청할 수 있어요' }) } }} />
+      <ManageModal id={manage} onClose={() => setManage(null)} />
+      <ActionToast toast={toast} onClose={() => setToast(null)} />
     </>
   )
 }

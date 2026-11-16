@@ -1,0 +1,361 @@
+/**
+ * 모임 상태 (Figma 02 F7). 서버가 없어서 이 탭 안에서만 기억하는 작은 저장소 (data/chat.ts 와 같은 방식)
+ * 리스트·상세·내 모임·만들기·수정이 같은 상태를 봄 → useSyncExternalStore 로 구독
+ *
+ * 규칙 (명세 + docs/meetup-spec-review.md 결정 M1~M17)
+ * - 정원에는 주최자가 포함된다 (정원 6 = 주최자 1 + 참여자 5). 확정 인원 = 1 + 참여 확정자
+ * - 신청 기록 6가지: 신청 대기 / 신청 취소(다시 신청 가능) / 미승인(거절·자동) / 참여 확정 / 참여 취소 / 내보내짐
+ *   → 스스로 신청을 취소한 경우만 다시 신청할 수 있다 (M8)
+ * - 처리 안 된 신청은 모집 마감 시각에 자동 미승인 (마감 일시가 없으면 정원이 차거나 모임이 시작될 때) (M7)
+ * - 시작 시각이 지나면 바로 지난 모임 (M14). 모집 완료 = 정원이 찼거나 모집 마감 시각이 지남
+ * - 참여 취소는 시작 24시간 전까지 (data/chat.ts canQuitMeetup 과 같은 규칙), 수정은 12시간 전까지, 취소는 시작 전까지 (M5)
+ * - 참여 확정자(주최자 제외)가 0명이면 삭제, 1명 이상이면 취소(기록 남음)
+ * - 시간 기준은 목 데이터의 오늘(TODAY) 정오 (채팅과 같음)
+ */
+import { useSyncExternalStore } from 'react'
+import { ME_ID, MEETUPS, TODAY, USERS, categoryOf, toneOf } from './mock'
+import type { Meetup, Tone } from './types'
+
+/* ===== 타입 ===== */
+export const CAMPUSES = ['서울', '대전', '구미', '광주', '부울경'] as const
+export type Campus = (typeof CAMPUSES)[number]
+export const PLATFORMS = ['Zoom', 'Discord', 'Gather', '기타'] as const
+export const MY_CAMPUS: Campus = '서울'
+
+export interface MeetupX extends Meetup {
+  /** 오프라인 모임의 캠퍼스 (00 공통 19 캠퍼스 목록에서 하나) */
+  campus?: Campus
+  placeDetail?: string
+  /** 온라인 플랫폼 이름 (Zoom / Discord / Gather / 직접 입력) — 필수 (M16) */
+  platform?: string
+  /** 접속 링크 — 참여 확정자에게만 보임 (M16) */
+  link?: string
+  prep?: string
+  /** 신청할 때 메시지 받기 (안 받으면 상세의 "주최자에게 남길 말"을 숨김) */
+  askMsg: boolean
+  /** 관심사 태그 최대 3개 (대표 관심사 = interest) (M15) */
+  tags: string[]
+  /** 모집 마감 일시 'YYYY-MM-DDTHH:mm' (선택) */
+  deadline?: string
+  /** 찜한 사람 수 (인기순) */
+  likes: number
+  /** 등록 순서 (최신등록순) */
+  seq: number
+}
+
+export type MyState = 'pending' | 'withdrawn' | 'rejected' | 'joined' | 'quit' | 'kicked' | 'host'
+export interface Mine { st: MyState; note?: string; at?: number; auto?: boolean }
+export interface Applicant { userId: string; msg: string; at: number }
+
+export interface Draft {
+  cap: number; prep: string; askMsg: boolean
+  ymd: string; start: string; end: string; deadline: string
+  mode: '오프라인' | '온라인'; campus: Campus; place: string; placeDetail: string; platform: string; platformEtc: string; link: string
+  title: string; intro: string; interest: string; tags: string[]
+}
+
+interface State {
+  list: MeetupX[]
+  my: Record<string, Mine>
+  wish: string[]
+  /** 빈자리 알림 받기 */
+  alerts: string[]
+  /** 참여 확정자 (주최자 제외, 나 포함) */
+  members: Record<string, string[]>
+  /** 내가 연 모임의 신청 대기 */
+  applicants: Record<string, Applicant[]>
+  /** 신고한 모임 (같은 대상은 한 번만, M10) */
+  reported: string[]
+  draft: Draft | null
+}
+
+/* ===== 시간 ===== */
+const HOUR = 3_600_000
+/** 목 데이터의 지금 = TODAY 정오 */
+export const NOW = (() => { const [y, m, d] = TODAY.split('-').map(Number); return new Date(y, m - 1, d, 12, 0).getTime() })()
+export function parseHour(t: string) {
+  const m = /(오전|오후)\s*(\d+):(\d+)/.exec(t)
+  if (!m) return 0
+  return (+m[2] % 12) + (m[1] === '오후' ? 12 : 0) + +m[3] / 60
+}
+export function startMs(m: Meetup) {
+  const [y, mo, d] = m.date.split('-').map(Number)
+  return new Date(y, mo - 1, d).getTime() + parseHour(m.start) * HOUR
+}
+export function isoMs(iso: string) {
+  const [d, t = '00:00'] = iso.split('T')
+  const [y, mo, dd] = d.split('-').map(Number)
+  const [h, mi] = t.split(':').map(Number)
+  return new Date(y, mo - 1, dd, h, mi).getTime()
+}
+/** '오후 2:00' → '오후 2시', '오후 12:10' → '오후 12시 10분' */
+export function hourLabel(t: string) {
+  return t.replace(/(\d+):00/, '$1시').replace(/(\d+):(\d\d)/, '$1시 $2분')
+}
+/** '2026-11-08T10:00' → '11월 8일 오전 10시' */
+export function deadlineLabel(iso: string) {
+  const [d, t = '00:00'] = iso.split('T')
+  const [, mo, dd] = d.split('-').map(Number)
+  const [h, mi] = t.split(':').map(Number)
+  const ap = h < 12 ? '오전' : '오후'
+  const hh = h % 12 === 0 ? 12 : h % 12
+  return `${mo}월 ${dd}일 ${ap} ${hh}시${mi ? ` ${mi}분` : ''}`
+}
+export function ddayOf(ymd: string) {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const [ty, tm, td] = TODAY.split('-').map(Number)
+  const n = Math.round((new Date(y, m - 1, d).getTime() - new Date(ty, tm - 1, td).getTime()) / 86_400_000)
+  return n === 0 ? 'D-DAY' : n > 0 ? `D-${n}` : `D+${-n}`
+}
+export const daysLeft = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const [ty, tm, td] = TODAY.split('-').map(Number)
+  return Math.round((new Date(y, m - 1, d).getTime() - new Date(ty, tm - 1, td).getTime()) / 86_400_000)
+}
+
+/* ===== 처음 데이터 ===== */
+// 기본 목 데이터(mock.ts MEETUPS)에 없는 필드: 캠퍼스·마감 일시·준비물 등
+const EXTRA: Record<string, Partial<MeetupX>> = {
+  m1: { campus: '서울', prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['SF소설'] },
+  m2: { campus: '서울', prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
+  m3: { campus: '서울', prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['수채화'] },
+  m4: { campus: '서울', prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
+  m5: { platform: 'Discord', link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
+  m6: { campus: '서울', prep: '재료비 1만 원', likes: 4 },
+  m7: { campus: '서울', prep: '러닝화', deadline: '2026-11-12T09:00', likes: 15 },
+  m8: { campus: '서울', prep: '남는 원두', likes: 7 },
+  m9: { platform: '기타', place: '왓챠 파티', link: 'https://watcha.com/party/ghibli', likes: 11 },
+  m10: { campus: '서울', prep: '편한 운동복', likes: 18 },
+}
+
+const base: Meetup[] = [
+  ...MEETUPS,
+  // 이 저장소에만 있는 모임: 지난 모임 · 취소된 모임 · 찜한 모임 예시 (채팅 목 데이터에는 없음)
+  { id: 'x1', title: '망원 필름 산책', interest: '필름카메라', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', closesAt: '', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
+  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: '레트로게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', closesAt: '', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
+  { id: 'x3', title: '한강 야간 러닝', interest: '러닝', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', closesAt: '', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
+  { id: 'x4', title: '레트로 게임 같이 해요', interest: '레트로게임', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', closesAt: '', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
+  { id: 'p1', title: '10월 독서 모임', interest: '독서', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', closesAt: '', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
+  { id: 'p2', title: '가을 사진 산책', interest: '사진산책', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', closesAt: '', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
+  { id: 'p3', title: '수채화 첫걸음', interest: '수채화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', closesAt: '', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
+  { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', closesAt: '', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
+]
+const EXTRA2: Record<string, Partial<MeetupX>> = {
+  x1: { campus: '서울', likes: 14, deadline: '2026-11-13T21:00' },
+  x2: { platform: 'Discord', link: 'https://discord.gg/coop-night', likes: 6 },
+  x3: { campus: '서울', likes: 19 },
+  x4: { campus: '서울', likes: 2, deadline: '2026-11-26T18:00' },
+  p1: { campus: '서울', likes: 9 }, p2: { campus: '서울', likes: 7 }, p3: { campus: '서울', likes: 3 }, p4: { campus: '서울', likes: 2 },
+}
+
+function init(): State {
+  const list: MeetupX[] = base.map((m, i) => ({
+    ...m, askMsg: true, tags: [], likes: 0, seq: i + 1,
+    ...EXTRA[m.id], ...EXTRA2[m.id],
+    // 예전 데이터의 past 표시는 쓰지 않고 시작 시각으로 판단 (M14)
+    past: undefined,
+  }))
+  const my: Record<string, Mine> = {}
+  const members: Record<string, string[]> = {}
+  for (const m of list) {
+    members[m.id] = [...new Set(m.memberIds)].filter((u) => u !== m.hostId && u !== ME_ID)
+    if (m.hostId === ME_ID) my[m.id] = { st: 'host' }
+    else if (m.myStatus === '참여 확정') my[m.id] = { st: 'joined' }
+    else if (m.myStatus === '신청 대기') my[m.id] = { st: 'pending', note: m.myNote, at: NOW - 2 * HOUR }
+  }
+  // 지난 모임 기록
+  my.p1 = { st: 'joined' }; my.p2 = { st: 'joined' }; my.p4 = { st: 'joined' }
+  for (const id of Object.keys(my)) if (my[id].st === 'joined') members[id] = [...members[id], ME_ID]
+  return {
+    list, my, members,
+    wish: ['x1', 'x2', 'x3', ...MEETUPS.filter((m) => m.myStatus === '찜').map((m) => m.id)],
+    alerts: [],
+    applicants: {
+      m3: [
+        { userId: 'yerin', msg: '저도 요즘 소설 위주로 읽고 있어요. 같이 이야기 나눠요!', at: NOW - HOUR },
+        { userId: 'yejin', msg: '처음이라 떨리지만 참여해 보고 싶어요.', at: NOW - 20 * HOUR },
+        { userId: 'mingu', msg: '', at: NOW - 22 * HOUR },
+      ],
+      x4: [{ userId: 'seoyeon', msg: '오락실 너무 좋아요. 펌프 같이 해요!', at: NOW - 3 * HOUR }],
+    },
+    reported: [],
+    draft: null,
+  }
+}
+
+/* ===== 저장소 ===== */
+let state: State = init()
+const subs = new Set<() => void>()
+function emit() { state = { ...state }; subs.forEach((f) => f()) }
+function subscribe(f: () => void) { subs.add(f); return () => { subs.delete(f) } }
+export function useMeetups() { return useSyncExternalStore(subscribe, () => state) }
+export const getMeetupState = () => state
+
+/* ===== 계산 ===== */
+export const findMeetup = (id: string, s = state) => s.list.find((m) => m.id === id)
+export const membersOf = (id: string, s = state) => s.members[id] ?? []
+/** 확정 인원 (주최자 포함) */
+export const confirmedOf = (m: MeetupX, s = state) => 1 + membersOf(m.id, s).length
+export const leftOf = (m: MeetupX, s = state) => Math.max(0, m.capacity - confirmedOf(m, s))
+export const isPast = (m: MeetupX) => startMs(m) <= NOW
+export const deadlinePassed = (m: MeetupX) => !!m.deadline && isoMs(m.deadline) <= NOW
+export type Recruit = 'open' | 'closed' | 'past' | 'cancelled'
+export function recruitOf(m: MeetupX, s = state): Recruit {
+  if (m.cancelled) return 'cancelled'
+  if (isPast(m)) return 'past'
+  if (leftOf(m, s) <= 0 || deadlinePassed(m)) return 'closed'
+  return 'open'
+}
+/** 내 신청 기록. 신청 대기인데 마감 조건이 지났으면 자동 미승인 (M7) */
+export function myOf(id: string, s = state): Mine | undefined {
+  const r = s.my[id]
+  if (r?.st !== 'pending') return r
+  const m = findMeetup(id, s)
+  if (!m) return r
+  const expired = m.deadline ? deadlinePassed(m) : leftOf(m, s) <= 0 || isPast(m)
+  return expired ? { ...r, st: 'rejected', auto: true } : r
+}
+export const canReapply = (r?: Mine) => !r || r.st === 'withdrawn'
+/** 참여 취소(모임 나가기) — data/chat.ts canQuitMeetup 과 같은 규칙: 주최자 아님 · 시작 24시간 전까지 */
+export function canQuit(m: MeetupX) { return m.hostId !== ME_ID && startMs(m) - NOW >= 24 * HOUR }
+/** 수정은 시작 12시간 전까지 */
+export const canEdit = (m: MeetupX) => startMs(m) - NOW >= 12 * HOUR
+/** 취소·삭제는 시작 전까지 */
+export const canCancel = (m: MeetupX) => !isPast(m) && !m.cancelled
+
+/** 대표 관심사 → 분야(카테고리) 이름과 색 */
+export const catNameOf = (interest: string) => categoryOf(interest)?.name ?? interest
+export const toneOfMeetup = (m: Meetup): Tone => toneOf(m.interest)
+/** 장소 표시: 오프라인은 캠퍼스를 앞에 */
+export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.campus ? `${m.campus} · ` : ''}${m.area} · 오프라인`)
+
+/** 내 모임 분류 */
+export function mineGroups(s = state) {
+  const live = s.list
+  const r = (m: MeetupX) => myOf(m.id, s)
+  const byDate = (a: MeetupX, b: MeetupX) => startMs(a) - startMs(b)
+  const upcoming = live.filter((m) => !isPast(m) && !m.cancelled && (r(m)?.st === 'joined' || r(m)?.st === 'host')).sort(byDate)
+  const pending = live.filter((m) => !isPast(m) && !m.cancelled && (r(m)?.st === 'pending' || (r(m)?.st === 'rejected'))).sort(byDate)
+  const hosting = live.filter((m) => !isPast(m) && !m.cancelled && r(m)?.st === 'host').sort(byDate)
+  const wished = live.filter((m) => s.wish.includes(m.id) && !isPast(m) && !m.cancelled)
+    .sort((a, b) => Number(recruitOf(a, s) === 'closed') - Number(recruitOf(b, s) === 'closed') || byDate(a, b))
+  const past = live.filter((m) => (isPast(m) || m.cancelled) && (r(m)?.st === 'joined' || r(m)?.st === 'host')).sort((a, b) => byDate(b, a))
+  /** 리스트의 내 모임 위젯·다가오는 일정: 참여 확정 · 신청 대기 · 내가 주최 */
+  const active = live.filter((m) => !isPast(m) && !m.cancelled && ['joined', 'host', 'pending'].includes(r(m)?.st ?? '')).sort(byDate)
+  return { upcoming, pending, hosting, wished, past, active }
+}
+
+/* ===== 동작 ===== */
+function setMy(id: string, v: Mine | undefined) {
+  const my = { ...state.my }
+  if (v) my[id] = v
+  else delete my[id]
+  state.my = my
+}
+function setMembers(id: string, l: string[]) { state.members = { ...state.members, [id]: l } }
+
+/** 참여 신청 → 신청 대기 */
+export function apply(id: string, note: string) {
+  if (!canReapply(myOf(id))) return
+  setMy(id, { st: 'pending', note: note.trim() || undefined, at: Date.now() })
+  emit()
+}
+/** 신청 취소 → 미신청 (다시 신청 가능) */
+export function withdraw(id: string) { setMy(id, { st: 'withdrawn' }); emit() }
+/** 참여 취소 (확정 후) → 다시 신청 불가 */
+export function quit(id: string) {
+  setMy(id, { st: 'quit' })
+  setMembers(id, membersOf(id).filter((u) => u !== ME_ID))
+  emit()
+}
+export function toggleWish(id: string) {
+  const on = state.wish.includes(id)
+  state.wish = on ? state.wish.filter((x) => x !== id) : [...state.wish, id]
+  state.list = state.list.map((m) => (m.id === id ? { ...m, likes: Math.max(0, m.likes + (on ? -1 : 1)) } : m))
+  emit()
+}
+export function toggleAlert(id: string) {
+  state.alerts = state.alerts.includes(id) ? state.alerts.filter((x) => x !== id) : [...state.alerts, id]
+  emit()
+}
+export function report(id: string) { if (!state.reported.includes(id)) { state.reported = [...state.reported, id]; emit() } }
+
+/* 신청 관리 (주최자) */
+export const applicantsOf = (id: string, s = state) => s.applicants[id] ?? []
+export function accept(id: string, userId: string) {
+  const m = findMeetup(id)
+  if (!m || leftOf(m) <= 0) return
+  state.applicants = { ...state.applicants, [id]: applicantsOf(id).filter((a) => a.userId !== userId) }
+  setMembers(id, [...membersOf(id), userId])
+  emit()
+}
+export function reject(id: string, userId: string) {
+  state.applicants = { ...state.applicants, [id]: applicantsOf(id).filter((a) => a.userId !== userId) }
+  emit()
+}
+export function kick(id: string, userId: string) {
+  setMembers(id, membersOf(id).filter((u) => u !== userId))
+  emit()
+}
+
+/* 만들기 · 수정 · 취소 · 삭제 */
+let seq = 100
+export function createMeetup(d: Draft): string {
+  const id = `n${++seq}`
+  const m: MeetupX = {
+    id, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    date: d.ymd, start: d.start, end: d.end, mode: d.mode,
+    area: d.mode === '온라인' ? '온라인' : (d.place.trim().split(/\s+/).slice(0, 2).join(' ') || d.campus),
+    place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
+    placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
+    campus: d.mode === '오프라인' ? d.campus : undefined,
+    platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
+    capacity: d.cap, memberIds: [ME_ID], hostId: ME_ID, closesAt: '', sign: d.title.trim().slice(0, 8),
+    prep: d.prep.trim() || undefined, askMsg: d.askMsg, deadline: d.deadline || undefined, likes: 0,
+    seq: Math.max(...state.list.map((x) => x.seq)) + 1,
+  }
+  state.list = [...state.list, m]
+  setMy(id, { st: 'host' })
+  setMembers(id, [])
+  state.draft = null
+  emit()
+  return id
+}
+export function updateMeetup(id: string, d: Draft) {
+  state.list = state.list.map((m) => (m.id !== id ? m : {
+    ...m, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    date: d.ymd, start: d.start, end: d.end, mode: d.mode,
+    area: d.mode === '온라인' ? '온라인' : m.mode === '오프라인' && m.place === d.place.trim() ? m.area : (d.place.trim().split(/\s+/).slice(0, 2).join(' ') || d.campus),
+    place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
+    placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
+    campus: d.mode === '오프라인' ? d.campus : undefined,
+    platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
+    capacity: d.cap, prep: d.prep.trim() || undefined, askMsg: d.askMsg,
+  }))
+  emit()
+}
+export function cancelMeetup(id: string) {
+  state.list = state.list.map((m) => (m.id === id ? { ...m, cancelled: true } : m))
+  state.applicants = { ...state.applicants, [id]: [] }
+  emit()
+}
+export function deleteMeetup(id: string) {
+  state.list = state.list.filter((m) => m.id !== id)
+  setMy(id, undefined)
+  state.wish = state.wish.filter((x) => x !== id)
+  emit()
+}
+export function saveDraft(d: Draft) { state.draft = d; emit() }
+export function clearDraft() { state.draft = null; emit() }
+
+/** 모임 → 만들기·수정 양식 값 */
+export function draftOf(m: MeetupX): Draft {
+  const etc = m.mode === '온라인' && (m.platform === '기타' || !m.platform)
+  return {
+    cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, deadline: m.deadline ?? '',
+    mode: m.mode, campus: m.campus ?? MY_CAMPUS, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
+    platform: m.mode === '온라인' ? (etc ? '기타' : m.platform!) : 'Zoom', platformEtc: etc ? m.place : '', link: m.link ?? '',
+    title: m.title, intro: m.intro, interest: m.interest, tags: m.tags,
+  }
+}
+export const userName = (id: string) => USERS[id]?.nickname ?? '두더지'
