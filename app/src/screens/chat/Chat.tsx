@@ -5,14 +5,15 @@ import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
 import { CalendarIcon, ChatIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
-import { ME_ID, USERS, meetupOf, toneOf } from '../../data/mock'
+import { ME_ID, USERS, toneOf } from '../../data/mock'
+import { findMeetup as meetupOf, useMeetups } from '../../data/meetupStore'
 import { getMyWorn } from '../../data/moleItems'
 import { getMyInterests } from '../../data/interests'
 import { shortAffOf } from '../../data/field'
 import { dateLabel } from '../../lib/format'
 import type { User } from '../../data/types'
 import {
-  GONE_ID, acceptRequest, ago, canQuitMeetup, clock, dayLabel, dropRequest, fakeReply, lastMsg, leaveRoom, listTime, liveRequests, markRead,
+  GONE_ID, acceptRequest, quitGroup, syncGroupRooms, ago, canQuitMeetup, clock, dayLabel, dropRequest, fakeReply, lastMsg, leaveRoom, listTime, liveRequests, markRead,
   membersOf, myMeetups, personOf, receivedCount, roomOf, roomTitle, send, setNotice, useChat, type ChatMsg, type Req, type Room,
 } from '../../data/chat'
 import TeaRoom, { type TeaGuest } from './TeaRoom'
@@ -38,6 +39,9 @@ export default function Chat({ requests }: { requests?: boolean }) {
   const [q, setQ] = useState('')
   const [profile, setProfile] = useState<User | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // 모임 저장소가 바뀌면(새 모임·참여 확정·모임 끝남) 대화방 맞추기
+  const meetups = useMeetups()
+  useEffect(() => { syncGroupRooms() }, [meetups])
   const room = roomId ? roomOf(roomId, st) : undefined
   const reqN = receivedCount(st)
 
@@ -311,7 +315,7 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
       <ConfirmDialog open={quit} onClose={() => setQuit(false)} confirmLabel="예"
         title={room.ended ? '대화방을 나갈까요?' : '정말 나가시겠습니까?'}
         desc={room.ended ? '끝난 모임이라 참여 기록은 그대로예요. 이 대화만 목록에서 사라져요.' : '참여가 취소되고 이 대화가 목록에서 사라져요.'}
-        onConfirm={() => { leaveRoom(room.id); navigate('/chat'); onToast(room.ended ? '대화방을 나갔어요' : '모임을 나갔어요') }} />
+        onConfirm={() => { quitGroup(room.id); navigate('/chat'); onToast(room.ended ? '대화방을 나갔어요' : '모임을 나갔어요') }} />
     </>
   )
 }

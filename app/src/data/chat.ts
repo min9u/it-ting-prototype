@@ -12,7 +12,8 @@
  * - 모임 나가기 = 모임 상세의 "참여 취소" (시작 24시간 전까지, 주최자는 없음). 끝나거나 취소된 모임은 참여 취소 없이 대화방만 나감
  */
 import { useSyncExternalStore } from 'react'
-import { ME_ID, MEETUPS, TODAY, USERS, meetupOf } from './mock'
+import { ME_ID, USERS } from './mock'
+import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf, quit as quitMeetup } from './meetupStore'
 import type { User } from './types'
 
 export interface ChatMsg {
@@ -68,7 +69,7 @@ export const groupRoomId = (meetupId: string) => `g-${meetupId}`
 /** 예전 링크(알림 목 데이터의 /chat/r-book) */
 const ALIAS: Record<string, string> = { 'r-book': 'g-m1' }
 
-function seed(): { rooms: Room[]; requests: Req[] } {
+function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[] } {
   const rooms: Room[] = [
     {
       id: 'r-yerin', kind: 'dm', partnerId: 'yerin', unread: 0, topics: ['캠핑', '레트로게임', '수채화'],
@@ -141,16 +142,12 @@ function seed(): { rooms: Room[]; requests: Req[] } {
     { id: 'q0', direction: 'received', userId: 'choi', context: '땅굴에 다녀갔어요', at: now - 6 * day, message: '테라리움 같이 만들어요' },
     { id: 'q3', direction: 'sent', userId: 'yejin', context: '내가 먼저 대화를 요청했어요', at: now - 5 * min, message: '땅굴에 찻병 선반 있는 거 보고 반가워서요! 핸드드립 이야기 같이 나눠요' },
   ]
-  // 참여 확정·내가 주최인 모임은 모두 대화방이 있음 (위에서 만든 것 말고는 참여 알림만)
-  for (const m of MEETUPS) {
-    if ((m.myStatus === '참여 확정' || m.myStatus === '내가 주최') && !rooms.some((r) => r.meetupId === m.id)) {
-      rooms.push({ id: groupRoomId(m.id), kind: 'group', meetupId: m.id, unread: 0, messages: [{ id: `j-${m.id}`, authorId: 'system', system: true, text: '닉네임님이 모임에 참여했어요', at: now - 4 * day }] })
-    }
-  }
-  return { rooms, requests }
+  return { rooms, requests, leftGroups: [] as string[] }
 }
 
 /* ---------- 저장소 ---------- */
+/** 모임 정보는 모임 저장소(data/meetupStore.ts)에서 읽음 (새로 만든 모임 포함) */
+const meetupOf = (id: string) => findMeetup(id)
 let state = seed()
 const subs = new Set<() => void>()
 const emit = () => { state = { ...state }; subs.forEach((f) => f()) }
@@ -166,12 +163,37 @@ export const sentRequestTo = (userId: string, s = state) => liveRequests(s).find
 
 export const personOf = (id: string): User => (id === GONE_ID ? GONE_USER : USERS[id] ?? GONE_USER)
 
-/** 모임 대화 참여자 (확정 인원 + 나). 주최자가 맨 앞 */
+/** 모임 대화 참여자 (주최자 + 참여 확정자 + 나). 주최자가 맨 앞. 확정자는 모임 저장소 기준 */
 export function membersOf(room: Room): string[] {
   const m = room.meetupId ? meetupOf(room.meetupId) : undefined
   if (!m) return [ME_ID]
-  const ids = [...new Set([m.hostId, ...m.memberIds, ME_ID])]
-  return ids
+  return [...new Set([m.hostId, ...meetupMembers(m.id), ME_ID])]
+}
+
+/**
+ * 모임 저장소와 맞추기: 참여 확정·내가 주최인 모임은 모두 대화방이 있음 (새로 만든 모임·새로 확정된 모임 포함).
+ * 내가 나간 모임 대화방은 다시 만들지 않음. 채팅 화면이 모임 상태가 바뀔 때마다 부름
+ */
+export function syncGroupRooms() {
+  const ms = getMeetupState()
+  const add: Room[] = []
+  for (const m of ms.list) {
+    const st = myOf(m.id, ms)?.st
+    if (st !== 'joined' && st !== 'host') continue
+    const id = groupRoomId(m.id)
+    if (state.rooms.some((r) => r.id === id) || state.leftGroups.includes(id)) continue
+    const ended = isPast(m) || !!m.cancelled
+    add.push({ id, kind: 'group', meetupId: m.id, unread: 0, ended, messages: [{ id: `j-${m.id}`, authorId: 'system', system: true, text: st === 'host' ? '모임을 만들었어요. 참여가 확정된 사람이 이 대화방에 들어와요' : '닉네임님이 모임에 참여했어요', at: Date.now() - 4 * day }] })
+  }
+  // 모임이 끝났거나 취소되면 끝난 대화방으로
+  let changed = false
+  const rooms = state.rooms.map((r) => {
+    if (r.kind !== 'group' || r.ended) return r
+    const m = meetupOf(r.meetupId!)
+    if (m && (isPast(m) || m.cancelled)) { changed = true; return { ...r, ended: true } }
+    return r
+  })
+  if (add.length || changed) { state.rooms = [...rooms, ...add]; emit() }
 }
 
 export function roomTitle(r: Room) {
@@ -204,29 +226,29 @@ export function fakeReply(roomId: string, text: string) {
   emit()
 }
 
-/** 1:1 대화 나가기 → 내 목록에서 사라짐 */
+/** 대화 나가기 → 내 목록에서 사라짐. 모임 대화방은 다시 생기지 않게 기억 */
 export function leaveRoom(id: string) {
   const r = roomOf(id)
   state.rooms = state.rooms.filter((x) => x !== r)
+  if (r?.kind === 'group') state.leftGroups = [...state.leftGroups, r.id]
   emit()
+}
+/** 모임 나가기: 끝나지 않은 모임이면 참여 취소(모임 저장소) + 대화방 나가기, 끝난 모임은 대화방만 */
+export function quitGroup(id: string) {
+  const r = roomOf(id)
+  if (r?.meetupId && !r.ended) quitMeetup(r.meetupId)
+  leaveRoom(id)
 }
 
 /** 모임 나가기(참여 취소) 가능 여부: 주최자 아님 · 끝나지 않음 · 시작 24시간 전 */
 export function canQuitMeetup(room: Room): { ok: boolean; why?: string } {
   const m = room.meetupId ? meetupOf(room.meetupId) : undefined
   if (!m) return { ok: false }
-  if (room.ended || m.cancelled || m.past) return { ok: true } // 대화방만 나감
+  if (room.ended || m.cancelled || isPast(m)) return { ok: true } // 대화방만 나감
   if (m.hostId === ME_ID) return { ok: false, why: '주최자는 모임을 나갈 수 없어요' }
-  const start = Date.parse(`${m.date}T00:00:00+09:00`) + parseHour(m.start) * hour
-  // 모임 날짜는 목 데이터 기준일(TODAY) 기준으로 비교 (실제 오늘과 다름)
-  const ref = Date.parse(`${TODAY}T12:00:00+09:00`)
-  if (start - ref < day) return { ok: false, why: '시작 24시간 전부터는 나갈 수 없어요' }
+  // 모임 상세의 "참여 취소"와 같은 규칙 (data/meetupStore.ts canQuit, 시간 기준은 목 데이터의 오늘)
+  if (!canQuit(m)) return { ok: false, why: '시작 24시간 전부터는 나갈 수 없어요' }
   return { ok: true }
-}
-function parseHour(t: string) {
-  const m = /(오전|오후)\s*(\d+):(\d+)/.exec(t)
-  if (!m) return 0
-  return (+m[2] % 12) + (m[1] === '오후' ? 12 : 0) + +m[3] / 60
 }
 
 export function setNotice(id: string, text: string | null) {
@@ -269,8 +291,8 @@ export function sendRequest(userId: string, message: string, context = '내가 �
   emit()
 }
 
-/** 모임 공유(+ 버튼)에 보일 내 모임: 참여 확정·내가 주최 */
-export const myMeetups = () => MEETUPS.filter((m) => m.myStatus === '참여 확정' || m.myStatus === '내가 주최')
+/** 모임 공유(+ 버튼)에 보일 내 모임: 참여 확정·내가 주최, 끝나지 않은 것 */
+export const myMeetups = () => getMeetupState().list.filter((m) => ['joined', 'host'].includes(myOf(m.id)?.st ?? '') && !isPast(m) && !m.cancelled)
 
 /* ---------- 시간 표기 (00 공통 8) ---------- */
 export function clock(ms: number) {

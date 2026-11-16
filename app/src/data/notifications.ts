@@ -1,5 +1,6 @@
 import { createStore } from '../lib/store'
-import { MEETUPS, ME_ID } from './mock'
+import { applicantsOf, isPast, useMeetups, userName } from './meetupStore'
+import { ME_ID } from './mock'
 
 /**
  * F9 알림 저장소 (Figma 02 F9 · 2026-11-16 명세 스크린샷 기준)
@@ -50,7 +51,7 @@ function seed(): AppNotice[] {
     ({ id, kind, type, title, sub, at: t, to, unread: false, ...extra })
   return [
     // 요청 알림 (알림 화면 목록에는 나오고, 팝업에서는 고정 줄로 모음)
-    N('r1', '모임', '참여 신청 받음', '‘일요일 아침 드로잉’에 새 참여 신청이 왔어요', '하린님이 참여를 신청했어요', at(1), '/meetups/m3?modal=applicants', { unread: true, request: true }),
+    N('r1', '모임', '참여 신청 받음', '‘일요일 아침 드로잉’에 새 참여 신청이 왔어요', '하린님이 참여를 신청했어요', at(1), '/meetups/me?tab=hosting&manage=m3', { unread: true, request: true }),
     N('r2', '채팅', '대화 요청', '대화 요청이 왔어요', '서벅이님이 대화를 요청했어요', at(12), '/chat/requests', { request: true }),
     N('r3', '채팅', '대화 요청', '대화 요청이 왔어요', '하늘님이 대화를 요청했어요', at(60), '/chat/requests', { request: true }),
     // 일반 알림
@@ -141,11 +142,12 @@ export function setMeetupApplicants(meetupId: string, names: string[]) {
   meetupRequestStore.set((s) => ({ byMeetup: { ...s.byMeetup, [meetupId]: names } }))
 }
 export function useMeetupRequests() {
-  const { byMeetup } = meetupRequestStore.use()
-  const hosted = MEETUPS.filter((m) => m.hostId === ME_ID && !m.past && !m.cancelled)
-  const rows = hosted.map((m) => ({ meetup: m, names: byMeetup[m.id] ?? [] })).filter((r) => r.names.length > 0)
+  // 모임 저장소(data/meetupStore.ts)의 처리 안 된 신청. 신청 관리에서 수락·거절하면 숫자가 따라 줄어듦
+  const ms = useMeetups()
+  const hosted = ms.list.filter((m) => m.hostId === ME_ID && !isPast(m) && !m.cancelled)
+  const rows = hosted.map((m) => ({ meetup: m, names: applicantsOf(m.id, ms).map((x) => userName(x.userId)) })).filter((r) => r.names.length > 0)
   const count = rows.reduce((a, r) => a + r.names.length, 0)
-  // 신청이 온 모임이 하나면 그 모임의 신청 관리, 여러 개면 내 모임 › 내가 연 모임 탭까지만
-  const to = rows.length === 1 ? `/meetups/${rows[0].meetup.id}?modal=applicants` : '/meetups/me?tab=host'
+  // 신청이 온 모임이 하나면 그 모임의 신청 관리, 여러 개면 내 모임 › 내가 연 모임 탭
+  const to = rows.length === 1 ? `/meetups/me?tab=hosting&manage=${rows[0].meetup.id}` : '/meetups/me?tab=hosting'
   return { count, rows, to, first: rows[0]?.names[0] }
 }
