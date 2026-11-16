@@ -10,14 +10,32 @@
  * - 상대가 탈퇴: 내 목록에 남고 읽기 전용("상대방이 탈퇴했습니다"), 상대는 "탈퇴한 사용자"
  * - 모임 대화: 참여 확정된 사람끼리. 공지는 하나, 주최자만 쓰기·고치기·지우기
  * - 모임 나가기 = 모임 상세의 "참여 취소" (시작 24시간 전까지, 주최자는 없음). 끝나거나 취소된 모임은 참여 취소 없이 대화방만 나감
+ *
+ * 메시지 주고받기는 실시간 계층(src/realtime)을 거침 (2026-11-16, docs/frontend-hardening.md "실시간"):
+ * - 보내기: clientId(UUID)를 만들어 "보내는 중"으로 먼저 그림 → 서버 확인이 오면 서버 메시지로 교체, 시간 안에 못 보내면 "실패 · 다시 보내기"
+ * - 받기: 방마다 구독. 실시간·다시 받기·내 확인이 섞여 와도 realtime/order.ts 가 중복 제거·seq 순서로 합침
+ * - 입력 중: 상대 "입력 중…"은 서버 이벤트로 (목 서버가 답장 전에 보냄)
+ * - 지금은 목 서버(realtime/mockTransport.ts)가 상대 답장까지 흉내. VITE_REALTIME=stomp 면 실제 서버
  */
 import { useSyncExternalStore } from 'react'
 import { ME_ID, USERS } from './mock'
+import { realtime, SendFailure, setMockDirectory, type WireMessage } from '../realtime'
+import { maxSeq, mergeMessage, newClientId } from '../realtime/order'
+import { TIMING } from '../realtime/protocol'
 import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf, quit as quitMeetup } from './meetupStore'
 import type { User } from './types'
 
 export interface ChatMsg {
+  /** 서버 id. 보내는 중·실패한 내 메시지는 clientId 와 같음 */
   id: string
+  /** 방 안 순서 (서버가 매김). 보내는 중·실패면 없음 → 맨 아래 */
+  seq?: number
+  /** 내가 보낸 메시지의 클라이언트 id (서버 확인과 짝짓기·다시 보내기 멱등) */
+  clientId?: string
+  /** 내 메시지 전송 상태. 없으면 서버가 받음 */
+  status?: 'sending' | 'failed'
+  /** 실패 까닭 (화면 문구) */
+  error?: string
   /** 'system' = 가운데 안내 */
   authorId: string
   text: string
@@ -69,7 +87,7 @@ export const groupRoomId = (meetupId: string) => `g-${meetupId}`
 /** 예전 링크(알림 목 데이터의 /chat/r-book) */
 const ALIAS: Record<string, string> = { 'r-book': 'g-m1' }
 
-function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[] } {
+function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[]; typing: Record<string, string[]> } {
   const rooms: Room[] = [
     {
       id: 'r-yerin', kind: 'dm', partnerId: 'yerin', unread: 0, topics: ['캠핑', '레트로게임', '수채화'],
@@ -142,7 +160,8 @@ function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[] } {
     { id: 'q0', direction: 'received', userId: 'choi', context: '땅굴에 다녀갔어요', at: now - 6 * day, message: '테라리움 같이 만들어요' },
     { id: 'q3', direction: 'sent', userId: 'yejin', context: '내가 먼저 대화를 요청했어요', at: now - 5 * min, message: '땅굴에 찻병 선반 있는 거 보고 반가워서요! 핸드드립 이야기 같이 나눠요' },
   ]
-  return { rooms, requests, leftGroups: [] as string[] }
+  for (const r of rooms) r.messages = r.messages.map((m, i) => ({ ...m, seq: i + 1 }))
+  return { rooms, requests, leftGroups: [] as string[], typing: {} as Record<string, string[]> }
 }
 
 /* ---------- 저장소 ---------- */
@@ -205,26 +224,170 @@ export const lastMsg = (r: Room) => r.messages[r.messages.length - 1]
 /* ---------- 동작 ---------- */
 export function markRead(id: string) {
   const r = roomOf(id)
-  if (r && r.unread) { state.rooms = state.rooms.map((x) => (x === r ? { ...x, unread: 0 } : x)); emit() }
+  if (!r) return
+  if (r.unread) { state.rooms = state.rooms.map((x) => (x === r ? { ...x, unread: 0 } : x)); emit() }
+  // 서버에는 마지막으로 읽은 서버 메시지 id (안 읽은 수 계산용. 화면에 읽음 표시는 없음, 명세)
+  const last = [...r.messages].reverse().find((m) => m.seq != null && !m.status)
+  if (last) realtime().markRead(r.id, last.id)
 }
 
-/** 보내기. 모임 링크(…/meetups/m4)가 들어 있으면 모임 카드도 붙음 */
+/** 방 하나를 바꿈 */
+function patchRoom(roomId: string, f: (r: Room) => Room) {
+  const r = roomOf(roomId)
+  if (!r) return
+  const next = f(r)
+  if (next === r) return
+  state.rooms = state.rooms.map((x) => (x === r ? next : x))
+  emit()
+}
+
+/**
+ * 보내기. 모임 링크(…/meetups/m4)가 들어 있으면 모임 카드도 붙음.
+ * 화면에는 바로 "보내는 중"으로 보이고, 서버가 확인하면 서버 메시지로 바뀜. 실패하면 "다시 보내기"
+ */
 export function send(roomId: string, text: string, meetupId?: string) {
   const r = roomOf(roomId)
   if (!r || r.closed) return
   const link = /\/meetups\/(m\d+)/.exec(text)?.[1]
   const card = meetupId ?? (link && meetupOf(link) ? link : undefined)
-  const msg: ChatMsg = { id: mid(), authorId: ME_ID, text: card && !meetupId ? text.replace(/\S*\/meetups\/m\d+\S*/, '').trim() : text, at: Date.now(), meetupId: card }
-  state.rooms = state.rooms.map((x) => (x === r ? { ...x, messages: [...x.messages, msg] } : x))
-  emit()
+  const clientId = newClientId()
+  const msg: ChatMsg = { id: clientId, clientId, status: 'sending', authorId: ME_ID, text: card && !meetupId ? text.replace(/\S*\/meetups\/m\d+\S*/, '').trim() : text, at: Date.now(), meetupId: card }
+  patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages, msg] }))
+  deliverOut(r.id, msg)
 }
-/** 목 데이터: 상대가 답장 (1:1 에서 처음 보낼 때 한 번, 화면을 살아 있게 보이려고) */
-export function fakeReply(roomId: string, text: string) {
+
+/** 실시간 계층으로 보내고 결과를 반영 */
+function deliverOut(roomId: string, msg: ChatMsg) {
+  realtime().sendMessage({ clientMessageId: msg.clientId!, roomId, type: msg.meetupId ? 'MEETUP' : 'TEXT', content: msg.text, meetupId: msg.meetupId })
+    .then((w) => receive(w))
+    .catch((e: unknown) => {
+      const why = e instanceof SendFailure ? e.message : '보내지 못했어요'
+      patchRoom(roomId, (x) => {
+        const i = x.messages.findIndex((m) => m.clientId === msg.clientId && m.status === 'sending')
+        if (i < 0) return x // 그 사이 서버 확인이 다른 길(다시 받기)로 와서 이미 바뀜
+        const messages = x.messages.slice()
+        messages[i] = { ...messages[i], status: 'failed', error: why }
+        return { ...x, messages }
+      })
+    })
+}
+
+/** 실패한 메시지 다시 보내기 (같은 clientId → 서버가 한 번만 저장) */
+export function retrySend(roomId: string, clientId: string) {
   const r = roomOf(roomId)
-  if (!r || r.closed || !r.partnerId) return
-  state.rooms = state.rooms.map((x) => (x === r ? { ...x, messages: [...x.messages, { id: mid(), authorId: r.partnerId!, text, at: Date.now() }] } : x))
+  const m = r?.messages.find((x) => x.clientId === clientId && x.status === 'failed')
+  if (!r || !m || r.closed) return
+  const again: ChatMsg = { ...m, status: 'sending', error: undefined }
+  // 다시 보내면 맨 아래로 (보낸 순서)
+  patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages.filter((y) => y !== m), again] }))
+  deliverOut(r.id, again)
+}
+
+/** 실패한 메시지 지우기 (서버에 간 적 없는 것만) */
+export function discardFailed(roomId: string, clientId: string) {
+  patchRoom(roomId, (x) => ({ ...x, messages: x.messages.filter((m) => !(m.clientId === clientId && m.status === 'failed')) }))
+}
+
+/* ---------- 실시간 받기 ---------- */
+const fromWire = (w: WireMessage): ChatMsg => ({
+  id: w.id,
+  seq: w.seq,
+  clientId: w.clientMessageId,
+  authorId: w.type === 'SYSTEM' ? 'system' : w.senderId,
+  system: w.type === 'SYSTEM' ? true : undefined,
+  text: w.content ?? '',
+  meetupId: w.meetupId,
+  at: Date.parse(w.createdAt) || Date.now(),
+})
+
+/** 지금 보고 있는 방 (안 읽은 수를 늘리지 않음). 채팅 화면이 알려 줌 */
+let activeRoom: string | null = null
+export function setActiveRoom(id: string | null) { activeRoom = id }
+const looking = (roomId: string) => activeRoom === roomId && (typeof document === 'undefined' || !document.hidden)
+
+/** 서버 메시지 한 건 반영 (실시간 · 다시 받기 · 내 확인 모두 여기로) */
+function receive(w: WireMessage) {
+  const r = roomOf(w.roomId)
+  if (!r) return // 모르는 방 (새 대화방은 목록 다시 받기로. 문서 "남은 일")
+  const m = fromWire(w)
+  const known = r.messages.some((x) => x.id === m.id || (!!m.clientId && x.clientId === m.clientId))
+  const messages = mergeMessage(r.messages, m)
+  if (messages === r.messages) return
+  const fromOther = !known && !m.system && m.authorId !== ME_ID
+  // 상대 메시지가 오면 그 사람의 "입력 중"은 끝
+  const cur = state.typing[r.id] ?? []
+  const typing = fromOther && cur.includes(m.authorId) ? cur.filter((u) => u !== m.authorId) : cur
+  state.rooms = state.rooms.map((x) => (x === r ? { ...x, messages, unread: fromOther && !looking(r.id) ? x.unread + 1 : x.unread } : x))
+  if (typing !== cur) state.typing = { ...state.typing, [r.id]: typing }
   emit()
 }
+
+const typingTimers = new Map<string, ReturnType<typeof setTimeout>>()
+function onTyping(roomId: string, userId: string, on: boolean) {
+  if (userId === ME_ID) return
+  const key = `${roomId}:${userId}`
+  clearTimeout(typingTimers.get(key))
+  const cur = state.typing[roomId] ?? []
+  const next = on ? (cur.includes(userId) ? cur : [...cur, userId]) : cur.filter((u) => u !== userId)
+  // "끝" 이벤트를 놓쳐도 저절로 꺼짐
+  if (on) typingTimers.set(key, setTimeout(() => onTyping(roomId, userId, false), TIMING.typingExpire))
+  if (next.length === cur.length && next.every((u, i) => u === cur[i])) return
+  state.typing = { ...state.typing, [roomId]: next }
+  emit()
+}
+/** 이 방에서 지금 입력 중인 사람 */
+export const typingIn = (roomId: string, s = state) => s.typing[roomId] ?? []
+
+/** 내 입력 중 알리기 (입력창이 부름. 실시간 계층이 3초에 한 번만 보냄) */
+export function setMyTyping(roomId: string, on: boolean) { realtime().setTyping(roomId, on) }
+
+/** 방 구독: 열린 대화방마다 하나 (나간 방·읽기 전용 방은 끊음) */
+const joined = new Map<string, () => void>()
+function syncJoins() {
+  const want = new Set(state.rooms.filter((r) => !r.closed).map((r) => r.id))
+  for (const [id, off] of joined) if (!want.has(id)) { off(); joined.delete(id) }
+  for (const id of want) {
+    if (joined.has(id)) continue
+    joined.set(id, realtime().joinRoom(id, {
+      onMessage: receive,
+      onTyping: (e) => onTyping(e.roomId, e.userId, e.typing),
+      onRoomEvent: (e) => {
+        if (e.kind === 'MEMBER_LEFT' || e.kind === 'MEMBER_GONE') patchRoom(e.roomId, (x) => ({ ...x, closed: e.kind === 'MEMBER_GONE' ? 'gone' : 'left' }))
+        if (e.kind === 'NOTICE') patchRoom(e.roomId, (x) => ({ ...x, notice: typeof e.payload === 'string' && e.payload ? e.payload : undefined }))
+      },
+      lastSeq: () => { const r = roomOf(id); return r ? maxSeq(r.messages) : undefined },
+    }))
+  }
+}
+
+/** 목 서버 답장 문구 (팀 시연용. 실제 서비스엔 없음) */
+const REPLIES = ['오 좋아요! 😊', '헉 저도 그 생각 했어요 ㅋㅋ', '좋아요, 그럼 그때 봬요!', '앗 그거 완전 궁금했어요', '그거 저도 해 보고 싶었어요!']
+
+let rtStarted = false
+/**
+ * 채팅 실시간 시작: 목 서버에 방 정보 알려 주기 → 방 구독 → 연결.
+ * 로그인 영역(App.tsx AppLayout)에 들어올 때. 여러 번 불러도 됨
+ */
+export function startChatRealtime() {
+  if (!rtStarted) {
+    rtStarted = true
+    setMockDirectory({
+      meId: ME_ID,
+      roomInfo: (id) => {
+        const r = roomOf(id)
+        if (!r) return undefined
+        const others = r.kind === 'dm' ? [r.partnerId!] : membersOf(r).filter((x) => x !== ME_ID)
+        return { kind: r.kind, others, closed: !!r.closed || !!r.ended, lastSeq: maxSeq(r.messages) }
+      },
+      replyText: () => REPLIES[Math.floor(Math.random() * REPLIES.length)],
+    })
+    subs.add(syncJoins)
+    syncJoins()
+  }
+  realtime().start()
+}
+/** 로그아웃: 연결을 끊음 (보내는 중이던 것은 실패로) */
+export function stopChatRealtime() { realtime().stop() }
 
 /** 대화 나가기 → 내 목록에서 사라짐. 모임 대화방은 다시 생기지 않게 기억 */
 export function leaveRoom(id: string) {

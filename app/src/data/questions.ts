@@ -69,6 +69,7 @@ export function recommendedQuestions(picks: string[]): Question[] {
   return out
 }
 
-export const ANSWER_MIN = 10
-export const ANSWER_MAX = 50
+// 답변 10~50자 (lib/validation.ts, ERD member_answer.answer VARCHAR(50))
+import { ANSWER_MAX, ANSWER_MIN } from '../lib/validation'
+export { ANSWER_MAX, ANSWER_MIN }
 export const answerOk = (a: string) => a.trim().length >= ANSWER_MIN && a.length <= ANSWER_MAX

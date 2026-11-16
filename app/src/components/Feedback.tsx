@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import Modal from './Modal'
 import styles from './Feedback.module.css'
+import { REPORT_DETAIL_MAX } from '../lib/validation'
 import mound from '../assets/mole-mound.png'   // Figma 빈 상태 그림 (알림 페이지 569:7860 에서 잘라 씀)
 
 /**
@@ -39,7 +40,8 @@ export const REPORT_REASONS = ['스팸·홍보', '욕설·비하·괴롭힘', '�
 
 /** 받침 있으면 "을", 없으면 "를" (이 게시물을 / 이 사용자를) */
 const eulReul = (w: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 === 0 ? '를' : '을' }
-const ETC_MAX = 100
+// 신고 "기타" 사유 최대 100자 (lib/validation.ts, ERD report.detail VARCHAR(100))
+const ETC_MAX = REPORT_DETAIL_MAX
 
 /** 확인 팝업 Type=신고: 사유를 골라야 버튼이 켜진다. "기타"는 입력칸(필수·최대 100자, 02 F8 신고 팝업 2) */
 export function ReportDialog({ open, target = '게시물', onConfirm, onClose }: {

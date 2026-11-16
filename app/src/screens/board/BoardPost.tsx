@@ -78,10 +78,10 @@ function PostView({ p, posts }: { p: Post; posts: Post[] }) {
       <div className={s.detail}>
         {/* 3 액션 레일: 좋아요 · 댓글 · 저장 · 공유. 스크롤해도 따라옴 */}
         <nav className={s.rail} aria-label="글 반응">
-          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={!!p.liked} onClick={() => toggleLike(p.id)} disabled={hidden}>
+          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={!!p.liked} onClick={() => toggleLike(p.id)} disabled={hidden} aria-label={`좋아요 ${likesOf(p)}개`}>
             <span><HeartFill on={p.liked} size={18} /></span><em>{likesOf(p)}</em>
           </button>
-          <button type="button" onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <button type="button" onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={`댓글 ${commentCount(p)}개 보기`}>
             <span><ChatIcon size={18} /></span><em>{commentCount(p)}</em>
           </button>
           <button type="button" className={p.savedAt ? s.railOn : undefined} aria-pressed={!!p.savedAt} disabled={hidden}
@@ -261,7 +261,7 @@ function Comments({ p, hash, onToast, onOpenUser, ref_ }: {
             <>
               <p className={s.cText}>{c.mention && <span className={s.mention}>@{c.mention} </span>}{c.text}</p>
               <p className={s.cActions}>
-                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={!!c.liked} disabled={disabled} onClick={() => toggleCommentLike(p.id, c.id)}>
+                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={!!c.liked} disabled={disabled} onClick={() => toggleCommentLike(p.id, c.id)} aria-label={`댓글 좋아요 ${c.likes + (c.liked ? 1 : 0)}개`}>
                   <HeartFill on={c.liked} size={13} /> {c.likes + (c.liked ? 1 : 0)}
                 </button>
                 {!disabled && (

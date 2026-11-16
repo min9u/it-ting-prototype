@@ -66,11 +66,10 @@ export interface BoardPost {
 /* ===== 상수 (명세 숫자) ===== */
 export const BOARD_CATS: PostCategory[] = ['모임 홍보', '모임 후기', '자유']
 export const PAGE_SIZE = 20
-export const TITLE_MAX = 50
-export const BODY_MAX = 1000
+// 글자 수 제한은 lib/validation.ts 한 곳에서 (ERD post.title VARCHAR(50) · content VARCHAR(1000) · comment.content VARCHAR(300))
+export { POST_TITLE_MAX as TITLE_MAX, POST_BODY_MAX as BODY_MAX, COMMENT_MAX } from '../lib/validation'
 export const TAG_MAX = 5
 export const PHOTO_MAX = 3
-export const COMMENT_MAX = 300
 export const COMMENT_PAGE = 10
 export const HIDE_AT = 3
 const DAY = 86_400_000

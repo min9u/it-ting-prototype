@@ -1,0 +1,17 @@
+/* 화면 맨 위 연결 안내 (오프라인 · 서버에 닿지 못함). 평소에는 높이 0 (읽어 주는 영역만 남김) */
+.wrap { position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; justify-content: center; pointer-events: none; height: 0; }
+.bar {
+  margin: 0; transform: translateY(-120%); transition: transform .22s var(--ease-out);
+  display: flex; align-items: center; gap: 10px; max-width: min(720px, calc(100vw - 32px));
+  padding: 9px 16px; border-radius: 0 0 12px 12px; font-size: 13px; line-height: 1.45;
+  box-shadow: 0 6px 18px rgba(60, 35, 20, .18); pointer-events: auto;
+}
+.wrap[data-show] .bar { transform: none; }
+.wrap[data-tone='warn'] .bar { background: var(--toast-bg); color: var(--on-brown); }
+.wrap[data-tone='ok'] .bar { background: #e6efd9; color: var(--green-ink); }
+.bar strong { font-weight: 700; }
+.retry {
+  flex: none; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: var(--on-brown); color: var(--toast-bg);
+}
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }

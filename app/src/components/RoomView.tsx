@@ -5,6 +5,8 @@ import { ROOM_FRAME } from '../three/roomFrame'
 import roomCutout from '../assets/room-v2.webp'
 import type { FurnChoice } from '../data/myBurrow'
 import styles from './RoomView.module.css'
+import SceneBoundary from './SceneBoundary'
+import { useReducedMotion } from '../lib/useReducedMotion'
 
 // three.js 는 무거워서 땅굴 화면에 들어올 때만 따로 불러온다 (별도 청크)
 const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
@@ -103,6 +105,8 @@ function LoaderMole() {
 export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  // 움직임 줄이기 설정이면 입장 연출(천장 구멍 · 낙하 · 가구 떨어짐) 없이 다 차려진 방으로
+  const calm = useReducedMotion()
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
   const [gaveUp, setGaveUp] = useState(false)
   const handle = useRef<RoomSceneHandle | null>(null)
@@ -162,12 +166,14 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           <img src={roomCutout} alt={label ?? '땅굴 방 모습'} className={styles.room} draggable={false} />
         </div>
       )}
+      {/* 3D 청크를 못 받거나 WebGL 이 없으면 로딩을 거두고 바로 자리표시 그림으로 (SceneBoundary) */}
+      <SceneBoundary onError={() => setGaveUp(true)}>
       <Suspense fallback={null}>
         <RoomCanvas
           ownerId={ownerId}
           interests={interests}
           wallpaper={wallpaper}
-          still={still}
+          still={still || calm}
           hostName={hostName}
           hostWorn={hostWorn}
           worn={worn}
@@ -191,6 +197,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           }}
         />
       </Suspense>
+      </SceneBoundary>
       {shown && (
         <div className={styles.reactions} role="toolbar" aria-label="두더지 리액션">
           {REACTIONS.map((r) => (

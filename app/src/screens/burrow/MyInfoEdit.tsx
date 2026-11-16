@@ -13,7 +13,9 @@ import UnsavedDialog from './UnsavedDialog'
 import s from './Burrow.module.css'
 import m from './MyBurrow.module.css'
 
-export const INTRO_MAX = 150
+// 자기소개 최대 150자 (lib/validation.ts, ERD member_profile.intro VARCHAR(150))
+export { INTRO_MAX } from '../../lib/validation'
+import { INTRO_MAX } from '../../lib/validation'
 export interface EditDraft extends MyProfile { interests: string[] }
 
 /**
