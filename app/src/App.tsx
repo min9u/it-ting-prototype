@@ -11,7 +11,7 @@ import MeetupsShell from './screens/meetups/MeetupsShell'
 import { MeetupList, MyMeetups } from './screens/meetups/MeetupList'
 import MeetupDetail from './screens/meetups/MeetupDetail'
 import MeetupNew from './screens/meetups/MeetupNew'
-import { BoardList, BoardPost, BoardSaved, BoardWrite } from './screens/board/Board'
+import { BoardActivity, BoardEdit, BoardList, BoardPost, BoardWrite } from './screens/board/Board'
 import Settings from './screens/settings/Settings'
 import Notifications from './screens/notifications/Notifications'
 import Landing from './screens/start/Landing'
@@ -52,7 +52,10 @@ export const router = createRouter([
       { path: '/burrow/:userId', element: <VisitBurrow /> },
       { path: '/board', element: <BoardList /> },
       { path: '/board/write', element: <BoardWrite /> },
-      { path: '/board/saved', element: <BoardSaved /> },
+      { path: '/board/saved', element: <BoardActivity kind="saved" /> },
+      { path: '/board/mine', element: <BoardActivity kind="mine" /> },
+      { path: '/board/commented', element: <BoardActivity kind="commented" /> },
+      { path: '/board/:postId/edit', element: <BoardEdit /> },
       { path: '/board/:postId', element: <BoardPost /> },
       { path: '/meetups/new', element: <MeetupNew /> },
       {

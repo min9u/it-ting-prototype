@@ -8,7 +8,7 @@ import styles from './AppHeader.module.css'
 /** Figma: Review/Navigation (1440×63) + Nav Pill (State=Active/Default) */
 const NAV = [
   { to: '/burrow', label: '땅굴' },
-  { to: '/board', label: '게시판' },
+  { to: '/board', label: '커뮤니티' },
   { to: '/meetups', label: '모임' },
   { to: '/chat', label: '채팅' },
 ]

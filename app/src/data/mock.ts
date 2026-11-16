@@ -138,12 +138,12 @@ export const POSTS: Post[] = [
       { id: 'c3', authorId: 'seoyeon', text: '후기 읽고 저도 캠핑 가구 하나 땅굴에 들여놨어요. 모임 열리면 신청할게요!', createdAt: '12분 전', likes: 1 },
     ],
   },
-  { id: 'p2', category: '정보', interest: '보드게임', title: '역삼역 근처 보드게임 카페 정리 (11월 기준)', body: ['퇴근 후 들르기 좋은 곳 위주로 모아봤어요. 자리 예약 되는 곳은 따로 표시했어요.'], authorId: 'mingu', createdAt: '11월 2일 오후 9:30', views: 412, likes: 38, comments: [], hasPhoto: true },
-  { id: 'p3', category: '질문', interest: '사진', title: '필름카메라 입문용 추천 부탁드려요', body: ['땅굴에 카메라 소품만 두고 실제로는 없어요… 첫 필름카메라 뭐가 좋을까요?'], authorId: 'ha', createdAt: '11월 2일 오후 1:05', views: 156, likes: 9, comments: [] },
+  { id: 'p2', category: '자유', interest: '보드게임', title: '역삼역 근처 보드게임 카페 정리 (11월 기준)', body: ['퇴근 후 들르기 좋은 곳 위주로 모아봤어요. 자리 예약 되는 곳은 따로 표시했어요.'], authorId: 'mingu', createdAt: '11월 2일 오후 9:30', views: 412, likes: 38, comments: [], hasPhoto: true },
+  { id: 'p3', category: '자유', interest: '사진', title: '필름카메라 입문용 추천 부탁드려요', body: ['땅굴에 카메라 소품만 두고 실제로는 없어요… 첫 필름카메라 뭐가 좋을까요?'], authorId: 'ha', createdAt: '11월 2일 오후 1:05', views: 156, likes: 9, comments: [] },
   { id: 'p4', category: '자유', interest: '독서', title: '이번 달에 읽은 책 한 줄씩 남겨요', body: ['저부터! SF 단편집 읽었는데 마지막 편이 제일 좋았어요.'], authorId: 'seoyeon', createdAt: '11월 1일 오후 11:40', views: 198, likes: 21, comments: [] },
   { id: 'p5', category: '모임 후기', interest: '그림', title: '일요일 아침 드로잉 3회차 후기', body: ['망원 한강공원에서 그렸어요. 날씨가 좋아서 다들 두 장씩 그렸답니다.'], authorId: 'park', createdAt: '10월 31일 오전 10:20', views: 133, likes: 17, comments: [], hasPhoto: true },
   { id: 'p6', category: '자유', interest: '요리', title: '자취방 오븐 없이 만드는 스콘', body: ['에어프라이어로도 충분해요. 레시피 공유합니다.'], authorId: 'yejin', createdAt: '10월 30일 오후 7:15', views: 301, likes: 44, comments: [] },
-  { id: 'p7', category: '정보', interest: '캠핑', title: '초보 캠핑 장비 빌릴 수 있는 곳', body: ['장비 대여 업체 세 곳 비교해봤어요.'], authorId: 'kim', createdAt: '10월 29일 오후 3:00', views: 520, likes: 61, comments: [] },
+  { id: 'p7', category: '자유', interest: '캠핑', title: '초보 캠핑 장비 빌릴 수 있는 곳', body: ['장비 대여 업체 세 곳 비교해봤어요.'], authorId: 'kim', createdAt: '10월 29일 오후 3:00', views: 520, likes: 61, comments: [] },
 ]
 
 /* ===== 모임 ===== */

@@ -44,7 +44,8 @@ export interface GuestbookEntry {
   createdAt: string
 }
 
-export type PostCategory = '자유' | '정보' | '질문' | '모임 후기'
+/** 커뮤니티 글 카테고리 (Figma 02 F8: 모임 홍보 · 모임 후기 · 자유) */
+export type PostCategory = '모임 홍보' | '모임 후기' | '자유'
 
 export interface Comment {
   id: string
