@@ -58,7 +58,8 @@ export default function VisitBurrow() {
   return (
     <main className={s.page}>
       <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
-        mailbox={posted} onMailbox={() => setAllOpen(true)}>
+        mailbox={posted} onMailbox={() => setAllOpen(true)}
+        hostBubble={<button className={s.speech} onClick={() => setReqOpen(true)}>💬 대화 요청하기</button>}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
         {/* 단골 추가 (02 F5 방문자 뷰 2번): 상대 수락 없이 내 단골 목록에 들어감. 다시 누르면 해제(알리지 않음) */}
         <div className={s.sceneTools} style={{ top: 112 }}>
@@ -67,9 +68,6 @@ export default function VisitBurrow() {
             {regular ? '✓ 단골' : '+ 단골 추가'}
           </SceneButton>
         </div>
-        <button className={s.speech} style={{ left: `${(panelOpen ? 0.392 : 0.49) * 100}%`, top: '52%' }} onClick={() => setReqOpen(true)}>
-          💬 대화 요청하기
-        </button>
         <RoomModeToggle style={{ left: `${(panelOpen ? 0.408 : 0.515) * 100}%` }} exploreTo={spot ? exploreHref(spot.floor, spot.seat) : undefined} />
       </RoomView>
 

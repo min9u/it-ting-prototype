@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
-import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy, lockOf } from '../../data/moleItems'
+import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
 import { MAX_PICK, interestCatOf, setMyInterests, subOf } from '../../data/interests'
@@ -99,15 +99,19 @@ function Check({ size = 12 }: { size?: number }) {
 }
 
 /* ---------- 1. 이름 · 두더지 꾸미기 (408:18310, 2026-11-11 갱신) ---------- */
+// 미리 보기 상자 260×328 (.previewBox, 아래 여백 28) 안에 200×200 정사각형이 바닥 쪽 가운데에 있음.
+// 3D 캔버스는 상자 전체 + 위로 72px(Figma Overflow Zone)까지 넓힘 → 260×400. 풍선 같은 키 큰 소품이 안 잘림
+const PREVIEW_SIZE = 200, PREVIEW_OVERFLOW = 72
+const PREVIEW_BLEED = { top: 328 - 28 - PREVIEW_SIZE + PREVIEW_OVERFLOW, right: 30, bottom: 28, left: 30 }
 function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; onNext: () => void }) {
   const [spin, setSpin] = useState(true)
   const trimmed = p.name.trim()
   const bad = trimmed.length > 0 && trimmed.length < 2
-  // 랜덤: 부위마다 하나씩 (잠긴 것·같이 못 끼는 조합은 빼고)
+  // 랜덤: 부위마다 하나씩 (같이 못 끼는 조합은 빼고. 레벨 잠금 없음)
   const randomize = () => {
     const out: string[] = []
     for (const { part } of MOLE_PARTS) {
-      const l = MOLE_ITEMS.filter((i) => i.part === part && !lockOf(i) && !blockedBy(i.id, out))
+      const l = MOLE_ITEMS.filter((i) => i.part === part && !blockedBy(i.id, out))
       if (l.length) out.push(l[Math.floor(Math.random() * l.length)].id)
     }
     p.setWorn(out.slice(0, MAX_WORN))
@@ -143,7 +147,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
           <span className={s.previewLabel}>미리 보기</span>
           <div className={s.previewBox}>
             <button className={s.spinChip} onClick={() => setSpin((v) => !v)} aria-pressed={spin}>↻ {spin ? '천천히 돌아가요' : '멈췄어요'}</button>
-            <MolePreview size={200} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
+            <MolePreview size={PREVIEW_SIZE} bleed={PREVIEW_BLEED} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
           </div>
           <strong>{trimmed || '닉네임'}</strong>
           {p.worn.length > 0 && <WornChips worn={p.worn} onRemove={(id) => p.setWorn(p.worn.filter((w) => w !== id))} withPart large />}

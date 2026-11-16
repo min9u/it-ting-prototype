@@ -45,6 +45,8 @@ self.onmessage = async (e: MessageEvent<Msg>) => {
       dressCanvas(canvas, () => size)
       const { mountRoomScene } = await import('../roomScene')
       handle = mountRoomScene(container, { ...m.opts, canvas })
+      // 집주인 머리 위 위치 (대화 요청 말풍선용). 바뀔 때만 오므로 메시지는 적음
+      handle.onHostScreen?.((p) => postMessage({ type: 'host', p }))
       postMessage({ type: 'ready' })
     } else if (m.type === 'resize') {
       size.w = m.w; size.h = m.h

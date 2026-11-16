@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { SceneHandle } from './engine'
 import { quality } from './engine'
 import { labVersion, subscribeLab } from '../lib/lowLab'
@@ -10,7 +10,7 @@ import { labVersion, subscribeLab } from '../lib/lowLab'
  * - G 3D 창 작게: 저사양일 때 장면 div 를 화면 가운데 액자로 줄임 (그릴 픽셀이 약 절반)
  * - H 가볍게 보기: 저사양일 때 버튼으로 3D 그리기를 멈춤
  */
-export default function SceneCanvas({ mount, deps, focusX, className, label, onReady }: {
+export default function SceneCanvas({ mount, deps, focusX, className, label, onReady, overlay }: {
   mount: (el: HTMLElement, focusX: number) => SceneHandle
   /** 이 값이 바뀌면 장면을 새로 만든다 (예: 방 주인 id) */
   deps: string
@@ -18,6 +18,11 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   className?: string
   label?: string
   onReady?: (handle: SceneHandle) => void
+  /**
+   * 장면 위에 겹치는 UI (예: 집주인 머리 위 말풍선). 장면 div 와 같은 자리·크기의 형제 div 에 넣음
+   * (G 액자로 줄어도 같이 따라감, role="img" 밖이라 버튼이 접근성 트리에 남음). 바탕은 클릭이 통과함
+   */
+  overlay?: ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const handle = useRef<SceneHandle | null>(null)
@@ -58,7 +63,13 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
     ? { inset: 'auto', top: '9%', bottom: '16%', left: `calc(${focusX * 100}% - 36%)`, width: '72%', height: 'auto', borderRadius: 28, overflow: 'hidden', transition: 'left .45s', boxShadow: '0 0 0 6px rgba(251,244,236,.55), 0 18px 40px rgba(60,35,20,.25)' }
     : undefined
 
+  const overlayStyle = {
+    position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
+    ...(small ? { inset: 'auto', top: '9%', bottom: '16%', left: `calc(${focusX * 100}% - 36%)`, width: '72%', transition: 'left .45s' } : null),
+  } as const
+
   return (
+    <>
     <div ref={ref} className={className} style={style} role="img" aria-label={label}>
       {lab?.H && (
         <button
@@ -75,5 +86,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
         </button>
       )}
     </div>
+    {overlay != null && <div style={overlayStyle}>{overlay}</div>}
+    </>
   )
 }

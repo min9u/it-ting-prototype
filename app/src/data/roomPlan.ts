@@ -6,8 +6,10 @@
  * - 선반 소품: 선반 12칸 중 빈 칸, 그 카테고리 주 가구 슬롯에서 가까운 칸부터 (카테고리는 고른 순서, 안에서도 고른 순서)
  * - 바닥 소품(기타)·동물 용품: 행의 slot.name 고정. 동물 용품을 고르면 짝 동물(sub.pet)도 같이
  * - glb 가 null(status todo)이면 둥근 블록으로 대신 놓음 (built 가 되면 코드 변경 없이 모델로)
- * - 낙하 순서: 카테고리(세트)마다, 세트 안은 부피 큰 것부터 0.12초 간격, 세트가 끝나고 1.0초 쉬고 다음 세트
- *   (반려동물은 동물 + 짝 용품을 같은 시각에, v3.4)
+ * - 낙하 순서: 카테고리(세트)마다, 세트 안은 부피 큰 것부터 (반려동물은 동물 + 짝 용품을 같은 시각에, v3.4)
+ * - 낙하 시간 (2026-11-12 사용자 요청 "2초 안에"): spec 4번(0.12초 간격 + 세트 사이 1.0초 쉼)은 10개 고르면 15초가 넘어서
+ *   세트 안 0.12초·세트 사이 0.24초로 겹쳐 떨어뜨리고, 마지막 시작이 DROP_SPAN(1.0초)을 넘으면 전체를 그 안으로 줄임
+ *   → 몇 개를 고르든 마지막 가구가 시작 후 DROP_SPAN + DROP_LEN(0.6) = 1.6초 안에 착지. 가구 하나의 곡선(0.6초)은 spec 그대로
  */
 import catalogRaw from './furnitureCatalog.json'
 import slotsRaw from './slots.json'
@@ -78,7 +80,9 @@ export interface RoomPlan {
   duration: number
 }
 
-export const DROP_LEN = 0.6, DROP_GAP = 0.12, SET_REST = 1.0
+export const DROP_LEN = 0.6, DROP_GAP = 0.12, SET_GAP = 0.24
+/** 마지막 가구가 떨어지기 시작하는 시각의 상한 (초). 넘으면 시간표 전체를 이 안으로 압축 */
+export const DROP_SPAN = 1.0
 
 /**
  * picks: 세부 관심사 id 또는 화면 이름 (고른 순서)
@@ -131,9 +135,12 @@ export function planRoom(picksIn: string[]): RoomPlan {
     })
     const order = [...groups.values()].sort((a, b) => Math.max(...b.map((x) => vol(x.row))) - Math.max(...a.map((x) => vol(x.row))))
     order.forEach((g, i) => g.forEach((it) => items.push({ ...it, start: start + DROP_GAP * i })))
-    start += DROP_GAP * (order.length - 1) + DROP_LEN + SET_REST
+    start += DROP_GAP * (order.length - 1) + SET_GAP
   }
-  return { picks, categories: cats, items, duration: Math.max(0, start - SET_REST) }
+  // 몇 개를 고르든 DROP_SPAN 안에 다 시작하게 (간격 비율은 유지한 채 압축)
+  const last = Math.max(0, ...items.map((it) => it.start))
+  if (last > DROP_SPAN) for (const it of items) it.start *= DROP_SPAN / last
+  return { picks, categories: cats, items, duration: items.length ? Math.min(last, DROP_SPAN) + DROP_LEN : 0 }
 }
 
 /** 둥근 블록 색 (HANDOFF_v3 3번 추천 팔레트, 무광) */

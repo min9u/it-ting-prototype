@@ -37,6 +37,16 @@
 
 /* 로딩 (loader): 흙더미 두더지가 통통 + 흙 부스러기 + "땅굴을 꾸미는 중..." */
 .canvasHidden { opacity: 0; }
+/* 집주인 머리 위 자리 (RoomView hostBubble). 0×0 점을 머리 꼭대기로 옮기고, 안의 UI 는 그 위에 세움 */
+.hostAnchor {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s var(--ease-out), visibility 0s .25s;
+}
+.hostAnchor[data-on] { opacity: 1; visibility: visible; transition: opacity .25s var(--ease-out); }
+.hostAnchor > * { pointer-events: auto; }
+/* 3D 를 못 쓸 때: 예전 자리 (방 가운데쯤) */
+.hostStatic { position: absolute; top: 52%; z-index: 5; width: 0; height: 0; }
 .canvasIn { opacity: 1; transition: opacity .6s var(--ease-out); }
 .loader {
   position: absolute; top: 50%; z-index: 2; transform: translate(-50%, -50%);
