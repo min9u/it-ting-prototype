@@ -2,47 +2,44 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
+import Modal from '../../components/Modal'
 import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, toneOf } from '../../data/mock'
-import { MAX_PICK, interestCatOf, setMyInterests, subOf } from '../../data/interests'
-import { planRoom } from '../../data/roomPlan'
-import { setMyWallpaper, tileUrl, wallpaperForCategory, wallpaperForPicks, wallpaperOf } from '../../data/wallpapers'
+import { MAX_PICK, setMyInterests, subOf } from '../../data/interests'
+import { setMyWallpaper, tileUrl, wallpaperOf } from '../../data/wallpapers'
+import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, recommendedQuestions } from '../../data/questions'
+import {
+  MIN_PICK, MOOD_NAMES, NICK_MAX, defaultFurniture, interestFurnitureCount, isRare, leadCategory, moodWallpaper, nickTaken, setMyFurnChoice, setMyProfile,
+} from '../../data/myBurrow'
 import type { Category } from '../../data/types'
+import QuestionList from './QuestionList'
 import s from './Onboarding.module.css'
 
 /*
- * 온보딩 (design/figma/onboarding/*.png 시안 기준, 2026-11-10)
- *  2026-11-11 Figma 갱신: 1 "이름 · 두더지 꾸미기"(머리·얼굴·목·손), 4 미리보기는 메인 화면 구도 681:7764
- *  2026-11-11 3D 핸드오프 v1.1·v2: 액세서리 41개, 부위마다 1개 최대 4개, 미리 보기는 3D(mole_showcase + 회전)
- *  1 이름 408:18310 → 2 관심사 "A · 좌측 분류 전환" 408:22173 → 3 자기소개 408:18828
- *  → 4 땅굴 만들기: 3a 방 만드는 중 408:19036 → (3b 없음) → 3c 땅굴 미리보기 408:19306
+ * 온보딩 (02 "스켈레톤 기능 명세" F3 기준으로 다시 맞춤, 2026-11-16. docs/spec-f3-f4.md)
+ *  헤더(00 공통 12): 로고만, 메뉴·건너뛰기 없음. 진행 단계 4개(나를 부르는 이름 → 내 관심사 선택 → 자기소개 → 땅굴 만들기)
+ *  1 이름 · 두더지 꾸미기 → 2 관심사(분야 카드 + 분야 팝업, 최대 10개) → 3 자기소개(질문 목록에서 3개 고르기)
+ *  → 3a 땅굴 만드는 중(버튼 없음, 끝나면 자동) → 4 땅굴 미리보기(관심사 재선택 / 관심사 확정)
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
- *  2026-11-11 3D 핸드오프 v3: 관심사는 interest_catalog.json 의 카테고리 11 · 세부 관심사 65, 최대 10개 (data/interests.ts).
- *  고른 관심사로 가구 배치는 data/roomPlan.ts (미리보기 땅굴과 /burrow 가 같은 계산)
+ * 관심사는 interest_catalog.json 의 카테고리 11 · 세부 관심사 65 (data/interests.ts). 가구 배치는 data/roomPlan.ts
  */
 
 const STEPS = [
   { key: 'name', label: '나를 부르는 이름' },
-  { key: 'interests', label: '관심사 선택' },
+  { key: 'interests', label: '내 관심사 선택' },
   { key: 'intro', label: '자기소개' },
   { key: 'building', label: '땅굴 만들기' },
 ] as const
 
-const NAME_MAX = 12
-const MIN_PICK = 3
-const ANSWER_MAX = 50
-
 const DEMO = {
   name: '새벽산책',
   worn: DEFAULT_WORN,
-  picks: ['시티팝', '필름카메라', '테라리움', '체스', '수채화', 'SF소설', '베이킹', '식물키우기', '캠핑', '고전영화'],
-  answers: ['엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.', '창문부터 열고 이불 속에서 한참 뒹굴어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.'],
+  picks: ['시티팝', '필름카메라', '테라리움', '체스', '뜨개질', '클라이밍', '요가', '애니메이션', '고양이', '강아지'],
 }
+const DEMO_ANSWERS = ['마리아 타케우치 「Plastic Love」요. 출근길마다 들어요.', '동네 고양이요. 반은 흔들렸어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.']
 
-const catName = (c: Category) => c.name.replace(/\s·\s/g, '·')
-const countOf = (tag: string) => CATEGORIES.flatMap((c) => c.tags).find((t) => t.name === tag)?.count ?? 9999
-const catOf = (tag: string) => CATEGORIES.find((c) => c.tags.some((t) => t.name === tag))
+const catName = (c: Category) => c.name.replace(/\s·\s/g, ' · ')
 
 export default function Onboarding() {
   const { step = 'name' } = useParams()
@@ -53,14 +50,16 @@ export default function Onboarding() {
   const [name, setName] = useState(demo ? DEMO.name : '')
   const [worn, setWorn] = useState<string[]>(demo ? DEMO.worn : [])
   const [picks, setPicks] = useState<string[]>(demo ? DEMO.picks : [])
-  const [qs, setQs] = useState<number[]>([0, 0, 0])       // 칸마다 몇 번째 질문인지 (0 = 기본, 1 = 바꾼 질문)
-  const [answers, setAnswers] = useState(demo ? DEMO.answers : ['', '', ''])
+  const [qids, setQids] = useState<string[]>(() => (demo ? recommendedQuestions(DEMO.picks).map((q) => q.id) : []))
+  const [answers, setAnswers] = useState<Record<string, string>>(() => (demo ? Object.fromEntries(recommendedQuestions(DEMO.picks).map((q, i) => [q.id, DEMO_ANSWERS[i]])) : {}))
+  // 미리보기에서 "관심사 재선택"으로 돌아왔으면, 다시 고른 뒤 "다음"은 땅굴을 새로 만듦(3a → 4)
+  const [repick, setRepick] = useState(false)
 
   const idx = STEPS.findIndex((x) => x.key === step || (x.key === 'building' && step === 'preview'))
   if (idx < 0) return <Navigate to="/onboarding/name" replace />
   const go = (k: string) => { nav(`/onboarding/${k}`); window.scrollTo(0, 0) }
   const nick = name.trim() || '새벽산책'
-  const qna = QUESTION_SLOTS.map((slot, i) => ({ q: slot[qs[i]].q, a: answers[i].trim() }))
+  const qna = qids.map((id) => ({ q: questionOf(id)?.text ?? '', a: (answers[id] ?? '').trim() }))
 
   return (
     <div className={s.page}>
@@ -83,12 +82,21 @@ export default function Onboarding() {
         {step === 'name' && (
           <NameStep name={name} setName={setName} worn={worn} setWorn={setWorn} onNext={() => go('interests')} />
         )}
-        {step === 'interests' && <InterestStep picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => go('intro')} />}
-        {step === 'intro' && (
-          <IntroStep name={nick} worn={worn} picks={picks} qs={qs} setQs={setQs} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
+        {step === 'interests' && (
+          <InterestStep picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => { if (repick) { setRepick(false); go('building') } else go('intro') }} />
         )}
-        {step === 'building' && <BuildStep name={nick} picks={picks} qna={qna} onDone={() => go('preview')} />}
-        {step === 'preview' && <PreviewStep name={nick} worn={worn} picks={picks} qna={qna} onRepick={() => go('interests')} />}
+        {step === 'intro' && (
+          <IntroStep name={nick} worn={worn} picks={picks} qids={qids} setQids={setQids} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
+        )}
+        {step === 'building' && <BuildStep name={nick} picks={picks} onDone={() => nav('/onboarding/preview', { replace: true })} />}
+        {step === 'preview' && (
+          <PreviewStep name={nick} worn={worn} picks={picks} qna={qna}
+            onRepick={() => { setRepick(true); go('interests') }}
+            onConfirm={() => {
+              setMyProfile({ nickname: nick, intro: '', qna: qids.map((id) => ({ qid: id, a: (answers[id] ?? '').trim() })) })
+              setMyWorn(worn); setMyInterests(picks); setMyWallpaper(moodWallpaper(picks)); setMyFurnChoice({})
+            }} />
+        )}
       </main>
     </div>
   )
@@ -98,15 +106,19 @@ function Check({ size = 12 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden><path d="M2.2 6.3 4.9 8.9 9.8 3.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
 
-/* ---------- 1. 이름 · 두더지 꾸미기 (408:18310, 2026-11-11 갱신) ---------- */
+/* ---------- 1. 나를 부르는 이름 · 두더지 꾸미기 ---------- */
 // 미리 보기 상자 260×328 (.previewBox, 아래 여백 28) 안에 200×200 정사각형이 바닥 쪽 가운데에 있음.
 // 3D 캔버스는 상자 전체 + 위로 72px(Figma Overflow Zone)까지 넓힘 → 260×400. 풍선 같은 키 큰 소품이 안 잘림
 const PREVIEW_SIZE = 200, PREVIEW_OVERFLOW = 72
 const PREVIEW_BLEED = { top: 328 - 28 - PREVIEW_SIZE + PREVIEW_OVERFLOW, right: 30, bottom: 28, left: 30 }
+/**
+ * 1 제목·안내 / 2 닉네임: 필수, 최대 12자 "n / 12", 겹치면 오류 문구 / 3 두더지 꾸미기: 머리·얼굴·목·손 하나씩("없음" 가능), 관심사 아이템도 고를 수 있음
+ * 4 랜덤으로 꾸미기 / 5 미리보기(천천히 돌려 봄) / 6 고른 아이템(부위와 함께, ×로 해제) / 7 다음: 닉네임을 입력하면 활성
+ */
 function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; onNext: () => void }) {
   const [spin, setSpin] = useState(true)
   const trimmed = p.name.trim()
-  const bad = trimmed.length > 0 && trimmed.length < 2
+  const taken = nickTaken(trimmed)
   // 랜덤: 부위마다 하나씩 (같이 못 끼는 조합은 빼고. 레벨 잠금 없음)
   const randomize = () => {
     const out: string[] = []
@@ -128,18 +140,20 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
           <div className={s.field}>
             <label htmlFor="ob-nick">닉네임</label>
             <div className={s.inputWrap}>
-              <input id="ob-nick" value={p.name} maxLength={NAME_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="땅굴 문패에 적힐 이름" autoComplete="off" />
-              <span className={s.counter}>{p.name.length} / {NAME_MAX}</span>
+              <input id="ob-nick" value={p.name} maxLength={NICK_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="다른 두더지에게 보이는 이름" autoComplete="off" aria-invalid={taken} />
+              <span className={s.counter}>{p.name.length} / {NICK_MAX}</span>
             </div>
-            {bad && <span className={s.error}>두 글자 이상 적어 주세요</span>}
+            {taken && <span className={s.error}>이미 쓰고 있는 닉네임이에요. 다른 닉네임을 적어 주세요</span>}
+            {!taken && <span className={s.hintLine}>나중에 내 땅굴의 "내 정보 수정"에서 바꿀 수 있어요</span>}
           </div>
 
           <div className={s.field}>
             <div className={s.accHead}>
-              <span className={s.label}><span>두더지 꾸미기 <b className={s.wornCount}>{p.worn.length} / {MAX_WORN}</b></span><small>부위마다 하나씩 · 최대 {MAX_WORN}개까지 고를 수 있어요</small></span>
+              <span className={s.label}><span>두더지 꾸미기</span><small>부위마다 하나씩 · 꾸민 두더지는 다른 땅굴에 놀러 갈 때 보이는 모습이에요</small></span>
               <button className={s.randomBtn} onClick={randomize}><Dice /> 랜덤으로 꾸미기</button>
             </div>
             <MoleDresser worn={p.worn} onChange={p.setWorn} />
+            <p className={s.partNote}>ⓘ 부위마다 하나씩 고를 수 있어요</p>
           </div>
         </div>
 
@@ -155,124 +169,159 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
       </section>
       <div className={s.actions}>
         <span />
-        <button className={s.next} disabled={trimmed.length < 2} onClick={p.onNext}>다음</button>
+        <button className={s.next} disabled={!trimmed || taken} onClick={p.onNext}>다음</button>
       </div>
     </>
   )
 }
 
-/* ---------- 2. 관심사 선택 (A · 좌측 분류 전환) ---------- */
+/* ---------- 2. 내 관심사 선택 (분야 카드 + 분야 팝업) ---------- */
+/**
+ * 1 "내 관심사 선택하기" + 한 줄 안내 / 2 분야 11개 카드, 누르면 세부 관심사 팝업 / 3 고른 게 있으면 테두리 + "✓ N개", 없으면 "선택"
+ * 4 선택한 관심사(개수 + 고른 순서, 맨 앞 = 대표 관심사 → 땅굴 무드), ×로 바로 해제 / 5 이전 · 다음(3개 이상), 최대 10개
+ * 10개 초과: "N · 최대 10개"(10개면 빨간 글씨), 안 고른 분야 카드는 흐리게, 더 고르면 안내 3초
+ */
 function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => string[]) => void; onPrev: () => void; onNext: () => void }) {
-  const [catId, setCatId] = useState(CATEGORIES[0].id)
-  const [full, setFull] = useState(false)
-  const cat = CATEGORIES.find((c) => c.id === catId)!
-  const pickedIn = (c: Category) => c.tags.filter((t) => p.picks.includes(t.name)).length
+  const [openCat, setOpenCat] = useState<string | null>(null)
+  const [over, setOver] = useState(false)
+  const timer = useRef(0)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const full = p.picks.length >= MAX_PICK
   const toggle = (t: string) => {
-    if (!p.picks.includes(t) && p.picks.length >= MAX_PICK) { setFull(true); return }
-    setFull(false)
-    p.setPicks((l) => (l.includes(t) ? l.filter((x) => x !== t) : [...l, t]))
+    if (p.picks.includes(t)) { setOver(false); p.setPicks((l) => l.filter((x) => x !== t)); return }
+    if (full) { setOver(true); clearTimeout(timer.current); timer.current = window.setTimeout(() => setOver(false), 3000); return }
+    p.setPicks((l) => [...l, t])
   }
+  const cat = CATEGORIES.find((c) => c.id === openCat)
   return (
     <>
       <div className={s.intro}>
-        <h1>요즘 마음이 가는 것들</h1>
-        <p className={s.pickRule}>최소 {MIN_PICK}개 · 최대 {MAX_PICK}개를 골라주세요</p>
+        <h1>내 관심사 선택하기</h1>
+        <p>카테고리를 누르면 세부 관심사를 선택할 수 있어요</p>
       </div>
-      <div className={s.pickCols}>
-        <nav className={s.catList} aria-label="관심 분야">
+      <section className={s.catBoard}>
+        <div className={s.catGrid}>
           {CATEGORIES.map((c) => {
-            const n = pickedIn(c)
+            const mine = c.tags.filter((t) => p.picks.includes(t.name))
+            const ex = (mine.length ? mine.map((t) => t.name) : c.tags.slice(0, 2).map((t) => t.name)).slice(0, 3).join(' · ')
             return (
-              <button key={c.id} className={c.id === catId ? s.catOn : s.cat} aria-current={c.id === catId ? 'true' : undefined} onClick={() => setCatId(c.id)}>
-                {catName(c)}
-                {n > 0 ? <em>{n}개</em> : <Chevron />}
+              <button key={c.id} className={mine.length ? s.catCardOn : full ? `${s.catCard} ${s.catCardDim}` : s.catCard} onClick={() => setOpenCat(c.id)} aria-label={`${catName(c)} 관심사 고르기${mine.length ? `, ${mine.length}개 고름` : ''}`}>
+                <span className={s.catIcon} style={{ background: `var(--tone-${c.tone}-bg)` }} aria-hidden>{c.emoji}</span>
+                <span className={mine.length ? s.catBadgeOn : s.catBadge}>{mine.length ? <><Check size={10} /> {mine.length}개</> : '선택'}</span>
+                <strong>{catName(c)}</strong>
+                <small>{ex}</small>
               </button>
             )
           })}
-        </nav>
-        <section className={s.tagPanel} aria-label={`${catName(cat)} 관심사`}>
-          <h2>{catName(cat)}</h2>
-          <div className={s.tags}>
-            {cat.tags.map((t) => {
-              const on = p.picks.includes(t.name)
-              return (
-                <button key={t.name} className={on ? s.tagOn : s.tag} aria-pressed={on} onClick={() => toggle(t.name)}
-                  style={{ ['--tag-bg' as string]: `var(--tone-${cat.tone}-bg)`, ['--tag-fg' as string]: `var(--tone-${cat.tone}-fg)` }}>
-                  {on && <Check />}{t.name}<small>{t.count.toLocaleString()}</small>
+        </div>
+        <div className={s.tray}>
+          <p>선택한 관심사 <b>{p.picks.length}</b> <span className={full ? s.limitOn : s.limit}>· 최대 {MAX_PICK}개</span>
+            {p.picks.length > 0 && <span className={s.trayLead}>맨 앞 관심사가 땅굴 분위기를 정해요</span>}</p>
+          {p.picks.length === 0 ? <span className={s.trayEmpty}>분야 카드를 눌러 마음 가는 관심사를 골라 보세요</span> : (
+            <div className={s.trayChips}>
+              {p.picks.map((t, i) => (
+                <button key={t} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }} onClick={() => toggle(t)} aria-label={`${t} 빼기`}>
+                  {i === 0 && <em className={s.leadMark}>대표</em>}{t}<span aria-hidden>✕</span>
                 </button>
-              )
-            })}
-          </div>
-          <p className={s.tagNote}>숫자는 같은 관심사를 고른 두더지 수예요. 적을수록 나와 꼭 맞는 이웃을 찾기 쉬워요.</p>
-          <div className={s.tray}>
-            <p>선택한 관심사 <b>{p.picks.length}</b>{full && <span className={s.error}> · 최대 {MAX_PICK}개까지 고를 수 있어요</span>}</p>
-            {p.picks.length === 0 ? <span className={s.trayEmpty}>왼쪽에서 분야를 고르고 마음 가는 걸 눌러 보세요</span> : (
-              <div className={s.trayChips}>
-                {p.picks.map((t) => (
-                  <button key={t} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }} onClick={() => toggle(t)} aria-label={`${t} 빼기`}>
-                    {t}<span aria-hidden>✕</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
+              ))}
+            </div>
+          )}
+          {over && !cat && <p className={s.overToast} role="status">관심사는 최대 {MAX_PICK}개까지 고를 수 있어요. 다른 관심사를 빼고 골라 주세요.</p>}
+        </div>
+      </section>
       <div className={s.actions}>
-        <span />
+        <span className={s.footNote}>나중에 언제든 바꿀 수 있어요.</span>
         <div className={s.btnRow}>
           <button className={s.prev} onClick={p.onPrev}>이전</button>
           <button className={s.next} disabled={p.picks.length < MIN_PICK} onClick={p.onNext}>다음</button>
         </div>
       </div>
+
+      {/* 분야 팝업: 닫기 · 바깥 · ESC · 고르기 완료 모두 고른 내용 유지 (팝업에서 누르는 즉시 반영) */}
+      <Modal open={!!cat} onClose={() => setOpenCat(null)} width={600} labelledBy="cat-pop-title">
+        {cat && (
+          <div className={s.catPop}>
+            <div className={s.catPopHead}>
+              <span className={s.catIcon} style={{ background: `var(--tone-${cat.tone}-bg)` }} aria-hidden>{cat.emoji}</span>
+              <div>
+                <h2 id="cat-pop-title">{catName(cat)}</h2>
+                <p>마음 가는 걸 모두 골라주세요. 여러 개 골라도 좋아요.</p>
+              </div>
+            </div>
+            {([['많이 고르는 취향', cat.tags.filter((t) => !isRare(t.count))], ['아는 사람끼리 통하는 취향', cat.tags.filter((t) => isRare(t.count))]] as const).map(([label, list]) => list.length > 0 && (
+              <div key={label} className={s.catGroup}>
+                <p>{label === '많이 고르는 취향' ? '✦' : '⁂'} {label}</p>
+                <div className={s.catTags}>
+                  {list.map((t) => {
+                    const on = p.picks.includes(t.name)
+                    return (
+                      <button key={t.name} className={on ? s.popTagOn : full ? `${s.popTag} ${s.popTagDim}` : s.popTag} aria-pressed={on} onClick={() => toggle(t.name)}
+                        style={{ ['--tag-bg' as string]: `var(--tone-${cat.tone}-bg)`, ['--tag-fg' as string]: `var(--tone-${cat.tone}-fg)` }}>
+                        {on && <Check size={10} />}{t.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            {over && <p className={s.popOver} role="status">관심사는 최대 {MAX_PICK}개까지 고를 수 있어요. 다른 관심사를 빼고 골라 주세요.</p>}
+            <div className={s.catPopFoot}>
+              <span>{catName(cat)}에서 <b>{cat.tags.filter((t) => p.picks.includes(t.name)).length}개</b> 골랐어요</span>
+              <button className={s.resetBtn} onClick={() => p.setPicks((l) => l.filter((x) => !cat.tags.some((t) => t.name === x)))}>선택 초기화</button>
+              <button className={s.next} onClick={() => setOpenCat(null)}>고르기 완료</button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   )
 }
 
-/* ---------- 3. 자기소개: 오직 나를 위한 질문 ---------- */
-// 칸마다 [기본 질문, 바꿀 질문]. 다른 두더지와 잘 겹치지 않는 답이 나오도록 고름
-const QUESTION_SLOTS = [
-  [
-    { q: '가장 좋아하는 음식은 뭐예요?', ex: '엄마가 해준 김치볶음밥이요. 매운데 자꾸 생각나요.' },
-    { q: '요즘 가장 자주 듣는 노래는?', ex: '출근길마다 같은 시티팝 한 곡만 들어요.' },
-  ],
-  [
-    { q: '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', ex: '창문부터 열고 이불 속에서 한참 뒹굴어요.' },
-    { q: '가방 속에 늘 들어 있는 물건은?', ex: '필름카메라랑 반쯤 남은 껌이요.' },
-  ],
-  [
-    { q: '하루 동안 투명 인간이 된다면 뭐 해볼래요?', ex: '유명한 맛집 주방을 몰래 구경해 볼래요.' },
-    { q: '비 오는 날 꼭 하고 싶은 일은?', ex: '창가에서 라면 끓여 먹으면서 영화 보기요.' },
-  ],
-]
-
-function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: number[]; setQs: (v: number[]) => void; answers: string[]; setAnswers: (v: string[]) => void; onPrev: () => void; onNext: () => void }) {
+/* ---------- 3. 자기소개 · 질문 목록에서 고르기 ---------- */
+/**
+ * 1 "나에 대해서 알려주세요" / 2 질문 목록(추천·관심사·TMI), 3개까지, 고른 질문은 "골랐어요"
+ * 3 고른 질문 3개 모두 필수, 답변 10~50자 "n / 50"(50자 넘으면 막음), "목록에서 다시 고르기"로 바꿈. 이전 단계로 가도 유지(상위 상태)
+ * 4 미리보기: 내 땅굴 내 정보 카드 모습 / 5 다음: 3개 모두 10자 이상이면 활성 → 3a. 나중에 내 땅굴에서 수정할 수 있다는 안내
+ */
+function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: string[]; setQids: (v: string[]) => void; answers: Record<string, string>; setAnswers: (v: Record<string, string>) => void; onPrev: () => void; onNext: () => void }) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const toggle = (id: string) => {
+    if (p.qids.includes(id)) p.setQids(p.qids.filter((x) => x !== id))
+    else if (p.qids.length < 3) p.setQids([...p.qids, id])
+  }
+  const ready = p.qids.length === 3 && p.qids.every((id) => answerOk(p.answers[id] ?? ''))
   return (
     <>
       <div className={s.intro}>
-        <h1>오직 나를 위한 질문</h1>
-        <p>다른 두더지와 잘 겹치지 않는 질문을 골랐어요. 답 한 줄이 첫 대화의 실마리가 돼요.</p>
+        <h1>나에 대해서 알려주세요</h1>
+        <p>질문 목록에서 답하고 싶은 질문 3개를 골라 답해요.</p>
       </div>
       <section className={s.card}>
         <div className={s.qForm}>
-          {QUESTION_SLOTS.map((slot, i) => {
-            const cur = slot[p.qs[i]]
+          <div ref={listRef}>
+            <QuestionList picks={p.picks} selected={p.qids} max={3} onToggle={(q) => toggle(q.id)}
+              note={`${p.qids.length} / 3 골랐어요 · 추천: 관심사 질문 2개 + TMI 질문 1개`} />
+          </div>
+          {p.qids.map((id, i) => {
+            const q = questionOf(id)!
+            const a = p.answers[id] ?? ''
+            const short = a.trim().length > 0 && a.trim().length < ANSWER_MIN
             return (
-              <div key={i} className={s.field}>
+              <div key={id} className={s.field}>
                 <div className={s.qHead}>
-                  <label htmlFor={`ob-q${i}`}>Q{i + 1}. {cur.q}</label>
-                  <button className={s.swap} disabled={p.qs[i] > 0} onClick={() => { const n = [...p.qs]; n[i] = 1; p.setQs(n); const a = [...p.answers]; a[i] = ''; p.setAnswers(a) }}>
-                    {p.qs[i] > 0 ? '질문을 바꿨어요' : '다른 질문으로 바꾸기 (1회)'}
-                  </button>
+                  <label htmlFor={`ob-q${i}`}>Q{i + 1}. [{questionTag(q)}] {q.text}</label>
+                  <button className={s.swap} onClick={() => { toggle(id); listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}>목록에서 다시 고르기</button>
                 </div>
                 <div className={s.areaWrap}>
-                  <textarea id={`ob-q${i}`} maxLength={ANSWER_MAX} value={p.answers[i]} placeholder={`예) ${cur.ex}`}
-                    onChange={(e) => { const a = [...p.answers]; a[i] = e.target.value; p.setAnswers(a) }} />
-                  <span className={s.counter}>{p.answers[i].length} / {ANSWER_MAX}</span>
+                  <textarea id={`ob-q${i}`} maxLength={ANSWER_MAX} value={a} placeholder={`예) ${q.ex}`}
+                    onChange={(e) => p.setAnswers({ ...p.answers, [id]: e.target.value.slice(0, ANSWER_MAX) })} />
+                  <span className={s.counter}>{a.length} / {ANSWER_MAX}</span>
                 </div>
+                {short && <span className={s.error}>{ANSWER_MIN}자 이상 적어 주세요</span>}
               </div>
             )
           })}
+          {p.qids.length < 3 && <p className={s.qEmpty}>위 목록에서 질문을 {3 - p.qids.length}개 더 골라 주세요.</p>}
         </div>
         <aside className={s.cardSide}>
           <p className={s.sideLabel}>내 땅굴에선 이렇게 보여요</p>
@@ -282,9 +331,10 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: numbe
               <div><strong>{p.name}</strong><span>관심사 {p.picks.length}개</span></div>
             </div>
             <dl className={s.qnaBox}>
-              {QUESTION_SLOTS.map((slot, i) => (
-                <div key={i}><dt>Q{i + 1}. {slot[p.qs[i]].q}</dt>{p.answers[i].trim() && <dd>{p.answers[i].trim()}</dd>}</div>
+              {p.qids.map((id, i) => (
+                <div key={id}><dt>Q{i + 1}. {questionOf(id)?.text}</dt>{(p.answers[id] ?? '').trim() && <dd>{(p.answers[id] ?? '').trim()}</dd>}</div>
               ))}
+              {p.qids.length === 0 && <div><dt>고른 질문이 여기에 보여요</dt></div>}
             </dl>
             <div className={s.chipRow}>
               {p.picks.slice(0, 4).map((t) => <span key={t} className={s.chip} style={{ background: `var(--tone-${toneOf(t)}-bg)`, color: `var(--tone-${toneOf(t)}-fg)` }}>{t}</span>)}
@@ -298,86 +348,39 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qs: numbe
         <span className={s.footNote}>답변은 나중에 내 땅굴에서 언제든 수정할 수 있어요.</span>
         <div className={s.btnRow}>
           <button className={s.prev} onClick={p.onPrev}>이전</button>
-          <button className={s.next} onClick={p.onNext}>다음</button>
+          <button className={s.next} disabled={!ready} onClick={p.onNext}>다음</button>
         </div>
       </div>
     </>
   )
 }
 
-/* ---------- 4a. 땅굴 만들기: 방 만드는 중 ---------- */
-// 관심사 → 놓이는 물건은 카탈로그(interest_catalog 의 prop, furniture_catalog 의 이름)에서. 답변에서 찾을 단어 = 관심사·물건 이름 조각
-const keysOf = (...names: string[]) => [...new Set(names.flatMap((n) => n.split(/[·\s]+/)).filter((k) => k.length >= 2))]
-
-// 분류별 땅굴 무드 (가장 무거운 분류로 정함. 무게는 legacy 의 tasteWeights 와 같은 Σ(1 + 1000/인원))
-// 벽은 v3.5.1 벽지 (data/wallpapers.ts mood_map: 같은 카테고리 → 벽지, 정해지지 않은 카테고리는 01 기본 단색)
-const MOODS: Record<string, { name: string }> = {
-  music: { name: '레코드 가게 무드' },
-  photo: { name: '작은 암실 무드' },
-  nature: { name: '작은 온실 무드' },
-  game: { name: '동네 오락실 무드' },
-  craft: { name: '작업실 무드' },
-  book: { name: '다락 서재 무드' },
-  science: { name: '별 관측소 무드' },
-  tea_coffee: { name: '골목 카페 무드' },
-  outdoor: { name: '캠핑장 무드' },
-  movie: { name: '작은 극장 무드' },
-  pet: { name: '포근한 둥지 무드' },
-}
-
+/* ---------- 3a. 땅굴 만드는 중 ---------- */
 /** 벽지 견본 (타일 그림, 01 기본은 단색) */
 const wallSwatch = (id: string, solid?: string) => {
   const u = tileUrl(id, 512)
   return u ? { background: `url(${u}) center / 48px repeat` } : { background: solid }
 }
 
-type QnA = { q: string; a: string }
-
-function buildPlan(picks: string[], qna: QnA[]) {
-  const weight = new Map<string, number>()
-  for (const t of picks) { const c = catOf(t); if (c) weight.set(c.id, (weight.get(c.id) ?? 0) + 1 + 1000 / countOf(t)) }
-  const topId = [...weight.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'nature'
-  const top = CATEGORIES.find((c) => c.id === topId)!
-  const inTop = picks.filter((t) => catOf(t)?.id === topId)
-  const rarest = [...inTop].sort((a, b) => countOf(a) - countOf(b))[0]
-  const room = planRoom(picks)
-  // 한 줄 = 카테고리 가구 묶음(그 카테고리를 처음 고른 관심사가 근거) 또는 관심사 소품
-  const rows: { key: string; tag: string; item: string; quote?: string; tone: ReturnType<typeof toneOf>; ready: boolean }[] = []
-  for (const c of room.categories) {
-    const furn = room.items.filter((it) => it.category === c && !it.sub)
-    if (!furn.length) continue
-    const tag = picks.find((t) => subOf(t)?.category === c)!
-    const names = furn.map((it) => it.row.name_ko)
-    const hit = qna.find((x) => x.a && keysOf(interestCatOf(c)?.name_ko ?? '', ...names).some((k) => x.a.includes(k)))
-    rows.push({ key: `cat:${c}`, tag: interestCatOf(c)?.name_ko ?? tag, item: names.join(' · '), quote: hit?.a, tone: toneOf(tag), ready: furn.every((it) => it.built) })
-  }
-  for (const t of picks) {
-    const sub = subOf(t)
-    const props = room.items.filter((it) => it.sub === sub?.id)
-    if (!sub || !props.length) continue
-    const names = props.map((it) => it.row.name_ko)
-    const hit = qna.find((x) => x.a && keysOf(sub.name_ko, ...names).some((k) => x.a.includes(k)))
-    rows.push({ key: sub.id, tag: t, item: names.join(' · '), quote: hit?.a, tone: toneOf(t), ready: props.every((it) => it.built) })
-  }
-  // 답변을 근거로 한 줄을 위로 (시안처럼 "내 답변"이 먼저 보이게)
-  rows.sort((a, b) => Number(!!b.quote) - Number(!!a.quote))
-  return { mood: MOODS[topId] ?? MOODS.nature, wall: wallpaperOf(wallpaperForCategory(topId)), top, rarest, topCount: inTop.length, rows, count: room.items.length }
-}
-
 const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '땅굴에 배치하고 벽 꾸미는 중']
 
-function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]; qna: QnA[]; onDone: () => void }) {
-  const plan = useMemo(() => buildPlan(picks, qna), [picks, qna])
-  const answered = qna.filter((x) => x.a).length
-  // 시간표: 0 관심사 읽기 → 1 무드 → 가구가 0.45초마다 한 줄씩 → 2 배치 → 끝나면 미리보기
+/**
+ * 1 "○○님의 땅굴을 꾸미고 있어요" + 안내 / 2 체크리스트(완료 체크 · 진행 로딩 · 대기 흐리게)
+ * 3 땅굴 무드: 대표 관심사(맨 앞)가 속한 대분류로 정한 무드 + 근거 관심사 태그 (대표 관심사가 달라질 때만 바뀜)
+ * 4 가구 매칭: 고른 관심사 → 추천 가구(기본 가구) 카드를 차례로, 아직 안 채운 자리는 빈 카드. 다 되면 자동으로 온보딩 4 (버튼 없음)
+ */
+function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onDone: () => void }) {
+  const lead = leadCategory(picks) ?? 'nature'
+  const leadCat = CATEGORIES.find((c) => c.id === lead)
+  const inLead = picks.filter((t) => subOf(t)?.category === lead)
+  const wall = wallpaperOf(moodWallpaper(picks))
+  const rows = useMemo(() => picks.map((t) => ({ tag: t, row: defaultFurniture(subOf(t)?.id ?? '') })).filter((x) => x.row), [picks])
   const [t, setT] = useState(0)
-  // 한 줄씩 0.45초 (줄이 많으면 전체가 6초 안에 끝나게 빨리)
-  const gap = Math.min(0.45, 6 / Math.max(1, plan.rows.length))
+  const gap = Math.min(0.45, 6 / Math.max(1, rows.length))
   const rowsAt = (n: number) => 1.6 + n * gap
-  const end = rowsAt(plan.rows.length) + 1.4
+  const end = rowsAt(rows.length) + 1.4
   useEffect(() => {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
-    // 모션 줄이기: 다 채운 상태를 바로 보여 주고 잠시 뒤 넘어감
     if (reduce) { setT(end); const id = setTimeout(() => setT(end + 0.9), 2200); return () => clearTimeout(id) }
     const start = performance.now()
     let raf = 0
@@ -388,22 +391,21 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
   const left = useRef(false)
   useEffect(() => { if (t >= end + 0.9 && !left.current) { left.current = true; onDone() } }, [t, end, onDone])
 
-  const phase = t < 0.8 ? 0 : t < rowsAt(plan.rows.length) ? 1 : t < end ? 2 : 3
-  const shown = Math.max(0, Math.min(plan.rows.length, Math.floor((t - 1.6) / gap) + 1))
-  const placeholders = Math.min(3, plan.rows.length - shown)
+  const phase = t < 0.8 ? 0 : t < rowsAt(rows.length) ? 1 : t < end ? 2 : 3
+  const shown = Math.max(0, Math.min(rows.length, Math.floor((t - 1.6) / gap) + 1))
 
   return (
     <section className={s.buildCard} aria-live="polite">
       <p className={s.eyebrow}>땅굴 만들기</p>
       <h1>{name}님의 땅굴을 꾸미고 있어요</h1>
-      <p className={s.buildLead}>고른 관심사와 적어 주신 답변을 읽고, 어울리는 물건을 고르는 중이에요.</p>
+      <p className={s.buildLead}>고른 관심사를 읽고, 어울리는 물건을 고르는 중이에요.</p>
 
       <ol className={s.genList}>
         {GEN_STEPS.map((g, i) => (
           <li key={g} className={i < phase ? s.genDone : i === phase ? s.genNow : s.genTodo}>
             <span className={s.genMark}>{i < phase ? <Check /> : null}</span>
             {g}
-            {i === 1 && i === phase && <small>관심사 {picks.length}개 · 답변 {answered}개</small>}
+            {i === 1 && i === phase && <small>관심사 {picks.length}개</small>}
           </li>
         ))}
       </ol>
@@ -412,51 +414,53 @@ function BuildStep({ name, picks, qna, onDone }: { name: string; picks: string[]
       {phase >= 1 ? (
         <div className={s.moodRow}>
           <div>
-            <span className={s.moodBadge}>가장 큰 취향</span>
-            <p>#{plan.rarest} · {catName(plan.top)} 태그 {plan.topCount}개</p>
+            <span className={s.moodBadge}>대표 관심사</span>
+            <p>#{picks[0]} · {leadCat ? catName(leadCat) : ''} 태그 {inLead.length}개</p>
           </div>
           <Arrow />
           <div className={s.moodResult}>
-            <span className={s.moodSwatch} style={wallSwatch(plan.wall.id, plan.wall.solid_color)} aria-hidden />
-            <div><strong>{plan.mood.name}</strong><small>벽지 · {plan.wall.name_ko}</small></div>
+            <span className={s.moodSwatch} style={wallSwatch(wall.id, wall.solid_color)} aria-hidden />
+            <div><strong>{MOOD_NAMES[lead] ?? MOOD_NAMES.nature}</strong><small>벽지 · {wall.name_ko}</small></div>
           </div>
         </div>
       ) : <div className={s.skelRow} aria-hidden />}
 
-      <h2 className={s.secLabel}>가구 <small>{shown < plan.rows.length ? '고르는 중…' : `${plan.count}개 골랐어요`}</small></h2>
+      <h2 className={s.secLabel}>가구 <small>{shown < rows.length ? '고르는 중…' : `${rows.length}개 골랐어요`}</small></h2>
       <ul className={s.furnList}>
-        {plan.rows.slice(0, shown).map((r) => (
-          <li key={r.key} className={s.furnRow}>
+        {rows.map((r, i) => i < shown ? (
+          <li key={r.tag} className={s.furnRow}>
             <div>
-              <span className={s.srcTag}>{r.quote ? '내 답변' : '내 관심사'}</span>
-              <p>{r.quote ? `"${r.quote}"` : `#${r.tag}`}</p>
+              <span className={s.srcTag}>내 관심사</span>
+              <p>#{r.tag}</p>
             </div>
             <Arrow />
             <div className={s.furnResult}>
-              <span className={s.cube} style={{ background: `var(--tone-${r.tone}-bg)`, color: `var(--tone-${r.tone}-fg)` }}><Cube /></span>
-              <strong>{r.item}</strong>{!r.ready && <small className={s.notReady}>모델 준비 중</small>}
+              <span className={s.cube} style={{ background: `var(--tone-${toneOf(r.tag)}-bg)`, color: `var(--tone-${toneOf(r.tag)}-fg)` }}><Cube /></span>
+              <strong>{r.row!.name_ko}</strong>
             </div>
           </li>
-        ))}
-        {Array.from({ length: placeholders }).map((_, i) => <li key={`sk${i}`} className={s.furnSkel} aria-hidden><span /><span /><span /><span /></li>)}
+        ) : <li key={r.tag} className={s.furnSkel} aria-hidden><span /><span /><span /><span /></li>)}
       </ul>
-      {phase === 3 && <p className={s.doneNote}>다 됐어요! 땅굴로 데려갈게요…</p>}
+      {phase === 3 && <p className={s.doneNote}>다 됐어요! 땅굴을 보여 드릴게요…</p>}
     </section>
   )
 }
 
-/* ---------- 4. 땅굴 미리보기 (메인 화면 기준, Figma 681:7764) ---------- */
-// 방이 화면 전체를 채우고, 오른쪽에 땅굴 정보 카드 + 확정 카드가 떠 있음 (내 땅굴 메인과 같은 구도)
-function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn: string[]; picks: string[]; qna: QnA[]; onRepick: () => void }) {
-  const room = useMemo(() => planRoom(picks), [picks])
-  const wallpaper = useMemo(() => wallpaperForPicks(picks), [picks])
-  // 미리보기에 들어오면 바로 내 관심사·꾸미기·벽지로 기록: "관심사 확정" 대신 위 메뉴(땅굴)로 나가도 같은 방이 나오게
+/* ---------- 4. 땅굴 미리보기 ---------- */
+/**
+ * 1 내 땅굴 화면과 같은 모습, 왼쪽 위 "관심사 가구 N개" / 2 땅굴 정보 카드(닉네임의 땅굴, 관심사 가구 수, 질문 3개와 답변, 관심사 태그)
+ * 3 "관심사 가구 N개로 땅굴을 채웠어요. 마음에 들면 이대로 시작해요." / 4 관심사 재선택 → 온보딩 2(고른 관심사 유지, 다시 고르면 3a → 4)
+ * 5 관심사 확정 → 온보딩을 마치고 내 땅굴 / 6 관심사는 나중에 내 정보에서 바꿀 수 있다는 안내
+ */
+function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: string; worn: string[]; picks: string[]; qna: { q: string; a: string }[]; onRepick: () => void; onConfirm: () => void }) {
+  const wallpaper = useMemo(() => moodWallpaper(picks), [picks])
+  const total = interestFurnitureCount(picks)
+  // 미리보기에 들어오면 바로 내 관심사·꾸미기·벽지로 기록: "관심사 확정" 대신 위 로고 등으로 나가도 같은 방이 나오게 (예전 동작 유지)
   useEffect(() => { setMyInterests(picks); setMyWorn(worn); setMyWallpaper(wallpaper) }, [picks, worn, wallpaper])
-  const total = room.items.length, todo = room.items.filter((it) => !it.built).length
   return (
     <div className={s.previewStage}>
       <RoomView ownerId="me" interests={picks} wallpaper={wallpaper} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
-        <span className={s.roomBadge}>관심사 가구 {total}개{todo > 0 && ` · ${todo}개는 3D 모델 준비 중(블록)`}</span>
+        <span className={s.roomBadge}>관심사 가구 {total}개</span>
       </RoomView>
       <aside className={s.previewSide}>
         <section className={s.infoCard}>
@@ -477,7 +481,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn:
           <p>관심사 가구 {total}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
           <div className={s.confirmBtns}>
             <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
-            <Link to="/burrow" className={s.next} onClick={() => { setMyWorn(worn); setMyInterests(picks) }}>관심사 확정</Link>
+            <Link to="/burrow" className={s.next} onClick={onConfirm}>관심사 확정</Link>
           </div>
           <small>관심사는 나중에 내 정보에서 바꿀 수 있어요.</small>
         </section>
@@ -487,7 +491,6 @@ function PreviewStep({ name, worn, picks, qna, onRepick }: { name: string; worn:
 }
 
 /* ---------- 작은 아이콘 ---------- */
-const Chevron = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
 const Arrow = () => <svg className={s.arrow} width="20" height="20" viewBox="0 0 20 20" aria-hidden><path d="M3.5 10h12M11 5.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
 const Cube = () => <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M12 2.8 20 7.2v9.6L12 21.2 4 16.8V7.2Z M4 7.2l8 4.4 8-4.4 M12 11.6v9.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
 const Dice = () => <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><rect x="2" y="2" width="12" height="12" rx="3" fill="none" stroke="currentColor" strokeWidth="1.4" /><circle cx="5.5" cy="5.5" r="1" fill="currentColor" /><circle cx="10.5" cy="10.5" r="1" fill="currentColor" /><circle cx="8" cy="8" r="1" fill="currentColor" /></svg>
