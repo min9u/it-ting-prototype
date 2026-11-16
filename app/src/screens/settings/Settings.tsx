@@ -1,58 +1,95 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import { Navigate, NavLink, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight } from '../../components/Icons'
-import { ConfirmDialog, Toast } from '../../components/Feedback'
+import { ConfirmDialog } from '../../components/Feedback'
+import { PageHead } from './SettingsParts'
+import { accountStore, isGoogleOnly, setSignupMethod, useAccount } from '../../data/account'
 import s from './Settings.module.css'
 
+export { PasswordPage, GooglePage } from './SettingsAccount'
+export { NotifSettingsPage, BlockedPage, NoticeListPage, NoticeDetailPage } from './SettingsInfo'
+export { LeavePage } from './SettingsLeave'
+
 /**
- * 설정 (Desktop) 554:21331 — 스크린샷 대조함 (design/figma/screens-2026-11-11/settings.png)
- * "다른 버전" 582:7997 은 스크린샷 미확인
- * 각 행의 다음 화면(비밀번호 변경·알림 설정·차단 관리·언어·공지사항)은 Figma에 없어 토스트로 안내만 한다.
+ * 설정 (Desktop) — Figma 02 F10 (2026-11-16 명세 스크린샷 + 차단 관리는 11-13 메타데이터)
+ * 왼쪽 메뉴: 계정(비밀번호 변경 · Google 연동하기) / 알림 · 차단(알림 설정 · 차단 관리) / 정보(공지사항 · 버전 정보)
+ * 맨 아래 로그아웃(확인 팝업) · 회원 탈퇴. 지금 보는 항목 강조. 버전 정보는 숫자만, 누를 수 없음.
+ * "비밀번호 변경"은 이메일로 가입한 계정에만. Google로만 가입한 계정은 "Google 연동하기"가 첫 화면.
+ * 언어 설정 · 다크 모드는 이번 범위에 없음.
+ * 데모용 쿼리: ?account=google (Google로만 가입한 계정으로 보기) · ?account=email, ?modal=logout
  */
 export default function Settings() {
-  const [google, setGoogle] = useState(false)
-  const [dark, setDark] = useState(false)
-  const [leaveOpen, setLeaveOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-  const soon = (what: string) => setToast(`${what} 화면은 아직 디자인이 없어요`)
+  const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
+  const acc = useAccount()
+  const googleOnly = isGoogleOnly(acc)
+  const [logout, setLogout] = useState(params.get('modal') === 'logout')
+
+  useEffect(() => {
+    const a = params.get('account')
+    if (a === 'google' || a === 'email') {
+      setSignupMethod(a)
+      params.delete('account'); setParams(params, { replace: true })
+      if (a === 'google') navigate('/settings/google', { replace: true })
+    }
+  }, [params, setParams, navigate])
+
+  const item = (to: string, label: string, end = true) => (
+    <NavLink to={to} end={end} className={({ isActive }) => (isActive ? s.menuItemOn : s.menuItem)}>
+      {label}<ChevronRight size={16} />
+    </NavLink>
+  )
 
   return (
     <main className={s.page}>
-      <h1 className="page-sign">설정</h1>
+      <h1 className={`page-sign ${s.sign}`}>설정</h1>
+      <div className={s.wrap}>
+        <nav className={s.menu} aria-label="설정 메뉴">
+          <div className={s.menuGroup}>
+            <h2>계정</h2>
+            {!googleOnly && item('/settings/password', '비밀번호 변경')}
+            {item('/settings/google', 'Google 연동하기')}
+          </div>
+          <div className={s.menuGroup}>
+            <h2>알림 · 차단</h2>
+            {item('/settings/notifications', '알림 설정')}
+            {item('/settings/blocked', '차단 관리')}
+          </div>
+          <div className={s.menuGroup}>
+            <h2>정보</h2>
+            {item('/settings/notices', '공지사항', false)}
+            <div className={s.menuStatic}>버전 정보<span>1.0.0</span></div>
+            {item('/settings/credits', '3D 모델 크레딧')}
+          </div>
+          <div className={s.menuBottom}>
+            <button className={`${s.menuItem} ${s.logout}`} onClick={() => setLogout(true)}>로그아웃</button>
+            <NavLink to="/settings/leave" className={({ isActive }) => `${isActive ? s.menuItemOn : s.menuItem} ${s.leave}`}>
+              {({ isActive }) => <>회원 탈퇴{isActive && <ChevronRight size={16} />}</>}
+            </NavLink>
+          </div>
+        </nav>
+        <section className={s.main}>
+          <Outlet />
+        </section>
+      </div>
 
-      <Group title="계정">
-        <Row label="비밀번호 변경" onClick={() => soon('비밀번호 변경')} />
-        <div className={s.row}>
-          <span className={s.label}>Google 연동하기</span>
-          <span className={s.value}>{google ? '연결됨' : '연결 안 됨'}</span>
-          <button className={s.linkBtn} onClick={() => setGoogle((v) => !v)}>{google ? '연동 해제' : '연동하기'}</button>
-        </div>
-      </Group>
+      <ConfirmDialog open={logout} onClose={() => setLogout(false)} onConfirm={() => navigate('/start')}
+        title="로그아웃할까요?" desc="다시 들어오려면 로그인해야 해요." confirmLabel="로그아웃" tone="primary" />
+    </main>
+  )
+}
 
-      <Group title="알림 · 차단">
-        <Row label="알림 설정" onClick={() => soon('알림 설정')} />
-        <Row label="차단 관리" value="2명" onClick={() => soon('차단 관리')} />
-      </Group>
+/** /settings: 설정의 첫 화면 (이메일 계정 → 비밀번호 변경, Google로만 가입 → Google 연동하기) */
+export function SettingsHome() {
+  return <Navigate to={isGoogleOnly(accountStore.get()) ? '/settings/google' : '/settings/password'} replace />
+}
 
-      <Group title="앱 설정">
-        <Row label="언어 설정" value="한국어" onClick={() => soon('언어 설정')} />
-        <div className={s.row}>
-          <span className={s.label} id="dark-label">다크 모드</span>
-          <button role="switch" aria-checked={dark} aria-labelledby="dark-label" className={dark ? s.switchOn : s.switch} onClick={() => setDark((v) => !v)}>
-            <span />
-          </button>
-        </div>
-      </Group>
-
-      <Group title="정보">
-        <Row label="공지사항" onClick={() => soon('공지사항')} />
-        <div className={s.row}>
-          <span className={s.label}>버전 정보</span>
-          <span className={s.value}>1.0.0</span>
-        </div>
-      </Group>
-
-      {/* 3D 모델 작가 표기 (CC-BY 3.0 의무, 3D 핸드오프 v3.2 docs/credits_app.md). 가구를 안 골라도 glb에 들어 있어 항상 표시 */}
-      <Group title="3D 모델 크레딧">
+/** 3D 모델 작가 표기 (CC-BY 3.0 의무, 3D 핸드오프 v3.2 docs/credits_app.md). 설정 › 정보 아래로 옮김 */
+export function CreditsPage() {
+  return (
+    <>
+      <PageHead title="3D 모델 크레딧" sub="디굴디굴에 쓴 3D 모델의 작가 표기예요." />
+      <div className={s.card}>
         <div className={s.credits}>
           <ul>
             {CREDITS.map((c) => (
@@ -64,14 +101,8 @@ export default function Settings() {
           <p>라이선스: <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">https://creativecommons.org/licenses/by/3.0/</a></p>
           <p>일부 3D 모델: Poly Pizza (CC0) — Kenney, Quaternius, Kay Lousberg, Isa Lousberg, CreativeTrio 외. 나머지 두더지·방·가구는 디굴디굴 3D 팀 제작</p>
         </div>
-      </Group>
-
-      <button className={s.leave} onClick={() => setLeaveOpen(true)}>회원 탈퇴</button>
-
-      <ConfirmDialog open={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => setToast('프로토타입이라 실제로 탈퇴되지는 않아요')}
-        title="정말 탈퇴할까요?" desc="내 땅굴과 방명록, 쓴 글이 모두 사라지고 되돌릴 수 없어요." confirmLabel="탈퇴" />
-      <Toast open={!!toast} title={toast ?? ''} onClose={() => setToast(null)} />
-    </main>
+      </div>
+    </>
   )
 }
 
@@ -81,21 +112,3 @@ const CREDITS = [
   { title: 'Bean Bag', author: 'J-Toastie', url: 'https://poly.pizza/m/nMZz79A5ru' },
 ]
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className={s.group}>
-      <h2>{title}</h2>
-      <div className={s.box}>{children}</div>
-    </section>
-  )
-}
-
-function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
-  return (
-    <button className={`${s.row} ${s.rowBtn}`} onClick={onClick}>
-      <span className={s.label}>{label}</span>
-      {value && <span className={s.value}>{value}</span>}
-      <ChevronRight size={18} />
-    </button>
-  )
-}

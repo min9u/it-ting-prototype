@@ -59,11 +59,27 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['요청 · 받은 요청', '/chat/requests', '1018:9513', true],
     ['요청 · 보낸 요청', '/chat/requests?dir=sent', '1018:10007'],
   ] },
-  { title: '알림 · 설정', items: [
-    ['알림 팝업 (수정안: 탭 제거, 요청 고정)', '/burrow?notice=open', '596:8808', true],
-    ['알림 페이지', '/notifications', '569:7860', true],
-    ['알림 페이지 – 빈 상태', '/notifications?empty=1', '569:7860', true],
-    ['설정', '/settings', '554:21331', true],
+  { title: '알림 · 설정 (02 F9 · F10 명세 2026-11-16)', items: [
+    ['알림 팝업 (요청 고정 + 최근 알림 5개)', '/burrow?notice=open', 'F9 알림 – 팝업', true],
+    ['알림 팝업 · 요청 없음 (채팅 요청을 처리해 0건 만들기)', '/chat/requests', 'F9 팝업 · 요청 없음'],
+    ['알림 (탭 6개 · 20개씩 더 보기)', '/notifications', 'F9 알림', true],
+    ['알림 – 빈 상태', '/notifications?empty=1', 'F9 알림 6', true],
+    ['설정 – 비밀번호 변경', '/settings/password', 'F10', true],
+    ['설정 – Google 연동하기 (연동 전 · 연동됨)', '/settings/google', 'F10', true],
+    ['설정 – Google로만 가입한 계정으로 보기', '/settings?account=google', 'F10'],
+    ['설정 – 이메일 계정으로 되돌리기', '/settings?account=email', 'F10'],
+    ['설정 – 알림 설정', '/settings/notifications', 'F10', true],
+    ['설정 – 차단 관리 · 차단 해제 확인', '/settings/blocked', 'F10 (11-13 메타데이터)'],
+    ['설정 – 공지사항 · 상세', '/settings/notices', 'F10', true],
+    ['설정 – 회원 탈퇴 (내가 연 모임 있음)', '/settings/leave', 'F10', true],
+    ['설정 – 회원 탈퇴 (모임 없음 → 탈퇴 확인)', '/settings/leave?hosting=0', 'F10', true],
+    ['설정 – 로그아웃 확인', '/settings/password?modal=logout', 'F10', true],
+  ] },
+  { title: '운영 · 공통 (02 F11 · 00 공통)', items: [
+    ['관리자 – 기능 목록 (역할 켜기)', '/admin?as=admin', 'F11 저충실도', true],
+    ['관리자 – 역할 없는 계정 (없는 주소처럼)', '/admin?as=user', 'F11'],
+    ['대상 없음 – 삭제된 모임 (알림에서)', '/gone/meetup', '00 공통 21'],
+    ['대상 없음 – 없는 주소', '/no-such-page', '00 공통 21'],
   ] },
 ]
 
