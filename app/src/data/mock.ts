@@ -1,5 +1,5 @@
 import type {
-  Category, ChatRequest, ChatRoom, GuestbookEntry, Meetup, Post, Tone, User,
+  Category, GuestbookEntry, Meetup, Post, Tone, User,
 } from './types'
 import { INTEREST_CATS, subOf, subsIn } from './interests'
 
@@ -189,38 +189,7 @@ export function dday(ymd: string) {
 
 export const meetupOf = (id: string) => MEETUPS.find((m) => m.id === id)
 
-/* ===== 채팅 ===== */
-export const CHAT_ROOMS: ChatRoom[] = [
-  {
-    id: 'r-yerin', kind: 'dm', partnerId: 'yerin', state: 'open', unread: 0, lastAt: '오후 5:23',
-    messages: [
-      { id: 's1', authorId: 'system', system: true, text: '예린님이 대화 요청을 수락했어요', time: '오후 5:09' },
-      { id: 'x1', authorId: 'yerin', text: '안녕하세요! 저도 캠핑 좋아해요. 다음에 같이 캠핑 모임 가실래요?', time: '오후 5:09' },
-      { id: 'x2', authorId: 'me', text: '안녕하세요! 땅굴에 캠핑 가구 있는 거 보고 반가웠어요 ㅎㅎ', time: '오후 5:21' },
-      { id: 'x3', authorId: 'me', text: '좋아요! 저 텐트는 있는데 침낭이 없어서… 초보도 괜찮은 모임이면 좋겠어요', time: '오후 5:23' },
-      { id: 'x4', authorId: 'yerin', text: '마침 가평 1박 캠핑 모임이 초보 환영이래요. 같이 신청해볼까요?', time: '오후 5:23', meetupId: 'm4' },
-    ],
-  },
-  {
-    id: 'r-book', kind: 'group', meetupId: 'm1', state: 'open', unread: 3, lastAt: '오후 5:02',
-    messages: [
-      { id: 'g0', authorId: 'system', system: true, text: '닉네임님이 모임에 참여했어요', time: '' },
-      { id: 'g1', authorId: 'kim', text: '다들 이번 주에 뭐 읽고 계세요?', time: '오후 4:40' },
-      { id: 'g2', authorId: 'lee', text: '저는 이번 주에 SF 단편집 가져갈게요', time: '오후 4:52' },
-      { id: 'g3', authorId: 'me', text: '저는 에세이요! 다 못 읽어도 괜찮다고 해서 마음이 편해요 ㅎㅎ', time: '오후 4:55' },
-      { id: 'g4', authorId: 'park', text: '저도 반쯤 읽은 소설 들고 갈게요. 일요일에 봬요!', time: '오후 5:02' },
-    ],
-  },
-  { id: 'r-seoyeon', kind: 'dm', partnerId: 'seoyeon', state: 'pending', unread: 0, lastAt: '어제', messages: [] },
-]
-
-export const CHAT_REQUESTS: ChatRequest[] = [
-  { id: 'q1', kind: 'dm', direction: 'received', userId: 'seobeok', context: '땅굴에 다녀갔어요', ago: '12분 전', message: '땅굴에 이젤 있는 거 보고 반가워서요! 주말에 같이 드로잉해요' },
-  { id: 'q2', kind: 'dm', direction: 'received', userId: 'ha', context: '같은 모임 참여 예정', ago: '1시간 전', message: '가평 캠핑 모임 같이 가시는 거 맞죠? 장비 얘기 나눠요' },
-  { id: 'q3', kind: 'meetup', direction: 'received', userId: 'seoyeon', meetupId: 'm3', context: '참여를 신청했어요 · 3 / 6명', ago: '어제', message: '그림 배운 적은 없는데 괜찮을까요? 연필이랑 스케치북 챙겨갈게요!' },
-  { id: 'q4', kind: 'dm', direction: 'sent', userId: 'yerin', context: '대화 요청 · 방금', ago: '방금', message: '' },
-  { id: 'q5', kind: 'meetup', direction: 'sent', userId: 'mingu', meetupId: 'm2', context: '모임 신청 · 11월 6일 (금)', ago: '', message: '' },
-]
+/* ===== 채팅: data/chat.ts ===== */
 
 /* ===== 알림 (알림 – 팝업 · 수정안 596:8808: 탭 없이 요청 2줄을 위에 고정) ===== */
 export interface Notice {
@@ -233,7 +202,7 @@ export interface Notice {
   to: string
 }
 export const NOTICE_PINNED = [
-  { id: 'pin-meetup', title: '모임 참여 요청', sub: '민서님 외 2명', count: 3, to: '/chat/requests?tab=meetup' },
+  { id: 'pin-meetup', title: '모임 참여 요청', sub: '민서님 외 2명', count: 3, to: '/meetups' },
   { id: 'pin-chat', title: '채팅 요청', sub: '지우님 외 1명', count: 2, to: '/chat/requests' },
 ]
 export const NOTICES: Notice[] = [

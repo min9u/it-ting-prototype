@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { groupRoomId } from '../../data/chat'
 import { Link, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import Modal from '../../components/Modal'
 import MonthCalendar from '../../components/MonthCalendar'
@@ -57,7 +58,7 @@ export default function MeetupsShell() {
           )}
           {isMe && (
             <div className={s.widget}>
-              <div className={s.widgetHead}><h2 className="display">내가 연 모임 <span className={s.cnt}>{HOSTING.length}</span></h2><Link to="/chat/requests?tab=meetup" className={s.allLink}>전체 보기</Link></div>
+              <div className={s.widgetHead}><h2 className="display">내가 연 모임 <span className={s.cnt}>{HOSTING.length}</span></h2><Link to="/meetups/me" className={s.allLink}>전체 보기</Link></div>
               <ul className={s.mineList}>{HOSTING.map((m) => <MiniRow key={m.id} m={m} tag="새 신청 1" />)}</ul>
             </div>
           )}
@@ -174,7 +175,7 @@ function CalendarModal({ open, onClose }: { open: boolean; onClose: () => void }
               <span>{m.memberIds.length} / {m.capacity}명</span>
               <div className={s.calActions}>
                 <Link to={`/meetups/${m.id}`} className="btn btn-ghost btn-sm" onClick={onClose}>모임 상세</Link>
-                <Link to="/chat/r-book" className="btn btn-primary btn-sm" onClick={onClose}>모임 채팅</Link>
+                <Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary btn-sm" onClick={onClose}>모임 채팅</Link>
               </div>
             </div>
           ))}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { groupRoomId } from '../../data/chat'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ConfirmDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import MeetupCard from '../../components/MeetupCard'
@@ -145,7 +146,7 @@ export function MyMeetups() {
                 m.myStatus === '신청 대기' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><button className="btn btn-line">신청 취소</button></>
                 : m.myStatus === '내가 주최' ? <><Link to={`/meetups/${m.id}/edit`} className="btn btn-line">모임 수정</Link><button className="btn btn-line" onClick={() => setDelOpen(true)}>모임 삭제</button><Link to={`/meetups/${m.id}?modal=applicants`} className="btn btn-primary">신청 관리 1</Link></>
                 : m.myStatus === '찜' ? <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to={`/meetups/${m.id}`} className="btn btn-primary">신청하기</Link></>
-                : <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to="/chat/r-book" className="btn btn-primary">모임 채팅</Link></>
+                : <><Link to={`/meetups/${m.id}`} className="btn btn-line">모임 상세</Link><Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary">모임 채팅</Link></>
               } />
           )
         })}

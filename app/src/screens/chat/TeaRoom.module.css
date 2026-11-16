@@ -1,0 +1,44 @@
+/* 찻방: 가운데 칸 전체. 그림 상자는 480:660 비율로 칸 안에 맞춤 */
+.wrap {
+  position: relative; min-width: 0; min-height: 0;
+  display: grid; place-items: center;
+  border-radius: var(--radius-xl); overflow: hidden;
+  /* 그림 상자 위아래 남는 곳: 벽색 / 바닥색 */
+  background: linear-gradient(#f8ecdc 50%, #e4c39c 50%);
+  box-shadow: var(--shadow-card);
+  container-type: size;
+}
+/* 칸 안에 비율 그대로 맞춤 (가로·세로 중 좁은 쪽 기준) */
+.box { position: relative; width: min(100cqw, 100cqh * 480 / 660); height: min(100cqh, 100cqw * 660 / 480); }
+.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.canvas { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.shadow {
+  position: absolute; z-index: 1; aspect-ratio: 3 / 1; transform: translate(-50%, -50%);
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(90, 50, 25, .28), rgba(90, 50, 25, 0));
+}
+.placeholder { position: absolute; z-index: 2; transform: translate(-50%, -100%); display: flex; align-items: flex-end; opacity: .9; }
+.placeholder img { width: auto !important; height: 70% !important; }
+.emptySeat {
+  position: absolute; z-index: 1; width: 20%; aspect-ratio: 3 / 1; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px dashed #c98a5e; background: rgba(255, 255, 255, .2);
+}
+/* 두더지 위를 덮는 투명 버튼 + 아래 이름표 */
+.hit {
+  position: absolute; transform: translate(-50%, -100%) translateY(5%);
+  display: flex; align-items: flex-end; justify-content: center;
+  border-radius: 40% 40% 12px 12px; background: transparent;
+}
+.hit:not(:disabled) { cursor: pointer; }
+.hit:not(:disabled):hover .tag, .hit:focus-visible .tag { background: #fff; transform: translateY(-2px); }
+.tag, .tagMe {
+  transform: translateY(0); transition: transform .15s;
+  padding: 3px 11px; border-radius: 999px; border: 1.5px solid #8b5e3c;
+  background: #fbf6ee; color: var(--ink-900);
+  font-family: var(--font-display); font-size: 13px; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+}
+.tagMe { background: #fff3df; }
+.more {
+  position: absolute; right: 6%; top: 60%; z-index: 4;
+  padding: 4px 10px; border-radius: 999px; background: rgba(62, 42, 31, .82); color: var(--on-brown);
+  font-family: var(--font-display); font-size: 13px;
+}

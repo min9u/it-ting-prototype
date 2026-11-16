@@ -13,6 +13,8 @@ import type { GuestbookEntry } from '../../data/types'
 import { liveGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
 import SceneButton from '../../components/SceneButton'
+import { dmRoomWith, sendRequest, sentRequestTo, useChat } from '../../data/chat'
+import { Link } from 'react-router-dom'
 import { affOf, exploreHref, fieldUserOf, getRegulars, locateUser, setRegular, subscribeRegulars } from '../../data/field'
 import s from './Burrow.module.css'
 
@@ -34,6 +36,10 @@ export default function VisitBurrow() {
   const regular = regulars.includes(owner.id)
   const [regToast, setRegToast] = useState<string | null>(null)
   const spot = locateUser(owner.id)
+  // 대화 요청 상태 (data/chat.ts): 대화방이 있으면 "대화하기", 보낸 요청이 있으면 "답변 기다리는 중"
+  const chat = useChat()
+  const dmRoom = dmRoomWith(owner.id, chat)
+  const pendingReq = sentRequestTo(owner.id, chat)
   const me = USERS[ME_ID]
   const [panelOpen, setPanelOpen] = useState(true)
   const [entries, setEntries] = useState<GuestbookEntry[]>(() => liveGuestbook(GUESTBOOK))
@@ -59,7 +65,11 @@ export default function VisitBurrow() {
     <main className={s.page}>
       <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
         mailbox={posted} onMailbox={() => setAllOpen(true)}
-        hostBubble={<button className={s.speech} onClick={() => setReqOpen(true)}>💬 대화 요청하기</button>}>
+        hostBubble={dmRoom && !dmRoom.closed
+          ? <Link className={s.speech} to={`/chat/${dmRoom.id}`}>💬 대화하기</Link>
+          : pendingReq
+            ? <Link className={s.speech} to="/chat/requests?dir=sent">⏳ 답변 기다리는 중</Link>
+            : <button className={s.speech} onClick={() => setReqOpen(true)}>💬 대화 요청하기</button>}>
         <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
         {/* 단골 추가 (02 F5 방문자 뷰 2번): 상대 수락 없이 내 단골 목록에 들어감. 다시 누르면 해제(알리지 않음) */}
         <div className={s.sceneTools} style={{ top: 112 }}>
@@ -125,15 +135,15 @@ export default function VisitBurrow() {
           <Avatar size={56} />
           <h2 id="req-title" className="display">인사를 남겨볼까요?</h2>
           <div className={`field ${s.reqField}`}>
-            <textarea className="textarea" value={reqMsg} maxLength={100} onChange={(e) => setReqMsg(e.target.value)}
+            <textarea className="textarea" value={reqMsg} maxLength={50} onChange={(e) => setReqMsg(e.target.value)}
               placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
-            <span className="hint">{reqMsg.length} / 100 · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
+            <span className="hint">{reqMsg.length} / 50 · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
           </div>
           <p className={s.quickLabel}>빠른 멘트</p>
           <div className={s.phrases}>
             {QUICK.map((q) => <button key={q} className={s.phrase} onClick={() => setReqMsg(q)}>{q}</button>)}
           </div>
-          <button className={`btn btn-primary btn-block ${s.reqSend}`} disabled={!reqMsg.trim()} onClick={() => { setReqOpen(false); setReqMsg(''); setSent(true) }}>요청 보내기</button>
+          <button className={`btn btn-primary btn-block ${s.reqSend}`} disabled={!reqMsg.trim()} onClick={() => { sendRequest(owner.id, reqMsg.trim(), '땅굴에 다녀갔어요'); setReqOpen(false); setReqMsg(''); setSent(true) }}>요청 보내기</button>
         </div>
       </Modal>
 

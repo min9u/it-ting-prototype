@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { groupRoomId } from '../../data/chat'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import Footer from '../../components/Footer'
@@ -184,7 +185,7 @@ export default function MeetupDetail() {
             <div className={s.stateBox}>
               <h2 className="display">참여가 확정됐어요</h2>
               <p>모임 날 만나요! 궁금한 건 모임 채팅에 물어보세요.</p>
-              <Link to="/chat/r-book" className={`btn btn-primary btn-block ${s.applyBtn}`}>모임 대화 열기</Link>
+              <Link to={`/chat/${groupRoomId(m.id)}`} className={`btn btn-primary btn-block ${s.applyBtn}`}>모임 대화 열기</Link>
               <button className={`btn btn-line btn-block ${s.applyBtn}`} onClick={() => setConfirm('leave')}>참여 취소</button>
               <span className={s.deadline}>{m.closesAt}에 신청이 마감돼요.</span>
             </div>

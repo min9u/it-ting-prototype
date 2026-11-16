@@ -99,33 +99,3 @@ export interface Meetup {
   myNoteAgo?: string
 }
 
-export interface Message {
-  id: string
-  authorId: string
-  text: string
-  time: string
-  system?: boolean
-  meetupId?: string
-}
-
-export interface ChatRoom {
-  id: string
-  kind: 'dm' | 'group'
-  partnerId?: string
-  meetupId?: string
-  state: 'pending' | 'open'
-  messages: Message[]
-  unread: number
-  lastAt: string
-}
-
-export interface ChatRequest {
-  id: string
-  kind: 'dm' | 'meetup'
-  direction: 'received' | 'sent'
-  userId: string
-  meetupId?: string
-  message: string
-  context: string
-  ago: string
-}
