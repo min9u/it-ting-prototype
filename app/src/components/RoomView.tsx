@@ -3,6 +3,7 @@ import type { RoomSceneHandle } from '../three/roomScene'
 import type { HostScreen } from '../three/engine'
 import { ROOM_FRAME } from '../three/roomFrame'
 import roomCutout from '../assets/room-v2.webp'
+import type { FurnChoice } from '../data/myBurrow'
 import styles from './RoomView.module.css'
 
 // three.js 는 무거워서 땅굴 화면에 들어올 때만 따로 불러온다 (별도 청크)
@@ -54,6 +55,10 @@ interface Props {
    * 집주인이 안 보이거나 입장 연출·리액션 말풍선 중이면 숨김. 3D 를 못 쓰면 예전처럼 방 가운데쯤 고정
    */
   hostBubble?: ReactNode
+  /** 꾸미기 가구 탭에서 고른 가구 (세부 관심사 id → 가구 id). 바뀌면 장면을 다시 만들지 않고 그 자리만 갈아 끼움 (내 땅굴, 2026-11-16) */
+  furniture?: FurnChoice
+  /** 지금 고르는 가구 자리를 점선으로 표시할 세부 관심사 id (꾸미기 가구 탭) */
+  highlight?: string | null
 }
 
 /**
@@ -95,7 +100,7 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
@@ -107,6 +112,14 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const mailboxRef = useRef(mailbox)
   mailboxRef.current = mailbox
   useEffect(() => { handle.current?.setMailbox?.(mailbox) }, [mailbox])
+  // 고른 가구·점선 표시: 처음 값은 장면을 만들 때, 그 뒤는 handle 로
+  const furnRef = useRef(furniture)
+  furnRef.current = furniture
+  const furnKey = Object.entries(furniture ?? {}).sort().join(',')
+  useEffect(() => { if (furnRef.current) (handle.current as RoomSceneHandle | null)?.setFurniture?.(furnRef.current) }, [furnKey])
+  const hlRef = useRef(highlight)
+  hlRef.current = highlight
+  useEffect(() => { (handle.current as RoomSceneHandle | null)?.setHighlight?.(highlight) }, [highlight])
   const onMailboxRef = useRef(onMailbox)
   onMailboxRef.current = onMailbox
   useEffect(() => {
@@ -159,6 +172,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           hostWorn={hostWorn}
           worn={worn}
           mailbox={mailboxRef.current}
+          furniture={furnRef.current}
           onMailbox={() => onMailboxRef.current?.()}
           focusX={focusX}
           className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
@@ -169,6 +183,8 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           onReady={(h) => {
             handle.current = h; setReady(true)
             ;(h as RoomSceneHandle).setMailbox?.(mailboxRef.current)
+            if (furnRef.current) (h as RoomSceneHandle).setFurniture?.(furnRef.current)
+            ;(h as RoomSceneHandle).setHighlight?.(hlRef.current)
             hostAt.current = null; placeHost()
             h.onHostScreen?.((p) => { if (handle.current !== h) return; hostAt.current = p; placeHost() })
             ;(h.loaded ?? Promise.resolve()).then(() => { if (handle.current !== h) return; setLoaded(true); latestLoaded.current?.() })
