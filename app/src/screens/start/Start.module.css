@@ -25,7 +25,6 @@
 .guestDots { display: inline-flex; gap: 6px; }
 .guestDots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .3; }
 .guestDots i.dotOn { opacity: 1; }
-.guestPlain .guestDots i { opacity: 1; }
 
 /* ===== 패널 + 빼꼼 두더지 (로그인·회원가입·비밀번호 찾기·로그인 필요) ===== */
 .blurBg { position: absolute; inset: 0; background: #5b3e28; overflow: hidden; }
@@ -151,7 +150,7 @@
 .gateActions { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ===== 랜딩 (sticky 장면) ===== */
-.track { height: 240vh; background: var(--bg-dark); font-family: var(--font-display); }
+.track { height: 420vh; background: var(--bg-dark); font-family: var(--font-display); }
 .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; background: #5b3e28; color: #fbf4ec; }
 .layer { position: absolute; inset: 0; transition: opacity .5s ease; }
 .fieldZoom { position: absolute; inset: 0; transition: transform .6s var(--ease-out); will-change: transform; }
@@ -219,3 +218,99 @@
   .progress, .pin { display: none; }
   .lookHint { left: 16px; right: 16px; }
 }
+
+/* ===== F2 로그인 · 회원가입 · 비밀번호 찾기 (02 명세 2026-11-16) ===== */
+.panelWide { width: 420px; }
+.panelText { margin-top: 16px; font-size: 15px; line-height: 22px; color: var(--ink-700); }
+.panelErr { color: #d6453d; }
+.mt24 { margin-top: 24px; }
+.spinner { width: 15px; height: 15px; margin-right: 8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.or { margin: 18px 0 14px; text-align: center; font-size: 13px; color: var(--ink-500); }
+.secondary:disabled { opacity: .6; cursor: default; }
+.secondary { background: #fff; }
+.rule { font-size: 13px; color: var(--ink-500); }
+.ruleOk { color: var(--green-ink); }
+.ruleOk b { font-weight: 400; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.selectBox { position: relative; }
+.select { appearance: none; -webkit-appearance: none; padding-right: 36px; cursor: pointer; }
+.select:invalid { color: var(--ink-400); }
+.select option { color: var(--ink-900); }
+.selectArrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--ink-500); pointer-events: none; }
+.linkBtn { font-family: var(--font-display); font-size: 14px; color: var(--ink-500); }
+.linkBtn:hover:not(:disabled) { color: var(--accent); }
+.linkBtn:disabled { opacity: .7; cursor: default; }
+/* 프로토타입 전용 (실제 서비스에는 없음): 점선 테두리로 구분 */
+.protoLink { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px dashed rgba(251, 244, 236, .6); color: #fbf4ec; font-family: var(--font-display); font-size: 13px; opacity: .85; }
+.protoLink:hover { opacity: 1; background: rgba(255, 255, 255, .08); }
+.dialog { padding: 28px 24px 24px; font-family: var(--font-display); color: var(--ink-900); }
+.dialogTitle { font-size: 22px; font-weight: 400; line-height: 28px; padding-right: 24px; text-wrap: balance; }
+.dialogInfo { margin: 16px 0 22px; padding: 14px 16px; border-radius: 10px; background: var(--surface-item); display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.dialogInfo div { display: flex; gap: 12px; }
+.dialogInfo dt { width: 64px; flex: none; color: var(--ink-500); }
+/* 빼꼼 두더지 눈 깜빡임 (00 공통 11, 3초 간격) */
+.peekBody i { animation: blink 3s infinite; transform-origin: center; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .peekBody i, .spinner { animation: none; }
+}
+
+/* ===== F1 랜딩 4구간 (02 명세 스크롤 모션 타임라인) ===== */
+.vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 58% at 50% 50%, rgba(20, 30, 8, 0) 40%, rgba(20, 30, 8, .85) 100%); }
+.copyCenter { left: 0; right: 0; top: 104px; max-width: none; text-align: center; }
+.diveCopy { font-size: 32px; font-weight: 400; line-height: 42px; text-shadow: 0 2px 12px rgba(0, 0, 0, .35); }
+.track[data-reduce] .layer { transition: opacity .3s ease; }
+.track[data-reduce] .copy, .track[data-reduce] .ctaRow { animation: none; }
+
+/* ===== F1 둘러보기 · 땅 / 견본 방 (02 명세 2026-11-16) ===== */
+.hot:hover, .hotOn { background: radial-gradient(closest-side, rgba(255, 250, 230, .22), rgba(255, 250, 230, 0)); }
+/* 3D 나무 팻말 위 방 이름 */
+.signName {
+  position: absolute; z-index: 4; transform: translate(-50%, -50%);
+  font-family: var(--font-display); color: #fff3e2; text-shadow: 0 1px 0 rgba(110, 50, 20, .55);
+  white-space: nowrap; cursor: pointer; letter-spacing: -0.01em;
+}
+.lock {
+  position: absolute; right: -7px; top: -7px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; background: #5b4334; color: #fbf4ec; box-shadow: 0 0 0 2px #fbf8f4;
+}
+.sampleRoom { position: relative; height: 100vh; min-height: 640px; overflow: hidden; background: var(--bg-scene); font-family: var(--font-display); }
+.sampleBar { position: absolute; left: 0; right: 0; top: 0; height: 72px; z-index: 29; background: var(--bg-cream); border-bottom: 1px solid var(--line); }
+.sampleScene { position: absolute; left: 0; right: 0; top: 72px; bottom: 0; }
+.lockedBtn, .lockedBubble {
+  position: absolute; z-index: 6; height: 44px; padding: 0 18px; border-radius: 12px;
+  background: var(--surface); color: var(--ink-900); font-family: var(--font-display); font-size: 16px;
+  display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(60, 35, 20, .16);
+}
+.lockedBubble { position: relative; white-space: nowrap; }
+.lockedBubble::after { content: ''; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: var(--surface); }
+.lockedBtn:hover, .lockedBubble:hover { background: #fff; }
+.backUp {
+  position: absolute; z-index: 6; bottom: 28px; transform: translateX(-50%); height: 44px; padding: 0 20px; border-radius: 12px;
+  background: var(--surface); color: var(--ink-900); font-family: var(--font-display); font-size: 16px; box-shadow: 0 4px 14px rgba(60, 35, 20, .16);
+  transition: left .3s var(--ease-out);
+}
+.backUp:hover { background: #fff; }
+.note {
+  position: absolute; z-index: 20; right: 24px; top: 96px; bottom: 24px; width: 340px; overflow-y: auto;
+  padding: 24px 20px; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-pop); color: var(--ink-900);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.noteHead { display: flex; align-items: center; justify-content: space-between; }
+.noteHead h2 { font-size: 24px; font-weight: 400; }
+.noteFold { font-family: var(--font-display); font-size: 14px; color: var(--accent); }
+.noteOwner { display: flex; align-items: center; gap: 14px; }
+.noteOwner p { display: flex; flex-direction: column; gap: 2px; }
+.noteOwner strong { font-weight: 400; font-size: 17px; }
+.noteOwner small { font-size: 12px; color: var(--ink-500); }
+.noteBox { margin: 0; padding: 14px; border-radius: 10px; background: var(--surface-sunken); font-size: 14px; line-height: 21px; display: flex; flex-direction: column; gap: 10px; }
+.noteBox strong { font-weight: 400; font-size: 15px; }
+.noteBox p { color: var(--ink-700); white-space: pre-line; font-family: var(--font-body); font-size: 13px; }
+.noteBox dt { font-size: 15px; }
+.noteBox dd { margin: 3px 0 0; color: var(--ink-700); font-family: var(--font-body); font-size: 13px; }
+.noteLabel { font-size: 14px; color: var(--ink-700); }
+.noteLabel span { color: var(--ink-500); }
+.noteChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+.noteQna { font-size: 18px; font-weight: 400; }
+.noteReopen { position: absolute; z-index: 20; right: 24px; top: 96px; height: 40px; padding: 0 16px; border-radius: 10px; background: var(--surface); font-family: var(--font-display); font-size: 15px; color: var(--ink-900); box-shadow: var(--shadow-card); }

@@ -20,7 +20,8 @@ import NotFound, { GoneRoute, RouteError } from './components/NotFound'
 import Notifications from './screens/notifications/Notifications'
 import Landing from './screens/start/Landing'
 import LookAround from './screens/start/LookAround'
-import { Login, PasswordReset, SignupEmail, SignupPassword } from './screens/start/Auth'
+import { Login, PasswordReset, PasswordResetExpired, PasswordResetNew, PasswordResetSent, SignupEmail, SignupPassword, SignupSsafy } from './screens/start/Auth'
+import { PcOnly, RequireLogin } from './screens/start/Guards'
 import Onboarding from './screens/onboarding/Onboarding'
 import ScreenIndex from './screens/ScreenIndex'
 
@@ -36,22 +37,28 @@ function AppLayout() {
 
 export const router = createRouter([
   // 시작하기 v2. 팀 공유용 빌드도 시작 화면부터 (2026-11-11: 팀원이 랜딩 → 가입 → 온보딩을 체험하도록. 이전에는 /burrow)
-  { path: '/', element: import.meta.env.VITE_HASH_ROUTER ? <Navigate to="/start" replace /> : <Landing /> },
-  { path: '/start', element: <Landing /> },
-  { path: '/look', element: <LookAround /> },
-  { path: '/login', element: <Login /> },
-  { path: '/signup', element: <SignupEmail /> },
-  { path: '/signup/password', element: <SignupPassword /> },
-  { path: '/password-reset', element: <PasswordReset /> },
+  // F1 · F2 (02 명세 2026-11-16): 휴대폰 · 태블릿이면 "PC에서 이용해 주세요" (00 공통 20)
+  { path: '/', element: import.meta.env.VITE_HASH_ROUTER ? <Navigate to="/start" replace /> : <PcOnly><Landing /></PcOnly> },
+  { path: '/start', element: <PcOnly><Landing /></PcOnly> },
+  { path: '/look', element: <PcOnly><LookAround /></PcOnly> },
+  { path: '/login', element: <PcOnly><Login /></PcOnly> },
+  { path: '/signup', element: <PcOnly><SignupEmail /></PcOnly> },
+  { path: '/signup/password', element: <PcOnly><SignupPassword /></PcOnly> },
+  { path: '/signup/ssafy', element: <PcOnly><SignupSsafy /></PcOnly> },
+  { path: '/password-reset', element: <PcOnly><PasswordReset /></PcOnly> },
+  { path: '/password-reset/sent', element: <PcOnly><PasswordResetSent /></PcOnly> },
+  { path: '/password-reset/new', element: <PcOnly><PasswordResetNew /></PcOnly> },
+  { path: '/password-reset/expired', element: <PcOnly><PasswordResetExpired /></PcOnly> },
   // 온보딩
   { path: '/onboarding', element: <Navigate to="/onboarding/name" replace /> },
-  { path: '/onboarding/:step', element: <Onboarding /> },
+  { path: '/onboarding/:step', element: <RequireLogin><Onboarding /></RequireLogin> },
   // 화면 목록 (개발용)
   { path: '/screens', element: <ScreenIndex /> },
   // F11 관리자: 서비스 메뉴에 없는 별도 주소. 역할이 없으면 없는 주소처럼 보임
   { path: '/admin', element: <Admin /> },
   {
-    element: <AppLayout />,
+    // 비로그인이면 로그인 화면으로 (00 공통 11)
+    element: <RequireLogin><AppLayout /></RequireLogin>,
     errorElement: <RouteError />,
     children: [
       { path: '/burrow', element: <MyBurrow /> },
