@@ -14,7 +14,8 @@ export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', tone
   title: string
   desc: string
   confirmLabel?: string
-  tone?: 'danger' | 'accent'
+  /** primary: 갈색 주 버튼 (로그아웃 확인 F10) */
+  tone?: 'danger' | 'accent' | 'primary'
   onConfirm: () => void
   onClose: () => void
 }) {
@@ -25,7 +26,7 @@ export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', tone
         <p>{desc}</p>
         <div className={styles.actions}>
           <button className="btn btn-line" onClick={onClose}>취소</button>
-          <button className={`btn ${tone === 'danger' ? 'btn-danger' : styles.report}`} onClick={() => { onConfirm(); onClose() }}>{confirmLabel}</button>
+          <button className={`btn ${tone === 'danger' ? 'btn-danger' : tone === 'primary' ? 'btn-primary' : styles.report}`} onClick={() => { onConfirm(); onClose() }}>{confirmLabel}</button>
         </div>
       </div>
     </Modal>

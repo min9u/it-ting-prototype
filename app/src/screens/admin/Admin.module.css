@@ -1,0 +1,36 @@
+/* 관리자 – 기능 목록 (Desktop · 저충실도) F11: 왼쪽 짙은 갈색 메뉴 260 + 본문 */
+.shell { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr); background: #f1e6da; }
+.side { background: #402b1f; color: #fbf4ec; padding: 30px 24px; display: flex; flex-direction: column; gap: 8px; }
+.side h1 { font-size: 22px; margin-bottom: 26px; }
+.nav, .navOn { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 8px; text-align: left; color: #fbf4ec; }
+.nav:hover { background: rgba(255, 255, 255, .06); }
+.navOn { background: #a5532f; }
+.nav strong, .navOn strong { font-family: var(--font-display); font-weight: 400; font-size: 15px; }
+.nav small, .navOn small { font-size: 10px; opacity: .8; }
+.main { padding: 40px 40px 60px; min-width: 0; }
+.head { display: flex; align-items: center; justify-content: space-between; }
+.head h2 { font-size: 27px; color: var(--ink-900); }
+.primary { height: 38px; padding: 0 16px; border-radius: 8px; background: #a5532f; color: #fff8f0; font-family: var(--font-display); font-size: 14px; }
+.primary:disabled { background: #d9c3b2; cursor: default; }
+.ghost { height: 38px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line-strong); background: #fffaf5; font-family: var(--font-display); font-size: 14px; }
+.chips { display: flex; align-items: center; gap: 6px; margin: 16px 0 14px; }
+.chip, .chipOn { height: 28px; padding: 0 14px; border-radius: 14px; background: #fffaf5; border: 1px solid #e6d3c2; font-size: 12px; color: var(--ink-800); }
+.chipOn { background: #a5532f; border-color: #a5532f; color: #fff8f0; }
+.ratio { margin-left: 12px; font-size: 12px; color: var(--ink-500); }
+.table { width: 100%; border-collapse: collapse; background: #faf2ea; border: 1px solid #e6d3c2; font-size: 13px; }
+.table th { text-align: left; padding: 12px 16px; background: #ead9c6; font-weight: 400; font-size: 11px; color: var(--ink-700); }
+.table td { padding: 13px 16px; border-top: 1px solid #ecdccb; color: var(--ink-900); vertical-align: top; }
+.link { font-family: var(--font-display); font-size: 13px; color: var(--ink-900); margin-right: 10px; }
+.link:hover { text-decoration: underline; color: #a5532f; }
+.acts { white-space: nowrap; }
+.badge, .badgeWait { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #e3ead8; color: var(--green-ink); font-size: 11px; }
+.badgeWait { background: #fbe2c9; color: #a5532f; }
+.memo { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-500); }
+.caption { margin-top: 12px; font-size: 12px; color: var(--ink-500); }
+.form { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.form h3 { font-size: 20px; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--ink-700); }
+.form input, .form select, .form textarea { height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 14px; color: var(--ink-900); }
+.form textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.formActions { display: flex; justify-content: flex-end; gap: 8px; }
+.formCard { margin-top: 18px; max-width: 720px; background: #fffaf5; border: 1px solid #e6d3c2; border-radius: 12px; }

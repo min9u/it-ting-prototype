@@ -12,7 +12,11 @@ import { MeetupList, MyMeetups } from './screens/meetups/MeetupList'
 import MeetupDetail from './screens/meetups/MeetupDetail'
 import MeetupNew from './screens/meetups/MeetupNew'
 import { BoardList, BoardPost, BoardSaved, BoardWrite } from './screens/board/Board'
-import Settings from './screens/settings/Settings'
+import Settings, {
+  BlockedPage, CreditsPage, GooglePage, LeavePage, NoticeDetailPage, NoticeListPage, NotifSettingsPage, PasswordPage, SettingsHome,
+} from './screens/settings/Settings'
+import Admin from './screens/admin/Admin'
+import NotFound, { GoneRoute, RouteError } from './components/NotFound'
 import Notifications from './screens/notifications/Notifications'
 import Landing from './screens/start/Landing'
 import LookAround from './screens/start/LookAround'
@@ -44,8 +48,11 @@ export const router = createRouter([
   { path: '/onboarding/:step', element: <Onboarding /> },
   // 화면 목록 (개발용)
   { path: '/screens', element: <ScreenIndex /> },
+  // F11 관리자: 서비스 메뉴에 없는 별도 주소. 역할이 없으면 없는 주소처럼 보임
+  { path: '/admin', element: <Admin /> },
   {
     element: <AppLayout />,
+    errorElement: <RouteError />,
     children: [
       { path: '/burrow', element: <MyBurrow /> },
       { path: '/burrow/explore', element: <ExploreBurrow /> },
@@ -68,9 +75,26 @@ export const router = createRouter([
       { path: '/chat', element: <Chat /> },
       { path: '/chat/requests', element: <Chat requests /> },
       { path: '/chat/:roomId', element: <Chat /> },
-      { path: '/settings', element: <Settings /> },
+      // F10 설정 · 계정: 왼쪽 메뉴 + 항목별 화면
+      {
+        path: '/settings',
+        element: <Settings />,
+        children: [
+          { index: true, element: <SettingsHome /> },
+          { path: 'password', element: <PasswordPage /> },
+          { path: 'google', element: <GooglePage /> },
+          { path: 'notifications', element: <NotifSettingsPage /> },
+          { path: 'blocked', element: <BlockedPage /> },
+          { path: 'notices', element: <NoticeListPage /> },
+          { path: 'notices/:id', element: <NoticeDetailPage /> },
+          { path: 'leave', element: <LeavePage /> },
+          { path: 'credits', element: <CreditsPage /> },
+        ],
+      },
       { path: '/notifications', element: <Notifications /> },
+      // 00 공통 21 대상 없음: 알림에서 원본이 사라진 경우 /gone/meetup|post|burrow|chat|notice, 없는 주소는 *
+      { path: '/gone/:what', element: <GoneRoute /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
-  { path: '*', element: <Navigate to="/" replace /> },
 ])

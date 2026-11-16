@@ -3,12 +3,16 @@ import { NavLink, Link, useSearchParams } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { BellIcon, GearIcon } from './Icons'
 import NotificationPopover from './NotificationPopover'
+import { useHasUnread } from '../data/notifications'
 import styles from './AppHeader.module.css'
 
-/** Figma: Review/Navigation (1440×63) + Nav Pill (State=Active/Default) */
+/**
+ * Figma: Review/Navigation (1440×63) + Nav Pill (State=Active/Default)
+ * 00 공통 1 GNB: 메뉴 4개(땅굴 · 커뮤니티 · 모임 · 채팅). 알림 · 설정 화면에서는 어떤 메뉴도 선택하지 않는다(NavLink 라 자동)
+ */
 const NAV = [
   { to: '/burrow', label: '땅굴' },
-  { to: '/board', label: '게시판' },
+  { to: '/board', label: '커뮤니티' },
   { to: '/meetups', label: '모임' },
   { to: '/chat', label: '채팅' },
 ]
@@ -21,9 +25,13 @@ export function Logo({ to = '/burrow' }: { to?: string }) {
   )
 }
 
-/** 데모용 쿼리: ?notice=open (알림 팝업 열린 채로) */
-export default function AppHeader({ hasAlert = true }: { hasAlert?: boolean }) {
+/**
+ * 데모용 쿼리: ?notice=open (알림 팝업 열린 채로)
+ * 00 공통 2 알림 아이콘: 안 읽은 알림이 있으면 빨간 점(숫자 아님). 끈 종류의 알림은 점에 들어가지 않는다
+ */
+export default function AppHeader() {
   const [params] = useSearchParams()
+  const hasAlert = useHasUnread()
   const [noticeOpen, setNoticeOpen] = useState(params.get('notice') === 'open')
   return (
     <header className={styles.header}>
