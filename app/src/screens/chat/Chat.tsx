@@ -5,6 +5,7 @@ import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
+import ConnectionStrip from '../../components/ConnectionStrip'
 import { CalendarIcon, ChatIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
 import { ME_ID, USERS, toneOf } from '../../data/mock'
 import { findMeetup as meetupOf, useMeetups } from '../../data/meetupStore'
@@ -12,10 +13,11 @@ import { getMyWorn } from '../../data/moleItems'
 import { getMyInterests } from '../../data/interests'
 import { shortAffOf } from '../../data/field'
 import { dateLabel } from '../../lib/format'
+import { CHAT_MESSAGE_MAX, MEETUP_NOTICE_MAX } from '../../lib/validation'
 import type { User } from '../../data/types'
 import {
-  GONE_ID, acceptRequest, quitGroup, syncGroupRooms, ago, canQuitMeetup, clock, dayLabel, dropRequest, fakeReply, lastMsg, leaveRoom, listTime, liveRequests, markRead,
-  membersOf, myMeetups, personOf, receivedCount, roomOf, roomTitle, send, setNotice, useChat, type ChatMsg, type Req, type Room,
+  GONE_ID, acceptRequest, quitGroup, syncGroupRooms, ago, canQuitMeetup, clock, dayLabel, discardFailed, dropRequest, lastMsg, leaveRoom, listTime, liveRequests, markRead,
+  membersOf, myMeetups, personOf, receivedCount, retrySend, roomOf, roomTitle, send, setActiveRoom, setMyTyping, setNotice, typingIn, useChat, type ChatMsg, type Req, type Room,
 } from '../../data/chat'
 import TeaRoom, { type TeaGuest } from './TeaRoom'
 import s from './Chat.module.css'
@@ -28,7 +30,7 @@ import s from './Chat.module.css'
  * /chat/requests      요청 · 받은 요청 1018:9513 · 보낸 요청 1018:10007 (?dir=sent)
  * - 필터: 전체 / 1:1 / 모임 / 요청 N (N = 받은 대화 요청 수만). 모임 참여 신청은 모임(F7)에서 처리
  * - "접속 중" 표시·읽음 표시·메시지 지우기는 없음 (명세)
- * 상태는 data/chat.ts (이 탭 안에서만 기억)
+ * 상태는 data/chat.ts (이 탭 안에서만 기억). 메시지 주고받기는 실시간 계층(src/realtime) — 보내는 중 · 실패 · 다시 보내기, 연결 띠(ConnectionStrip)
  */
 type Filter = 'all' | 'dm' | 'group'
 
@@ -152,8 +154,6 @@ function ListItem({ room, active }: { room: Room; active: boolean }) {
 }
 
 /* ===================== 대화 (1:1 · 모임) ===================== */
-const REPLIES = ['오 좋아요! 😊', '헉 저도 그 생각 했어요 ㅋㅋ', '좋아요, 그럼 그때 봬요!', '앗 그거 완전 궁금했어요']
-const replied = new Set<string>()
 const EMOJIS = ['😊', '😂', '🥹', '👍', '🙏', '🎉', '☕', '🍵', '🐾', '🌱', '🏕️', '📚']
 
 function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: string) => void; onToast: (t: string) => void }) {
@@ -164,7 +164,9 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
   const partner = room.partnerId ? personOf(room.partnerId) : undefined
   const isHost = meetup?.hostId === ME_ID
   const [draft, setDraft] = useState('')
-  const [typing, setTyping] = useState(false)
+  // 상대 "입력 중…" (실시간 이벤트, data/chat.ts)
+  const typers = typingIn(room.id, useChat()).filter((id) => id !== ME_ID)
+  const typing = typers.length > 0
   const [greet, setGreet] = useState<{ id: string; n: number }>({ id: ME_ID, n: 0 })
   const [menu, setMenu] = useState<null | 'plus' | 'emoji'>(null)
   const [leave, setLeave] = useState(false)
@@ -174,24 +176,35 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
   const scroller = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => { markRead(room.id) }, [room.id, room.messages.length])
+  // 지금 보는 방: 새 메시지가 와도 안 읽은 수를 늘리지 않음. 탭이 숨겨져 있으면 읽음 처리를 미룸
+  useEffect(() => { setActiveRoom(room.id); return () => setActiveRoom(null) }, [room.id])
+  useEffect(() => {
+    const read = () => { if (!document.hidden) markRead(room.id) }
+    read()
+    document.addEventListener('visibilitychange', read)
+    return () => document.removeEventListener('visibilitychange', read)
+  }, [room.id, room.messages.length])
   // 새 메시지가 오면 맨 아래로
   useEffect(() => { const el = scroller.current; if (el) el.scrollTop = el.scrollHeight }, [room.messages.length, typing])
+  // 다른 사람 메시지가 새로 오면 그 두더지가 손 인사 (예전 목 답장 연출과 같음)
+  const last = room.messages[room.messages.length - 1]
+  const seenLast = useRef(last?.id)
+  useEffect(() => {
+    if (!last || last.id === seenLast.current) return
+    seenLast.current = last.id
+    if (!last.system && last.authorId !== ME_ID) setGreet((g) => ({ id: last.authorId, n: g.n + 1 }))
+  }, [last])
+  // 입력창을 떠나면 "입력 중" 끝
+  useEffect(() => () => setMyTyping(room.id, false), [room.id])
 
   const guests = useMemo<TeaGuest[]>(() => (room.kind === 'group' ? membersOf(room).sort((a, b) => (a === ME_ID ? -1 : b === ME_ID ? 1 : 0)).map(guestOf) : [meGuest(), guestOf(room.partnerId!)]), [room])
 
   const submit = (text = draft, meetupId?: string) => {
     if (!text.trim() && !meetupId) return // 빈 메시지는 보낼 수 없음
+    // 상대 답장(목 서버)·"입력 중"은 실시간 계층에서 옴 (data/chat.ts)
     send(room.id, text.trim(), meetupId)
     setDraft(''); setMenu(null)
     setGreet((g) => ({ id: ME_ID, n: g.n + 1 }))
-    // 목 데이터: 1:1 에서 처음 보내면 상대가 한 번 답함
-    if (room.kind === 'dm' && !room.closed && !replied.has(room.id)) {
-      replied.add(room.id)
-      const pid = room.partnerId!
-      window.setTimeout(() => setTyping(true), 900)
-      window.setTimeout(() => { setTyping(false); fakeReply(room.id, REPLIES[Math.floor(Math.random() * REPLIES.length)]); setGreet((g) => ({ id: pid, n: g.n + 1 })) }, 2600)
-    }
     input.current?.focus()
   }
 
@@ -237,11 +250,12 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
         </header>
 
         {meetup && <NoticeBar room={room} isHost={isHost} />}
+        {!room.closed && <ConnectionStrip />}
 
-        <div className={s.messages} ref={scroller} aria-live="polite">
+        <div className={s.messages} ref={scroller} aria-live="polite" aria-relevant="additions">
           {rows}
           {room.closed && <p className={s.system}>{room.closed === 'gone' ? '상대방이 탈퇴했습니다' : '상대방이 대화방을 나갔습니다'}</p>}
-          {typing && partner && <p className={s.typing}><Avatar size={22} /> {partner.nickname}님이 입력 중…</p>}
+          {typing && <p className={s.typing}><Avatar size={22} /> {typers.slice(0, 2).map((id) => personOf(id).nickname).join(', ')}{typers.length > 2 ? ` 외 ${typers.length - 2}명` : ''}님이 입력 중…</p>}
         </div>
 
         {room.closed ? (
@@ -263,14 +277,15 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
               )}
             </div>
             <label className={s.inputWrap}>
-              <textarea ref={input} rows={1} value={draft} maxLength={500} placeholder={placeholder} aria-label={placeholder}
-                onChange={(e) => setDraft(e.target.value)}
+              <textarea ref={input} rows={1} value={draft} maxLength={CHAT_MESSAGE_MAX} placeholder={placeholder} aria-label={placeholder}
+                onChange={(e) => { setDraft(e.target.value); setMyTyping(room.id, !!e.target.value.trim()) }}
+                onBlur={() => setMyTyping(room.id, false)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } }} />
               <span className={s.pop}>
                 <button type="button" className={s.emojiBtn} onClick={() => setMenu(menu === 'emoji' ? null : 'emoji')} aria-label="이모지" aria-expanded={menu === 'emoji'}>☺</button>
                 {menu === 'emoji' && (
                   <span className={s.emojis} role="menu">
-                    {EMOJIS.map((e) => <button key={e} type="button" role="menuitem" onClick={() => { setDraft((d) => d + e); setMenu(null); input.current?.focus() }}>{e}</button>)}
+                    {EMOJIS.map((e) => <button key={e} type="button" role="menuitem" aria-label={`${e} 넣기`} onClick={() => { setDraft((d) => (d + e).slice(0, CHAT_MESSAGE_MAX)); setMenu(null); input.current?.focus() }}>{e}</button>)}
                   </span>
                 )}
               </span>
@@ -331,8 +346,8 @@ function NoticeBar({ room, isHost }: { room: Room; isHost: boolean }) {
   if (edit) {
     return (
       <form className={s.noticeEdit} onSubmit={(e) => { e.preventDefault(); setNotice(room.id, text); setEdit(false) }}>
-        <textarea value={text} maxLength={100} rows={2} onChange={(e) => setText(e.target.value)} placeholder="참여자 모두에게 보일 공지를 적어 주세요" autoFocus aria-label="공지" />
-        <div><span>{text.length} / 100</span><button type="button" className="btn btn-line btn-sm" onClick={() => { setText(room.notice ?? ''); setEdit(false) }}>취소</button><button className="btn btn-cta btn-sm" disabled={!text.trim()}>저장</button></div>
+        <textarea value={text} maxLength={MEETUP_NOTICE_MAX} rows={2} onChange={(e) => setText(e.target.value)} placeholder="참여자 모두에게 보일 공지를 적어 주세요" autoFocus aria-label="공지" />
+        <div><span>{text.length} / {MEETUP_NOTICE_MAX}</span><button type="button" className="btn btn-line btn-sm" onClick={() => { setText(room.notice ?? ''); setEdit(false) }}>취소</button><button className="btn btn-cta btn-sm" disabled={!text.trim()}>저장</button></div>
       </form>
     )
   }
@@ -376,8 +391,8 @@ function Message({ m, room, topics, onProfile }: { m: ChatMsg; room: Room; topic
         {!mine && room.kind === 'group' && <span className={s.author}>{who.nickname}{host && ' · 주최'}</span>}
         {m.text && (
           <div className={s.msgRow}>
-            <p className={s.bubble}>{m.text}</p>
-            <time>{clock(m.at)}</time>
+            <p className={s.bubble} data-status={m.status}>{m.text}</p>
+            {m.status ? <SendState m={m} roomId={room.id} /> : <time>{clock(m.at)}</time>}
           </div>
         )}
         {meetup && (
@@ -390,11 +405,25 @@ function Message({ m, room, topics, onProfile }: { m: ChatMsg; room: Room; topic
                 <Link to={`/meetups/${meetup.id}`} className="btn btn-line btn-block btn-sm">모임 보기</Link>
               </div>
             </div>
-            {!m.text && <time>{clock(m.at)}</time>}
+            {!m.text && (m.status ? <SendState m={m} roomId={room.id} /> : <time>{clock(m.at)}</time>)}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+/** 내 메시지 전송 상태: 보내는 중 · 실패(다시 보내기 · 지우기) */
+function SendState({ m, roomId }: { m: ChatMsg; roomId: string }) {
+  if (m.status === 'sending') return <span className={s.sending}>보내는 중</span>
+  return (
+    <span className={s.failed} role="alert">
+      <span>{m.error ?? '보내지 못했어요'}</span>
+      <span className={s.failedTools}>
+        <button type="button" onClick={() => retrySend(roomId, m.clientId!)}>다시 보내기</button>
+        <button type="button" onClick={() => discardFailed(roomId, m.clientId!)} aria-label="보내지 못한 메시지 지우기">지우기</button>
+      </span>
+    </span>
   )
 }
 
@@ -442,7 +471,9 @@ function Requests({ onProfile, onToast }: { onProfile: (id: string) => void; onT
             const u = personOf(r.userId)
             const shared = u.interests.filter((i) => myInt.includes(i))
             return (
-              <article key={r.id} className={focus?.id === r.id ? s.reqCardOn : s.reqCard} onClick={() => setPicked(r.id)}>
+              <article key={r.id} className={focus?.id === r.id ? s.reqCardOn : s.reqCard} onClick={() => setPicked(r.id)}
+                tabIndex={0} aria-current={focus?.id === r.id ? 'true' : undefined} aria-label={`${u.nickname}님 ${r.direction === 'received' ? '받은' : '보낸'} 요청 · ${ago(r.at)}`}
+                onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setPicked(r.id) } }}>
                 <div className={s.reqTop}>
                   <Initial text={u.nickname} tone={toneOf(u.interests[0] ?? u.id)} size={42} />
                   <div className={s.reqWho}>

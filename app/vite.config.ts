@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // three.js GLTFLoader의 AVIF 지원 확인용 작은 avif 이미지(data URL)를 뺌.
@@ -14,9 +14,14 @@ function stripAvifProbe(): Plugin {
   }
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  // 개발 서버 프록시 (docs/dev-deploy-risks.md B6): DEV_PROXY_TARGET=http://localhost:8080 을 app/.env.local 에 두면
+  // /api 와 /ws(WebSocket) 를 백엔드로 넘김 → 브라우저에는 같은 출처라 CORS·쿠키 SameSite 문제가 없음. 비우면 프록시 없음
+  const target = loadEnv(mode, '.', '').DEV_PROXY_TARGET
+  const proxy = target ? { '/api': { target, changeOrigin: true }, '/ws': { target, ws: true, changeOrigin: true } } : undefined
+  return {
   plugins: [react(), stripAvifProbe()],
-  server: { port: 5173 },
+  server: { port: 5173, proxy },
   // D 시험판(땅굴 Worker, three/worker/roomWorker.ts): Worker 안에서도 동적 import(roomScene·Draco)를 쓰려면 es 형식. avif 확인 코드도 같이 뺌
   worker: { format: 'es', plugins: () => [stripAvifProbe()] },
   // public/ 은 Draco wasm 해독기(일반 빌드용)뿐. 공유 빌드는 JS 해독기를 번들에 넣으므로 복사하지 않음 (three/glb.ts)
@@ -27,4 +32,5 @@ export default defineConfig(({ mode }) => ({
     // 공유 빌드(아티팩트)는 .glb 파일을 올릴 수 없어서 두더지 모델을 data URL로 JS에 넣음
     ...(mode === 'share' ? { assetsInlineLimit: (file: string) => (file.endsWith('.glb') ? true : undefined) } : {}),
   },
-}))
+  }
+})

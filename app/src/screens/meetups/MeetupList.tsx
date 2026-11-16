@@ -231,7 +231,7 @@ export function MyMeetups() {
                     {rec === 'closed'
                       ? <button type="button" className={`btn btn-line btn-sm ${st.alerts.includes(m.id) ? s.alertOn : ''}`} aria-pressed={st.alerts.includes(m.id)}
                           onClick={() => { const on = st.alerts.includes(m.id); toggleAlert(m.id); setToast({ title: on ? '빈자리 알림을 껐어요' : '빈자리 알림을 켰어요', desc: on ? undefined : '자리가 나면 알림으로 알려드릴게요' }) }}>
-                          🔔 {st.alerts.includes(m.id) ? '빈자리 알림 받는 중' : '빈자리 알림 받기'}
+                          <span aria-hidden>🔔</span> {st.alerts.includes(m.id) ? '빈자리 알림 받는 중' : '빈자리 알림 받기'}
                         </button>
                       : canReapply(r) ? <Link to={`/meetups/${m.id}`} className="btn btn-cta btn-sm">참여 신청</Link>
                       : <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm">모임 상세</Link>}

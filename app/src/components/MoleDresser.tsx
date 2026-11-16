@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type CSSProperties } from 'react'
+import SceneBoundary from './SceneBoundary'
 import MoleAvatar from './MoleAvatar'
 import { MAX_WORN, MOLE_ITEMS, MOLE_PARTS, NONE_ICON, blockedBy, itemOf, lockOf, partTotal, type MolePart } from '../data/moleItems'
 import { CloseIcon } from './Icons'
@@ -138,10 +139,12 @@ export function MolePreview({ worn, size, spin, label, bleed }: { worn: string[]
   return (
     <div className={styles.preview3d} style={{ width: size, height: size }}>
       {!ready && <MoleWithItems size={size} radius={0} worn={worn} spin={spin} label={label} />}
-      <Suspense fallback={null}>
-        <MolePreviewCanvas worn={worn} spin={spin} label={label} style={canvasStyle} view={{ left: b.left, top: b.top, size }}
-          className={ready ? styles.canvas3d : `${styles.canvas3d} ${styles.hidden3d}`} onReady={() => setReady(true)} />
-      </Suspense>
+      <SceneBoundary>
+        <Suspense fallback={null}>
+          <MolePreviewCanvas worn={worn} spin={spin} label={label} style={canvasStyle} view={{ left: b.left, top: b.top, size }}
+            className={ready ? styles.canvas3d : `${styles.canvas3d} ${styles.hidden3d}`} onReady={() => setReady(true)} />
+        </Suspense>
+      </SceneBoundary>
     </div>
   )
 }

@@ -11,6 +11,8 @@ import {
 import { MEETUPS } from '../../data/mock'
 import type { PostCategory, Tone } from '../../data/types'
 import { GonePage } from './parts'
+import FieldError from '../../components/FieldError'
+import { fieldError } from '../../lib/validation'
 import s from './Board.module.css'
 
 const POSTED: ToastSpec = { title: '게시글이 등록되었어요', desc: '커뮤니티에서 바로 확인할 수 있어요' }
@@ -45,6 +47,8 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
   const [photos, setPhotos] = useState<BoardPhoto[]>(start.photos)
   const [meetupId, setMeetupId] = useState(start.meetupId ?? '')
   const [picker, setPicker] = useState(false)
+  // 서버가 거절했을 때 칸 밑·폼 아래에 보여 줄 오류 (lib/validation.ts. 지금은 목 저장소라 거의 안 생김)
+  const [srvErr, setSrvErr] = useState<unknown>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const done = useRef(false)
 
@@ -83,13 +87,19 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
   const submit = () => {
     if (!ready || !cat) return
     const d: PostDraft = { category: cat, title: title.trim(), body: body.trim(), interests: tags, photos, meetupId: meetupId || undefined }
+    setSrvErr(null)
     done.current = true
-    if (mode === 'edit' && postId) {
-      updatePost(postId, d)
-      nav(`/board/${postId}`, { replace: true, state: { toast: TOAST.edited } })
-    } else {
-      const id = createPost(d)
-      nav(`/board/${id}`, { replace: true, state: { toast: POSTED } })
+    try {
+      if (mode === 'edit' && postId) {
+        updatePost(postId, d)
+        nav(`/board/${postId}`, { replace: true, state: { toast: TOAST.edited } })
+      } else {
+        const id = createPost(d)
+        nav(`/board/${id}`, { replace: true, state: { toast: POSTED } })
+      }
+    } catch (e) {
+      done.current = false
+      setSrvErr(e)
     }
   }
 
@@ -113,13 +123,17 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
           {/* 2 제목 (필수, 50자) */}
           <div className={s.field}>
             <p className={s.fieldHead}><label htmlFor="w-title">제목</label><small>{title.length} / {TITLE_MAX}</small></p>
-            <input id="w-title" className={s.input} value={title} maxLength={TITLE_MAX} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력해 주세요" />
+            <input id="w-title" className={s.input} value={title} maxLength={TITLE_MAX} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력해 주세요"
+              aria-describedby="w-title-err" aria-invalid={!!fieldError(srvErr, 'title')} />
+            <FieldError id="w-title-err" error={srvErr} field="title" />
           </div>
 
           {/* 3 본문 (필수, 1000자) */}
           <div className={s.field}>
             <p className={s.fieldHead}><label htmlFor="w-body">본문</label><small>{body.length} / {BODY_MAX}</small></p>
-            <textarea id="w-body" className={s.textarea} value={body} maxLength={BODY_MAX} onChange={(e) => setBody(e.target.value)} placeholder="나누고 싶은 이야기를 자유롭게 써 주세요" />
+            <textarea id="w-body" className={s.textarea} value={body} maxLength={BODY_MAX} onChange={(e) => setBody(e.target.value)} placeholder="나누고 싶은 이야기를 자유롭게 써 주세요"
+              aria-describedby="w-body-err" aria-invalid={!!fieldError(srvErr, 'content')} />
+            <FieldError id="w-body-err" error={srvErr} field="content" />
           </div>
 
           {/* 4 관심사 태그 (선택, 대분류 11개 중 최대 5개) */}
@@ -175,6 +189,8 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
               <p className={s.fieldHint}>모집 중인 내 모임이 없어요. <Link to="/meetups/new">모임 만들기</Link></p>
             )}
           </div>
+          {/* 칸에 붙지 않은 서버 오류 (예: 정지된 계정, 잠시 문제) */}
+          <FieldError error={srvErr} />
         </form>
 
         {/* 7 취소 / 등록하기 */}

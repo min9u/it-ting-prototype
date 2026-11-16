@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { SceneHandle } from './engine'
 import { quality } from './engine'
 import { labVersion, subscribeLab } from '../lib/lowLab'
+import { SceneErrorContext } from '../components/SceneBoundary'
+
+/** WebGL 컨텍스트를 잃었을 때 다시 만들어 보는 횟수 (그래픽 드라이버 재시작·탭이 오래 숨겨짐 등) */
+const MAX_RESTORE = 2
 
 /**
  * three.js 장면을 담는 div. mount 함수가 이 안에 캔버스를 만들어 붙이고, 언마운트 때 모두 정리한다.
@@ -40,6 +44,12 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   // G 일 때는 액자를 focusX 자리에 두고 장면은 액자 가운데(0.5)에 그림
   const sceneFx = small ? 0.5 : focusX
   latest.current.focusX = sceneFx
+  // 3D 에러 경계(components/SceneBoundary)에 실패 알리기 → 화면이 2D 대체 그림으로
+  const reportError = useContext(SceneErrorContext)
+  const reportRef = useRef(reportError)
+  reportRef.current = reportError
+  // WebGL 컨텍스트를 잃으면 장면을 새로 만듦 (restore 가 늘어나면 effect 가 다시 돎)
+  const [restore, setRestore] = useState(0)
 
   useEffect(() => {
     const el = ref.current
@@ -48,19 +58,36 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
     try {
       h = latest.current.mount(el, latest.current.focusX)
     } catch (err) {
-      // WebGL을 못 쓰는 환경: 자리표시 이미지를 그대로 둔다
-      console.warn('[3D] 장면을 만들지 못했어요', err)
+      // WebGL을 못 쓰는 환경: 자리표시 이미지를 그대로 둔다 (경계 안이면 경계가 2D 로 바꿈)
+      if (reportRef.current) reportRef.current(err)
+      else console.warn('[3D] 장면을 만들지 못했어요', err)
       return
     }
     handle.current = h
     setFrozen(false)
     if (pausedRef.current) h.setFrozen?.(true)
     latest.current.onReady?.(h)
+    // 도중에 컨텍스트를 잃음 (드라이버 재시작·GPU 메모리 부족·탭이 오래 숨겨짐): 1.5초 안에 돌아오지 않으면 장면을 새로 만듦.
+    // 우리가 정리할 때 부르는 forceContextLoss 도 이 이벤트를 내므로 정리 전에 듣기를 끔
+    const canvases = Array.from(el.querySelectorAll('canvas')) // 저사양 '선명한 방'은 2D 캔버스도 있음 → 모두 들음 (2D 는 이벤트가 안 옴)
+    let lostTimer: ReturnType<typeof setTimeout> | undefined
+    const onLost = (e: Event) => {
+      e.preventDefault() // 브라우저가 되살려 줄 수 있게
+      console.warn('[3D] WebGL 컨텍스트를 잃었어요')
+      lostTimer = setTimeout(() => {
+        if (restore < MAX_RESTORE) setRestore((n) => n + 1)
+        else reportRef.current?.(new Error('WebGL 컨텍스트를 되살리지 못했어요'))
+      }, 1500)
+    }
+    const onRestored = () => { clearTimeout(lostTimer); setRestore((n) => n + 1) }
+    canvases.forEach((c) => { c.addEventListener('webglcontextlost', onLost); c.addEventListener('webglcontextrestored', onRestored) })
     return () => {
+      clearTimeout(lostTimer)
+      canvases.forEach((c) => { c.removeEventListener('webglcontextlost', onLost); c.removeEventListener('webglcontextrestored', onRestored) })
       h.dispose()
       handle.current = null
     }
-  }, [deps, ver])
+  }, [deps, ver, restore])
 
   useEffect(() => { handle.current?.setFocusX(sceneFx) }, [sceneFx])
   useEffect(() => { handle.current?.setFrozen?.(paused || frozen) }, [paused]) // eslint-disable-line react-hooks/exhaustive-deps

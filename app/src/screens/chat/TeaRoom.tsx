@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
+import SceneBoundary from '../../components/SceneBoundary'
 import Avatar from '../../components/Avatar'
 import type { TeaSeat } from '../../three/TeaRoomCanvas'
 import s from './TeaRoom.module.css'
@@ -48,9 +49,11 @@ export default function TeaRoom({ guests, mode, greet, onPick }: {
             <Avatar size={64} />
           </span>
         ))}
-        <Suspense fallback={null}>
-          <TeaRoomCanvas seats={seats} greet={greet} className={s.canvas} onReady={() => setReady(true)} />
-        </Suspense>
+        <SceneBoundary>
+          <Suspense fallback={null}>
+            <TeaRoomCanvas seats={seats} greet={greet} className={s.canvas} onReady={() => setReady(true)} />
+          </Suspense>
+        </SceneBoundary>
         {/* 이름표 + 누르는 자리 */}
         {shown.map((g, i) => {
           const st = seats[i]

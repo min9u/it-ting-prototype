@@ -8,6 +8,7 @@ import { noiseTex } from './clay'
 import { createMoleActor, loadMoleGltf, type MoleActor } from './moleActor'
 import { loadAccessories } from './moleDress'
 import { bindDriveKeys } from './keys'
+import { shortcutAllowed } from '../lib/a11y'
 import { loadGlb } from './glb'
 import groundPropsUrl from '../assets/models/ground_props_v1.glb?url'
 import { getMyWorn } from '../data/moleItems'
@@ -842,9 +843,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     loop.wake()
   }
   const onKey = (e: KeyboardEvent) => {
-    if (!opts.zoom || e.altKey || e.ctrlKey || e.metaKey) return
-    const t = e.target as HTMLElement | null
-    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+    // 글 쓰는 중 · 조합키 · 팝업이면 쉼 (lib/a11y.ts)
+    if (!opts.zoom || !shortcutAllowed(e)) return
     if (e.key === '-' || e.key === '_') zlTarget = Math.min(zlMax, zlTarget + .45)
     else if (e.key === '=' || e.key === '+') zlTarget = Math.max(ZL_MIN, zlTarget - .45)
     else return

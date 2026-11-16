@@ -10,6 +10,7 @@ import { CalendarIcon, HeartIcon, HomeIcon, PinIcon } from '../../components/Ico
 import { ME_ID, USERS, categoryOf, toneOf } from '../../data/mock'
 import { affOf } from '../../data/field'
 import { groupRoomId, leaveRoom, roomOf, useChat } from '../../data/chat'
+import { MEETUP_APPLY_MESSAGE_MAX } from '../../lib/validation'
 import type { User } from '../../data/types'
 import {
   type MeetupX, apply, canQuit, deadlineLabel, deadlinePassed, findMeetup, hourLabel, leftOf, membersOf, myOf,
@@ -204,7 +205,7 @@ export default function MeetupDetail() {
               {m.askMsg && <>
                 <label className={s.applyLabel} htmlFor="host-note">주최자에게 남길 말 <em>선택</em></label>
                 <div className={s.applyInput}>
-                  <textarea id="host-note" maxLength={100} value={note} onChange={(e) => setNote(e.target.value)} placeholder={m.interest === '독서' ? '어떤 책을 읽고 계신지 알려주세요' : '간단한 인사나 궁금한 점을 남겨 주세요'} />
+                  <textarea id="host-note" maxLength={MEETUP_APPLY_MESSAGE_MAX} value={note} onChange={(e) => setNote(e.target.value)} placeholder={m.interest === '독서' ? '어떤 책을 읽고 계신지 알려주세요' : '간단한 인사나 궁금한 점을 남겨 주세요'} />
                   <span>{note.length} / 100</span>
                 </div>
               </>}

@@ -18,8 +18,10 @@ import { dmRoomWith, sendRequest, sentRequestTo, useChat } from '../../data/chat
 import { Link } from 'react-router-dom'
 import { affOf, exploreHref, fieldUserOf, getRegulars, locateUser, setRegular, subscribeRegulars } from '../../data/field'
 import s from './Burrow.module.css'
+import { CHAT_REQUEST_MAX, GUESTBOOK_MAX } from '../../lib/validation'
 
-const GB_MAX = 100
+// 방명록 50자 · 대화 요청 인사 50자 (lib/validation.ts. 방명록은 예전 100자 → 02 명세 최신 · ERD guestbook_entry.content VARCHAR(50) 에 맞춤)
+const GB_MAX = GUESTBOOK_MAX
 const QUICK = ['땅굴 구경 잘했어요!', '같이 게임 한 판 해요', '그림 이야기 나눠요']
 
 /**
@@ -115,11 +117,11 @@ export default function VisitBurrow() {
           <section className={s.guestbook}>
             <h3 className={`display ${s.gbTitle}`}>방명록 <span className="count-badge">{entries.length}</span></h3>
             <div className={s.gbWrite}>
-              <textarea value={draft} maxLength={GB_MAX} onChange={(e) => setDraft(e.target.value)}
+              <textarea value={draft} maxLength={GB_MAX} onChange={(e) => setDraft(e.target.value)} aria-label="방명록 남기기" aria-describedby="gb-count"
                 placeholder={`${owner.nickname}님의 땅굴에 다녀간 흔적을 남겨주세요`}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitGb() } }} />
               <div className={s.gbWriteRow}>
-                <span>{draft.length} / {GB_MAX}</span>
+                <span id="gb-count">{draft.length} / {GB_MAX}</span>
                 <button className="link-accent" onClick={submitGb} disabled={!draft.trim()}>남기기</button>
               </div>
             </div>
@@ -138,9 +140,9 @@ export default function VisitBurrow() {
           <Avatar size={56} />
           <h2 id="req-title" className="display">인사를 남겨볼까요?</h2>
           <div className={`field ${s.reqField}`}>
-            <textarea className="textarea" value={reqMsg} maxLength={50} onChange={(e) => setReqMsg(e.target.value)}
+            <textarea className="textarea" value={reqMsg} maxLength={CHAT_REQUEST_MAX} onChange={(e) => setReqMsg(e.target.value)} aria-label="첫 인사" aria-describedby="req-count"
               placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
-            <span className="hint">{reqMsg.length} / 50 · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
+            <span className="hint" id="req-count">{reqMsg.length} / {CHAT_REQUEST_MAX} · 겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
           </div>
           <p className={s.quickLabel}>빠른 멘트</p>
           <div className={s.phrases}>

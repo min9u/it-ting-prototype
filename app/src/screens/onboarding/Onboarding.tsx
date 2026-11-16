@@ -160,7 +160,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
         <aside className={s.avatarSide} aria-live="polite">
           <span className={s.previewLabel}>미리 보기</span>
           <div className={s.previewBox}>
-            <button className={s.spinChip} onClick={() => setSpin((v) => !v)} aria-pressed={spin}>↻ {spin ? '천천히 돌아가요' : '멈췄어요'}</button>
+            <button className={s.spinChip} onClick={() => setSpin((v) => !v)} aria-pressed={spin}><span aria-hidden>↻</span> {spin ? '천천히 돌아가요' : '멈췄어요'}</button>
             <MolePreview size={PREVIEW_SIZE} bleed={PREVIEW_BLEED} worn={p.worn} spin={spin} label={`${trimmed || '내'} 두더지`} />
           </div>
           <strong>{trimmed || '닉네임'}</strong>

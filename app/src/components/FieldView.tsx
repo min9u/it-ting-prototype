@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { FieldHandle, FieldSceneOptions } from '../three/fieldScene'
 import styles from './RoomView.module.css'
+import SceneBoundary from './SceneBoundary'
 
 const FieldCanvas = lazy(() => import('../three/FieldCanvas'))
 
@@ -21,9 +22,11 @@ export default function FieldView({ focusX = 0.5, children, label, options, onRe
 }) {
   return (
     <div className={`${styles.scene} ${styles.field}`}>
-      <Suspense fallback={null}>
-        <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} paused={paused} />
-      </Suspense>
+      <SceneBoundary>
+        <Suspense fallback={null}>
+          <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} paused={paused} />
+        </Suspense>
+      </SceneBoundary>
       {children}
     </div>
   )

@@ -1,6 +1,7 @@
 import type { HostScreen, SceneHandle } from '../engine'
 import type { RoomSceneOptions } from '../roomScene'
 import { getLab } from '../../lib/lowLab'
+import { shortcutAllowed } from '../../lib/a11y'
 
 /*
  * D 땅굴을 Worker 에서 그리기 — 메인 스레드 쪽 (시험판).
@@ -68,11 +69,10 @@ export function mountRoomWorker(container: HTMLElement, opts: RoomSceneOptions, 
   canvas.addEventListener('wheel', fwd, { passive: false })
   cleanupInputs.push(() => { types.forEach((t) => canvas.removeEventListener(t, fwd)); canvas.removeEventListener('wheel', fwd) })
 
-  // 키 (입력 칸에 쓰는 중이면 보내지 않음)
+  // 키 (글 쓰는 중 · 한글 조합 중 · 조합키 · 팝업이 열려 있으면 누름은 보내지 않음, lib/a11y.ts). 뗌(keyup)은 늘 보내서 두더지가 멈추게
   const key = (e: KeyboardEvent) => {
-    const el = e.target as HTMLElement | null
-    if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return
-    if (/^(Key[WASD]|Arrow)/.test(e.code) && !e.altKey && !e.ctrlKey && !e.metaKey && e.type === 'keydown') e.preventDefault()
+    if (e.type === 'keydown' && !shortcutAllowed(e)) return
+    if (/^(Key[WASD]|Arrow)/.test(e.code) && e.type === 'keydown') e.preventDefault()
     post({ type: 'key', ev: { type: e.type, code: e.code, key: e.key, altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey } })
   }
   const blur = () => post({ type: 'key', ev: { type: 'blur' } })
