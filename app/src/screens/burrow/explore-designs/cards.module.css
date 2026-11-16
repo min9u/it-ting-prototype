@@ -1,0 +1,103 @@
+/* 디자인 D 이웃 카드 (ExploreCards.tsx) */
+.scene {
+  background:
+    radial-gradient(ellipse 66px 20px at 16% 15%, rgba(255, 255, 255, .85) 60%, transparent 62%),
+    radial-gradient(ellipse 44px 16px at 19% 13%, rgba(255, 255, 255, .85) 60%, transparent 62%),
+    radial-gradient(ellipse 58px 17px at 70% 24%, rgba(255, 255, 255, .7) 60%, transparent 62%),
+    linear-gradient(#a9d8f2 0, #d5eef8 40%, #e9f5f2 46%);
+}
+/* 멀리 언덕 두 겹 + 앞쪽 들판 (그라데이션만) */
+.hills { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.hills::before, .hills::after { content: ''; position: absolute; border-radius: 50%; }
+.hills::before { left: -20%; right: 30%; top: 44%; height: 70%; background: linear-gradient(#b3d98d, #9acb72 40%); }
+.hills::after { left: 25%; right: -25%; top: 50%; height: 80%; background: linear-gradient(#a3d27c, #8cc56a 35%, #84bd62); }
+
+/* 정렬 */
+.sorts {
+  position: absolute; top: 48px; z-index: 5; transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 4px; border-radius: 12px;
+  background: rgba(251, 248, 244, .94); box-shadow: 0 2px 0 rgba(116, 74, 50, .18), 0 3px 8px rgba(80, 50, 30, .12);
+}
+.sort, .sortOn { height: 32px; padding: 0 14px; border-radius: 8px; font-family: var(--font-display); font-size: 14px; color: var(--ink-700); }
+.sort:hover { background: var(--surface-item); }
+.sortOn { background: var(--brown-650); color: var(--on-brown); }
+
+/* 카드 묶음 */
+.deck { position: absolute; top: 104px; z-index: 4; width: 660px; transform: translateX(-50%); }
+.stack { position: absolute; inset: 14px 0 34px; pointer-events: none; }
+.stack i { position: absolute; inset: 0; border-radius: 20px; background: #f3e4d2; box-shadow: 0 4px 12px rgba(60, 35, 20, .12); }
+.stack i:first-child { transform: rotate(-2.6deg) translate(-8px, 10px); background: #ead6bf; }
+.stack i:last-child { transform: rotate(2deg) translate(8px, 6px); }
+.card {
+  position: relative; padding: 22px 24px 20px; border-radius: 20px; background: var(--surface);
+  box-shadow: 0 2px 0 rgba(116, 74, 50, .14), 0 18px 40px rgba(60, 35, 20, .2);
+  touch-action: pan-y; transition: transform .2s var(--ease-out);
+}
+.card[data-dir='1'] { animation: inR .34s var(--ease-out); }
+.card[data-dir='-1'] { animation: inL .34s var(--ease-out); }
+.card[data-back] .backSide { animation: flip .3s var(--ease-out); }
+@keyframes inR { from { opacity: 0; transform: translateX(70px) rotate(2.5deg); } }
+@keyframes inL { from { opacity: 0; transform: translateX(-70px) rotate(-2.5deg); } }
+@keyframes flip { from { opacity: .3; transform: perspective(900px) rotateY(70deg); } }
+@media (prefers-reduced-motion: reduce) { .card, .card .backSide { animation: none !important; } }
+.card[data-mine] { box-shadow: 0 0 0 3px #f2a3a1, 0 18px 40px rgba(60, 35, 20, .2); }
+
+.front { display: grid; grid-template-columns: 236px 1fr; gap: 24px; min-height: 330px; }
+.peekCol { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px; }
+.seat { padding: 3px 10px; border-radius: 999px; background: var(--surface-item); font-size: 11px; color: var(--ink-500); }
+.info { display: flex; flex-direction: column; min-width: 0; }
+.who { display: flex; align-items: center; gap: 12px; }
+.who h2 { font-size: 23px; color: var(--ink-900); line-height: 1.2; }
+.who p { margin-top: 3px; font-size: 12px; color: var(--ink-400); display: flex; flex-wrap: wrap; gap: 8px; }
+.online { color: var(--green); font-weight: 600; }
+.reg { color: #b07f12; font-weight: 600; }
+.label { margin: 16px 0 7px; font-size: 12px; font-weight: 600; color: var(--ink-500); display: flex; align-items: center; gap: 8px; }
+.label b { color: var(--green-ink); }
+.rareNote { padding: 2px 8px; border-radius: 999px; background: #fff3cf; color: #8a5a1a; font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rareChip { position: relative; }
+.rareChip::after { content: '✦'; position: absolute; right: -4px; top: -7px; font-size: 11px; color: #d9a21b; text-shadow: 0 0 2px #fff; }
+.none, .more { font-size: 12px; color: var(--ink-400); }
+.mineNote { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #fdecea; font-size: 13px; line-height: 1.6; color: var(--ink-700); }
+.starter { margin-top: 16px; padding: 11px 14px; border-radius: 10px; background: var(--surface-sunken); }
+.starter strong { font-size: 12px; color: var(--ink-900); }
+.starter p { margin-top: 3px; font-size: 13px; line-height: 1.55; color: var(--ink-700); }
+.flip { margin-top: 12px; align-self: flex-start; font-family: var(--font-display); font-size: 14px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
+.flip:hover { text-decoration: underline; }
+.flip kbd, .kbd { padding: 1px 6px; border-radius: 4px; font: 600 10px/1.4 var(--font-body); }
+.flip kbd { border: 1px solid var(--line-strong); background: #fff; color: var(--ink-700); }
+.kbd { background: rgba(255, 255, 255, .22); }
+
+.backSide { min-height: 330px; display: flex; flex-direction: column; }
+.intro { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); }
+.intro strong { font-size: 13px; }
+.intro p { margin-top: 4px; font-size: 13px; line-height: 1.55; color: var(--ink-800); }
+.qna { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.qna div { padding: 10px 14px; border-radius: 10px; background: var(--surface-item); }
+.qna dt { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.qna dd { margin: 3px 0 0; font-size: 13px; color: var(--ink-700); line-height: 1.5; }
+
+.actions { margin-top: 16px; display: grid; grid-template-columns: 110px 1fr 110px; gap: 10px; }
+/* 전역 .btn 이 모듈 CSS 뒤에 오므로 두 겹 선택자로 */
+.actions .nav { height: 46px; padding: 0 12px; gap: 4px; font-size: 15px; }
+.actions .nav:disabled { opacity: .45; cursor: default; }
+.actions .enter { height: 46px; gap: 8px; font-size: 17px; }
+
+.progress { position: relative; margin: 14px 18px 0; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .6); }
+.progress span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--brown-650); transition: width .3s var(--ease-out); }
+.progress em { position: absolute; right: 0; top: 10px; font-style: normal; font-size: 11px; color: var(--ink-700); }
+
+.noCards { position: absolute; top: 140px; z-index: 4; width: 420px; transform: translateX(-50%); padding: 22px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-pop); }
+
+/* 오른쪽: 미니맵 + 다음 차례 */
+.side { position: absolute; right: 32px; top: 40px; z-index: 5; width: 290px; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.side .mini { position: relative; left: auto; bottom: auto; max-width: none; width: auto; }
+.queue { padding: 14px 14px 10px; border-radius: 14px; background: rgba(251, 248, 244, .94); box-shadow: 0 6px 18px rgba(60, 35, 20, .14); }
+.queue h3 { font-size: 16px; color: var(--ink-900); margin-bottom: 8px; }
+.queue ul { display: flex; flex-direction: column; gap: 4px; }
+.queue button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; text-align: left; }
+.queue button:hover { background: var(--surface-item); }
+.queue span { display: flex; flex-direction: column; min-width: 0; }
+.queue strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; color: var(--ink-900); display: inline-flex; align-items: center; gap: 5px; }
+.queue small { font-size: 11px; color: var(--ink-400); }
+.on { width: 7px; height: 7px; border-radius: 50%; background: #5fbf3a; }

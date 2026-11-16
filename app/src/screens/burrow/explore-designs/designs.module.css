@@ -1,0 +1,70 @@
+/* 탐색 디자인 시안 공통 (ExploreDesigns · parts). 각 시안 화면은 map / tunnel / cards .module.css */
+
+/* ===== 시안 전환 칩 (프로토타입 비교용이라 제품 UI 와 다르게 어두운 작은 알약) ===== */
+.designChips {
+  position: fixed; top: calc(var(--header-h) + 8px); left: 50%; z-index: 7; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 3px 4px 3px 10px; border-radius: 999px;
+  background: rgba(62, 42, 31, .82); box-shadow: 0 3px 10px rgba(40, 22, 10, .22);
+  font-size: 12px; color: var(--on-brown);
+}
+.designLabel { margin-right: 6px; font-size: 11px; opacity: .7; letter-spacing: .04em; }
+.designChip, .designOn {
+  height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; color: rgba(251, 244, 236, .86);
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+}
+.designChip b, .designOn b { font-weight: 800; }
+.designChip:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.designOn { background: var(--on-brown); color: var(--ink-900); }
+
+/* ===== 땅굴 미리보기 (돔 단면). --w = 폭 px ===== */
+.peek {
+  position: relative; width: var(--w); height: calc(var(--w) * .8); flex: none; overflow: hidden;
+  border-radius: 50% 50% 12px 12px / 64% 64% 12px 12px;
+  border: calc(var(--w) * .018 + 1px) solid #d9955f;
+  box-shadow: 0 3px 0 rgba(116, 74, 50, .22), inset 0 0 0 2px rgba(255, 240, 220, .25);
+  background: #e9b07c;
+}
+.peekWall { position: absolute; inset: 0 0 26% 0; background-size: calc(var(--w) * .3); background-repeat: repeat; }
+/* 돔 둥근 그늘 + 서까래 두 줄 */
+.peekWall::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 85% at 50% 92%, rgba(255, 236, 210, 0) 55%, rgba(120, 66, 34, .28) 100%);
+}
+.peekRibs { position: absolute; inset: 0 0 26% 0; pointer-events: none; }
+.peekRibs::before, .peekRibs::after {
+  content: ''; position: absolute; top: -10%; bottom: 0; width: 46%; border: calc(var(--w) * .014 + .5px) solid rgba(150, 88, 48, .35);
+  border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+.peekRibs::before { left: 4%; }
+.peekRibs::after { right: 4%; }
+.peekFloor { position: absolute; left: 0; right: 0; bottom: 0; height: 27%; background: linear-gradient(#dba270, #c98b58); box-shadow: inset 0 3px 0 rgba(255, 230, 200, .35); }
+.peekRug { position: absolute; left: 50%; bottom: 6%; width: 52%; height: 14%; transform: translateX(-50%); border-radius: 50%; background: #f3d9a4; box-shadow: inset 0 0 0 calc(var(--w) * .012 + 1px) #9dc27a; }
+.peekProp, .peekPropWall {
+  position: absolute; font-size: calc(var(--w) * .13); line-height: 1;
+  filter: drop-shadow(0 2px 0 rgba(90, 50, 25, .25));
+}
+.peekPropWall {
+  padding: calc(var(--w) * .022); border-radius: calc(var(--w) * .03);
+  background: rgba(255, 248, 236, .82); box-shadow: 0 2px 0 rgba(116, 74, 50, .25);
+  font-size: calc(var(--w) * .1);
+}
+.peekMole { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); }
+.peekOnline {
+  position: absolute; top: 14%; left: 50%; transform: translateX(-50%);
+  padding: 2px 8px; border-radius: 999px; background: rgba(62, 42, 31, .78); color: #dff3c9;
+  font-size: max(10px, calc(var(--w) * .045)); white-space: nowrap;
+}
+.peekOnline::before { content: '● '; color: #7fd456; }
+
+/* 키 안내 칩 (시안 공통) */
+.keyHint {
+  position: absolute; bottom: 88px; z-index: 3; transform: translateX(-50%);
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(251, 248, 244, .84); color: var(--ink-700);
+  font-size: 12px; white-space: nowrap;
+}
+.keyHint kbd {
+  display: inline-block; min-width: 18px; margin-right: 2px; padding: 1px 4px;
+  border-radius: 4px; border: 1px solid var(--line-strong); background: #fff;
+  font: 600 10px/1.4 var(--font-body); text-align: center; color: var(--ink-800);
+}

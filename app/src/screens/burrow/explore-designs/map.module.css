@@ -1,0 +1,125 @@
+/* 디자인 B 마을 지도 (ExploreMap.tsx). 좌표: --k = px/m, --px·--py = 들판 원점의 화면 위치, 각 표시는 --x·--z (m) */
+.scene { background: #8cc56a; cursor: grab; touch-action: none; user-select: none; }
+.scene:active { cursor: grabbing; }
+.ground { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+.layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; --k: 10; --px: 0; --py: 0; }
+
+/* 땅굴 표시: 구멍 링 + 이름표 (확대 단계 far · mid · near 에 따라 크기·이름표) */
+.hole, .ladder {
+  position: absolute; pointer-events: auto;
+  left: calc(var(--px) * 1px + var(--x) * var(--k) * 1px);
+  top: calc(var(--py) * 1px + var(--z) * var(--k) * 1px);
+  width: var(--hs); height: var(--hs); transform: translate(-50%, -50%);
+  /* 구멍 크기는 배율을 따라 (3D 구멍 지름 약 2m), 너무 작거나 크지 않게 */
+  --hs: clamp(17px, calc(var(--k) * 2.1px), 50px);
+  transition: transform .15s var(--ease-out), opacity .2s;
+}
+.ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, #2e1b10 0 30%, #5a3a24 31% 43%, var(--ring) 45% 100%);
+  box-shadow: 0 2px 0 rgba(90, 55, 30, .35), inset 0 -2px 0 rgba(0, 0, 0, .08);
+}
+.hole:hover, .hole[data-hover] { transform: translate(-50%, -50%) scale(1.14); z-index: 2; }
+.hole:focus-visible { outline: 3px solid #fff; outline-offset: 3px; border-radius: 50%; }
+.hole[data-here] .ring { box-shadow: 0 0 0 3px #fff, 0 2px 0 4px rgba(90, 55, 30, .2); }
+.hole[data-mine] .ring { box-shadow: 0 0 0 4px rgba(242, 163, 161, .5), 0 2px 0 rgba(90, 55, 30, .35); }
+.hole[data-mine][data-here] .ring { box-shadow: 0 0 0 3px #fff, 0 0 0 7px rgba(242, 163, 161, .55); }
+.hole[data-dim] { opacity: .33; }
+.hole[data-hit] .ring { box-shadow: 0 0 0 3px #fff8e6, 0 0 0 6px rgba(246, 196, 67, .55); }
+.house {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -115%);
+  width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center;
+  background: #c8643a; color: #fff; box-shadow: 0 2px 0 rgba(90, 40, 20, .3);
+}
+.on { position: absolute; right: -2px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #5fbf3a; box-shadow: 0 0 0 2px #fff; }
+.star { position: absolute; left: -9px; top: -10px; font-style: normal; font-size: 13px; color: #f2b92c; text-shadow: 0 1px 0 #8a5a1a, 0 0 3px #fff; }
+.badge {
+  position: absolute; right: -9px; top: -8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--cta); color: #fff; font: 700 10px/16px var(--font-body); font-style: normal; text-align: center;
+  box-shadow: 0 0 0 2px #fff8f0;
+}
+.name {
+  position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%);
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  background: rgba(255, 250, 244, .93); color: var(--ink-900); box-shadow: 0 1px 0 rgba(90, 55, 30, .2);
+  font-family: var(--font-display); font-size: 11.5px; line-height: 1.35;
+}
+.rare { display: none; font-style: normal; font-family: var(--font-body); font-size: 10px; font-weight: 700; color: #8a5a1a; }
+.layer[data-tier='near'] .name { font-size: 13px; padding: 3px 10px; }
+.layer[data-tier='near'] .rare { display: block; }
+.layer[data-tier='far'] .name, .layer[data-tier='far'] .badge { display: none; }
+.layer[data-tier='far'] .hole:is([data-mine], [data-here], [data-hover], [data-hit], :hover) .name { display: inline-flex; }
+.layer[data-tier='far'][data-filter='shared'] .badge { display: block; }
+/* 같은 관심사 1개 배지는 '겹치는 관심사' 필터에서만 (모두 보기에서는 2개 이상만, 덜 복잡하게) */
+.layer:not([data-filter='shared']) .badge[data-one] { display: none; }
+.layer[data-filter='shared'] .hole[data-hit] .rare { display: block; }
+.layer[data-tier='far'] .house { width: 16px; height: 16px; }
+
+/* 사다리 */
+.ladder { --hs: clamp(18px, calc(var(--k) * 2.3px), 54px); }
+.ladderIcon {
+  position: absolute; inset: 0; border-radius: 50%; background: #6b3a1e; box-shadow: 0 0 0 2px #fbf4ec, 0 2px 0 3px rgba(90, 55, 30, .25);
+}
+.ladderIcon::before {
+  content: ''; position: absolute; left: 30%; right: 30%; top: 22%; bottom: 22%;
+  border-left: 2px solid #f7e6c8; border-right: 2px solid #f7e6c8;
+  background: repeating-linear-gradient(#f7e6c8 0 2px, transparent 2px 5px);
+}
+.layer[data-tier='far'] .ladder .name { display: none; }
+.ladder:hover .name { display: inline-flex !important; }
+
+/* 내 두더지: 발이 구멍 가운데쯤 */
+.mole {
+  position: absolute; z-index: 3; pointer-events: none;
+  left: calc(var(--px) * 1px + var(--x, 0) * var(--k) * 1px);
+  top: calc(var(--py) * 1px + var(--z, 0) * var(--k) * 1px);
+  transform: translate(-50%, -86%);
+}
+/* 두더지 크기도 배율을 따라 (0.7 ~ 1.6배) */
+.moleSvg { display: block; transform-origin: 50% 100%; --ms: clamp(.7, calc(var(--k) / 12), 1.6); transform: scale(var(--ms)); }
+.mole[data-facing='-1'] .moleSvg { transform: scale(calc(var(--ms) * -1), var(--ms)); }
+.mole[data-walking] { animation: waddle .32s ease-in-out infinite; }
+@keyframes waddle { 0%, 100% { margin-top: 0; rotate: -4deg; } 50% { margin-top: -5px; rotate: 4deg; } }
+@media (prefers-reduced-motion: reduce) { .mole[data-walking] { animation: none; } }
+
+/* 안내판 (두더지 왼쪽 위, 왼쪽 끝이면 오른쪽) */
+.sign {
+  position: absolute; z-index: 6; pointer-events: auto;
+  left: calc(var(--px) * 1px + var(--x) * var(--k) * 1px);
+  top: calc(var(--py) * 1px + var(--z) * var(--k) * 1px);
+  transform: translate(34px, calc(-100% - 6px));
+}
+.sign[data-side='left'] { transform: translate(calc(-100% - 30px), calc(-100% - 6px)); }
+.sign > div { border-radius: 14px 14px 14px 4px; }
+.sign[data-side='left'] > div { border-radius: 14px 14px 4px 14px; }
+
+/* 위쪽 가운데 필터 */
+.filters {
+  position: absolute; top: 48px; z-index: 5; transform: translateX(-50%);
+  display: flex; gap: 4px; padding: 4px; border-radius: 12px;
+  background: rgba(251, 248, 244, .92); box-shadow: 0 2px 0 rgba(116, 74, 50, .18), 0 3px 8px rgba(80, 50, 30, .12);
+  transition: left .45s var(--ease-out);
+}
+.f, .fOn {
+  height: 32px; padding: 0 12px; border-radius: 8px; font-family: var(--font-display); font-size: 14px; color: var(--ink-700);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.f span, .fOn span { font-family: var(--font-body); font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(116, 74, 50, .12); }
+.f:hover { background: var(--surface-item); }
+.fOn { background: var(--brown-650); color: var(--on-brown); }
+.fOn span { background: rgba(255, 255, 255, .2); }
+
+/* 확대·축소 */
+.zoom {
+  position: absolute; bottom: 33px; z-index: 5;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: right .3s var(--ease-out);
+}
+.zoom button {
+  width: 42px; height: 40px; border-radius: 10px; background: var(--surface);
+  border: 1.5px solid rgba(116, 74, 50, .45); box-shadow: 0 2px 0 rgba(116, 74, 50, .22);
+  font-family: var(--font-display); font-size: 20px; color: var(--brown-600);
+}
+.zoom button:hover { background: #fff; }
+.zoom .zoomWide { font-size: 13px; }

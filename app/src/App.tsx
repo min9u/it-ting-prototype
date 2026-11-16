@@ -4,7 +4,7 @@ import { createBrowserRouter, createHashRouter, Navigate, Outlet } from 'react-r
 const createRouter = import.meta.env.VITE_HASH_ROUTER ? createHashRouter : createBrowserRouter
 import AppHeader from './components/AppHeader'
 import MyBurrow from './screens/burrow/MyBurrow'
-import ExploreBurrow from './screens/burrow/ExploreBurrow'
+import ExploreDesigns from './screens/burrow/explore-designs/ExploreDesigns'
 import VisitBurrow from './screens/burrow/VisitBurrow'
 import Chat from './screens/chat/Chat'
 import MeetupsShell from './screens/meetups/MeetupsShell'
@@ -62,7 +62,7 @@ export const router = createRouter([
     errorElement: <RouteError />,
     children: [
       { path: '/burrow', element: <MyBurrow /> },
-      { path: '/burrow/explore', element: <ExploreBurrow /> },
+      { path: '/burrow/explore', element: <ExploreDesigns /> }, // 디자인 시안 A(ExploreBurrow)·B·C·D 전환
       { path: '/burrow/:userId', element: <VisitBurrow /> },
       { path: '/board', element: <BoardList /> },
       { path: '/board/write', element: <BoardWrite /> },
