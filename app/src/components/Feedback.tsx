@@ -9,13 +9,15 @@ import mound from '../assets/mole-mound.png'   // Figma 빈 상태 그림 (알�
  * 확인 팝업 621:3238 (Type=기본 400×183 · Type=신고 400×361)
  * 쓰는 곳: 방명록 삭제 610:12456 · 게시물 삭제 610:12231 · 게시물 신고 610:12558
  */
-export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', tone = 'danger', onConfirm, onClose }: {
+export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', cancelLabel = '취소', tone = 'danger', onConfirm, onClose }: {
   open: boolean
   title: string
   desc: string
   confirmLabel?: string
   /** primary: 갈색 주 버튼 (로그아웃 확인 F10) */
   tone?: 'danger' | 'accent' | 'primary'
+  /** 저장 전 취소(00 공통 18)는 "계속 수정" */
+  cancelLabel?: string
   onConfirm: () => void
   onClose: () => void
 }) {
@@ -25,7 +27,7 @@ export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', tone
         <h2 id="confirm-title" className="display">{title}</h2>
         <p>{desc}</p>
         <div className={styles.actions}>
-          <button className="btn btn-line" onClick={onClose}>취소</button>
+          <button className="btn btn-line" onClick={onClose}>{cancelLabel}</button>
           <button className={`btn ${tone === 'danger' ? 'btn-danger' : tone === 'primary' ? 'btn-primary' : styles.report}`} onClick={() => { onConfirm(); onClose() }}>{confirmLabel}</button>
         </div>
       </div>
@@ -35,16 +37,22 @@ export function ConfirmDialog({ open, title, desc, confirmLabel = '삭제', tone
 
 export const REPORT_REASONS = ['스팸·홍보', '욕설·비하·괴롭힘', '음란물', '기타'] as const
 
-/** 확인 팝업 Type=신고: 사유를 골라야 버튼이 켜진다 */
+/** 받침 있으면 "을", 없으면 "를" (이 게시물을 / 이 사용자를) */
+const eulReul = (w: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 === 0 ? '를' : '을' }
+const ETC_MAX = 100
+
+/** 확인 팝업 Type=신고: 사유를 골라야 버튼이 켜진다. "기타"는 입력칸(필수·최대 100자, 02 F8 신고 팝업 2) */
 export function ReportDialog({ open, target = '게시물', onConfirm, onClose }: {
   open: boolean; target?: string; onConfirm: (reason: string) => void; onClose: () => void
 }) {
   const [reason, setReason] = useState<string | null>(null)
-  useEffect(() => { if (open) setReason(null) }, [open])
+  const [etc, setEtc] = useState('')
+  useEffect(() => { if (open) { setReason(null); setEtc('') } }, [open])
+  const ready = !!reason && (reason !== '기타' || !!etc.trim())
   return (
     <Modal open={open} onClose={onClose} width={400} labelledBy="report-title" hideClose>
       <div className={styles.confirm}>
-        <h2 id="report-title" className="display">이 {target}을 신고할까요?</h2>
+        <h2 id="report-title" className="display">이 {target}{eulReul(target)} 신고할까요?</h2>
         <p>신고 사유를 골라 주세요. 신고한 사람은 상대에게 알려지지 않아요.</p>
         <div className={styles.reasons} role="radiogroup" aria-label="신고 사유">
           {REPORT_REASONS.map((r) => (
@@ -54,10 +62,16 @@ export function ReportDialog({ open, target = '게시물', onConfirm, onClose }:
               {r}
             </label>
           ))}
+          {reason === '기타' && (
+            <div className={styles.etc}>
+              <textarea autoFocus value={etc} maxLength={ETC_MAX} onChange={(e) => setEtc(e.target.value)} placeholder="신고 사유를 적어 주세요" aria-label="기타 신고 사유" />
+              <small>{etc.length} / {ETC_MAX}</small>
+            </div>
+          )}
         </div>
         <div className={styles.actions}>
           <button className="btn btn-line" onClick={onClose}>취소</button>
-          <button className={`btn ${styles.report}`} disabled={!reason} onClick={() => { if (reason) { onConfirm(reason); onClose() } }}>신고하기</button>
+          <button className={`btn ${styles.report}`} disabled={!ready} onClick={() => { if (reason && ready) { onConfirm(reason === '기타' ? `기타: ${etc.trim()}` : reason); onClose() } }}>신고하기</button>
         </div>
       </div>
     </Modal>

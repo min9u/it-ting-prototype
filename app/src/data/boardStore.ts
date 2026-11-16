@@ -1,0 +1,446 @@
+/**
+ * 커뮤니티(F8) 글·댓글·좋아요·저장·신고 상태 (백엔드가 없어서 화면끼리 나누는 작은 저장소)
+ * - 화면 사이(목록 → 상세 → 저장한 글 …)에서 같은 상태를 보도록 모듈 안에 들고 useSyncExternalStore 로 구독
+ * - 새로고침하면 처음 목 데이터로 돌아감 (아티팩트는 sessionStorage 가 막힐 수 있어 저장하지 않음)
+ * 명세: Figma 02 F8 (design/figma/spec/f8/*.png), 정리 docs/spec-f8.md
+ */
+import { useSyncExternalStore } from 'react'
+import { CATEGORIES, ME_ID, MEETUPS, TODAY, USERS, categoryOf } from './mock'
+import { getMyInterests } from './interests'
+import type { Meetup, PostCategory, Tone } from './types'
+
+/* ===== 모양 ===== */
+/** 공개 / 가려짐(신고 3명) / 삭제 — 명세 F8 신고 팝업 4 */
+export type Visibility = 'public' | 'hidden' | 'deleted'
+
+export interface BoardComment {
+  id: string
+  authorId: string
+  text: string
+  /** 답글에 다시 답할 때 붙는 "@닉네임" (닉네임 자체) */
+  mention?: string
+  at: number
+  editedAt?: number
+  likes: number
+  liked?: boolean
+  status: Visibility
+  /** 신고한 사람 수 (3명이면 가려짐) */
+  reports: number
+  /** 내가 신고함 → 나에게만 접힌 채로 보임 */
+  reportedByMe?: boolean
+  /** 답글 (한 단계만) */
+  replies: BoardComment[]
+}
+
+export interface BoardPhoto {
+  tone: Tone
+  /** "사진 추가"로 올린 그림 (object URL). 없으면 색 칸으로 그림 */
+  url?: string
+}
+
+export interface BoardPost {
+  id: string
+  category: PostCategory
+  /** 관심사 대분류 이름 (최대 5개, F0 공통 5: 커뮤니티 글은 대분류) */
+  interests: string[]
+  title: string
+  body: string
+  authorId: string
+  at: number
+  editedAt?: number
+  views: number
+  likes: number
+  liked?: boolean
+  /** 다른 사람들이 저장한 수 (인기 점수에 들어감) */
+  saves: number
+  /** 내가 저장한 때. 없으면 저장 안 함 */
+  savedAt?: number
+  photos: BoardPhoto[]
+  meetupId?: string
+  status: Visibility
+  reports: number
+  reportedByMe?: boolean
+  comments: BoardComment[]
+}
+
+/* ===== 상수 (명세 숫자) ===== */
+export const BOARD_CATS: PostCategory[] = ['모임 홍보', '모임 후기', '자유']
+export const PAGE_SIZE = 20
+export const TITLE_MAX = 50
+export const BODY_MAX = 1000
+export const TAG_MAX = 5
+export const PHOTO_MAX = 3
+export const COMMENT_MAX = 300
+export const COMMENT_PAGE = 10
+export const HIDE_AT = 3
+const DAY = 86_400_000
+const HOUR = 3_600_000
+
+/** 관심사 대분류 11개 이름 (카탈로그 순서) */
+export const BIG_INTERESTS = CATEGORIES.map((c) => c.name)
+export const bigOf = (name: string) => CATEGORIES.find((c) => c.name === name)
+
+/* ===== 사람 표시 (F0 공통 4) ===== */
+export const GONE_ID = 'gone'
+export const isGone = (id: string) => id === GONE_ID || !USERS[id]
+export function nickOf(id: string) {
+  return isGone(id) ? '탈퇴한 사용자' : USERS[id].nickname
+}
+
+/* ===== 시간 표기 (F0 공통 8: 방금 · N시간 전 · 어제 · N일 전, 그보다 오래되면 날짜) ===== */
+const dayStart = (t: number) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime() }
+export function dateLabel(t: number) {
+  const d = new Date(t), now = new Date()
+  return d.getFullYear() === now.getFullYear() ? `${d.getMonth() + 1}월 ${d.getDate()}일` : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+export function ago(t: number) {
+  const now = Date.now()
+  if (now - t < HOUR) return '방금'
+  const days = Math.round((dayStart(now) - dayStart(t)) / DAY)
+  if (days === 0) return `${Math.floor((now - t) / HOUR)}시간 전`
+  if (days === 1) return '어제'
+  if (days < 7) return `${days}일 전`
+  return dateLabel(t)
+}
+
+/* ===== 목 데이터 ===== */
+const NOW = Date.now()
+const m = (min: number) => NOW - min * 60_000
+let seq = 0
+const cid = () => `c${++seq}`
+
+function c(authorId: string, text: string, minAgo: number, likes = 0, extra: Partial<BoardComment> = {}): BoardComment {
+  return { id: cid(), authorId, text, at: m(minAgo), likes, status: 'public', reports: 0, replies: [], ...extra }
+}
+
+const CHATTER = [
+  '저도 궁금했던 거예요! 정리해 주셔서 고마워요', '다음에 저도 같이 가고 싶어요', '오 이거 땅굴에 가구로 두고 싶네요 ㅎㅎ',
+  '좋은 글 저장해 두고 갑니다', '이런 이야기 너무 좋아요', '혹시 초보도 괜찮을까요?', '사진 보니까 분위기 좋네요',
+  '저는 반대로 생각했는데 듣고 보니 그렇네요', '다음 모임 열리면 알려 주세요!', '덕분에 주말 계획 생겼어요',
+]
+const PEOPLE = ['yerin', 'ha', 'mingu', 'seoyeon', 'yejin', 'park', 'kim', 'lee', 'choi', 'seobeok']
+/** 글마다 댓글 수를 맞추려고 만드는 잡담 댓글 */
+function chatter(n: number, postMin: number, salt: number): BoardComment[] {
+  return Array.from({ length: n }, (_, i) => {
+    const at = Math.max(1, Math.round(postMin - ((i + 1) * postMin) / (n + 1)))
+    return c(PEOPLE[(i * 3 + salt) % PEOPLE.length], CHATTER[(i + salt) % CHATTER.length], at, (i * 7 + salt) % 5)
+  })
+}
+
+interface Seed {
+  id: string; cat: PostCategory; tags: string[]; title: string; body: string; author: string; min: number
+  views: number; likes: number; saves: number; photos?: Tone[]; meetup?: string; comments?: BoardComment[]
+  savedMin?: number; status?: Visibility; reports?: number; edited?: number
+}
+
+const SEEDS: Seed[] = [
+  {
+    id: 'p1', cat: '모임 후기', tags: ['운동·아웃도어'], author: 'yerin', min: 70, views: 284, likes: 52, saves: 18, photos: ['sage'], meetup: 'm4', savedMin: 60 * 24 * 7,
+    title: '첫 캠핑 모임 다녀왔어요! 두더지 다섯 마리의 1박 2일',
+    body: '지난 주말 가평으로 첫 캠핑 모임을 다녀왔어요. 다섯 명 중 세 명이 캠핑이 처음이라 텐트 치는 데만 한 시간이 걸렸지만, 다 같이 헤매는 게 오히려 재밌었어요.\n\n밤에는 불 앞에 둘러앉아서 각자 땅굴에 둔 가구 이야기를 했어요. 다음 달에도 열어볼 생각이라, 관심 있는 분들은 아래 모임에서 신청해주세요!',
+    comments: [
+      c('ha', '텐트 치다가 다 같이 웃었던 거 아직도 생각나요 ㅋㅋ 다음 달에도 꼭 갈게요!', 65, 12, {
+        replies: [c('yerin', '네! 다음엔 타프도 챙겨갈게요', 62, 4), c('mingu', '타프 있으면 비 와도 괜찮겠네요', 61, 1, { mention: '예린' })],
+      }),
+      c('mingu', '초보도 괜찮나요? 장비가 하나도 없는데 빌릴 수 있는 곳이 있으면 알려주세요.', 64, 3),
+      c('seoyeon', '후기 읽고 저도 캠핑 가구 하나 땅굴에 들여놨어요. 모임 열리면 신청할게요!', 63, 1),
+      c(ME_ID, '사진만 봐도 즐거웠던 게 느껴져요. 다음엔 저도 신청할게요!', 62, 2),
+      c(GONE_ID, '불멍 최고죠. 저도 다녀오고 싶네요', 61, 0),
+      c('kim', '장비 대여는 제가 정리한 글 참고하세요! 초보 캠핑 장비 빌릴 수 있는 곳', 60, 6, { replies: [c('mingu', '감사합니다! 바로 볼게요', 59, 0)] }),
+      c('lee', '이 댓글은 신고로 가려졌어요', 58, 0, { status: 'hidden', reports: 3 }),
+      ...chatter(7, 57, 2),
+    ],
+  },
+  {
+    id: 'p2', cat: '자유', tags: ['책·글'], author: 'seoyeon', min: 12, views: 171, likes: 14, saves: 6, savedMin: 10,
+    title: '성수동 근처에 조용히 책 읽기 좋은 카페 있을까요?',
+    body: '독서 모임 끝나고 바로 혼자 더 읽다 가고 싶은데, 너무 시끄럽지 않은 곳 추천 부탁드려요.',
+    comments: [
+      c('yejin', '어반플레이스 1층 안쪽 자리가 조용해요', 11, 2),
+      c(ME_ID, '저도 거기 가 봤는데 2층 창가 자리가 제일 좋아요', 9, 1),
+      c('kim', '평일 저녁이면 어디든 괜찮더라고요', 8, 0, { replies: [c(ME_ID, '저는 거기 가봤는데 2층 창가 자리가 조용해요', 6, 0, { mention: '김OO' })] }),
+      c(ME_ID, '카페 이름 알려 주시면 저도 가 볼게요', 5, 0),
+      ...chatter(3, 4, 5),
+    ],
+  },
+  {
+    id: 'p3', cat: '자유', tags: ['공예·만들기'], author: 'seobeok', min: 180, views: 342, likes: 30, saves: 5, savedMin: 60 * 24 * 10,
+    title: '다들 땅굴에 어떤 가구 제일 먼저 두셨어요?',
+    body: '저는 이젤부터 놨는데, 다른 분들 땅굴 구경하다 보니 오락기 들인 분이 많더라고요 ㅋㅋ',
+    comments: [...chatter(9, 170, 1), c(ME_ID, '저는 책장부터 들였어요 ㅎㅎ', 20, 3), ...chatter(5, 15, 4)],
+  },
+  {
+    id: 'p4', cat: '자유', tags: ['책·글'], author: 'yerin', min: 60 * 26, views: 198, likes: 21, saves: 4,
+    title: '이번 달에 읽은 책 한 줄씩 남겨요',
+    body: '저부터! SF 단편집 읽었는데 마지막 편이 제일 좋았어요. 다들 이번 달에 읽은 책 한 줄씩 남겨 주세요.',
+    comments: chatter(6, 60 * 25, 3),
+  },
+  {
+    id: 'p5', cat: '자유', tags: ['게임·놀이'], author: 'mingu', min: 60 * 30, views: 128, likes: 41, saves: 9, photos: ['lilac'], savedMin: 60 * 24 * 11,
+    title: '보드게임 처음 시작할 때 추천하는 다섯 가지',
+    body: '룰이 간단하고 4명 이하로 하기 좋은 게임 위주로 골라봤어요. 모임에서 해본 후기도 같이 적었어요.',
+    comments: [...chatter(3, 60 * 29, 6), c(ME_ID, '스플렌더 추천 감사해요. 바로 샀어요', 60 * 20, 2)],
+  },
+  {
+    id: 'p6', cat: '모임 홍보', tags: ['공예·만들기'], author: ME_ID, min: 60 * 50, views: 88, likes: 11, saves: 3, meetup: 'm3',
+    title: '일요일 아침 망원에서 같이 그려요',
+    body: '연필 한 자루랑 스케치북만 챙겨오세요. 잘 그리는 것보다 같이 그리는 게 목적이에요. 그림을 처음 그려 보는 분도 환영해요.',
+    comments: chatter(4, 60 * 49, 7),
+  },
+  {
+    id: 'p7', cat: '모임 홍보', tags: ['운동·아웃도어'], author: 'ha', min: 60 * 54, views: 120, likes: 9, saves: 2, meetup: 'm7',
+    title: '역삼 점심 러닝 크루 모집해요',
+    body: '점심시간에 3km만 천천히 뛰어요. 샤워실 있는 곳 알려드릴게요.',
+    comments: chatter(2, 60 * 53, 8),
+  },
+  {
+    id: 'p8', cat: '모임 후기', tags: ['영화·애니'], author: 'seobeok', min: 60 * 60, views: 150, likes: 26, saves: 4, photos: ['rose'],
+    meetup: 'm9', title: '지브리 같이 보기 후기: 하울은 언제 봐도 좋네요', body: '온라인으로 모였는데 채팅으로 명장면마다 소리 지르는 게 재밌었어요. 다음 편은 센과 치히로!',
+    comments: chatter(5, 60 * 59, 9),
+  },
+  {
+    id: 'p9', cat: '자유', tags: ['차·커피·베이킹'], author: 'yejin', min: 60 * 70, views: 301, likes: 44, saves: 12, photos: ['butter'],
+    title: '자취방 오븐 없이 만드는 스콘', body: '에어프라이어로도 충분해요. 버터는 차갑게, 반죽은 덜 치대는 게 핵심이에요. 레시피 공유합니다.',
+    comments: chatter(11, 60 * 69, 2),
+  },
+  {
+    id: 'p10', cat: '자유', tags: ['사진'], author: 'ha', min: 60 * 75, views: 156, likes: 9, saves: 1,
+    title: '필름카메라 입문용 추천 부탁드려요', body: '땅굴에 카메라 소품만 두고 실제로는 없어요… 첫 필름카메라 뭐가 좋을까요?',
+    comments: chatter(4, 60 * 74, 3),
+  },
+  {
+    id: 'p11', cat: '모임 홍보', tags: ['게임·놀이'], author: 'mingu', min: 60 * 80, views: 97, likes: 13, saves: 2, meetup: 'm2',
+    title: '퇴근 후 보드게임 한 판 하실 분', body: '역삼역 보드게임 카페에서 가벼운 파티 게임 위주로 해요. 룰 설명부터 천천히 해드려요.',
+    comments: chatter(3, 60 * 79, 4),
+  },
+  {
+    id: 'p12', cat: '자유', tags: ['자연·식물'], author: 'choi', min: 60 * 90, views: 64, likes: 7, saves: 1,
+    title: '사무실 창가에서 키우기 쉬운 식물 있을까요?', body: '햇빛이 오전에만 잠깐 드는 자리예요. 물 주는 걸 자주 잊어버려요 ㅠㅠ',
+    comments: chatter(2, 60 * 89, 5),
+  },
+  {
+    id: 'p13', cat: '자유', tags: ['반려동물'], author: 'lee', min: 60 * 100, views: 210, likes: 38, saves: 3, photos: ['clay'],
+    title: '고양이가 키보드 위에서만 자요', body: '코딩하려고 앉으면 꼭 키보드 위로 올라와요. 다들 어떻게 하세요?',
+    comments: chatter(8, 60 * 99, 6),
+  },
+  {
+    id: 'p14', cat: '모임 후기', tags: ['책·글'], author: 'kim', min: 60 * 110, views: 77, likes: 12, saves: 2, meetup: 'm1',
+    title: '주말의 작은 독서 모임 2회차 후기', body: '이번에는 각자 접어둔 페이지를 하나씩 읽어 줬어요. 처음 오신 분도 금방 섞였어요.',
+    comments: chatter(3, 60 * 109, 7),
+  },
+  {
+    id: 'p15', cat: '자유', tags: ['우주·과학'], author: 'park', min: 60 * 120, views: 59, likes: 8, saves: 1,
+    title: '이번 주말 유성우 보러 갈 만한 곳', body: '서울 근교에서 빛 공해 적은 곳 아시는 분 계실까요? 차 없이 갈 수 있으면 더 좋아요.',
+    comments: chatter(2, 60 * 119, 8),
+  },
+  {
+    id: 'p16', cat: '자유', tags: ['영화·애니'], author: ME_ID, min: 60 * 125, views: 92, likes: 10, saves: 2, edited: 60 * 100,
+    title: '비 오는 날 보기 좋은 고전 영화', body: '요즘 비가 자주 와서 옛날 영화를 다시 보고 있어요. 다들 비 오는 날 꺼내 보는 영화가 있나요?',
+    comments: chatter(5, 60 * 124, 9),
+  },
+  {
+    id: 'p17', cat: '모임 홍보', tags: ['차·커피·베이킹'], author: 'yejin', min: 60 * 130, views: 45, likes: 6, saves: 1, meetup: 'm8',
+    title: '홈카페 원두 나눔회 열어요', body: '집에 남는 원두 가져와서 바꿔 마셔요. 드리퍼는 제가 챙길게요.',
+    comments: chatter(1, 60 * 129, 1),
+  },
+  {
+    id: 'p18', cat: '자유', tags: ['게임·놀이'], author: 'mingu', min: 60 * 140, views: 133, likes: 17, saves: 6,
+    title: '기계식 키보드 축 고르는 법 정리', body: '적축, 갈축, 청축 차이를 사무실에서 써도 되는지 기준으로 정리했어요.',
+    comments: chatter(4, 60 * 139, 2),
+  },
+  {
+    id: 'p19', cat: '자유', tags: ['음악'], author: 'seoyeon', min: 60 * 150, views: 80, likes: 15, saves: 4,
+    title: '퇴근길에 듣는 시티팝 플레이리스트', body: '지하철에서 듣기 좋은 곡 열 곡 골라봤어요. 다들 추천 곡 있으면 댓글로!',
+    comments: chatter(6, 60 * 149, 3),
+  },
+  {
+    id: 'p20', cat: '모임 후기', tags: ['운동·아웃도어'], author: 'ha', min: 60 * 160, views: 70, likes: 11, saves: 1, meetup: 'm10',
+    title: '한강 5km 같이 뛰고 왔어요', body: '페이스가 다 달랐는데 끝까지 같이 뛰었어요. 끝나고 먹은 라면이 제일 맛있었어요.',
+    comments: chatter(2, 60 * 159, 4),
+  },
+  {
+    id: 'p21', cat: '자유', tags: ['공예·만들기'], author: 'yerin', min: 60 * 170, views: 66, likes: 9, saves: 1,
+    title: '뜨개질 처음 시작했는데 코 잡는 게 제일 어렵네요', body: '유튜브 보면서 세 번째 다시 하는 중이에요. 팁 있으면 알려주세요!',
+    comments: chatter(3, 60 * 169, 5),
+  },
+  {
+    id: 'p22', cat: '자유', tags: ['운동·아웃도어'], author: 'kim', min: 60 * 190, views: 520, likes: 61, saves: 22,
+    title: '초보 캠핑 장비 빌릴 수 있는 곳', body: '장비 대여 업체 세 곳을 가격, 배송, 반납 방법으로 비교해봤어요.',
+    comments: chatter(7, 60 * 189, 6),
+  },
+  {
+    id: 'p23', cat: '모임 홍보', tags: ['자연·식물'], author: 'choi', min: 60 * 200, views: 40, likes: 5, saves: 1, meetup: 'm6',
+    title: '테라리움 같이 만들어요', body: '재료비 1만 원이에요. 작은 유리병 하나씩 만들어 가요.',
+    comments: chatter(1, 60 * 199, 7),
+  },
+  {
+    id: 'p24', cat: '자유', tags: ['책·글'], author: ME_ID, min: 60 * 220, views: 33, likes: 2, saves: 0, status: 'hidden', reports: 3,
+    title: 'SF 단편 추천해 주세요', body: '짧게 읽을 수 있는 SF 단편집 찾고 있어요. 링크 남겨 둘게요.',
+    comments: chatter(1, 60 * 219, 8),
+  },
+  {
+    id: 'p25', cat: '자유', tags: ['사진'], author: 'seoyeon', min: 60 * 24 * 10, views: 140, likes: 19, saves: 3, photos: ['mint', 'sky'],
+    title: '출사 다녀온 사진 몇 장', body: '서울숲에서 필름 한 롤 다 찍고 왔어요. 현상하니까 생각보다 잘 나왔어요.',
+    comments: chatter(4, 60 * 24 * 10 - 30, 9),
+  },
+  {
+    id: 'p26', cat: '자유', tags: ['반려동물'], author: 'lee', min: 60 * 24 * 12, views: 110, likes: 23, saves: 2,
+    title: '앵무새가 제 알람 소리를 따라 해요', body: '이제 알람이 울린 건지 앵무새가 운 건지 모르겠어요 ㅋㅋ',
+    comments: chatter(3, 60 * 24 * 12 - 30, 1),
+  },
+  { id: 'p27', cat: '자유', tags: ['게임·놀이'], author: 'lee', min: 60 * 24 * 2, views: 12, likes: 0, saves: 0, status: 'hidden', reports: 3, title: '(신고로 가려진 글)', body: '홍보 글' },
+  { id: 'p28', cat: '자유', tags: ['음악'], author: 'kim', min: 60 * 24 * 3, views: 5, likes: 0, saves: 0, status: 'deleted', title: '(삭제된 글)', body: '' },
+]
+
+function fromSeed(s: Seed): BoardPost {
+  return {
+    id: s.id, category: s.cat, interests: s.tags, title: s.title, body: s.body, authorId: s.author, at: m(s.min),
+    editedAt: s.edited ? m(s.edited) : undefined, views: s.views, likes: s.likes, saves: s.saves,
+    savedAt: s.savedMin ? m(s.savedMin) : undefined, photos: (s.photos ?? []).map((tone) => ({ tone })), meetupId: s.meetup,
+    status: s.status ?? 'public', reports: s.reports ?? 0, comments: s.comments ?? [],
+  }
+}
+
+/* ===== 저장소 ===== */
+let posts: BoardPost[] = SEEDS.map(fromSeed)
+const subs = new Set<() => void>()
+function commit(next: BoardPost[]) { posts = next; subs.forEach((f) => f()) }
+function patch(id: string, f: (p: BoardPost) => BoardPost) { commit(posts.map((p) => (p.id === id ? f(p) : p))) }
+const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+const snap = () => posts
+
+/** 모든 글 (삭제 포함). 화면에서는 아래 골라내기 함수와 같이 씀 */
+export function usePosts() { return useSyncExternalStore(subscribe, snap, snap) }
+export const getPost = (id: string) => posts.find((p) => p.id === id)
+
+/* ===== 계산 ===== */
+const live = (c: BoardComment) => c.status !== 'deleted'
+/** 댓글 수 = 댓글 + 답글 (삭제 빼고) */
+export function commentCount(p: BoardPost) {
+  return p.comments.filter(live).reduce((n, c) => n + 1 + c.replies.filter(live).length, 0)
+}
+export const savesOf = (p: BoardPost) => p.saves + (p.savedAt ? 1 : 0)
+export const likesOf = (p: BoardPost) => p.likes + (p.liked ? 1 : 0)
+/** 인기 점수 = 좋아요 + 댓글 + 저장 */
+export const scoreOf = (p: BoardPost) => likesOf(p) + commentCount(p) + savesOf(p)
+/** 목록·인기·저장·댓글 단 글에 보이는 글 (가려짐·삭제 빼고) */
+export const isListed = (p: BoardPost) => p.status === 'public'
+export const isMine = (p: { authorId: string }) => p.authorId === ME_ID
+const within7 = (p: BoardPost) => Date.now() - p.at <= 7 * DAY
+
+/** 이번 주 인기 글 TOP5: 최근 7일, 점수 높은 순, 같으면 최신 */
+export function hotPosts(all: BoardPost[], n = 5) {
+  return all.filter((p) => isListed(p) && within7(p)).sort((a, b) => scoreOf(b) - scoreOf(a) || b.at - a.at).slice(0, n)
+}
+/** 많이 이야기하는 관심사: 최근 7일 글 수가 많은 대분류 상위 8개 */
+export function hotInterests(all: BoardPost[], n = 8) {
+  const cnt = new Map<string, number>()
+  for (const p of all) if (isListed(p) && within7(p)) for (const t of p.interests) cnt.set(t, (cnt.get(t) ?? 0) + 1)
+  return [...cnt.entries()].sort((a, b) => b[1] - a[1] || BIG_INTERESTS.indexOf(a[0]) - BIG_INTERESTS.indexOf(b[0])).slice(0, n).map(([k]) => k)
+}
+/** 내 관심사 (세부) → 대분류 이름 */
+export function myBigInterests() {
+  return [...new Set(getMyInterests(USERS[ME_ID].interests).map((i) => categoryOf(i)?.name).filter((x): x is string => !!x))]
+}
+/** 내 댓글·답글 (최근 것 먼저) */
+export function myCommentsOn(p: BoardPost) {
+  const out: BoardComment[] = []
+  for (const c of p.comments) {
+    if (live(c) && c.authorId === ME_ID) out.push(c)
+    for (const r of c.replies) if (live(r) && r.authorId === ME_ID) out.push(r)
+  }
+  return out.sort((a, b) => b.at - a.at)
+}
+
+/* ===== 모임 (글에 나온 모임 · 모임 연결) ===== */
+export const isRecruiting = (mt: Meetup) => !mt.cancelled && !mt.past && mt.date >= TODAY && mt.memberIds.length < mt.capacity
+const joined = (mt: Meetup) => mt.hostId === ME_ID || mt.memberIds.includes(ME_ID) || mt.myStatus === '참여 확정' || mt.myStatus === '내가 주최'
+/** 모임 홍보: 모집 중인 내 모임만. 나머지: 내가 만들었거나 참여한 모임 */
+export function linkableMeetups(cat: PostCategory | null) {
+  return cat === '모임 홍보' ? MEETUPS.filter((mt) => mt.hostId === ME_ID && isRecruiting(mt)) : MEETUPS.filter(joined)
+}
+const WEEK = ['일', '월', '화', '수', '목', '금', '토']
+export function meetupWhen(mt: Meetup) {
+  const d = new Date(`${mt.date}T00:00:00`)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]}) ${mt.start}`
+}
+export const meetupShortDate = (mt: Meetup) => { const d = new Date(`${mt.date}T00:00:00`); return `${d.getMonth() + 1}월 ${d.getDate()}일` }
+
+/* ===== 바꾸기 ===== */
+export interface PostDraft {
+  category: PostCategory
+  title: string
+  body: string
+  interests: string[]
+  photos: BoardPhoto[]
+  meetupId?: string
+}
+
+export function createPost(d: PostDraft): string {
+  const id = `p${Date.now().toString(36)}`
+  commit([{ id, ...d, authorId: ME_ID, at: Date.now(), views: 0, likes: 0, saves: 0, status: 'public', reports: 0, comments: [] }, ...posts])
+  return id
+}
+export function updatePost(id: string, d: PostDraft) { patch(id, (p) => ({ ...p, ...d, editedAt: Date.now() })) }
+/** 글 삭제: 댓글·답글도 함께 사라짐 */
+export function deletePost(id: string) { patch(id, (p) => ({ ...p, status: 'deleted', comments: [], savedAt: undefined })) }
+
+let lastView = { id: '', t: 0 }
+/** 조회수: 글을 열 때마다 셈 (작성자 본인은 빼고). StrictMode 두 번 실행은 한 번으로 */
+export function viewPost(id: string) {
+  const p = getPost(id)
+  if (!p || isMine(p) || p.status !== 'public') return
+  if (lastView.id === id && Date.now() - lastView.t < 800) return
+  lastView = { id, t: Date.now() }
+  patch(id, (x) => ({ ...x, views: x.views + 1 }))
+}
+export function toggleLike(id: string) { patch(id, (p) => ({ ...p, liked: !p.liked })) }
+/** 저장 켜고 끄기. 켜졌으면 true */
+export function toggleSave(id: string): boolean {
+  const on = !getPost(id)?.savedAt
+  patch(id, (p) => ({ ...p, savedAt: on ? Date.now() : undefined }))
+  return on
+}
+/** 신고: 내게는 접힘, 3명이 되면 가려짐. 이미 신고했으면 false */
+export function reportPost(id: string): boolean {
+  const p = getPost(id)
+  if (!p || p.reportedByMe) return false
+  patch(id, (x) => { const reports = x.reports + 1; return { ...x, reports, reportedByMe: true, status: reports >= HIDE_AT ? 'hidden' : x.status } })
+  return true
+}
+
+/* 댓글 */
+function mapComments(postId: string, f: (list: BoardComment[]) => BoardComment[]) { patch(postId, (p) => ({ ...p, comments: f(p.comments) })) }
+/** 댓글이나 답글 하나 바꾸기 */
+function mapOne(postId: string, commentId: string, f: (c: BoardComment) => BoardComment) {
+  mapComments(postId, (l) => l.map((c) => (c.id === commentId ? f(c) : { ...c, replies: c.replies.map((r) => (r.id === commentId ? f(r) : r)) })))
+}
+export function addComment(postId: string, text: string) {
+  mapComments(postId, (l) => [...l, { id: `c${Date.now()}`, authorId: ME_ID, text, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }])
+}
+export function addReply(postId: string, parentId: string, text: string, mention?: string) {
+  const r: BoardComment = { id: `r${Date.now()}`, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }
+  mapComments(postId, (l) => l.map((c) => (c.id === parentId ? { ...c, replies: [...c.replies, r] } : c)))
+}
+export function editComment(postId: string, commentId: string, text: string) { mapOne(postId, commentId, (c) => ({ ...c, text, editedAt: Date.now() })) }
+/** 댓글 삭제: 답글이 달렸으면 답글까지 지움 */
+export function deleteComment(postId: string, commentId: string) {
+  mapComments(postId, (l) => l.filter((c) => c.id !== commentId).map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== commentId) })))
+}
+export function toggleCommentLike(postId: string, commentId: string) { mapOne(postId, commentId, (c) => ({ ...c, liked: !c.liked })) }
+export function reportComment(postId: string, commentId: string): boolean {
+  const p = getPost(postId)
+  const target = p?.comments.flatMap((c) => [c, ...c.replies]).find((c) => c.id === commentId)
+  if (!target || target.reportedByMe) return false
+  mapOne(postId, commentId, (x) => { const reports = x.reports + 1; return { ...x, reports, reportedByMe: true, status: reports >= HIDE_AT ? 'hidden' : x.status } })
+  return true
+}
+
+/** 내 활동 개수 */
+export function myActivity(all: BoardPost[]) {
+  return {
+    mine: all.filter((p) => isMine(p) && p.status !== 'deleted').length,
+    commented: all.filter((p) => isListed(p) && myCommentsOn(p).length > 0).length,
+    saved: all.filter((p) => isListed(p) && p.savedAt).length,
+  }
+}
