@@ -50,10 +50,12 @@ def aligned_ssim(a, b, mask, r=5, blk=32):
     mu_a, mu_b = g(ya), g(yb)
     saa, sbb = g(ya * ya) - mu_a ** 2, g(yb * yb) - mu_b ** 2
     H, W = ya.shape
-    hb, wb = (H - 2 * r) // blk, (W - 2 * r) // blk
+    # 가장자리 mg px 는 뺌 (np.roll 이 반대쪽을 끌어와서 가우스 창(반지름 6) 안이 틀어짐)
+    mg = r + 8
+    hb, wb = (H - 2 * mg) // blk, (W - 2 * mg) // blk
     best = np.full((hb, wb), -1.0)
-    A = (slice(r, r + hb * blk), slice(r, r + wb * blk))
-    sl = lambda x, dy, dx: x[r + dy:r + dy + hb * blk, r + dx:r + dx + wb * blk]
+    A = (slice(mg, mg + hb * blk), slice(mg, mg + wb * blk))
+    sl = lambda x, dy, dx: x[mg + dy:mg + dy + hb * blk, mg + dx:mg + dx + wb * blk]
     for dy in range(-r, r + 1):
         for dx in range(-r, r + 1):
             ybs = np.roll(np.roll(yb, -dy, 0), -dx, 1)
