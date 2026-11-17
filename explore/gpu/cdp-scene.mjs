@@ -2,6 +2,7 @@
 // node explore/gpu/cdp-scene.mjs <name> <gpu|hwoff> <url> <explore|chat|room|nav|still>
 // 환경변수: REPS=3(반복, 중앙값) AFF=3(CPU 코어 제한, 16진 마스크) LAB='{"A":false}'(저사양 실험실) WINDOW=1(창 있는 크롬, 화면 밖)
 //          SHOT=1(단계별 스크린샷) OUT=결과 폴더(기본 results/scene) PROFILE=1(첫 진입 CPU 프로필, 첫 반복만)
+//          PRELOAD=ms (3차, 두 번째 방문): 같은 프로필로 한 번 먼저 열고 다 차려진 뒤 ms 기다렸다가(선명한 배경 굽기·IndexedDB 저장·기기 단계 기억) 빈 페이지로 갔다가 다시 엶
 //
 // 단계마다 잼: 페이지 rAF fps(버튼·스크롤이 얼마나 부드러운지), 장면 fps(WebGL 그리기 묶음 수), 긴 작업 합·최대, rAF 최악 간격,
 //            장면 최악 간격(그리기 묶음 사이), 프로세스별 CPU 사용률(렌더러 = 페이지 메인 스레드 포함, GPU = WARP 가 그리는 곳)
@@ -95,6 +96,15 @@ async function run(rep) {
   }
 
   const res = { rep }
+  if (process.env.PRELOAD) {
+    await P.send('Page.navigate', { url })
+    await sleep(300)
+    await waitReady()
+    await sleep(+process.env.PRELOAD)
+    res.preTier = await ev(`localStorage.getItem('digul.tier.v1')`)
+    await P.send('Page.navigate', { url: 'about:blank' })
+    await sleep(800)
+  }
   // ---------- 첫 진입 ----------
   // 랜딩은 스크롤해야 3D 방이 생김 → 첫 진입은 화면 글자가 보일 때까지
   if (scenario === 'landing') await P.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__readyFn=()=>!!document.querySelector('main h1, main h2')` })
@@ -107,7 +117,7 @@ async function run(rep) {
   const c1 = await cpu()
   const ld = await ev(`(()=>{const e=(window.__ready??performance.now())+3000;const lt=__lt.filter(x=>x[0]<e);const f=__f.filter(t=>t>0&&t<e);const gaps=f.slice(1).map((t,i)=>t-f[i]);
     return{readyMs:Math.round(window.__ready??-1),longTaskMs:Math.round(lt.reduce((a,x)=>a+x[1],0)),longTaskMax:Math.round(Math.max(0,...lt.map(x=>x[1]))),worstFreezeMs:Math.round(Math.max(0,...gaps)),
-    heapMB:+((performance.memory?.usedJSHeapSize||0)/1e6).toFixed(0),warmMs:window.__warmMs??null}})()`)
+    heapMB:+((performance.memory?.usedJSHeapSize||0)/1e6).toFixed(0),warmMs:window.__warmMs??null,fieldWarmMs:window.__fieldWarmMs??null,stillAt:window.__stillAt!=null?Math.round(window.__stillAt):null}})()`)
   ld.mb = +(bytes / 1e6).toFixed(1)
   ld.cpuGpuSec = +(((c1.gpu ?? c1.GPU ?? 0) - (c0.gpu ?? c0.GPU ?? 0))).toFixed(2)
   ld.cpuRendererSec = +(((c1.renderer ?? 0) - (c0.renderer ?? 0))).toFixed(2)
@@ -213,9 +223,11 @@ async function run(rep) {
       await sleep(1500)
     }
   }
+  // 3차: 기기 단계 (lib/deviceTier.ts) 측정값·기억
+  res.tier = await ev(`({samples:window.__tierSamples??null,store:localStorage.getItem('digul.tier.v1')})`)
   // 배경 다시 찍기 (holeField noteCapture: 메인 스레드 ms). 선명한 배경(sharp)은 읽어 오기까지 기다려서 실제 멈춤에 가까움
   const caps = await ev('window.__captures ?? null')
-  if (caps) { const by = (k) => caps.filter((c) => c[0] === k).map((c) => c[1]).sort((a, b) => a - b); const sh = by('sharp'), bd = by('bd'), sw = by('sharpWait'); res.captures = { n: caps.length, bdMax: bd.at(-1) ?? null, sharpMed: sh.length ? sh[sh.length >> 1] : null, sharpMax: sh.at(-1) ?? null, waitMed: sw.length ? sw[sw.length >> 1] : null, waitMax: sw.at(-1) ?? null } }
+  if (caps) { const by = (k) => caps.filter((c) => c[0] === k).map((c) => c[1]).sort((a, b) => a - b); const sh = by('sharp'), bd = by('bd'), sw = by('sharpWait'); res.captures = { kinds: Object.fromEntries([...new Set(caps.map((c) => c[0]))].map((k) => { const v = by(k); return [k, { n: v.length, med: v[v.length >> 1], max: v.at(-1) }] })), raw: caps.slice(0, 40), n: caps.length, bdMax: bd.at(-1) ?? null, sharpMed: sh.length ? sh[sh.length >> 1] : null, sharpMax: sh.at(-1) ?? null, waitMed: sw.length ? sw[sw.length >> 1] : null, waitMax: sw.at(-1) ?? null } }
   try { await B.send('Browser.close') } catch {}
   B.ws.close(); P.ws.close(); chrome.kill(); await sleep(800)
   try { fs.rmSync(prof, { recursive: true, force: true }) } catch {}
