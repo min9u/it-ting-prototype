@@ -86,6 +86,10 @@ for (const screen of Object.keys(SCREEN_NAME)) {
     { t16: get('main', screen, 'new', 't16'), c2: get('main', screen, 'new', 'c2') }, 'new')
   add('mid', '3차 중간 (11-16 예열)', '11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈', false,
     { t16: get('main', screen, 'mid', 't16'), c2: get('main', screen, 'mid', 'c2') }, null)
+  if (['room', 'visit', 'onb'].includes(screen)) {
+    add('fin', '최종 (+ 텍스처 올리기 묶기)', '개선 + 예열의 텍스처 올리기를 8ms 씩 묶어 펜스 한 번 (11-17 마지막 고침). 개선(한 장마다 펜스)과 번갈아 잼', true,
+      { t16: get('tex', screen, 'fin', 't16'), c2: get('tex', screen, 'fin', 'c2'), newT16: get('tex', screen, 'new', 't16'), newC2: get('tex', screen, 'new', 'c2') }, null)
+  }
   if (screen === 'room' || screen === 'explore') {
     add('weak', '3차 약한 단계 (weak)', '2코어급으로 판정된 뒤(다음 방문부터): 굽기 6띠·MSAA 없음, 카메라 이동 0.22배', true,
       { t16: get('weak', screen, 'weak', 't16'), c2: get('weak', screen, 'weak', 'c2'), strongT16: get('weak', screen, 'strong', 't16'), strongC2: get('weak', screen, 'strong', 'c2') }, 'weak')
@@ -121,4 +125,26 @@ console.log(`round3.json: 후보 ${candidates.length}개, 묶음 ${Object.keys(a
 
 if (process.argv[2] === 'md') {
   for (const [k, v] of Object.entries(agg).sort()) console.log(k, JSON.stringify(v))
+}
+
+/* ---------- 문서용 표 (node round3-summary.mjs tables) ---------- */
+if (process.argv[2] === 'tables') {
+  const ROWS = {
+    room: [['readyMs', '다 보이기까지 (ms)'], ['loadLongTaskMax', '첫 진입 가장 긴 멈춤 (ms)'], ['loadLongTaskMs', '첫 진입 긴 작업 합 (ms)'], ['bakeMs', '선명한 방 굽기 (시작 → 보임, ms)'], ['walkFps', '걷기 장면 fps'], ['walkWorstGap', '걷기 중 가장 긴 장면 끊김 (ms)'], ['idleCpuGpu', '가만히 그리기 CPU (%)']],
+    explore: [['readyMs', '다 보이기까지 (ms)'], ['loadLongTaskMax', '첫 진입 가장 긴 멈춤 (ms)'], ['hopFps', '점프 장면 fps'], ['panFps', '카메라 이동 fps'], ['hopWorstGap', '점프 중 가장 긴 장면 끊김 (ms)'], ['hopRafWorst', '점프 중 페이지 최악 간격 (ms)'], ['hopLongTaskMs', '점프 중 긴 작업 합 (ms)'], ['sharpReadyMed', '선명한 배경 준비 (중앙, ms)'], ['sharpReadyMax', '선명한 배경 준비 (최대, ms)'], ['idleCpuGpu', '가만히 그리기 CPU (%)'], ['floorSwitchMs', '들판 바꾸기 (ms)']],
+    landing: [['loadLongTaskMax', '첫 화면 가장 긴 멈춤 (ms)'], ['loadFreezeMs', '첫 화면 페이지 최악 간격 (ms)'], ['loadLongTaskMs', '첫 화면 긴 작업 합 (ms)'], ['scrollLongTaskMs', '4구간 스크롤 중 긴 작업 합 (ms)'], ['roomReadyMs', '방이 보이기까지 (ms)'], ['idleCpuGpu', '끝 구간 가만히 CPU (%)']],
+    onb: [['readyMs', '다 보이기까지 (ms)'], ['loadLongTaskMax', '가장 긴 멈춤 (ms)'], ['bakeMs', '선명한 방 굽기 (ms)'], ['idleCpuGpu', '가만히 그리기 CPU (%)']],
+    tea: [['readyMs', '다 보이기까지 (ms)'], ['loadLongTaskMax', '가장 긴 멈춤 (ms)'], ['loadLongTaskMs', '긴 작업 합 (ms)'], ['idleCpuGpu', '가만히 그리기 CPU (%)'], ['sendFps', '인사할 때 장면 fps'], ['typeLatencyMs', '글자 입력 반응 (ms)']],
+    nav: [['burrow_exploreSwitchMs', '내 땅굴 → 탐색 (ms)'], ['burrow_exploreLongTaskMax', '　가장 긴 멈춤'], ['burrow_yerinSwitchMs', '→ 남의 땅굴 (ms)'], ['burrow_yerinLongTaskMax', '　가장 긴 멈춤'], ['burrow_explore2SwitchMs', '→ 탐색 두 번째 (ms)'], ['burrow_explore2LongTaskMax', '　가장 긴 멈춤'], ['chat_r-yerinSwitchMs', '→ 채팅 (ms)'], ['chat_r-yerinLongTaskMax', '　가장 긴 멈춤'], ['burrowSwitchMs', '→ 내 땅굴 (ms)'], ['burrowLongTaskMax', '　가장 긴 멈춤']],
+  }
+  ROWS.visit = ROWS.room
+  const COLS = [['main', 'base', 't16', '기준 16'], ['main', 'mid', 't16', '11-16 16'], ['main', 'new', 't16', '**개선 16**'], ['main', 'base', 'c2', '기준 2코어'], ['main', 'mid', 'c2', '11-16 2코어'], ['main', 'new', 'c2', '**개선 2코어**']]
+  const f = (v) => (v == null ? '–' : typeof v === 'number' ? String(Math.round(v * 10) / 10) : String(v))
+  for (const [screen, rows] of Object.entries(ROWS)) {
+    const cols = COLS.filter(([s, l, c]) => get(s, screen, l, c))
+    console.log(`\n### ${SCREEN_NAME[screen]}\n| | ${cols.map((c) => c[3] + ` (n=${get(c[0], screen, c[1], c[2]).n})`).join(' | ')} |\n|---|${cols.map(() => '---').join('|')}|`)
+    for (const [k, label] of rows) console.log(`| ${label} | ${cols.map(([s, l, c]) => f(get(s, screen, l, c)[k])).join(' | ')} |`)
+  }
+  // 그 밖의 묶음 (weak · cand · revisit · gpu)
+  for (const [k, v] of Object.entries(agg).sort()) if (!k.startsWith('main|')) console.log(k, JSON.stringify(v))
 }

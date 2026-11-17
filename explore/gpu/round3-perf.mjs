@@ -11,6 +11,8 @@ const OUT = path.join(here, 'results', 'round3', 'scene')
 fs.mkdirSync(OUT, { recursive: true })
 const BASE = process.env.BASE || 'http://localhost:5342/#'
 const NEW = process.env.NEW || 'http://localhost:5341/#'
+/** 텍스처 묶기까지 넣은 최종 빌드 (tex 묶음에서 개선과 번갈아 잼) */
+const FIN = process.env.FIN || 'http://localhost:5343/#'
 const REPS = +(process.env.REPS || 2)
 const [set = 'main', ...cfgArg] = process.argv.slice(2)
 const cfgs = cfgArg.length ? cfgArg : set === 'gpu' ? ['gpu'] : ['t16', 'c2']
@@ -33,6 +35,8 @@ const PLAN = {
   revisit: ['room', 'explore'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   // 약한 단계 강제 (2코어 첫 방문이 strong 으로 시작하므로 따로)
   weak: ['room', 'explore'].map((k) => [k, [['strong', NEW, 'tier=strong'], ['weak', NEW, 'tier=weak']]]),
+  // 텍스처 올리기 묶기 (11-17 마지막 고침): 개선(5341, 한 장마다 펜스) ↔ 최종(5343)
+  tex: ['visit', 'room', 'onb'].map((k) => [k, [['new', NEW, ''], ['fin', FIN, '']]]),
   // 후보별 (손잡이로 하나씩 되돌림). 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
   cand: [
     // 예열은 main 의 mid(11-16 예열: 물체마다 compileAsync·펜스, 결과 파일 이름을 new → mid 로 바꿔 둠)·base 와 비교

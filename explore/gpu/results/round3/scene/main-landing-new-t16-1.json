@@ -1,0 +1,149 @@
+{
+  "summary": {
+    "name": "main-landing-new-t16-1",
+    "mode": "hwoff",
+    "url": "http://localhost:5341/#/start",
+    "scenario": "landing",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": -1,
+      "longTaskMs": 181,
+      "longTaskMax": 181,
+      "worstFreezeMs": 183,
+      "heapMB": 25,
+      "fieldWarmMs": 399,
+      "mb": 2.3,
+      "cpuGpuSec": 65.31,
+      "cpuRendererSec": 6.09
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 60.1,
+      "sceneFps": 28.6,
+      "worstGap": 17,
+      "sceneWorstGap": 19,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 14,
+      "cpuGpu": 77,
+      "drawsPerFrame": 23,
+      "ktrisPerFrame": 15
+    },
+    "scroll": {
+      "sec": 11.3,
+      "rafFps": 53,
+      "sceneFps": 48.4,
+      "worstGap": 150,
+      "sceneWorstGap": 156,
+      "longTaskMs": 305,
+      "longTaskMax": 86,
+      "cpuRenderer": 45,
+      "cpuGpu": 207,
+      "drawsPerFrame": 28,
+      "ktrisPerFrame": 17
+    },
+    "captures": {
+      "n": 1
+    },
+    "roomReadyMs": 2049
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": -1,
+        "longTaskMs": 181,
+        "longTaskMax": 181,
+        "worstFreezeMs": 183,
+        "heapMB": 25,
+        "warmMs": null,
+        "fieldWarmMs": 399,
+        "stillAt": null,
+        "mb": 2.3,
+        "cpuGpuSec": 65.31,
+        "cpuRendererSec": 6.09
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "scroll": {
+        "sec": 11.3,
+        "rafFps": 53,
+        "sceneFps": 48.4,
+        "worstGap": 150,
+        "sceneWorstGap": 156,
+        "longTaskMs": 305,
+        "longTaskMax": 86,
+        "cpuRenderer": 45,
+        "cpuGpu": 207,
+        "drawsPerFrame": 28,
+        "ktrisPerFrame": 17
+      },
+      "roomReadyMs": 2049,
+      "idle": {
+        "sec": 6,
+        "rafFps": 60.1,
+        "sceneFps": 28.6,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 14,
+        "cpuGpu": 77,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 15
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            52,
+            0.56,
+            92
+          ],
+          [
+            "room",
+            22,
+            0.56,
+            40
+          ],
+          [
+            "room",
+            90,
+            0.56,
+            160
+          ],
+          [
+            "room",
+            87,
+            0.56,
+            154
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794879470150,\"low\":\"strong\",\"score\":40}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 304,
+            "max": 304
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            304
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    }
+  ]
+}

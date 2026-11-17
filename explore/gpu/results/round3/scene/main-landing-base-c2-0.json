@@ -1,0 +1,99 @@
+{
+  "summary": {
+    "name": "main-landing-base-c2-0",
+    "mode": "hwoff",
+    "url": "http://localhost:5342/#/start",
+    "scenario": "landing",
+    "aff": "3",
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": -1,
+      "longTaskMs": 2374,
+      "longTaskMax": 1001,
+      "worstFreezeMs": 1167,
+      "heapMB": 24,
+      "mb": 2.1,
+      "cpuGpuSec": 40.26,
+      "cpuRendererSec": 5.53
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 58.6,
+      "sceneFps": 10.8,
+      "worstGap": 33,
+      "sceneWorstGap": 38,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 11,
+      "cpuGpu": 33,
+      "drawsPerFrame": 23,
+      "ktrisPerFrame": 15
+    },
+    "scroll": {
+      "sec": 13.2,
+      "rafFps": 37.6,
+      "sceneFps": 33.6,
+      "worstGap": 617,
+      "sceneWorstGap": 632,
+      "longTaskMs": 2515,
+      "longTaskMax": 617,
+      "cpuRenderer": 32,
+      "cpuGpu": 138,
+      "drawsPerFrame": 23,
+      "ktrisPerFrame": 14
+    },
+    "roomReadyMs": 6273
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": -1,
+        "longTaskMs": 2374,
+        "longTaskMax": 1001,
+        "worstFreezeMs": 1167,
+        "heapMB": 24,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 2.1,
+        "cpuGpuSec": 40.26,
+        "cpuRendererSec": 5.53
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "scroll": {
+        "sec": 13.2,
+        "rafFps": 37.6,
+        "sceneFps": 33.6,
+        "worstGap": 617,
+        "sceneWorstGap": 632,
+        "longTaskMs": 2515,
+        "longTaskMax": 617,
+        "cpuRenderer": 32,
+        "cpuGpu": 138,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 14
+      },
+      "roomReadyMs": 6273,
+      "idle": {
+        "sec": 6,
+        "rafFps": 58.6,
+        "sceneFps": 10.8,
+        "worstGap": 33,
+        "sceneWorstGap": 38,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 11,
+        "cpuGpu": 33,
+        "drawsPerFrame": 23,
+        "ktrisPerFrame": 15
+      },
+      "tier": {
+        "samples": null,
+        "store": null
+      }
+    }
+  ]
+}

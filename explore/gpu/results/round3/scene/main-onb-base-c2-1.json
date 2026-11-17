@@ -1,0 +1,71 @@
+{
+  "summary": {
+    "name": "main-onb-base-c2-1",
+    "mode": "hwoff",
+    "url": "http://localhost:5342/#/onboarding/preview?demo",
+    "scenario": "idle",
+    "aff": "3",
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 6617,
+      "longTaskMs": 2963,
+      "longTaskMax": 983,
+      "worstFreezeMs": 983,
+      "heapMB": 80,
+      "mb": 5.9,
+      "cpuGpuSec": 9.16,
+      "cpuRendererSec": 4.8
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 58.5,
+      "sceneFps": 15.6,
+      "worstGap": 33,
+      "sceneWorstGap": 4006,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 13,
+      "cpuGpu": 43,
+      "drawsPerFrame": 31,
+      "ktrisPerFrame": 18
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 6617,
+        "longTaskMs": 2963,
+        "longTaskMax": 983,
+        "worstFreezeMs": 983,
+        "heapMB": 80,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.9,
+        "cpuGpuSec": 9.16,
+        "cpuRendererSec": 4.8
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 58.5,
+        "sceneFps": 15.6,
+        "worstGap": 33,
+        "sceneWorstGap": 4006,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 13,
+        "cpuGpu": 43,
+        "drawsPerFrame": 31,
+        "ktrisPerFrame": 18
+      },
+      "tier": {
+        "samples": null,
+        "store": null
+      }
+    }
+  ]
+}

@@ -18,6 +18,7 @@ const SCREENS = {
 }
 const VARIANTS = [
   ['gpu', 'gpu', NEW, ''],
+  ['gpubase', 'gpu', BASE, ''], // GPU 에서 그림이 그대로인지 (2차 빌드 GPU 와 비교)
   ['base', 'hwoff', BASE, ''],
   ['new', 'hwoff', NEW, ''],
   ['weak', 'hwoff', NEW, 'tier=weak'],

@@ -1,0 +1,126 @@
+{
+  "summary": {
+    "name": "main-onb-new-c2-0",
+    "mode": "hwoff",
+    "url": "http://localhost:5341/#/onboarding/preview?demo",
+    "scenario": "idle",
+    "aff": "3",
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 6256,
+      "longTaskMs": 2878,
+      "longTaskMax": 737,
+      "worstFreezeMs": 1033,
+      "heapMB": 82,
+      "mb": 5.9,
+      "cpuGpuSec": 8.73,
+      "cpuRendererSec": 4.97
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 59.2,
+      "sceneFps": 16.4,
+      "worstGap": 33,
+      "sceneWorstGap": 4022,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 13,
+      "cpuGpu": 43,
+      "drawsPerFrame": 32,
+      "ktrisPerFrame": 18
+    },
+    "captures": {
+      "n": 1
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 6256,
+        "longTaskMs": 2878,
+        "longTaskMax": 737,
+        "worstFreezeMs": 1033,
+        "heapMB": 82,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.9,
+        "cpuGpuSec": 8.73,
+        "cpuRendererSec": 4.97
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 59.2,
+        "sceneFps": 16.4,
+        "worstGap": 33,
+        "sceneWorstGap": 4022,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 13,
+        "cpuGpu": 43,
+        "drawsPerFrame": 32,
+        "ktrisPerFrame": 18
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            96,
+            0.49,
+            194
+          ],
+          [
+            "room",
+            32,
+            0.49,
+            65
+          ],
+          [
+            "room",
+            57,
+            0.49,
+            116
+          ],
+          [
+            "room",
+            876,
+            0.49,
+            1779
+          ],
+          [
+            "room",
+            513,
+            0.49,
+            1042
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794880747459,\"low\":\"strong\",\"score\":65}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 791,
+            "max": 791
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            791
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    }
+  ]
+}

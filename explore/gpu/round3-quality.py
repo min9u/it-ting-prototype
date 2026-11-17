@@ -42,7 +42,7 @@ def ssim_map(a, b):
 
 
 SCREENS = ['room', 'visit', 'explore', 'onb', 'landing', 'tea']
-VARIANTS = ['gpu', 'base', 'new', 'weak']
+VARIANTS = ['gpu', 'gpubase', 'base', 'new', 'weak']
 out = {}
 for sc in SCREENS:
     ref, rmeta = load(f'{sc}-gpu')

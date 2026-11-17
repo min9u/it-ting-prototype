@@ -1,0 +1,203 @@
+{
+  "summary": {
+    "name": "main-nav-base-t16-2",
+    "mode": "hwoff",
+    "url": "http://localhost:5342/#/burrow",
+    "scenario": "nav",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 2913,
+      "longTaskMs": 585,
+      "longTaskMax": 157,
+      "worstFreezeMs": 183,
+      "heapMB": 73,
+      "mb": 5.6,
+      "cpuGpuSec": 13.85,
+      "cpuRendererSec": 5.4
+    },
+    "captures": {
+      "n": 11,
+      "bdMax": 12,
+      "sharpMed": 48,
+      "sharpMax": 48,
+      "waitMed": 106,
+      "waitMax": 106
+    },
+    "nav": [
+      {
+        "to": "/burrow/explore",
+        "switchMs": 1009,
+        "longTaskMs": 273,
+        "longTaskMax": 103,
+        "worstGap": 100
+      },
+      {
+        "to": "/burrow/yerin",
+        "switchMs": 1170,
+        "longTaskMs": 309,
+        "longTaskMax": 158,
+        "worstGap": 167
+      },
+      {
+        "to": "/burrow/explore",
+        "switchMs": 369,
+        "longTaskMs": 202,
+        "longTaskMax": 90,
+        "worstGap": 117
+      },
+      {
+        "to": "/chat/r-yerin",
+        "switchMs": 478,
+        "longTaskMs": 300,
+        "longTaskMax": 168,
+        "worstGap": 233
+      },
+      {
+        "to": "/burrow",
+        "switchMs": 575,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "worstGap": 33
+      }
+    ]
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 2913,
+        "longTaskMs": 585,
+        "longTaskMax": 157,
+        "worstFreezeMs": 183,
+        "heapMB": 73,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.6,
+        "cpuGpuSec": 13.85,
+        "cpuRendererSec": 5.4
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "nav": [
+        {
+          "to": "/burrow/explore",
+          "switchMs": 1009,
+          "longTaskMs": 273,
+          "longTaskMax": 103,
+          "worstGap": 100
+        },
+        {
+          "to": "/burrow/yerin",
+          "switchMs": 1170,
+          "longTaskMs": 309,
+          "longTaskMax": 158,
+          "worstGap": 167
+        },
+        {
+          "to": "/burrow/explore",
+          "switchMs": 369,
+          "longTaskMs": 202,
+          "longTaskMax": 90,
+          "worstGap": 117
+        },
+        {
+          "to": "/chat/r-yerin",
+          "switchMs": 478,
+          "longTaskMs": 300,
+          "longTaskMax": 168,
+          "worstGap": 233
+        },
+        {
+          "to": "/burrow",
+          "switchMs": 575,
+          "longTaskMs": 0,
+          "longTaskMax": 0,
+          "worstGap": 33
+        }
+      ],
+      "tier": {
+        "samples": null,
+        "store": null
+      },
+      "captures": {
+        "kinds": {
+          "bd": {
+            "n": 5,
+            "med": 1,
+            "max": 12
+          },
+          "sharp": {
+            "n": 2,
+            "med": 48,
+            "max": 48
+          },
+          "sharpWait": {
+            "n": 2,
+            "med": 106,
+            "max": 106
+          },
+          "sharpPut": {
+            "n": 2,
+            "med": 16,
+            "max": 16
+          }
+        },
+        "raw": [
+          [
+            "bd",
+            0
+          ],
+          [
+            "bd",
+            0
+          ],
+          [
+            "bd",
+            9
+          ],
+          [
+            "sharp",
+            48
+          ],
+          [
+            "sharpWait",
+            80
+          ],
+          [
+            "sharpPut",
+            14
+          ],
+          [
+            "bd",
+            1
+          ],
+          [
+            "bd",
+            12
+          ],
+          [
+            "sharp",
+            39
+          ],
+          [
+            "sharpWait",
+            106
+          ],
+          [
+            "sharpPut",
+            16
+          ]
+        ],
+        "n": 11,
+        "bdMax": 12,
+        "sharpMed": 48,
+        "sharpMax": 48,
+        "waitMed": 106,
+        "waitMax": 106
+      }
+    }
+  ]
+}

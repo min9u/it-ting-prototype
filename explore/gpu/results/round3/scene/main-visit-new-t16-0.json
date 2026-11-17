@@ -1,0 +1,172 @@
+{
+  "summary": {
+    "name": "main-visit-new-t16-0",
+    "mode": "hwoff",
+    "url": "http://localhost:5341/#/burrow/yerin",
+    "scenario": "room",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 3449,
+      "longTaskMs": 394,
+      "longTaskMax": 117,
+      "worstFreezeMs": 117,
+      "heapMB": 80,
+      "mb": 5.3,
+      "cpuGpuSec": 14.92,
+      "cpuRendererSec": 4.86
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 60,
+      "sceneFps": 15.5,
+      "worstGap": 17,
+      "sceneWorstGap": 4015,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 20,
+      "cpuGpu": 85,
+      "drawsPerFrame": 59,
+      "ktrisPerFrame": 36
+    },
+    "idle2": {
+      "sec": 6,
+      "rafFps": 60.1,
+      "sceneFps": 12.1,
+      "worstGap": 17,
+      "sceneWorstGap": 18,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 12,
+      "cpuGpu": 64,
+      "drawsPerFrame": 58,
+      "ktrisPerFrame": 36
+    },
+    "walk": {
+      "sec": 8,
+      "rafFps": 59.9,
+      "sceneFps": 59.9,
+      "worstGap": 17,
+      "sceneWorstGap": 21,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 26,
+      "cpuGpu": 298,
+      "drawsPerFrame": 58,
+      "ktrisPerFrame": 36
+    },
+    "captures": {
+      "n": 1
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 3449,
+        "longTaskMs": 394,
+        "longTaskMax": 117,
+        "worstFreezeMs": 117,
+        "heapMB": 80,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.3,
+        "cpuGpuSec": 14.92,
+        "cpuRendererSec": 4.86
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 60,
+        "sceneFps": 15.5,
+        "worstGap": 17,
+        "sceneWorstGap": 4015,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 20,
+        "cpuGpu": 85,
+        "drawsPerFrame": 59,
+        "ktrisPerFrame": 36
+      },
+      "walk": {
+        "sec": 8,
+        "rafFps": 59.9,
+        "sceneFps": 59.9,
+        "worstGap": 17,
+        "sceneWorstGap": 21,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 26,
+        "cpuGpu": 298,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 60.1,
+        "sceneFps": 12.1,
+        "worstGap": 17,
+        "sceneWorstGap": 18,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 12,
+        "cpuGpu": 64,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            75,
+            0.53,
+            142
+          ],
+          [
+            "room",
+            21,
+            0.53,
+            39
+          ],
+          [
+            "room",
+            18,
+            0.53,
+            34
+          ],
+          [
+            "room",
+            144,
+            0.53,
+            273
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794879042968,\"low\":\"strong\",\"score\":39}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 157,
+            "max": 157
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            157
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    }
+  ]
+}
