@@ -55,6 +55,8 @@ export interface Overlay {
   readonly mode: FxMode
   /** 다음 프레임에 다시 그림 (still 이어도) */
   invalidate(): void
+  /** 겹 캔버스를 통째로 숨김/보임 (합성에서도 빠짐). 바뀔 때만 스타일을 건드림 */
+  setHidden(on: boolean): void
   dispose(): void
 }
 
@@ -106,13 +108,15 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
   let wasAnim = false
   /** lite: 카메라가 움직이는 동안 비워 둠 (들판 점프 0.4초·방 돌리기). 3D 가 가장 무거운 순간에 겹 캔버스 그리기·합성을 쉬게 */
   let hiddenForMove = false
+  /** setHidden 으로 통째로 숨김 */
+  let hiddenAll = false
   const tick = (now: number) => {
     if (!alive) return
     raf = requestAnimationFrame(tick)
     const moved = camChanged()
     // fps 제한. 단 GPU(full)는 카메라가 움직이는 프레임이면 바로 (말풍선·이정표가 장면을 늦게 따라가 보이지 않게)
     const gap = mode.fps && !(moved && mode.level === 'full') ? 1000 / mode.fps - 3 : 0
-    if (now - last < gap) { if (moved) dirty = true; return }
+    if (now - last < gap || hiddenAll) { if (moved) dirty = true; return }
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
     last = now
     if (moved) wake()
@@ -139,6 +143,12 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
   return {
     mode,
     invalidate() { dirty = true; wake() },
+    setHidden(on) {
+      if (on === hiddenAll) return
+      hiddenAll = on
+      cv.style.display = on ? 'none' : 'block'
+      if (!on) dirty = true
+    },
     dispose() {
       alive = false
       cancelAnimationFrame(raf)

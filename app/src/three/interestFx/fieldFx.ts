@@ -302,11 +302,19 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }
 
   const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || fxOn('f_edge')
-  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) => anyOn() && (puffs.length > 0 || seats.some((x) => x.expand > .01 && x.expand < .99) || (!calm && (fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke')))))
+  // 가속 꺼짐(lite)은 점프하는 1.3초 동안 움직임을 멈춤 (그리는 건 카메라가 멈춘 순간 한 번뿐). 4차 측정: 모두 켜면 점프 fps 가 58 → 53 이었음
+  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) => !(overlay.mode.level === 'lite' && o.here().moving) && anyOn() && (puffs.length > 0 || seats.some((x) => x.expand > .01 && x.expand < .99) || (!calm && (fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke')))))
   still = overlay.mode.level === 'still'
   // 서 있는 자리가 바뀌면(점프) 다시 그림 (still 단계에서도 펼침·숨김이 바뀌므로)
   let lastSeat = -1
-  const poll = window.setInterval(() => { const h = o.here(); const k = h.seat * 2 + (h.moving ? 1 : 0); if (k !== lastSeat) { lastSeat = k; overlay.invalidate() } }, 150)
+  const poll = window.setInterval(() => {
+    const h = o.here(); const k = h.seat * 2 + (h.moving ? 1 : 0)
+    if (k === lastSeat) return
+    lastSeat = k
+    // 가속 꺼짐: 점프하는 동안(약 1.3초)은 겹 캔버스를 합성에서도 빼 둠 (화면 가득한 투명 층 하나를 매 프레임 섞는 일이 WARP 에서 점프 fps 를 깎았음)
+    if (overlay.mode.level === 'lite') overlay.setHidden(h.moving)
+    overlay.invalidate()
+  }, 100)
   const unsub = subscribeFx(() => overlay.invalidate())
   return {
     dispose() { unsub(); clearInterval(poll); overlay.dispose(); puffs.length = 0 },
