@@ -153,6 +153,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-16 [채팅 새로 만들기: 02 F6 + 03 디자인](docs/chat-f6.md): 세 칸(목록 · 찻방 · 대화). 찻방은 2D 방 그림 + 3D 두더지(모임 5마리 + "+N"). 1:1(대화 시작 안내·관심사·모임 카드·대화 나가기·상대 나감/탈퇴 읽기 전용), 모임(공지 주최자만·참여 알림·모임 정보 팝업·모임 나가기 24시간 규칙), 요청 탭(받은/보낸, 거절 확인·수락 → 대화방·5일 만료·취소), 프로필 팝업(신고). 방문자 뷰 대화 요청 → 보낸 요청, 모임 채팅 링크 → 그 모임 대화방. 첨부는 모임 공유만. 팀 아티팩트 version 30
 - 2026-11-16 [02 명세 나머지 전 영역 구현](docs/spec-all-2026-11-16.md): F1·F2 / F3·F4 / F7 / F8 / F9~F11·공통을 작업자 5개가 worktree 로 나눠 구현하고 합침. 영역 잇기(채팅 모임 대화방 ↔ 모임 저장소, 알림 모임 신청 수, 로그아웃 → 비로그인, 프로필 팝업 차단, 없는 모임·땅굴 안내). 확인받을 것 목록은 문서에
 - 2026-11-16 [탐색 디자인 시안 A·B·C·D + 미니맵](docs/explore-designs.md): `/burrow/explore?design=a|b|c|d`(위쪽 시안 칩). A 3D 들판 점프 / B 2D 마을 지도(길 따라 걷기·필터) / C 땅속 굴길 단면(방 엿보기) / D 이웃 카드(잘 맞는 순·말 거는 계기). 미니맵(`screens/burrow/Minimap.tsx`)은 네 시안 모두: 땅굴·내 두더지·보이는 범위·접속 중·단골, 크게 보기 팝업. 추천 A+미니맵, 가속 꺼진 PC는 B. 팀 아티팩트 version 33, 비교 페이지 https://claude.ai/artifact/DtERmkRudGQotA7yoMx7xC
+- 2026-11-16 [테스트 · 스모크 · CI · 번들 크기](docs/testing-ci.md): `app/`에서 `npm test`(vitest 단위 테스트 `src/tests/`, 명세 번호를 이름에, 순수 함수·JSON 위주), `npm run smoke`(dist를 헤드리스 크롬 CDP로 열어 화면 94개의 예외·콘솔 에러·빈 화면 + 스크린샷 `shots/smoke/`, `--gpu=off|none|swiftshader`), `npm run bundle-report`(청크별 gzip · 첫 화면 JS 340KB · 예산), CI `.github/workflows/ci.yml`(Node 24.18 고정 `app/.nvmrc`). 명세 ↔ 디자인 확인 목록 81줄은 [docs/spec-design-gaps.md](docs/spec-design-gaps.md)
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

@@ -1,0 +1,72 @@
+# 앱(app/) 검사: 타입 · 단위 테스트 · 빌드 · 번들 크기 · 화면 스모크
+# 사용법과 결과는 docs/testing-ci.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: 타입 · 테스트 · 빌드 · 스모크
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        # 저장소 루트가 아니라 app/ 에서 돎
+        working-directory: app
+    env:
+      CI: 'true'
+      # 목 데이터 날짜 계산이 로컬 시각 기준이라 서울 시간대로 (vitest.config.ts 도 같은 값)
+      TZ: Asia/Seoul
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 버전 고정 (로컬과 같은 값, app/.nvmrc)
+          node-version-file: app/.nvmrc
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: 패키지 설치
+        run: npm ci
+
+      - name: 타입 검사 (tsc -b)
+        run: npx tsc -b
+
+      - name: 단위 테스트 (vitest)
+        run: npm test
+
+      - name: 빌드 (vite build)
+        # tsc -b 는 위에서 했으므로 vite build 만 (npm run build = tsc -b && vite build)
+        run: npx vite build
+
+      - name: 번들 크기 보고
+        # 예산을 넘으면 ::warning 주석 + 작업 요약(Summary)에 표. 실패로 막지는 않음 (--strict 를 붙이면 막음)
+        run: npm run bundle-report -- --json=bundle-report.json --md=bundle-report.md
+
+      - name: 화면 스모크 (헤드리스 크롬, SwiftShader WebGL)
+        # 러너에 깔린 google-chrome 을 씀. GPU 가 없어서 WebGL 은 SwiftShader 로
+        run: npm run smoke -- --gpu=swiftshader --wait=9000
+
+      - name: 스모크 스크린샷 · 보고서 올리기
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ github.run_number }}
+          path: |
+            app/shots/smoke/
+            app/bundle-report.json
+            app/bundle-report.md
+          retention-days: 14
+          if-no-files-found: ignore
