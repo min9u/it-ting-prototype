@@ -8,7 +8,7 @@
 | **써 보기 (팀 공유용)** | https://claude.ai/artifact/Fd1hfXP3T6nzY2Zg4QXYAS — 시작 화면 → 가입 → 온보딩 → 내 땅굴 순서로 체험. 주소 끝에 `#/screens`를 붙이면 전체 화면 목록 |
 | **디자인 기준** | Figma "it-ting 스켈레톤" 파일의 **03. Screens** 페이지 (받아 둔 자료는 `design/figma/`). 기능 명세는 **02 페이지** |
 | **3D 모델** | 디자이너 핸드오프 v1 ~ v3.5.1 (`design/digul_3d_handoff_*`) |
-| **공부용 기술 문서** | [docs/frontend-guide.md](docs/frontend-guide.md) |
+| **공부용 기술 문서** | [docs/frontend-guide.md](docs/frontend-guide.md) (기술 선택 이유 · 사건 기록) + [docs/frontend-guide-concepts.md](docs/frontend-guide-concepts.md) (개념 학습) |
 | **다음에 할 일** | [docs/next-steps.md](docs/next-steps.md) |
 
 | 내 땅굴 | 탐색하기 |
@@ -109,7 +109,8 @@ npm run build:share  # 팀 공유용 빌드 → app/dist-share
 
 **계획·가이드**
 - [frontend-plan.md](docs/frontend-plan.md) — 화면 목록과 구현 계획
-- [frontend-guide.md](docs/frontend-guide.md) — 앱 구조, React 상태, 라우팅, 3D를 React에 넣는 법 (공부용)
+- [frontend-guide.md](docs/frontend-guide.md) — 기술마다 고른 이유와 대가, 개발 중 치명적인 문제 21건과 해결, 구조·백엔드 연결·용어집 (공부용, 2026-11-17)
+- [frontend-guide-concepts.md](docs/frontend-guide-concepts.md) — 개념 학습: React 상태, 라우팅·에러 경계, 토큰, 타입, 서버 데이터, 실시간, 3D를 React에 넣는 법, 그래픽 성능 개념, 빌드, 테스트
 - [next-steps.md](docs/next-steps.md) — 다음에 할 일
 
 **디자인 반영**
