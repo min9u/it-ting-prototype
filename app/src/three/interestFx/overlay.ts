@@ -13,7 +13,8 @@ import { prefersReducedMotion } from '../../lib/a11y'
  * 단점: 두더지가 이펙트 앞을 지나가도 가리지 않음 (이펙트가 늘 위). 작은 입자라 눈에 거의 안 띔
  *
  * 기기 단계별 (lib/deviceTier.ts, engine quality):
- * - full (GPU): 매 rAF, 기기 배율 최대 1.5, 입자 최대 160, 들판 움직이는 구멍 12개
+ * - full (GPU): 30fps (카메라가 움직이는 동안은 매 rAF 로 장면과 같이), 기기 배율 최대 1.5, 입자 최대 160, 들판 움직이는 구멍 12개.
+ *   (2026-11-17 측정: 매 rAF 60fps 로 그리면 가만히 있는 탐색에서 렌더러 CPU 15 → 29%, GPU 프로세스 21 → 51% 라 입자는 30fps 로 충분)
  * - lite (가속 꺼짐 · 16스레드급): 20fps, 배율 1, 입자 최대 48, 움직이는 구멍 5개, 땅굴 선반 소품은 입자 없음.
  *   마우스·키·카메라가 8초 동안 가만히 있으면 쉼(calm): 새 입자를 안 만들고 남은 것이 사라지면 멈춘 그림 하나로 그치고 다시 그리지 않음
  *   (2026-11-17 측정: 쉬지 않으면 겹 캔버스를 20fps 로 합성하느라 WARP 의 GPU 프로세스 CPU 가 가만히 있어도 크게 늘었음. 3D 루프의 idleStop 과 같은 생각)
@@ -39,7 +40,7 @@ export function fxMode(): FxMode {
   const reduce = prefersReducedMotion()
   const forced = (() => { try { return (location.search + location.hash).match(/[?&]fxmode=(full|lite|still)\b/)?.[1] ?? null } catch { return null } })()
   const level: FxMode['level'] = (forced as FxMode['level'] | null) ?? (reduce ? 'still' : q.level === 'high' ? 'full' : q.tier === 'weak' ? 'still' : 'lite')
-  if (level === 'full') return { level, fps: 0, dpr: Math.min(window.devicePixelRatio || 1, 1.5), maxParticles: 160, active: 12, reduce, label: 'GPU · 모든 이펙트가 움직여요', restAfter: 0 }
+  if (level === 'full') return { level, fps: 30, dpr: Math.min(window.devicePixelRatio || 1, 1.5), maxParticles: 160, active: 12, reduce, label: 'GPU · 모든 이펙트가 움직여요', restAfter: 0 }
   if (level === 'lite') return { level, fps: 20, dpr: 1, maxParticles: 48, active: 5, reduce, label: '그래픽 가속 꺼짐 · 가까운 것만 20fps로, 가만히 있으면 쉬어요', restAfter: 8 }
   return { level, fps: 6, dpr: 1, maxParticles: 0, active: 0, reduce, label: reduce ? '움직임 줄이기 설정 · 움직임 없이 아이콘만 보여요' : '아주 느린 PC · 움직임 없이 아이콘만 보여요', restAfter: 0 }
 }
@@ -108,11 +109,12 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
   const tick = (now: number) => {
     if (!alive) return
     raf = requestAnimationFrame(tick)
-    const gap = mode.fps ? 1000 / mode.fps - 3 : 0
-    if (now - last < gap) return
+    const moved = camChanged()
+    // fps 제한. 단 GPU(full)는 카메라가 움직이는 프레임이면 바로 (말풍선·이정표가 장면을 늦게 따라가 보이지 않게)
+    const gap = mode.fps && !(moved && mode.level === 'full') ? 1000 / mode.fps - 3 : 0
+    if (now - last < gap) { if (moved) dirty = true; return }
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
     last = now
-    const moved = camChanged()
     if (moved) wake()
     if (mode.level === 'lite') {
       if (moved) { if (!hiddenForMove) { hiddenForMove = true; cv.style.visibility = 'hidden' } return }
