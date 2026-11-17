@@ -462,7 +462,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const anchorOf = (cat: string) => ems.find((e) => e.cat === cat && e.kind === 'main') ?? ems.find((e) => e.cat === cat && e.kind !== 'none') ?? ems.find((e) => e.cat === cat)
   /** 정해진 시간 뒤 한 번 다시 그림 (움직임 없는 단계·쉬는 중에도 사라질 것이 사라지게) */
   const timers = new Set<number>()
-  const later = (ms: number) => { const id = window.setTimeout(() => { timers.delete(id); overlay.invalidate() }, ms); timers.add(id) }
+  const later = (ms: number) => { const id = window.setTimeout(() => { timers.delete(id); overlay.refresh() }, ms); timers.add(id) }
 
   /* ---------- 누름 · 알아챔 · 인사 ---------- */
   const pops: Pop[] = []

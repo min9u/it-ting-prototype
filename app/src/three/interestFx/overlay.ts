@@ -53,8 +53,10 @@ export interface OverlayFrame {
 
 export interface Overlay {
   readonly mode: FxMode
-  /** 다음 프레임에 다시 그림 (still 이어도) */
+  /** 다음 프레임에 다시 그림 (still 이어도). 깨움 (가속 꺼짐 쉬기를 8초 미룸) */
   invalidate(): void
+  /** 다시 그리기만 하고 깨우지는 않음 (정해 둔 시각에 사라질 것을 지울 때. 깨우면 쉬기가 그만큼 늦어졌음, 2차) */
+  refresh(): void
   /** 겹 캔버스를 통째로 숨김/보임 (합성에서도 빠짐). 바뀔 때만 스타일을 건드림 */
   setHidden(on: boolean): void
   dispose(): void
@@ -143,6 +145,7 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
   return {
     mode,
     invalidate() { dirty = true; wake() },
+    refresh() { dirty = true },
     setHidden(on) {
       if (on === hiddenAll) return
       hiddenAll = on

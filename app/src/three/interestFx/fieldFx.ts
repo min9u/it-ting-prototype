@@ -108,20 +108,32 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     if (dy > 0) k = Math.min(k, (safe.y1 - safe.cy) / dy); else if (dy < 0) k = Math.min(k, (safe.y0 - safe.cy) / dy)
     return { x: safe.cx + dx * k, y: safe.cy + dy * k, ang: Math.atan2(dy, dx) }
   }
-  /** 왼쪽 위 버튼 줄·미니맵 (data-fx-avoid) 자리. 0.5초마다 다시 잼 (2차: 이정표가 그 밑에 숨었음) */
+  /**
+   * 왼쪽 위 버튼 줄·미니맵 (data-fx-avoid) 자리 (2차: 이정표가 그 밑에 숨었음).
+   * 그리는 중에 getBoundingClientRect 를 부르면 점프 직후처럼 화면이 막 바뀐 때 강제 레이아웃이 생겨서(가속 꺼짐 점프 가장 긴 간격이 늘었음),
+   * 크기가 바뀔 때(ResizeObserver, 레이아웃이 끝난 뒤 불림)만 재고, 새로 생긴 요소는 1초마다 찾기만 함 (querySelectorAll 은 레이아웃을 안 함)
+   */
   const avoid: { x0: number; y0: number; x1: number; y1: number }[] = []
-  let avoidAt = -1
-  const measureAvoid = () => {
-    const t = performance.now()
-    if (t - avoidAt < 500) return
-    avoidAt = t
+  const avoidEls = new Set<HTMLElement>()
+  const remeasureAvoid = () => {
     avoid.length = 0
     const cr = o.container.getBoundingClientRect()
-    ;(o.container.closest('main') ?? o.container.parentElement)?.querySelectorAll<HTMLElement>('[data-fx-avoid]').forEach((el) => {
+    for (const el of avoidEls) {
+      if (!el.isConnected) { avoidEls.delete(el); continue }
       const r = el.getBoundingClientRect()
       if (r.width && r.height) avoid.push({ x0: r.left - cr.left - 6, y0: r.top - cr.top - 6, x1: r.right - cr.left + 6, y1: r.bottom - cr.top + 6 })
+    }
+  }
+  const avoidRo = new ResizeObserver(() => { remeasureAvoid(); overlay?.invalidate() })
+  avoidRo.observe(o.container)
+  const findAvoid = () => {
+    ;(o.container.closest('main') ?? o.container.parentElement)?.querySelectorAll<HTMLElement>('[data-fx-avoid]').forEach((el) => {
+      if (!avoidEls.has(el)) { avoidEls.add(el); avoidRo.observe(el) }
     })
   }
+  findAvoid()
+  const avoidPoll = window.setInterval(findAvoid, 1000)
+  const measureAvoid = () => { /* ResizeObserver 가 채움 */ }
   /** 상자 (x0..x1, y0..y1) 가 비켜야 할 자리와 겹치면 그 오른쪽으로 옮긴 가운데 x */
   const dodge = (x: number, half: number, y0: number, y1: number) => {
     for (let k = 0; k < 3; k++) {
@@ -175,7 +187,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     banner.style.opacity = '1'; banner.style.transform = 'translate(-50%, 0)'
     bannerOn = true
     clearTimeout(bannerTimer)
-    bannerTimer = window.setTimeout(() => { banner.style.opacity = '0'; banner.style.transform = 'translate(-50%, -6px)'; bannerOn = false; overlay.invalidate() }, 3400)
+    bannerTimer = window.setTimeout(() => { banner.style.opacity = '0'; banner.style.transform = 'translate(-50%, -6px)'; bannerOn = false; overlay.refresh() }, 3400)
     overlay.invalidate()
   }
   const checkZone = (seat: number, moving: boolean) => {
@@ -577,6 +589,6 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }, 100)
   const unsub = subscribeFx(() => { overlay.invalidate(); if (!fxOn('f_zones')) { banner.style.opacity = '0'; bannerZone = -1 } })
   return {
-    dispose() { unsub(); clearInterval(poll); clearTimeout(bannerTimer); overlay.dispose(); banner.remove(); puffs.length = 0 },
+    dispose() { unsub(); clearInterval(poll); clearInterval(avoidPoll); avoidRo.disconnect(); clearTimeout(bannerTimer); overlay.dispose(); banner.remove(); puffs.length = 0 },
   }
 }
