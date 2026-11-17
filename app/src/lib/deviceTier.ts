@@ -8,9 +8,12 @@
  *
  * gpu / 저사양은 graphicsTier(감지, 실험실 강제 포함)로 정하고, 저사양 안에서 strong / weak 는 **실제 그리기 시간**으로 정한다:
  * 배경을 한 번 그릴 때(staticBackdrop capture, 장면이 다 차려진 뒤 처음 몇 번) GPU 펜스로 끝날 때까지 걸린 시간을 재서
- * 메가픽셀당 ms 로 바꾸고, 장면마다 다른 무게(KIND_WEIGHT)로 나눈 값이 WEAK_MS_PER_MP 를 넘으면 weak.
- * 2026-11-17 판정 고침: 처음엔 "가장 작은 값"이었는데 땅굴은 2코어에서도 가끔 빠른 값(60~78)이 나와 strong ↔ weak 를 오갔음.
- *   첫 값(텍스처 올리기가 끼어 늘 큼)을 빼고 **나머지의 중앙값(작은 쪽)**, 3개 모이면 판정 (측정 18번: 16스레드 32~43, 2코어 127~792 로 갈림).
+ * 메가픽셀당 ms 로 바꾸고, 장면마다 다른 무게(KIND_WEIGHT)로 나눈 값이 아래 기준(WEAK_MIN·WEAK_SECOND)을 넘으면 weak.
+ * 2026-11-17 판정 고침 (docs/rendering-experiments-3.md 4-1, 이번 측정 88번의 값으로 고름): 처음엔 "가장 작은 값 > 110"이었는데
+ *   땅굴은 2코어에서도 가끔 빠른 값(60~78)이 나와 2코어 40번 중 14번을 strong 으로 잘못 봤음. 16스레드도 다른 3D 가 같이 돌면
+ *   (랜딩의 밭 + 방, 화면 전환) 큰 값이 섞임. 그래서 3개 모이면 **가장 작은 값 > 50 이고, 첫 값(텍스처 올리기가 끼어 늘 큼)을 뺀 나머지 중
+ *   두 번째로 작은 값 > 110** 일 때만 weak → 16스레드 48번 중 0번, 2코어 40번 중 1번(strong 쪽으로) 틀림.
+ *   strong 을 weak 로 잘못 보면 화질이 내려가므로(MSAA 없음) 애매하면 strong 쪽으로.
  * 결과는 localStorage 에 기억(digul.tier.v1) → 다음 방문부터는 처음부터 그 단계. 바뀌면 onLowTierChange 로 알려서 탐색 들판은 그 자리에서 바꿈.
  * 기억이 없으면(첫 방문) 논리 프로세서가 4개 이하인 PC 는 weak 로 시작 (navigator.hardwareConcurrency).
  * 실험실(lib/lowLab.ts tier)로 덮어쓸 수 있음.
@@ -41,10 +44,10 @@ const DOWN_KEEP_MS = 3 * 24 * 3600 * 1000
  */
 const KIND_WEIGHT: Record<string, number> = { hole: 1, room: 1, field: 1 }
 /**
- * 이 값(메가픽셀당 ms)을 넘으면 weak. 첫 값을 뺀 나머지의 중앙값으로 (16스레드 최대 43 의 2배, 2코어 최소 127 아래)
- * 0.55배 배경(0.53MP) 측정 (docs/rendering-experiments-3.md): 16스레드 WARP 땅굴 32~39 · 탐색 들판 41~43, 2코어 땅굴 127~792 · 탐색 들판 206~293
+ * weak 판정 기준 (메가픽셀당 ms, 0.55배 배경 0.53MP). 측정 (docs/rendering-experiments-3.md 4-1):
+ * 가장 작은 값 16스레드 22~80 · 2코어 60~415, 첫 값 뺀 두 번째 16스레드 30~169 · 2코어 68~883
  */
-const WEAK_MS_PER_MP = 90
+const WEAK_MIN = 50, WEAK_SECOND = 110
 
 const read = (): Stored | null => {
   try { const r = localStorage.getItem(KEY); return r ? (JSON.parse(r) as Stored) : null } catch { return null }
@@ -113,10 +116,10 @@ export function noteRenderCost(kind: string, ms: number, mp: number) {
   const w = window as unknown as { __tierSamples?: [string, number, number, number][] }
   ;(w.__tierSamples ??= []).push([kind, Math.round(ms), +mp.toFixed(2), Math.round(score)]) // 측정용
   if (samples.length < 3) return
-  // 첫 값(텍스처 올리기·첫 그리기가 끼어 늘 큼)을 빼고 중앙값(작은 쪽). 가장 작은 값 하나는 2코어 땅굴에서도 가끔 작게 나와서 안 씀
+  // 둘 다 넘을 때만 weak (위 설명): 가장 작은 값 + 첫 값(텍스처 올리기·첫 그리기가 끼어 늘 큼)을 뺀 나머지 중 두 번째로 작은 값
   const rest = samples.slice(1).sort((a, b) => a - b)
-  const best = rest[(rest.length - 1) >> 1]
-  const low: 'strong' | 'weak' = best > WEAK_MS_PER_MP ? 'weak' : 'strong'
+  const best = rest[1]
+  const low: 'strong' | 'weak' = Math.min(...samples) > WEAK_MIN && best > WEAK_SECOND ? 'weak' : 'strong'
   const before = lowTier()
   if (stored?.low === low && Math.abs((stored.score ?? 0) - best) < 5) return
   stored = { ...(stored ?? { v: 1, at: 0 }), v: 1, low, score: Math.round(best), at: Date.now() }
