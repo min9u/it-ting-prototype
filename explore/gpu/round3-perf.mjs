@@ -54,6 +54,8 @@ const PLAN = {
   // 단계 고정 (다른 작업자의 CPU 부하로 16스레드가 weak 로 판정되는 일이 있어서): 16스레드 = strong(gl), 2코어 = weak(css)
   move16: [['explore', [['base', BASE, 'tier=strong'], ['new', NEW, 'tier=strong']], 't16']],
   move2: [['explore', [['base', BASE, 'tier=weak'], ['new', NEW, 'tier=weak']], 'c2']],
+  // 2코어(weak)에서 옮기는 방법 셋 비교: 기준 · gl · css
+  move2b: [['explore', [['base', BASE, 'tier=weak'], ['gl', NEW, 'tier=weak&slidemode=gl'], ['css', NEW, 'tier=weak&slidemode=css']], 'c2']],
   // 같은 빌드에서 M 끔(?fslide=0) ↔ 켬
   moveab: [['explore', [['off', NEW, 'fslide=0'], ['new', NEW, '']]]],
   cand: [

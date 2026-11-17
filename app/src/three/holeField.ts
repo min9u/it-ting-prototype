@@ -756,7 +756,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (testParam('fstrips') == null) bakeStrips = nq.bakeStrips
     if (testParam('fmsaa') == null) bakeSamples = nq.bakeSamples
     if (testParam('panscale') == null && nq.panScale !== panScale) { panScale = nq.panScale; panStale = true }
-    tierNow = nq.tier
+    fillLow = nq.tier === 'weak'
     prebuildSoon(500)
     bakerStale = !!baker
   }) : () => {}
@@ -842,13 +842,14 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const slide: Slide | null = baker && (q.lab?.M ?? true) && testParam('fslide') !== '0'
     ? createSlide(container, renderer.domElement, { yRef: slideY, ns: slideNs ? +slideNs : undefined }) : null
   /*
-   * 옮기는 방법 두 가지 (moveSlide.ts, docs/explore-move-quality.md 3번): 강한 PC(16스레드급)는 이동 0.4초 동안만 WebGL 캔버스를 1배로 키워
-   * 셰이더로 옮김(gl, 합성기가 캔버스 한 장만), 약한 PC(2코어급)는 띠 밀기(css, 1배 캔버스를 매 프레임 읽어 오는 비용이 커서).
-   * 시험용 ?slidemode=gl|css 로 고정
+   * 옮기는 방법 두 가지 (moveSlide.ts, docs/explore-move-quality.md 3·5번). 기본은 gl: 이동 0.4초 동안만 WebGL 캔버스를 1배로 키워 셰이더로 옮김.
+   * css(띠 밀기)는 시험에서는 2코어에 유리해 보였지만 앱 안에서는 띠 캔버스 384개(만들기·첫 합성)와 합성기 두 장 비용으로
+   * 16스레드 37~42fps · 2코어 19fps 라 gl(16스레드 58fps · 2코어 25fps, 기준과 같음)보다 못했음 → 시험용 ?slidemode=css 로만
    */
   const glSlide: GlSlide | null = slide ? createGlSlide({ yRef: slideY }) : null
-  let tierNow = q.tier
-  const wantGl = () => { const m = testParam('slidemode'); return m ? m === 'gl' : tierNow !== 'weak' }
+  const wantGl = () => { const m = testParam('slidemode'); return m ? m === 'gl' : true }
+  /** 약한 PC 는 빈 곳 메우기를 늘 0.33배로 (2코어에서 위쪽 먼 구멍 클릭 점프의 카메라 이동이 28.8 → 17.5fps 로 떨어져서) */
+  let fillLow = q.tier === 'weak'
   /** 이번 이동에 쓰는 방법 */
   let slideKind: 'gl' | 'css' = 'css'
   /** 2D 캔버스 내용 판 (gl 텍스처를 다시 올릴지) */
@@ -1013,7 +1014,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const gs = glSlide!
     const gp = gs.gaps(camera)
     if (gp.boxes.length) {
-      const fb = gp.frac > FILL_LOW_FRAC ? (glFillLow ??= createBackdrop(renderer, { scale: .33 })) : (glFill ??= createBackdrop(renderer, { scale: .55 }))
+      const fb = fillLow || gp.frac > FILL_LOW_FRAC ? (glFillLow ??= createBackdrop(renderer, { scale: .33 })) : (glFill ??= createBackdrop(renderer, { scale: .55 }))
       fb.capture(scene, camera, undefined, gp.boxes.map((b) => ({ x0: b.x0 / W, y0: b.y0 / H, x1: b.x1 / W, y1: b.y1 / H })))
       renderer.setScissorTest(true)
       for (const b of gp.boxes) { renderer.setScissor(b.x0, H - b.y1, b.x1 - b.x0, b.y1 - b.y0); fb.blit() }

@@ -5,7 +5,7 @@ import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath }
 const here = path.dirname(fileURLToPath(import.meta.url))
 const DIR = path.join(here, '..', 'results', 'move', 'scene')
 const OUT = path.join(here, '..', 'results', 'move.json')
-const med = (a) => { const v = a.filter((x) => typeof x === 'number').sort((x, y) => x - y); return v.length ? (v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null }
+const med = (a) => { const v = a.filter((x) => typeof x === 'number').sort((x, y) => x - y); return v.length ? Math.round((v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) * 10) / 10 : null }
 const files = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter((f) => f.endsWith('.json')) : []
 const groups = {}
 for (const f of files) {
