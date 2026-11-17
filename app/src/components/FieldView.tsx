@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import type { FieldHandle, FieldSceneOptions } from '../three/fieldScene'
 import { stillFor, stillStyle } from '../three/stills'
 import styles from './RoomView.module.css'
+import SceneBoundary from './SceneBoundary'
 
 const FieldCanvas = lazy(() => import('../three/FieldCanvas'))
 
@@ -25,9 +26,12 @@ export default function FieldView({ focusX = 0.5, children, label, options, onRe
   return (
     <div className={`${styles.scene} ${styles.field}`}>
       <img src={still.src} alt="" aria-hidden draggable={false} style={stillStyle(still, focusX)} />
-      <Suspense fallback={null}>
-        <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} paused={paused} />
-      </Suspense>
+      {/* 3D 를 못 만들면 3D 자리만 비우고 위 정지 그림이 그대로 보임 (SceneBoundary) */}
+      <SceneBoundary>
+        <Suspense fallback={null}>
+          <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} paused={paused} />
+        </Suspense>
+      </SceneBoundary>
       {children}
     </div>
   )

@@ -11,6 +11,9 @@ import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type
 import type { HoleFieldHandle } from '../../three/holeField'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
 import Minimap from './Minimap'
+import SceneBoundary from '../../components/SceneBoundary'
+import { stillFor, stillStyle } from '../../three/stills'
+import { isActivatable, shortcutAllowed } from '../../lib/a11y'
 import rv from '../../components/RoomView.module.css'
 import s from './Burrow.module.css'
 import x from './Explore.module.css'
@@ -71,6 +74,7 @@ export default function ExploreBurrow() {
   const mine = me()
   const shared = owner && !here?.mine ? owner.interests.filter((i) => mine.interests.includes(i)) : []
   const focusX = panelOpen ? 0.403 : 0.5
+  const fieldStill = stillFor('field')
 
   // 들판이 바뀌면 처음 자리로
   useEffect(() => { setSeat(startSeat); setReady(false); setHover(null) }, [floor.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,12 +88,12 @@ export default function ExploreBurrow() {
   // 방향키 · Enter (팝업이 열려 있거나 글을 쓰는 중이면 무시)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (modal || leaving || e.altKey || e.ctrlKey || e.metaKey) return
-      const t = e.target as HTMLElement
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return
+      // 글 쓰는 중 · 한글 조합 중 · 조합키 · 팝업(aria-modal, 미니맵 크게 보기 포함)이 열려 있으면 쉼 (lib/a11y.ts)
+      if (modal || leaving || !shortcutAllowed(e)) return
       const dir = ({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' } as const)[e.code as 'ArrowUp']
       if (dir) { e.preventDefault(); handle.current?.move(dir); return }
-      if (e.key === 'Enter' && !(t.tagName === 'BUTTON' || t.tagName === 'A')) { e.preventDefault(); enter() }
+      // Enter 가 버튼·링크·탭 자체의 동작이면 그쪽에 맡김
+      if (e.key === 'Enter' && !isActivatable(e.target)) { e.preventDefault(); enter() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -132,6 +136,8 @@ export default function ExploreBurrow() {
   return (
     <main className={s.page}>
       <div className={`${rv.scene} ${x.sceneBg}`}>
+        {/* 3D 를 못 만들면(WebGL 없음 등) 3D 자리에 GPU 로 미리 찍은 들판 그림 (three/stills.ts, docs/rendering-experiments-3.md 4번) */}
+        <SceneBoundary fallback={<img src={fieldStill.src} alt="" aria-hidden draggable={false} style={stillStyle(fieldStill, focusX)} />}>
         <Suspense fallback={null}>
           <HoleFieldCanvas
             fieldKey={floor.id}
@@ -147,6 +153,7 @@ export default function ExploreBurrow() {
             label={`${floorLabel(floor)} 들판. 두더지가 구멍 위에 서 있어요`}
           />
         </Suspense>
+        </SceneBoundary>
 
         {/* 서 있는 구멍의 안내판 (두더지 머리 왼쪽 위) */}
         {ready && here && !moving && (
@@ -177,7 +184,7 @@ export default function ExploreBurrow() {
         <div className={x.leftTools}>
           <SceneButton tone="paper" onClick={() => setModal('regulars')}>단골 땅굴</SceneButton>
           <SceneButton tone="paper" onClick={() => setModal('recommend')}>
-            오늘의 추천 친구 {!recDone && <i className={x.redDot} aria-label="오늘 아직 안 받음" />}
+            오늘의 추천 친구 {!recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
           </SceneButton>
           <SceneButton tone="paper" onClick={() => setModal('floor')} aria-label={`지금 들판 ${floorLabel(floor)}. 캠퍼스-층 고르기`}>
             {floorLabel(floor)} <span aria-hidden className={x.caret}>▾</span>

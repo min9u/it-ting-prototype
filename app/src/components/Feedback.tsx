@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import Modal from './Modal'
 import styles from './Feedback.module.css'
+import { REPORT_DETAIL_MAX } from '../lib/validation'
 import mound from '../assets/mole-mound.png'   // Figma 빈 상태 그림 (알림 페이지 569:7860 에서 잘라 씀)
 
 /**
@@ -39,7 +40,8 @@ export const REPORT_REASONS = ['스팸·홍보', '욕설·비하·괴롭힘', '�
 
 /** 받침 있으면 "을", 없으면 "를" (이 게시물을 / 이 사용자를) */
 const eulReul = (w: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 === 0 ? '를' : '을' }
-const ETC_MAX = 100
+// 신고 "기타" 사유 최대 100자 (lib/validation.ts, ERD report.detail VARCHAR(100))
+const ETC_MAX = REPORT_DETAIL_MAX
 
 /** 확인 팝업 Type=신고: 사유를 골라야 버튼이 켜진다. "기타"는 입력칸(필수·최대 100자, 02 F8 신고 팝업 2) */
 export function ReportDialog({ open, target = '게시물', onConfirm, onClose }: {
@@ -98,7 +100,7 @@ export const TOAST = {
  * 완료 토스트 621:3239 (227×47 기본형) — 대화 요청 완료 612:7718 · 참여 신청 완료 642:7955
  * 제목 + 설명 + 오른쪽 이동 버튼. 4초 뒤 사라진다.
  */
-export function Toast({ open, title, desc, action, onClose, duration = 4000, placement = 'bottom' }: {
+export function Toast({ open, title, desc, action, onClose, duration = 4000, placement = 'bottom', tone = 'ok' }: {
   open: boolean
   title: string
   desc?: string
@@ -106,6 +108,8 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   onClose: () => void
   duration?: number
   placement?: 'bottom' | 'top'
+  /** error: 쓰기가 실패해 되돌렸을 때 (api/queries useOptimistic) */
+  tone?: 'ok' | 'error'
 }) {
   useEffect(() => {
     if (!open) return
@@ -114,9 +118,11 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   }, [open, duration, onClose])
   if (!open) return null
   return createPortal(
-    <div className={`${styles.toast} ${placement === 'top' ? styles.top : ''}`} role="status">
-      <span className={styles.check} aria-hidden>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+    <div className={`${styles.toast} ${placement === 'top' ? styles.top : ''}`} role={tone === 'error' ? 'alert' : 'status'}>
+      <span className={tone === 'error' ? `${styles.check} ${styles.checkError}` : styles.check} aria-hidden>
+        {tone === 'error'
+          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 6.5v7M12 17.5v.01" /></svg>
+          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </span>
       <span className={styles.text}>
         <strong>{title}</strong>

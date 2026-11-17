@@ -17,6 +17,7 @@ import {
 import { dateParts } from '../../lib/format'
 import { TODAY_PARTS, shiftMonth } from './parts'
 import s from './Meetups.module.css'
+import { RULES } from '../../lib/validation'
 
 /** 30분 간격 오전 7시 ~ 오후 11시 30분 */
 const TIMES = Array.from({ length: 34 }, (_, i) => {
@@ -92,7 +93,7 @@ export default function MeetupNew() {
   const preview: MeetupX = {
     id: 'preview', title: d.title || '모임 이름', interest: d.interest || '관심사', date: d.ymd || `${TODAY_PARTS.y}-11-08`, start: d.start || '오후 2:00', end: d.end,
     area: d.mode === '온라인' ? '온라인' : d.place.split(/\s+/).slice(0, 2).join(' ') || '장소', place: d.place, mode: d.mode, capacity: d.cap,
-    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, closesAt: '', sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0, campus: d.campus,
+    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0, campus: d.campus,
   }
   const previewPlace = d.mode === '온라인' ? `온라인 · ${d.platform === '기타' ? d.platformEtc || '플랫폼' : d.platform}` : `${d.campus} · ${preview.area} · 오프라인`
 
@@ -133,7 +134,7 @@ export default function MeetupNew() {
                 <span className="hint">나를 포함한 인원이에요. 2명부터 50명까지 정할 수 있어요.</span>
                 {editing && capWarn && <span className={s.capWarn}>ⓘ 이미 확정된 {minCap}명보다 적게 줄일 수 없어요.</span>}
               </div>
-              <div className="field"><label htmlFor="pr">준비물 <span className={s.optTag}>선택</span></label><input id="pr" className={`input ${s.fill}`} value={d.prep} maxLength={40} onChange={(e) => set('prep', e.target.value)} placeholder="예: 읽고 있는 책 한 권" /></div>
+              <div className="field"><label htmlFor="pr">준비물 <span className={s.optTag}>선택</span></label><input id="pr" className={`input ${s.fill}`} value={d.prep} maxLength={RULES.meetupSupplies.max} onChange={(e) => set('prep', e.target.value)} placeholder="예: 읽고 있는 책 한 권" /></div>
               <div className="field"><span className="field-label">신청할 때 메시지 받기</span>
                 <div className={s.seg}>
                   <button type="button" className={d.askMsg ? s.segOn : s.segBtn} onClick={() => set('askMsg', true)}>받을게요</button>
@@ -188,15 +189,15 @@ export default function MeetupNew() {
                 <div className="field"><label htmlFor="pl">장소</label>
                   <div className={s.placeBox}>
                     <PinSvg />
-                    <input id="pl" value={d.place} maxLength={60} onChange={(e) => set('place', e.target.value)} placeholder="주소를 직접 입력하거나 주소 찾기를 눌러 주세요 (예: 멀티캠퍼스 역삼 앞 벤치)" />
+                    <input id="pl" value={d.place} maxLength={RULES.meetupPlace.max} onChange={(e) => set('place', e.target.value)} placeholder="주소를 직접 입력하거나 주소 찾기를 눌러 주세요 (예: 멀티캠퍼스 역삼 앞 벤치)" />
                     <button type="button" onClick={() => set('place', '서울 강남구 테헤란로 212 멀티캠퍼스 역삼')}>주소 찾기</button>
                   </div>
                 </div>
-                <div className="field"><label htmlFor="pd">상세 주소 <span className={s.optTag}>선택</span></label><input id="pd" className={`input ${s.fill}`} value={d.placeDetail} maxLength={40} onChange={(e) => set('placeDetail', e.target.value)} placeholder="예: 3층 세미나실" /></div>
+                <div className="field"><label htmlFor="pd">상세 주소 <span className={s.optTag}>선택</span></label><input id="pd" className={`input ${s.fill}`} value={d.placeDetail} maxLength={RULES.meetupPlaceDetail.max} onChange={(e) => set('placeDetail', e.target.value)} placeholder="예: 3층 세미나실" /></div>
               </> : <>
                 <div className="field"><span className="field-label">플랫폼</span>
                   <div className={s.seg}>{PLATFORMS.map((p) => <button type="button" key={p} className={d.platform === p ? s.segOn : s.segBtn} onClick={() => set('platform', p)}>{p === '기타' ? '기타 직접 입력' : p}</button>)}</div>
-                  {d.platform === '기타' && <input className={`input ${s.fill}`} value={d.platformEtc} maxLength={20} onChange={(e) => set('platformEtc', e.target.value)} placeholder="플랫폼 이름 (예: 왓챠 파티)" aria-label="플랫폼 이름" />}
+                  {d.platform === '기타' && <input className={`input ${s.fill}`} value={d.platformEtc} maxLength={RULES.meetupPlatform.max} onChange={(e) => set('platformEtc', e.target.value)} placeholder="플랫폼 이름 (예: 왓챠 파티)" aria-label="플랫폼 이름" />}
                   <span className="hint">온라인 모임은 어느 캠퍼스를 골라도 보여요.</span>
                 </div>
                 <div className="field"><label htmlFor="lk">접속 링크 <span className={s.optTag}>선택</span></label><input id="lk" className={`input ${s.fill}`} value={d.link} onChange={(e) => set('link', e.target.value)} placeholder="https://" />
@@ -206,8 +207,8 @@ export default function MeetupNew() {
 
             <section className={s.newBlock}>
               <h2 className={`display ${s.stepH}`}><span>4</span>무엇을 함께할까요</h2>
-              <div className="field"><label htmlFor="t">모임 이름</label><input id="t" className={`input ${s.fill}`} value={d.title} maxLength={30} onChange={(e) => set('title', e.target.value)} placeholder="예: 주말의 작은 독서 모임" /></div>
-              <div className="field"><label htmlFor="i">소개 <span className={s.optTag}>선택</span></label><textarea id="i" className={`textarea ${s.fill}`} value={d.intro} maxLength={300} onChange={(e) => set('intro', e.target.value)} placeholder="어떤 분위기의 모임인지, 처음 오는 사람이 알아야 할 게 있는지 적어주세요" /></div>
+              <div className="field"><label htmlFor="t">모임 이름</label><input id="t" className={`input ${s.fill}`} value={d.title} maxLength={RULES.meetupTitle.max} onChange={(e) => set('title', e.target.value)} placeholder="예: 주말의 작은 독서 모임" /></div>
+              <div className="field"><label htmlFor="i">소개 <span className={s.optTag}>선택</span></label><textarea id="i" className={`textarea ${s.fill}`} value={d.intro} maxLength={RULES.meetupIntro.max} onChange={(e) => set('intro', e.target.value)} placeholder="어떤 분위기의 모임인지, 처음 오는 사람이 알아야 할 게 있는지 적어주세요" /></div>
               <div className="field"><span className="field-label">대표 관심사</span>
                 <div className={s.pickChips}>
                   {(me.interests.includes(d.interest) || !d.interest ? me.interests : [d.interest, ...me.interests]).map((x) => (

@@ -5,6 +5,8 @@ import { ROOM_FRAME } from '../three/roomFrame'
 import { stillFor } from '../three/stills'
 import type { FurnChoice } from '../data/myBurrow'
 import styles from './RoomView.module.css'
+import SceneBoundary from './SceneBoundary'
+import { useReducedMotion } from '../lib/useReducedMotion'
 
 // three.js 는 무거워서 땅굴 화면에 들어올 때만 따로 불러온다 (별도 청크)
 const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
@@ -113,7 +115,10 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const [loaded, setLoaded] = useState(false)
   // 3D 장면이 예전에 구운 같은 구도의 그림을 이미 깔았음 (SceneHandle.still) → 로딩 애니메이션 없이 장면을 바로 보임
   const [stillUp, setStillUp] = useState(false)
+  // 3D 를 못 쓰거나(WebGL 없음·SceneBoundary 가 잡은 실패) 8초 넘게 안 뜨면 보일 고해상도 정지 그림 (three/stills.ts)
   const fallbackStill = stillFor('room', { host: !!hostName })
+  // 움직임 줄이기 설정이면 입장 연출(천장 구멍 · 낙하 · 가구 떨어짐) 없이 다 차려진 방으로
+  const calm = useReducedMotion()
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
   const [gaveUp, setGaveUp] = useState(false)
   const handle = useRef<RoomSceneHandle | null>(null)
@@ -175,12 +180,14 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           <img src={fallbackStill.src} alt={label ?? fallbackStill.alt} className={styles.room} draggable={false} />
         </div>
       )}
+      {/* 3D 청크를 못 받거나 WebGL 이 없으면 로딩을 거두고 바로 자리표시 그림으로 (SceneBoundary) */}
+      <SceneBoundary onError={() => setGaveUp(true)}>
       <Suspense fallback={null}>
         <RoomCanvas
           ownerId={ownerId}
           interests={interests}
           wallpaper={wallpaper}
-          still={still}
+          still={still || calm}
           hostName={hostName}
           hostWorn={hostWorn}
           worn={worn}
@@ -206,6 +213,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           }}
         />
       </Suspense>
+      </SceneBoundary>
       {shown && (
         <div className={styles.reactions} role="toolbar" aria-label="두더지 리액션">
           {REACTIONS.map((r) => (

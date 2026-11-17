@@ -14,6 +14,7 @@ import { HomeIcon } from '../../../components/Icons'
 import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, resetToday, todaysPicks, type Floor, type Resident } from '../../../data/field'
 import { FloorPickerModal, RecommendModal, RegularsModal } from '../ExploreModals'
 import { sharedWith } from './match'
+import { isActivatable, shortcutAllowed } from '../../../lib/a11y'
 import s from '../Burrow.module.css'
 import x from '../Explore.module.css'
 
@@ -90,13 +91,11 @@ export function useExploreKeys(on: boolean, h: { dir?: (d: 'up' | 'down' | 'left
   useEffect(() => {
     if (!on) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey) return
-      const t = e.target as HTMLElement
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return
-      if (document.querySelector('[role="dialog"]')) return
+      // 글 쓰는 중 · 한글 조합 중 · 조합키 · 팝업이면 쉼 (lib/a11y.ts). 모달이 아닌 떠 있는 창(알림 팝오버 등 role=dialog)도 예전처럼 쉼
+      if (!shortcutAllowed(e) || document.querySelector('[role="dialog"]')) return
       const dir = ({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' } as const)[e.code as 'ArrowUp']
       if (dir && h.dir) { e.preventDefault(); h.dir(dir); return }
-      if (e.key === 'Enter' && h.enter && !(t.tagName === 'BUTTON' || t.tagName === 'A')) { e.preventDefault(); h.enter(); return }
+      if (e.key === 'Enter' && h.enter && !isActivatable(e.target)) { e.preventDefault(); h.enter(); return }
       if (h.key?.(e)) e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
@@ -110,7 +109,7 @@ export function ExploreTools({ base, children }: { base: ExploreBase; children?:
     <div className={x.leftTools}>
       <SceneButton tone="paper" onClick={() => base.setModal('regulars')}>단골 땅굴</SceneButton>
       <SceneButton tone="paper" onClick={() => base.setModal('recommend')}>
-        오늘의 추천 친구 {!base.recDone && <i className={x.redDot} aria-label="오늘 아직 안 받음" />}
+        오늘의 추천 친구 {!base.recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
       </SceneButton>
       <SceneButton tone="paper" onClick={() => base.setModal('floor')} aria-label={`지금 들판 ${floorLabel(base.floor)}. 캠퍼스-층 고르기`}>
         {floorLabel(base.floor)} <span aria-hidden className={x.caret}>▾</span>

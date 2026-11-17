@@ -25,15 +25,5 @@ export function createStore<T extends object>(init: T, key?: string) {
   return { get, set, use, subscribe }
 }
 
-/** 00 공통 8 시간 표기: 방금 · N분 전 · N시간 전 · 어제 · N일 전, 일주일이 넘으면 날짜 */
-export function noticeTime(at: number, now = Date.now()) {
-  const m = 60_000, h = 60 * m, d = 24 * h
-  const diff = now - at
-  if (diff < m) return '방금 전'
-  if (diff < h) return `${Math.floor(diff / m)}분 전`
-  if (diff < d) return `${Math.floor(diff / h)}시간 전`
-  if (diff < 2 * d) return '어제'
-  if (diff < 7 * d) return `${Math.floor(diff / d)}일 전`
-  const t = new Date(at)
-  return `${t.getMonth() + 1}월 ${t.getDate()}일`
-}
+/** 00 공통 8 시간 표기: 방금 · N분 전 · N시간 전 · 어제 · N일 전, 일주일이 넘으면 날짜 (문구는 lib/time.ts 한 곳) */
+export { agoNotice as noticeTime } from './time'

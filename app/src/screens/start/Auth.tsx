@@ -10,6 +10,7 @@ import {
   emailValid, googleLogin, lastResetToken, login, registerAccount, requestReset, resetTokenValid, setAuthState, signupDraft,
   verifyCode, type LoginResult,
 } from '../../data/auth'
+import { takeReturnTo } from '../../lib/authFlow'
 import StartHeader, { PeekMole } from './StartHeader'
 import s from './Start.module.css'
 
@@ -114,7 +115,7 @@ function Spinner() { return <span className={s.spinner} aria-hidden /> }
  */
 export function Login() {
   const nav = useNavigate()
-  const loc = useLocation() as { state?: { email?: string; toast?: string } }
+  const loc = useLocation() as { state?: { email?: string; toast?: string; from?: string } }
   const email = useEmailField(loc.state?.email ?? '')
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState<'pw' | 'google' | null>(null)
@@ -131,7 +132,8 @@ export function Login() {
 
   const done = (r: LoginResult) => {
     setBusy(null)
-    if (r.ok) { nav(r.next); return }
+    // 로그인이 필요해서 왔으면(RequireLogin · 401, lib/authFlow.ts) 가려던 주소로. 가입·온보딩을 마저 해야 하면 그쪽이 먼저
+    if (r.ok) { const back = r.next === '/burrow' ? takeReturnTo(loc.state?.from) : null; if (back) nav(back, { replace: true }); else nav(r.next); return }
     if (r.kind === 'mismatch') setFailed(true)
     else setSuspended(r)
   }

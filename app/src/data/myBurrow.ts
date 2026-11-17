@@ -66,7 +66,8 @@ export const qnaOf = (list: MyQnA[]): { q: Question; a: string }[] =>
 export const myAffiliation = (p: Pick<MyProfile, 'campus' | 'floor'>) => `SSAFY ${ME_HOME.gen}기 · ${p.campus} · ${p.floor}층`
 
 /* ---------- 닉네임 ---------- */
-export const NICK_MAX = 12
+// 닉네임 최대 12자 (lib/validation.ts, ERD member_profile.nickname VARCHAR(12))
+export { NICKNAME_MAX as NICK_MAX } from '../lib/validation'
 /** 이미 쓰는 닉네임 (목: 목 사용자들 + 몇 개). 대소문자·앞뒤 공백 무시 */
 const TAKEN_EXTRA = ['도토리', '보리', '콩떡', '두더지', '디굴디굴', '운영자']
 export function nickTaken(name: string, mine?: string): boolean {

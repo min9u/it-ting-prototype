@@ -11,6 +11,7 @@ import {
 import { CATEGORIES } from '../../data/mock'
 import { addServiceNotice, SERVICE_NOTICE_CATS, type ServiceNoticeCat } from '../../data/serviceNotices'
 import s from './Admin.module.css'
+import { RULES } from '../../lib/validation'
 
 type Menu = 'questions' | 'reports' | 'users' | 'notice' | 'leave'
 const MENUS: { id: Menu; title: string; sub: string }[] = [
@@ -221,7 +222,7 @@ function NoticeWrite() {
             {SERVICE_NOTICE_CATS.map((c) => <option key={c}>{c}</option>)}
           </select>
         </label>
-        <label>제목<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} /></label>
+        <label>제목<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={RULES.noticeTitle.max} /></label>
         <label>본문<textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} /></label>
         <p className={s.caption}>서비스 버전이 바뀐 소식은 “업데이트” 분류로 올려요. 올리면 모든 사용자에게 공지 알림이 가요.</p>
         <div className={s.formActions}><button type="submit" className={s.primary} disabled={!title.trim() || !body.trim()}>올리기</button></div>
