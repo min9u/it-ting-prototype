@@ -9,7 +9,11 @@
  * gpu / 저사양은 graphicsTier(감지, 실험실 강제 포함)로 정하고, 저사양 안에서 strong / weak 는 **실제 그리기 시간**으로 정한다:
  * 배경을 한 번 그릴 때(staticBackdrop capture, 장면이 다 차려진 뒤 처음 몇 번) GPU 펜스로 끝날 때까지 걸린 시간을 재서
  * 메가픽셀당 ms 로 바꾸고, 장면마다 다른 무게(KIND_WEIGHT)로 나눈 값이 WEAK_MS_PER_MP 를 넘으면 weak.
- * 결과는 localStorage 에 기억(digul.tier.v1) → 다음 방문부터는 처음부터 그 단계. 실험실(lib/lowLab.ts tier)로 덮어쓸 수 있음.
+ * 2026-11-17 판정 고침: 처음엔 "가장 작은 값"이었는데 땅굴은 2코어에서도 가끔 빠른 값(60~78)이 나와 strong ↔ weak 를 오갔음.
+ *   첫 값(텍스처 올리기가 끼어 늘 큼)을 빼고 **나머지의 중앙값(작은 쪽)**, 3개 모이면 판정 (측정 18번: 16스레드 32~43, 2코어 127~792 로 갈림).
+ * 결과는 localStorage 에 기억(digul.tier.v1) → 다음 방문부터는 처음부터 그 단계. 바뀌면 onLowTierChange 로 알려서 탐색 들판은 그 자리에서 바꿈.
+ * 기억이 없으면(첫 방문) 논리 프로세서가 4개 이하인 PC 는 weak 로 시작 (navigator.hardwareConcurrency).
+ * 실험실(lib/lowLab.ts tier)로 덮어쓸 수 있음.
  * GPU 로 감지됐는데 처음 2초가 느려 저사양으로 내려간 적이 있으면(engine.ts) 그것도 3일 동안 기억.
  */
 import { graphicsTier } from './graphicsTier'
@@ -37,10 +41,10 @@ const DOWN_KEEP_MS = 3 * 24 * 3600 * 1000
  */
 const KIND_WEIGHT: Record<string, number> = { hole: 1, room: 1, field: 1 }
 /**
- * 이 값(메가픽셀당 ms)을 넘으면 weak. 처음 몇 번 중 가장 작은 값으로 (GPU 에 먼저 걸린 일이 끼면 길게 나와서).
- * 0.55배 배경(0.53MP) 측정: 16스레드 WARP 땅굴 25~49 · 탐색 들판 37, 2코어 땅굴 225 · 탐색 들판 206 → 그 사이 (양쪽 2배 여유)
+ * 이 값(메가픽셀당 ms)을 넘으면 weak. 첫 값을 뺀 나머지의 중앙값으로 (16스레드 최대 43 의 2배, 2코어 최소 127 아래)
+ * 0.55배 배경(0.53MP) 측정 (docs/rendering-experiments-3.md): 16스레드 WARP 땅굴 32~39 · 탐색 들판 41~43, 2코어 땅굴 127~792 · 탐색 들판 206~293
  */
-const WEAK_MS_PER_MP = 110
+const WEAK_MS_PER_MP = 90
 
 const read = (): Stored | null => {
   try { const r = localStorage.getItem(KEY); return r ? (JSON.parse(r) as Stored) : null } catch { return null }
@@ -68,7 +72,19 @@ export function lowTier(): 'strong' | 'weak' {
   if (f) return f
   const lab = getLab().tier
   if (lab === 'strong' || lab === 'weak') return lab
-  return stored?.low ?? 'strong'
+  return stored?.low ?? guess()
+}
+
+/** 기억이 없을 때 첫 짐작: 논리 프로세서 4개 이하면 weak (크롬을 CPU 2개에 묶은 시험에서는 16 으로 나와 시험되지 않음) */
+function guess(): 'strong' | 'weak' {
+  try { const n = navigator.hardwareConcurrency; return n > 0 && n <= 4 ? 'weak' : 'strong' } catch { return 'strong' }
+}
+
+const subs = new Set<(t: 'strong' | 'weak') => void>()
+/** 저사양 단계가 바뀌면 알림 (그 장면에서 바로 바꿀 수 있는 것만: 탐색 들판 굽기 띠·MSAA·카메라 이동 해상도). 해제 함수를 돌려줌 */
+export function onLowTierChange(cb: (t: 'strong' | 'weak') => void): () => void {
+  subs.add(cb)
+  return () => { subs.delete(cb) }
 }
 
 /** GPU 로 감지됐지만 최근에 느려서 저사양으로 내린 적이 있음 (engine.ts 가 처음부터 low 로) */
@@ -96,18 +112,24 @@ export function noteRenderCost(kind: string, ms: number, mp: number) {
   samples.push(score)
   const w = window as unknown as { __tierSamples?: [string, number, number, number][] }
   ;(w.__tierSamples ??= []).push([kind, Math.round(ms), +mp.toFixed(2), Math.round(score)]) // 측정용
-  if (samples.length < 2) return
-  // 가장 작은 값 = 다른 일(텍스처 올리기·셰이더)이 끼지 않은 쪽
-  const best = Math.min(...samples)
+  if (samples.length < 3) return
+  // 첫 값(텍스처 올리기·첫 그리기가 끼어 늘 큼)을 빼고 중앙값(작은 쪽). 가장 작은 값 하나는 2코어 땅굴에서도 가끔 작게 나와서 안 씀
+  const rest = samples.slice(1).sort((a, b) => a - b)
+  const best = rest[(rest.length - 1) >> 1]
   const low: 'strong' | 'weak' = best > WEAK_MS_PER_MP ? 'weak' : 'strong'
+  const before = lowTier()
   if (stored?.low === low && Math.abs((stored.score ?? 0) - best) < 5) return
-  if (stored?.low && stored.low !== low) console.info(`[3D] 그리기 속도(${Math.round(best)}ms/MP)를 보고 저사양 단계를 ${stored.low} → ${low} 로 바꿨어요 (다음 화면부터)`)
   stored = { ...(stored ?? { v: 1, at: 0 }), v: 1, low, score: Math.round(best), at: Date.now() }
   write(stored)
+  const now = lowTier() // 주소 손잡이·실험실로 덮어썼으면 그대로
+  if (now !== before) {
+    console.info(`[3D] 그리기 속도(${Math.round(best)}ms/MP)를 보고 저사양 단계를 ${before} → ${now} 로 바꿨어요`)
+    subs.forEach((f) => { try { f(now) } catch { /* 무시 */ } })
+  }
 }
 
 /** 측정을 더 받을지 (이 탭에서 몇 번까지만) */
-export const wantsRenderCost = () => graphicsTier() === 'software' && samples.length < 4
+export const wantsRenderCost = () => graphicsTier() === 'software' && samples.length < 5
 
 /** 실험실 패널 표시용 */
 export function tierInfo() {

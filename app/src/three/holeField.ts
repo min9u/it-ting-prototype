@@ -10,6 +10,7 @@ import { createSharpBaker, type SharpBaker } from './sharpBake'
 import { waitGpu, warmScene } from './warm'
 import { getCachedStill, peekCachedStill, putCachedStill, stillKey } from './stills'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
+import { onLowTierChange } from '../lib/deviceTier'
 import groundUrl from '../assets/models/field/explore_ground_150.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
 import haloUrl from '../assets/models/field/hole_mine_halo.glb?url'
@@ -151,15 +152,17 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
    * 시험용 ?fstrips=1 (한 번에) ?fmsaa=0
    */
   let sharpField = useA() && (q.lab?.S ?? true) && testParam('fsharp') !== '0'
-  const bakeStrips = +(testParam('fstrips') ?? q.bakeStrips)
-  const bakeSamples = +(testParam('fmsaa') ?? q.bakeSamples)
+  let bakeStrips = +(testParam('fstrips') ?? q.bakeStrips)
+  let bakeSamples = +(testParam('fmsaa') ?? q.bakeSamples)
   const renderer = createRenderer(container, { alpha: sharpField, exposure: 1.0, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: scissorOk })
   // 배경 렌더 타깃 배율 (?bdscale=2 → 캔버스의 2배로 그려 붙일 때 2×2 평균 = 안티앨리어싱)
   const bdScale = +(testParam('bdscale') ?? '1').replace('_', '.')
   let backdrop: Backdrop | null = useA() ? createBackdrop(renderer, { scale: bdScale, kind: 'hole' }) : null
   // R 카메라가 움직이는 동안 낮은 해상도 배경 (캔버스 대비 배율, 0 = 끔, 기본 기기 단계 strong 0.6 → 0.33배, weak 0.4 → 0.22배). 시험용 ?panscale=0_6
-  const panScale = +(testParam('panscale') ?? String(q.panScale)).replace('_', '.')
+  let panScale = +(testParam('panscale') ?? String(q.panScale)).replace('_', '.')
   let panBd: Backdrop | null = null
+  /** 기기 단계가 바뀌어 낮은 해상도 배경을 새 배율로 다시 만들어야 함 (다음 카메라 이동 때) */
+  let panStale = false
   // 예열 (아래 warm). 기본 켬. 시험용 ?compile=0 으로 끔
   const precompile = testParam('compile') !== '0'
   let warming = false
@@ -705,7 +708,19 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     container.insertBefore(sharpCv, renderer.domElement)
     return sharpCv
   }
-  const baker: SharpBaker | null = sharpField ? createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv) : null
+  let baker: SharpBaker | null = sharpField ? createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv) : null
+  /*
+   * 기기 단계가 이 장면에서 정해지면(첫 방문, lib/deviceTier.ts) 그 자리에서 바꿈: 굽기 띠·MSAA(굽기가 쉬고 있을 때 baker 를 새로)·
+   * 카메라 이동 해상도(다음 이동부터). 주소 손잡이로 고정한 값은 그대로 (docs/rendering-experiments-3.md, 2코어 첫 방문)
+   */
+  let bakerStale = false
+  const unTier = q.level === 'low' ? onLowTierChange(() => {
+    const nq = quality()
+    if (testParam('fstrips') == null) bakeStrips = nq.bakeStrips
+    if (testParam('fmsaa') == null) bakeSamples = nq.bakeSamples
+    if (testParam('panscale') == null && nq.panScale !== panScale) { panScale = nq.panScale; panStale = true }
+    bakerStale = !!baker
+  }) : () => {}
   /** 카메라가 움직임: 선명한 그림을 내리고 굽던 것은 버림 */
   const sharpOff = () => { baker?.cancel(); if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
   /*
@@ -728,6 +743,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 굽기 한 걸음 (매 프레임). 이번에 다 됐으면 true (다음 그리기는 전체) */
   const stepSharp = (quiet: boolean): boolean => {
     if (!baker) return false
+    if (bakerStale && !baker.busy()) { baker.dispose(); baker = createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv); bakerStale = false }
     const st = baker.step()
     if (st === 'done') {
       sharpCv!.style.visibility = 'visible'
@@ -786,6 +802,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     backdrop!.invalidate(); prevRect = null; fullNext = true
     if (panScale > 0) {
       // 낮은 해상도 배경 + 움직이는 층(목표 링). 도착하면 이 그림을 잠깐 그대로 씀 (lowActive)
+      if (panStale) { panBd?.dispose(); panBd = null; panStale = false }
       panBd ??= createBackdrop(renderer, { scale: panScale })
       panBd.capture(scene, camera)
       drawWith(panBd, true, false)
@@ -873,7 +890,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       ringGeo.dispose()
       own.forEach((x) => x.dispose())
       ;(hoverRing.material as THREE.Material).dispose(); (targetRing.material as THREE.Material).dispose()
-      baker?.dispose(); sharpCv?.remove()
+      unTier(); baker?.dispose(); sharpCv?.remove()
       backdrop?.dispose(); panBd?.dispose()
       envTex?.dispose()
       sun.shadow.dispose()
