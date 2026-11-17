@@ -149,17 +149,11 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
   // 2) 텍스처 한 장씩
   const texs = new Set<THREE.Texture>()
   for (const m of meshes) for (const mm of ([] as THREE.Material[]).concat(m.material)) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
-  // 올리기(밉맵 만들기 포함)는 GPU 프로세스에서 하므로 끝날 때까지 비동기로 기다림 (안 그러면 다음 동기 호출이 그만큼 멈춤).
-  // 2026-11-17: 한 장마다 기다리면 펜스 왕복만 20장 × 20ms 남짓(남의 땅굴 0.43초) → 3) 처럼 메인 스레드 WARM_BATCH_MS 씩 묶어서 한 번.
-  // 올리기 사이에는 동기 호출이 없어서 묶어도 메인 스레드가 기다리지 않음. 시험용 ?wtex=0 = 한 장마다 (11-16 방식)
-  const t1 = performance.now(), texBudget = /[?&]wtex=0/.test(location.search + location.hash) ? 0 : batchMs()
-  let tb = performance.now()
-  for (const t of texs) {
-    if (dead()) return
-    renderer.initTexture(t)
-    if (performance.now() - tb >= texBudget) { await waitGpu(renderer); tb = performance.now() }
-  }
-  await waitGpu(renderer)
+  // 올리기(밉맵 만들기 포함)는 GPU 프로세스에서 하므로 한 장마다 끝날 때까지 비동기로 기다림 (안 그러면 다음 동기 호출이 그만큼 멈춤).
+  // 2026-11-17: 8ms 씩 묶어 한 번만 기다리는 것도 해 봤는데, GPU(가속 켬) 탐색 들판에서 텍스처 2장 기다리기가 0.06 → 0.29초로 늘어
+  // (다 보이기까지 +0.35초) 되돌림. 가속 끈 남의 땅굴(20장)에서 얻는 것은 0.1초 안팎이라 흔들림 안쪽 (docs/rendering-experiments-3.md 5-4)
+  const t1 = performance.now()
+  for (const t of texs) { if (dead()) return; renderer.initTexture(t); await waitGpu(renderer) }
   stat.texs = texs.size; stat.texMs = Math.round(performance.now() - t1)
 
   // 3) 하나씩 1×1 그리기. 보이는 것을 모두 숨기고 그 물체만 보이게 (부모가 숨어 있으면 안 그려지므로 조상도 잠깐)
