@@ -9,6 +9,11 @@ import * as THREE from 'three'
  *    기다림 (WARP 에서 프로그램 하나에 0.1~0.3초). 그래서 하나 그릴 때마다 펜스를 넣고 GPU 프로세스가 끝낼 때까지 비동기로
  *    기다린 뒤 다음 것 (waitGpu). 예전엔 25ms 씩 묶어 그려서 다음 묶음이 앞 묶음의 일을 기다리며 멈췄음
  *
+ * 묶기 (3차, 2026-11-17): 3) 의 1×1 그리기는 셰이더가 이미 다 링크된 뒤라(1 이 끝날 때까지 기다림) 하나마다 펜스를 기다릴 필요가 적음.
+ *   펜스 왕복이 한 번에 한 프레임쯤 걸려서(GPU 프로세스가 다른 일과 같이 돎) 물체가 많으면 예열이 길어졌음
+ *   (탐색 들판 바꾸기 0.4 → 1.65초, 남의 땅굴 다 보이기까지 +0.7초). 그래서 메인 스레드 WARM_BATCH_MS 동안은 이어서 그리고 그 뒤에 한 번 기다림.
+ *   시험용 ?wbatch=0 = 하나마다 기다림(11-16 방식), ?wbatch=<ms>
+ *
  * split (3차): 저사양 A(배경 한 번)에서는 움직이지 않는 층(layer 0)은 배경 렌더 타깃에만, 움직이는 층(layer 1)은 캔버스에만 그려짐.
  *   예전엔 모든 물체를 두 군데 다 예열해서 쓰지 않는 셰이더 조합까지 링크를 기다렸음 (프로그램 수 2배) → 층마다 실제로 그려지는 곳만.
  *   카메라 층도 실제와 같게 (조명이 층으로 걸러져서 셰이더가 달라질 수 있음)
@@ -35,6 +40,30 @@ export function waitGpu(renderer: THREE.WebGLRenderer): Promise<void> {
 }
 
 const DYNAMIC = 1 << 1 // layer 1
+/** 1×1 그리기를 이어서 하는 메인 스레드 시간 (ms). 넘으면 GPU 가 끝낼 때까지 한 번 기다림 */
+const WARM_BATCH_MS = 8
+const oneWait = () => { try { return !/[?&]wone=0\b/.test(location.search + location.hash) } catch { return true } }
+
+/**
+ * 렌더러가 만든 셰이더 프로그램이 모두 링크될 때까지 (KHR_parallel_shader_compile 의 완료 표시를 16ms 마다 확인, 메인 스레드는 놂). 최대 5초.
+ * 확장이 없으면 three 가 바로 준비됨으로 봄
+ */
+export function programsReady(renderer: THREE.WebGLRenderer, dead: () => boolean = () => false): Promise<void> {
+  const t0 = performance.now()
+  return new Promise((resolve) => {
+    const check = () => {
+      if (dead()) { resolve(); return }
+      const ps = (renderer.info.programs ?? []) as unknown as { isReady(): boolean }[]
+      if (ps.every((p) => p.isReady()) || performance.now() - t0 > 5000) { resolve(); return }
+      setTimeout(check, 16)
+    }
+    check()
+  })
+}
+
+const batchMs = () => {
+  try { const m = (location.search + location.hash).match(/[?&]wbatch=(\d+)/); return m ? +m[1] : WARM_BATCH_MS } catch { return WARM_BATCH_MS }
+}
 
 /**
  * @param o.split 배경 렌더 타깃 (저사양 A): layer 0 물체는 여기, layer 1 물체는 캔버스. 없으면 모두 캔버스(두 층 같이)
@@ -51,6 +80,8 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
   dead?: () => boolean
 } = {}) {
   const dead = o.dead ?? (() => false)
+  const w0 = performance.now()
+  const stat = { meshes: 0, texs: 0, compileMs: 0, texMs: 0, drawMs: 0, fences: 0 }
   const split = o.split ?? null
   const within = (ob: THREE.Object3D) => !o.roots || o.roots.some((r) => { for (let x: THREE.Object3D | null = ob; x; x = x.parent) if (x === r) return true; return false })
   const isDyn = (ob: THREE.Object3D) => (ob.layers.mask & DYNAMIC) !== 0
@@ -79,21 +110,43 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
     g.list.push(m)
   }
   const mask0 = camera.layers.mask
-  for (const g of groups.values()) {
-    const prev = renderer.getRenderTarget()
-    renderer.setRenderTarget(g.rt)
-    camera.layers.mask = g.mask
-    const ps = g.list.map((m) => renderer.compileAsync(m, camera, scene).catch(() => {}))
-    camera.layers.mask = mask0
-    renderer.setRenderTarget(prev)
-    await Promise.all(ps)
+  if (oneWait()) {
+    /*
+     * 2026-11-17: 물체마다 compileAsync 를 부르면 물체마다 10ms 간격 확인 루프가 따로 돌아서(54개), 확인용 동기 호출
+     * (COMPLETION_STATUS)이 셰이더 링크 중인 GPU 프로세스를 계속 붙잡아 컴파일이 오히려 느려졌음 (탐색 들판 바꾸기 예열 중 컴파일 1.0초).
+     * 이제는 그려지는 곳마다 compile(동기, 컴파일만 걸어 둠)을 다 부르고, 렌더러의 프로그램 전부가 준비될 때까지 루프 하나로 기다림.
+     * 시험용 ?wone=0 = 물체마다 compileAsync (11-16 방식)
+     */
+    for (const g of groups.values()) {
+      const prev = renderer.getRenderTarget()
+      renderer.setRenderTarget(g.rt)
+      camera.layers.mask = g.mask
+      for (const m of g.list) { try { renderer.compile(m, camera, scene) } catch { /* 셰이더 오류는 그릴 때 three 가 알림 */ } }
+      camera.layers.mask = mask0
+      renderer.setRenderTarget(prev)
+    }
+    await programsReady(renderer, dead)
     if (dead()) return
+  } else {
+    for (const g of groups.values()) {
+      const prev = renderer.getRenderTarget()
+      renderer.setRenderTarget(g.rt)
+      camera.layers.mask = g.mask
+      const ps = g.list.map((m) => renderer.compileAsync(m, camera, scene).catch(() => {}))
+      camera.layers.mask = mask0
+      renderer.setRenderTarget(prev)
+      await Promise.all(ps)
+      if (dead()) return
+    }
   }
+  stat.compileMs = Math.round(performance.now() - w0)
   // 2) 텍스처 한 장씩
   const texs = new Set<THREE.Texture>()
   for (const m of meshes) for (const mm of ([] as THREE.Material[]).concat(m.material)) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
   // 올리기(밉맵 만들기 포함)는 GPU 프로세스에서 하므로 한 장마다 끝날 때까지 비동기로 기다림 (안 그러면 다음 동기 호출이 그만큼 멈춤)
+  const t1 = performance.now()
   for (const t of texs) { if (dead()) return; renderer.initTexture(t); await waitGpu(renderer) }
+  stat.texs = texs.size; stat.texMs = Math.round(performance.now() - t1)
 
   // 3) 하나씩 1×1 그리기. 보이는 것을 모두 숨기고 그 물체만 보이게 (부모가 숨어 있으면 안 그려지므로 조상도 잠깐)
   const all: THREE.Object3D[] = []
@@ -101,6 +154,8 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
   const prevTarget = renderer.getRenderTarget(), prevAuto = renderer.autoClear
   const vp = renderer.getViewport(new THREE.Vector4()), sc = renderer.getScissor(new THREE.Vector4()), scOn = renderer.getScissorTest()
   for (const m of all) m.visible = false
+  const t2 = performance.now(), budget = batchMs()
+  let b0 = performance.now()
   try {
     for (const m of meshes) {
       if (dead()) return
@@ -120,12 +175,17 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
       hidden.forEach((p) => { p.visible = false })
       m.visible = false
       camera.layers.mask = mask0
-      await waitGpu(renderer)
+      stat.meshes++
+      if (performance.now() - b0 >= budget) { stat.fences++; await waitGpu(renderer); b0 = performance.now() }
     }
+    stat.fences++; await waitGpu(renderer)
   } finally {
     for (const m of all) m.visible = true
     camera.layers.mask = mask0
     renderer.setRenderTarget(prevTarget); renderer.autoClear = prevAuto
     renderer.setViewport(vp); renderer.setScissor(sc); renderer.setScissorTest(scOn)
   }
+  stat.drawMs = Math.round(performance.now() - t2)
+  const w = window as unknown as { __warmSteps?: unknown[] }
+  ;(w.__warmSteps ??= []).push(stat) // 측정용
 }

@@ -22,3 +22,11 @@ main-tea-base-t16-0 cpu21.7% 26s ready 937 ltMax 220 frz 283
 main-tea-new-t16-0 cpu13.2% 26s ready 1119 ltMax 83 frz 117
 main-tea-base-t16-1 cpu19.7% 26s ready 1066 ltMax 268 frz 367
 main-tea-new-t16-1 cpu24% 26s ready 1130 ltMax 75 frz 100
+main-nav-base-t16-0 cpu7.6% 27s ready 2730 ltMax 182 frz 167
+main-nav-new-t16-0 cpu21.9% 30s ready 3590 ltMax 168 frz 150
+main-nav-base-t16-1 cpu19.9% 27s ready 2843 ltMax 187 frz 200
+main-nav-new-t16-1 cpu21.8% 29s ready 2892 ltMax 113 frz 150
+main-room-base-c2-0 cpu11.2% 35s ready 7254 ltMax 621 frz 750
+main-room-new-c2-0 cpu11.8% 34s ready 5629 ltMax 758 frz 750
+main-room-base-c2-1 cpu7.8% 34s ready 6725 ltMax 1042 frz 1033
+main-room-new-c2-1 cpu22% 35s ready 7064 ltMax 1053 frz 1033

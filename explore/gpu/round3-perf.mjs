@@ -33,10 +33,9 @@ const PLAN = {
   revisit: ['room', 'explore'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   // 약한 단계 강제 (2코어 첫 방문이 strong 으로 시작하므로 따로)
   weak: ['room', 'explore'].map((k) => [k, [['strong', NEW, 'tier=strong'], ['weak', NEW, 'tier=weak']]]),
-  // 후보별 (손잡이로 하나씩 되돌림). 예열은 16스레드(cand t16), 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
+  // 후보별 (손잡이로 하나씩 되돌림). 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
   cand: [
-    ['explore', [['old-warm', NEW, 'hwarm=0'], ['def', NEW, '']], 't16'],
-    ['room', [['old-warm', NEW, 'rwarm=0'], ['def', NEW, '']], 't16'],
+    // 예열은 main 의 mid(11-16 예열: 물체마다 compileAsync·펜스, 결과 파일 이름을 new → mid 로 바꿔 둠)·base 와 비교
     ['explore', [['bake1', NEW, 'fstrips=1&fmsaa=0'], ['def', NEW, '']], 'c2'],
     ['room', [['old-bake', NEW, 'rbake=0'], ['def', NEW, '']], 'c2'],
   ],

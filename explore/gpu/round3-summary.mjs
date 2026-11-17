@@ -84,6 +84,8 @@ for (const screen of Object.keys(SCREEN_NAME)) {
   add('base', '2차 결과 (기준)', '2차 결과 공유 빌드 (54c8b9f)', false, { t16: get('main', screen, 'base', 't16'), c2: get('main', screen, 'base', 'c2') }, 'base')
   add('def', '3차 기본값', '기기 단계 자동(첫 방문은 strong) + 예열(warm.ts) + 선명한 배경 띠 굽기(sharpBake) + 정지 그림', true,
     { t16: get('main', screen, 'new', 't16'), c2: get('main', screen, 'new', 'c2') }, 'new')
+  add('mid', '3차 중간 (11-16 예열)', '11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈', false,
+    { t16: get('main', screen, 'mid', 't16'), c2: get('main', screen, 'mid', 'c2') }, null)
   if (screen === 'room' || screen === 'explore') {
     add('weak', '3차 약한 단계 (weak)', '2코어급으로 판정된 뒤(다음 방문부터): 굽기 6띠·MSAA 없음, 카메라 이동 0.22배', true,
       { t16: get('weak', screen, 'weak', 't16'), c2: get('weak', screen, 'weak', 'c2'), strongT16: get('weak', screen, 'strong', 't16'), strongC2: get('weak', screen, 'strong', 'c2') }, 'weak')
@@ -92,10 +94,8 @@ for (const screen of Object.keys(SCREEN_NAME)) {
   }
   // 후보별 (손잡이로 하나씩 되돌림): cand-<screen>-<label>
   const CAND = {
-    explore: [['old-warm', '예전 예열 (?hwarm=0)', '2차 예열: 장면 전체 컴파일 + 25ms 묶음 1×1 그리기'], ['bake1', '한 번에 굽기 (?fstrips=1&fmsaa=0)', '2차와 같은 한 장 굽기(띠 1, MSAA 없음)']],
-    room: [['old-warm', '예전 예열 (?rwarm=0)', '2차 예열'], ['old-bake', '예전 선명한 방 (?rbake=0)', '2차: 1.5배 슈퍼샘플을 그 자리에서 읽음']],
-    landing: [['nowarm', '예열 없음 (?compile=0)', '2차까지: 첫 프레임에 셰이더 컴파일']],
-    tea: [['nowarm', '예열 없음 (?compile=0)', '찻방 두더지 예열 끔']],
+    explore: [['bake1', '한 번에 굽기 (?fstrips=1&fmsaa=0)', '2차와 같은 한 장 굽기(띠 1, MSAA 없음). 2코어']],
+    room: [['old-bake', '예전 선명한 방 (?rbake=0)', '2차: 1.5배 슈퍼샘플을 그 자리에서 읽음. 2코어']],
   }
   for (const [label, name, desc] of CAND[screen] ?? []) {
     add(label, name, desc, false, { t16: get('cand', screen, label, 't16'), c2: get('cand', screen, label, 'c2'), defT16: get('cand', screen, 'def', 't16'), defC2: get('cand', screen, 'def', 'c2') }, null)
