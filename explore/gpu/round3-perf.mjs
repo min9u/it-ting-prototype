@@ -51,6 +51,9 @@ const PLAN = {
   // 후보별 (손잡이로 하나씩 되돌림). 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
   // 2026-11-17 이동 중에도 선명(M): main(BASE) ↔ 이 브랜치(NEW). TRACE=1 로 화면 합성 프레임까지 (docs/explore-move-quality.md)
   move: [['explore', [['base', BASE, ''], ['new', NEW, '']]]],
+  // 단계 고정 (다른 작업자의 CPU 부하로 16스레드가 weak 로 판정되는 일이 있어서): 16스레드 = strong(gl), 2코어 = weak(css)
+  move16: [['explore', [['base', BASE, 'tier=strong'], ['new', NEW, 'tier=strong']], 't16']],
+  move2: [['explore', [['base', BASE, 'tier=weak'], ['new', NEW, 'tier=weak']], 'c2']],
   // 같은 빌드에서 M 끔(?fslide=0) ↔ 켬
   moveab: [['explore', [['off', NEW, 'fslide=0'], ['new', NEW, '']]]],
   cand: [

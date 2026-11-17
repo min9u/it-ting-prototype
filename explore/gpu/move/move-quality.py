@@ -73,7 +73,7 @@ def sharp(im, mask):
 
 
 CASES = ['r25', 'r5', 'r75', 'rstop', 'u25', 'u5', 'u75', 'ustop']
-VARIANTS = ['old', 'new', 'weak']
+VARIANTS = ['old', 'new', 'css', 'weak']
 out = {}
 for c in CASES:
     ref, rmeta = load(f'{c}-gpu')
