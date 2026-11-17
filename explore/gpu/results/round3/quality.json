@@ -1,0 +1,610 @@
+{
+ "room": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 99.0,
+    "ssim": 1.0
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-gpu-bg.webp"
+   }
+  },
+  "gpubase": {
+   "psnr": 27.03,
+   "ssim": 0.9907,
+   "bg": {
+    "psnr": 56.6,
+    "ssim": 1.0,
+    "edgeSsim": 0.9999
+   },
+   "mole": {
+    "psnr": 12.12,
+    "ssim": 0.7131
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-gpubase.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-gpubase-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-gpubase-bg.webp"
+   }
+  },
+  "base": {
+   "psnr": 26.71,
+   "ssim": 0.9761,
+   "bg": {
+    "psnr": 36.88,
+    "ssim": 0.9855,
+    "edgeSsim": 0.9238
+   },
+   "mole": {
+    "psnr": 12.22,
+    "ssim": 0.6956
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-base-bg.webp"
+   }
+  },
+  "new": {
+   "psnr": 35.19,
+   "ssim": 0.9915,
+   "bg": {
+    "psnr": 35.28,
+    "ssim": 0.9922,
+    "edgeSsim": 0.9498
+   },
+   "mole": {
+    "psnr": 33.05,
+    "ssim": 0.9718
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-new-bg.webp"
+   }
+  },
+  "weak": {
+   "psnr": 33.34,
+   "ssim": 0.9819,
+   "bg": {
+    "psnr": 33.5,
+    "ssim": 0.9833,
+    "edgeSsim": 0.9044
+   },
+   "mole": {
+    "psnr": 30.17,
+    "ssim": 0.939
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-weak-bg.webp"
+   }
+  },
+  "fin": {
+   "psnr": 51.66,
+   "ssim": 0.9995,
+   "bg": {
+    "psnr": 51.57,
+    "ssim": 0.9994,
+    "edgeSsim": 0.9978
+   },
+   "mole": {
+    "psnr": 56.54,
+    "ssim": 0.9996
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/room-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-fin-bg.webp"
+   }
+  }
+ },
+ "visit": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 99.0,
+    "ssim": 1.0
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-gpu-bg.webp"
+   }
+  },
+  "gpubase": {
+   "psnr": 26.7,
+   "ssim": 0.9842,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 15.76,
+    "ssim": 0.8035
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-gpubase.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-gpubase-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-gpubase-bg.webp"
+   }
+  },
+  "base": {
+   "psnr": 26.92,
+   "ssim": 0.9768,
+   "bg": {
+    "psnr": 38.23,
+    "ssim": 0.9889,
+    "edgeSsim": 0.9395
+   },
+   "mole": {
+    "psnr": 16.29,
+    "ssim": 0.839
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-base-bg.webp"
+   }
+  },
+  "new": {
+   "psnr": 35.86,
+   "ssim": 0.9919,
+   "bg": {
+    "psnr": 36.32,
+    "ssim": 0.994,
+    "edgeSsim": 0.9593
+   },
+   "mole": {
+    "psnr": 32.54,
+    "ssim": 0.9676
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-new-bg.webp"
+   }
+  },
+  "weak": {
+   "psnr": 33.96,
+   "ssim": 0.9836,
+   "bg": {
+    "psnr": 34.46,
+    "ssim": 0.9867,
+    "edgeSsim": 0.9194
+   },
+   "mole": {
+    "psnr": 30.44,
+    "ssim": 0.9483
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-weak-bg.webp"
+   }
+  },
+  "fin": {
+   "psnr": 45.79,
+   "ssim": 0.998,
+   "bg": {
+    "psnr": 54.1,
+    "ssim": 0.9993,
+    "edgeSsim": 0.9975
+   },
+   "mole": {
+    "psnr": 35.49,
+    "ssim": 0.9834
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/visit-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-fin-bg.webp"
+   }
+  }
+ },
+ "explore": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 99.0,
+    "ssim": 1.0
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-gpu-bg.webp"
+   }
+  },
+  "gpubase": {
+   "psnr": 63.42,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 47.73,
+    "ssim": 0.999
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-gpubase.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-gpubase-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-gpubase-bg.webp"
+   }
+  },
+  "base": {
+   "psnr": 38.17,
+   "ssim": 0.9919,
+   "bg": {
+    "psnr": 39.29,
+    "ssim": 0.993,
+    "edgeSsim": 0.9521
+   },
+   "mole": {
+    "psnr": 28.55,
+    "ssim": 0.9517
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-base-bg.webp"
+   }
+  },
+  "new": {
+   "psnr": 41.08,
+   "ssim": 0.9955,
+   "bg": {
+    "psnr": 43.0,
+    "ssim": 0.9963,
+    "edgeSsim": 0.9737
+   },
+   "mole": {
+    "psnr": 29.65,
+    "ssim": 0.9661
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-new-bg.webp"
+   }
+  },
+  "weak": {
+   "psnr": 38.35,
+   "ssim": 0.992,
+   "bg": {
+    "psnr": 39.29,
+    "ssim": 0.9929,
+    "edgeSsim": 0.952
+   },
+   "mole": {
+    "psnr": 29.31,
+    "ssim": 0.9599
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-weak-bg.webp"
+   }
+  },
+  "fin": {
+   "psnr": 42.31,
+   "ssim": 0.997,
+   "bg": {
+    "psnr": 45.06,
+    "ssim": 0.9978,
+    "edgeSsim": 0.9814
+   },
+   "mole": {
+    "psnr": 29.77,
+    "ssim": 0.9676
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/explore-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-fin-bg.webp"
+   }
+  }
+ },
+ "onb": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 99.0,
+    "ssim": 1.0
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-gpu-bg.webp"
+   }
+  },
+  "gpubase": {
+   "psnr": 27.64,
+   "ssim": 0.9919,
+   "bg": {
+    "psnr": 104.89,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": {
+    "psnr": 12.53,
+    "ssim": 0.7376
+   },
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-gpubase.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-gpubase-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-gpubase-bg.webp"
+   }
+  },
+  "base": {
+   "psnr": 27.51,
+   "ssim": 0.9826,
+   "bg": {
+    "psnr": 39.84,
+    "ssim": 0.9907,
+    "edgeSsim": 0.9522
+   },
+   "mole": {
+    "psnr": 12.65,
+    "ssim": 0.73
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-base-bg.webp"
+   }
+  },
+  "new": {
+   "psnr": 35.13,
+   "ssim": 0.9913,
+   "bg": {
+    "psnr": 35.21,
+    "ssim": 0.9918,
+    "edgeSsim": 0.9474
+   },
+   "mole": {
+    "psnr": 33.27,
+    "ssim": 0.9767
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-new-bg.webp"
+   }
+  },
+  "weak": {
+   "psnr": 33.34,
+   "ssim": 0.9816,
+   "bg": {
+    "psnr": 33.48,
+    "ssim": 0.9826,
+    "edgeSsim": 0.8999
+   },
+   "mole": {
+    "psnr": 30.37,
+    "ssim": 0.9511
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-weak-bg.webp"
+   }
+  },
+  "fin": {
+   "psnr": 54.07,
+   "ssim": 0.9993,
+   "bg": {
+    "psnr": 54.03,
+    "ssim": 0.9993,
+    "edgeSsim": 0.9978
+   },
+   "mole": {
+    "psnr": 55.23,
+    "ssim": 0.9994
+   },
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/onb-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-fin-bg.webp"
+   }
+  }
+ },
+ "landing": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": null,
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/landing-gpu.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-gpu-bg.webp"
+   }
+  },
+  "gpubase": {
+   "psnr": 32.13,
+   "ssim": 0.9879,
+   "bg": {
+    "psnr": 32.13,
+    "ssim": 0.9879,
+    "edgeSsim": 0.9706
+   },
+   "mole": null,
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/landing-gpubase.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-gpubase-bg.webp"
+   }
+  },
+  "base": {
+   "psnr": 20.87,
+   "ssim": 0.8281,
+   "bg": {
+    "psnr": 20.87,
+    "ssim": 0.8281,
+    "edgeSsim": 0.4244
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/landing-base.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-base-bg.webp"
+   }
+  },
+  "new": {
+   "psnr": 20.98,
+   "ssim": 0.8334,
+   "bg": {
+    "psnr": 20.98,
+    "ssim": 0.8334,
+    "edgeSsim": 0.4414
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/landing-new.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-new-bg.webp"
+   }
+  },
+  "weak": {
+   "psnr": 20.98,
+   "ssim": 0.8334,
+   "bg": {
+    "psnr": 20.98,
+    "ssim": 0.8334,
+    "edgeSsim": 0.4414
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/landing-weak.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-weak-bg.webp"
+   }
+  }
+ },
+ "tea": {
+  "gpu": {
+   "psnr": 99.0,
+   "ssim": 1.0,
+   "bg": {
+    "psnr": 99.0,
+    "ssim": 1.0,
+    "edgeSsim": 1.0
+   },
+   "mole": null,
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/tea-gpu.webp",
+   "crops": {}
+  },
+  "gpubase": {
+   "psnr": 22.66,
+   "ssim": 0.8938,
+   "bg": {
+    "psnr": 22.66,
+    "ssim": 0.8938,
+    "edgeSsim": 0.6534
+   },
+   "mole": null,
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/tea-gpubase.webp",
+   "crops": {}
+  },
+  "base": {
+   "psnr": 20.74,
+   "ssim": 0.8564,
+   "bg": {
+    "psnr": 20.74,
+    "ssim": 0.8564,
+    "edgeSsim": 0.5536
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/tea-base.webp",
+   "crops": {}
+  },
+  "new": {
+   "psnr": 21.44,
+   "ssim": 0.8741,
+   "bg": {
+    "psnr": 21.44,
+    "ssim": 0.8741,
+    "edgeSsim": 0.6064
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/tea-new.webp",
+   "crops": {}
+  },
+  "weak": {
+   "psnr": 20.56,
+   "ssim": 0.8573,
+   "bg": {
+    "psnr": 20.56,
+    "ssim": 0.8573,
+    "edgeSsim": 0.5515
+   },
+   "mole": null,
+   "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "shot": "explore/gpu/results/round3/img/tea-weak.webp",
+   "crops": {}
+  }
+ }
+}

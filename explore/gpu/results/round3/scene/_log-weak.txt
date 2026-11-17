@@ -1,1 +1,8 @@
 weak-room-strong-c2-0 cpu6.9% 33s ready 5096 ltMax 1141 frz 1133
+weak-room-weak-c2-0 cpu15% 32s ready 4880 ltMax 380 frz 717
+weak-room-strong-c2-1 cpu20.6% 34s ready 4909 ltMax 884 frz 883
+weak-room-weak-c2-1 cpu18.6% 33s ready 5248 ltMax 879 frz 883
+weak-explore-strong-c2-0 cpu20.4% 38s ready 2935 ltMax 335 frz 567
+weak-explore-weak-c2-0 cpu23% 37s ready 2678 ltMax 216 frz 283
+weak-explore-strong-c2-1 cpu16.5% 38s ready 2744 ltMax 236 frz 433
+weak-explore-weak-c2-1 cpu9.7% 37s ready 3048 ltMax 258 frz 250

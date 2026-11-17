@@ -1,0 +1,8 @@
+gpu-room-base-gpu-0 cpu11.3% 29s ready 2670 ltMax 130 frz 200
+gpu-room-new-gpu-0 cpu22% 30s ready 3008 ltMax 349 frz 350
+gpu-explore-base-gpu-0 cpu14.5% 33s ready 1408 ltMax 145 frz 133
+gpu-explore-new-gpu-0 cpu8.7% 33s ready 1470 ltMax 137 frz 133
+gpu-landing-base-gpu-0 cpu21.6% 67s ready -1 ltMax 819 frz 817
+gpu-landing-new-gpu-0 cpu18.4% 66s ready -1 ltMax 355 frz 350
+gpu-tea-base-gpu-0 cpu15.6% 26s ready 1043 ltMax 178 frz 184
+gpu-tea-new-gpu-0 cpu6.9% 26s ready 1033 ltMax 60 frz 150

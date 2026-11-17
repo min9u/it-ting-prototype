@@ -1,0 +1,2878 @@
+{
+ "date": "2026-11-17",
+ "doc": "docs/rendering-experiments-3.md",
+ "conditions": {
+  "t16": "가속 끈 크롬 157 헤드리스(WARP, i7-11700 16스레드), 1920×1080, 새 프로필",
+  "c2": "같은 조건 + 크롬을 CPU 2개에 묶음 (AFF=3, 약한 PC 흉내)",
+  "gpu": "가속 켠 크롬 (RTX 5060 Ti)",
+  "reps": "기준·개선을 번갈아(A/B/A/B) 2번씩, 중앙값(2개면 평균)",
+  "quality": "GPU 고화질 대비 PSNR(dB)·SSIM. bg = 두더지 사각형+24px 를 뺀 곳, bg.edgeSsim = 배경 중 기준 밝기 기울기 상위 10%, mole = 두더지 사각형. 랜딩·찻방은 두더지 사각형이 없어 장면 전체만"
+ },
+ "units": {
+  "*Ms": "ms",
+  "*Fps": "초당 프레임",
+  "*CpuGpu": "GPU 프로세스(WARP 가 그리는 곳) CPU %, 100 = 코어 하나"
+ },
+ "candidates": [
+  {
+   "key": "room.gpu",
+   "screen": "room",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": {
+     "readyMs": 3008,
+     "loadLongTaskMs": 625,
+     "loadLongTaskMax": 349,
+     "loadFreezeMs": 350,
+     "idleCpuGpu": 30,
+     "idleSceneFps": 60,
+     "walkFps": 59.9,
+     "walkRafFps": 59.9,
+     "walkWorstGap": 22,
+     "walkCpuGpu": 31,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "n": 1
+    },
+    "gpuBase": {
+     "readyMs": 2670,
+     "loadLongTaskMs": 366,
+     "loadLongTaskMax": 130,
+     "loadFreezeMs": 200,
+     "idleCpuGpu": 29,
+     "idleSceneFps": 60,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 19,
+     "walkCpuGpu": 30,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "n": 1
+    }
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": {
+     "psnr": 99,
+     "ssim": 1
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/room-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-gpu-bg.webp"
+   }
+  },
+  {
+   "key": "room.base",
+   "screen": "room",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2635,
+     "loadLongTaskMs": 427,
+     "loadLongTaskMax": 154,
+     "loadFreezeMs": 133,
+     "idleCpuGpu": 36,
+     "idleSceneFps": 12.1,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 19,
+     "walkCpuGpu": 192,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 6989.5,
+     "loadLongTaskMs": 2902.5,
+     "loadLongTaskMax": 831.5,
+     "loadFreezeMs": 891.5,
+     "idleCpuGpu": 30,
+     "idleSceneFps": 8.7,
+     "walkFps": 44.4,
+     "walkRafFps": 44.5,
+     "walkWorstGap": 63.5,
+     "walkCpuGpu": 140,
+     "idle1RafWorst": 58,
+     "idle1LongTaskMax": 0,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 26.71,
+    "ssim": 0.9761,
+    "bg": {
+     "psnr": 36.88,
+     "ssim": 0.9855,
+     "edgeSsim": 0.9238
+    },
+    "mole": {
+     "psnr": 12.22,
+     "ssim": 0.6956
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/room-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-base-bg.webp"
+   }
+  },
+  {
+   "key": "room.def",
+   "screen": "room",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2600,
+     "loadLongTaskMs": 594,
+     "loadLongTaskMax": 185,
+     "loadFreezeMs": 183,
+     "idleCpuGpu": 37,
+     "idleSceneFps": 12.2,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 22,
+     "walkCpuGpu": 198,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 189,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 5452,
+     "loadLongTaskMs": 2249.5,
+     "loadLongTaskMax": 896,
+     "loadFreezeMs": 908.5,
+     "idleCpuGpu": 31.5,
+     "idleSceneFps": 9.4,
+     "walkFps": 45.6,
+     "walkRafFps": 45.7,
+     "walkWorstGap": 50,
+     "walkCpuGpu": 143,
+     "idle1RafWorst": 50,
+     "idle1LongTaskMax": 30,
+     "bakeMs": 722.5,
+     "tierStored": "strong",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 35.19,
+    "ssim": 0.9915,
+    "bg": {
+     "psnr": 35.28,
+     "ssim": 0.9922,
+     "edgeSsim": 0.9498
+    },
+    "mole": {
+     "psnr": 33.05,
+     "ssim": 0.9718
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/room-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-new-bg.webp"
+   }
+  },
+  {
+   "key": "room.mid",
+   "screen": "room",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 3031,
+     "loadLongTaskMs": 595,
+     "loadLongTaskMax": 166.5,
+     "loadFreezeMs": 158,
+     "idleCpuGpu": 38,
+     "idleSceneFps": 12.1,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 23.5,
+     "walkCpuGpu": 192,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 175,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": {
+     "readyMs": 6346.5,
+     "loadLongTaskMs": 2506,
+     "loadLongTaskMax": 905.5,
+     "loadFreezeMs": 891.5,
+     "idleCpuGpu": 32,
+     "idleSceneFps": 11.5,
+     "walkFps": 51.8,
+     "walkRafFps": 51.8,
+     "walkWorstGap": 48.5,
+     "walkCpuGpu": 144,
+     "idle1RafWorst": 41.5,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 689.5,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "room.fin",
+   "screen": "room",
+   "name": "최종 (+ 굽기 sRGB·텍스처 묶기·단계 판정 고침)",
+   "desc": "개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 예열의 텍스처 올리기 8ms 묶음 + 기기 단계 판정(첫 값 뺀 중앙값)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능은 개선과 번갈아 잼",
+   "adopted": true,
+   "perf": {
+    "t16": null,
+    "c2": null,
+    "newT16": null,
+    "newC2": null
+   },
+   "quality": {
+    "psnr": 51.66,
+    "ssim": 0.9995,
+    "bg": {
+     "psnr": 51.57,
+     "ssim": 0.9994,
+     "edgeSsim": 0.9978
+    },
+    "mole": {
+     "psnr": 56.54,
+     "ssim": 0.9996
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/room-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-fin-bg.webp"
+   }
+  },
+  {
+   "key": "room.weak",
+   "screen": "room",
+   "name": "3차 약한 단계 (weak)",
+   "desc": "2코어급으로 판정된 뒤(다음 방문부터): 굽기 6띠·MSAA 없음, 카메라 이동 0.22배",
+   "adopted": true,
+   "perf": {
+    "t16": null,
+    "c2": {
+     "readyMs": 5064,
+     "loadLongTaskMs": 2100.5,
+     "loadLongTaskMax": 629.5,
+     "loadFreezeMs": 800,
+     "idleCpuGpu": 29,
+     "idleSceneFps": 12.1,
+     "walkFps": 47.8,
+     "walkRafFps": 47.9,
+     "walkWorstGap": 51,
+     "walkCpuGpu": 139.5,
+     "idle1RafWorst": 41.5,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 681,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "strongT16": null,
+    "strongC2": {
+     "readyMs": 5002.5,
+     "loadLongTaskMs": 2407.5,
+     "loadLongTaskMax": 1012.5,
+     "loadFreezeMs": 1008,
+     "idleCpuGpu": 30.5,
+     "idleSceneFps": 12.1,
+     "walkFps": 49,
+     "walkRafFps": 49.1,
+     "walkWorstGap": 68,
+     "walkCpuGpu": 141,
+     "idle1RafWorst": 41.5,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 645,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 33.34,
+    "ssim": 0.9819,
+    "bg": {
+     "psnr": 33.5,
+     "ssim": 0.9833,
+     "edgeSsim": 0.9044
+    },
+    "mole": {
+     "psnr": 30.17,
+     "ssim": 0.939
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/room-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/room-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/room-weak-bg.webp"
+   }
+  },
+  {
+   "key": "room.revisit",
+   "screen": "room",
+   "name": "두 번째 방문",
+   "desc": "같은 프로필로 다시 열기: 기기 단계 기억 + 구운 배경 IndexedDB (기준은 2차 빌드의 두 번째 방문)",
+   "adopted": true,
+   "perf": {
+    "t16": {
+     "readyMs": 2197,
+     "loadLongTaskMs": 300,
+     "loadLongTaskMax": 73,
+     "loadFreezeMs": 133,
+     "stillAtMs": 624,
+     "idleCpuGpu": 33,
+     "idleSceneFps": 12.2,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 19,
+     "walkCpuGpu": 177,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "tierStored": "strong",
+     "n": 1
+    },
+    "c2": {
+     "readyMs": 5557,
+     "loadLongTaskMs": 1477,
+     "loadLongTaskMax": 321,
+     "loadFreezeMs": 367,
+     "stillAtMs": 996,
+     "idleCpuGpu": 33,
+     "idleSceneFps": 12,
+     "walkFps": 55.3,
+     "walkRafFps": 55.3,
+     "walkWorstGap": 54,
+     "walkCpuGpu": 152,
+     "idle1RafWorst": 33,
+     "idle1LongTaskMax": 0,
+     "tierStored": "strong",
+     "n": 1
+    },
+    "baseT16": {
+     "readyMs": 2198,
+     "loadLongTaskMs": 497,
+     "loadLongTaskMax": 180,
+     "loadFreezeMs": 167,
+     "idleCpuGpu": 32,
+     "idleSceneFps": 12.1,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 20,
+     "walkCpuGpu": 176,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "n": 1
+    },
+    "baseC2": {
+     "readyMs": 6033,
+     "loadLongTaskMs": 2576,
+     "loadLongTaskMax": 1023,
+     "loadFreezeMs": 1000,
+     "idleCpuGpu": 33,
+     "idleSceneFps": 11.6,
+     "walkFps": 55.9,
+     "walkRafFps": 55.9,
+     "walkWorstGap": 44,
+     "walkCpuGpu": 151,
+     "idle1RafWorst": 33,
+     "idle1LongTaskMax": 0,
+     "n": 1
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "room.old-bake",
+   "screen": "room",
+   "name": "예전 선명한 방 (?rbake=0)",
+   "desc": "2차: 1.5배 슈퍼샘플을 그 자리에서 읽음. 2코어",
+   "adopted": false,
+   "perf": {
+    "t16": null,
+    "c2": {
+     "readyMs": 5945,
+     "loadLongTaskMs": 2333,
+     "loadLongTaskMax": 951.5,
+     "loadFreezeMs": 1075,
+     "idleCpuGpu": 29,
+     "idleSceneFps": 11.8,
+     "walkFps": 51.7,
+     "walkRafFps": 51.8,
+     "walkWorstGap": 45,
+     "walkCpuGpu": 145,
+     "idle1RafWorst": 41.5,
+     "idle1LongTaskMax": 0,
+     "tierStored": "weak",
+     "n": 2
+    },
+    "defT16": null,
+    "defC2": {
+     "readyMs": 5490.5,
+     "loadLongTaskMs": 2304.5,
+     "loadLongTaskMax": 765,
+     "loadFreezeMs": 858.5,
+     "idleCpuGpu": 29.5,
+     "idleSceneFps": 11.6,
+     "walkFps": 49.6,
+     "walkRafFps": 49.7,
+     "walkWorstGap": 48,
+     "walkCpuGpu": 142.5,
+     "idle1RafWorst": 58.5,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 699,
+     "tierStored": "strong",
+     "n": 2
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "visit.gpu",
+   "screen": "visit",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": null,
+    "gpuBase": null
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": {
+     "psnr": 99,
+     "ssim": 1
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/visit-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-gpu-bg.webp"
+   }
+  },
+  {
+   "key": "visit.base",
+   "screen": "visit",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2346,
+     "loadLongTaskMs": 457,
+     "loadLongTaskMax": 153,
+     "loadFreezeMs": 150,
+     "idleCpuGpu": 64,
+     "idleSceneFps": 12.1,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 19,
+     "walkCpuGpu": 301,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 5849,
+     "loadLongTaskMs": 2447.5,
+     "loadLongTaskMax": 708.5,
+     "loadFreezeMs": 700,
+     "idleCpuGpu": 36,
+     "idleSceneFps": 8.7,
+     "walkFps": 34.5,
+     "walkRafFps": 34.5,
+     "walkWorstGap": 64,
+     "walkCpuGpu": 135.5,
+     "idle1RafWorst": 67,
+     "idle1LongTaskMax": 51,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 26.92,
+    "ssim": 0.9768,
+    "bg": {
+     "psnr": 38.23,
+     "ssim": 0.9889,
+     "edgeSsim": 0.9395
+    },
+    "mole": {
+     "psnr": 16.29,
+     "ssim": 0.839
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/visit-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-base-bg.webp"
+   }
+  },
+  {
+   "key": "visit.def",
+   "screen": "visit",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2718,
+     "loadLongTaskMs": 418,
+     "loadLongTaskMax": 117,
+     "loadFreezeMs": 117,
+     "idleCpuGpu": 64,
+     "idleSceneFps": 12.1,
+     "walkFps": 59.9,
+     "walkRafFps": 59.9,
+     "walkWorstGap": 21,
+     "walkCpuGpu": 298,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 165,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 5293.5,
+     "loadLongTaskMs": 2210.5,
+     "loadLongTaskMax": 911.5,
+     "loadFreezeMs": 891.5,
+     "idleCpuGpu": 65,
+     "idleSceneFps": 15.6,
+     "walkFps": 33.7,
+     "walkRafFps": 33.8,
+     "walkWorstGap": 76.5,
+     "walkCpuGpu": 141,
+     "idle1RafWorst": 50,
+     "idle1LongTaskMax": 31.5,
+     "bakeMs": 563.5,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 35.86,
+    "ssim": 0.9919,
+    "bg": {
+     "psnr": 36.32,
+     "ssim": 0.994,
+     "edgeSsim": 0.9593
+    },
+    "mole": {
+     "psnr": 32.54,
+     "ssim": 0.9676
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/visit-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-new-bg.webp"
+   }
+  },
+  {
+   "key": "visit.mid",
+   "screen": "visit",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 3151.5,
+     "loadLongTaskMs": 485,
+     "loadLongTaskMax": 129.5,
+     "loadFreezeMs": 133,
+     "idleCpuGpu": 64.5,
+     "idleSceneFps": 12.1,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 23.5,
+     "walkCpuGpu": 300,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 183.5,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "visit.fin",
+   "screen": "visit",
+   "name": "최종 (+ 굽기 sRGB·텍스처 묶기·단계 판정 고침)",
+   "desc": "개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 예열의 텍스처 올리기 8ms 묶음 + 기기 단계 판정(첫 값 뺀 중앙값)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능은 개선과 번갈아 잼",
+   "adopted": true,
+   "perf": {
+    "t16": {
+     "readyMs": 2311,
+     "loadLongTaskMs": 383,
+     "loadLongTaskMax": 91,
+     "loadFreezeMs": 117,
+     "idleCpuGpu": 61,
+     "idleSceneFps": 12.3,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 20,
+     "walkCpuGpu": 284,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 163,
+     "tierStored": "strong",
+     "n": 1
+    },
+    "c2": null,
+    "newT16": {
+     "readyMs": 2619,
+     "loadLongTaskMs": 372,
+     "loadLongTaskMax": 114,
+     "loadFreezeMs": 117,
+     "idleCpuGpu": 59,
+     "idleSceneFps": 12.2,
+     "walkFps": 60,
+     "walkRafFps": 60,
+     "walkWorstGap": 20,
+     "walkCpuGpu": 287,
+     "idle1RafWorst": 17,
+     "idle1LongTaskMax": 0,
+     "bakeMs": 172,
+     "tierStored": "strong",
+     "n": 1
+    },
+    "newC2": null
+   },
+   "quality": {
+    "psnr": 45.79,
+    "ssim": 0.998,
+    "bg": {
+     "psnr": 54.1,
+     "ssim": 0.9993,
+     "edgeSsim": 0.9975
+    },
+    "mole": {
+     "psnr": 35.49,
+     "ssim": 0.9834
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/visit-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/visit-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/visit-fin-bg.webp"
+   }
+  },
+  {
+   "key": "explore.gpu",
+   "screen": "explore",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": {
+     "readyMs": 1470,
+     "loadLongTaskMs": 277,
+     "loadLongTaskMax": 137,
+     "loadFreezeMs": 133,
+     "idleCpuGpu": 20,
+     "hopFps": 59.9,
+     "hopRafFps": 59.9,
+     "panFps": 62.5,
+     "hopWorstGap": 35,
+     "hopRafWorst": 33,
+     "hopLongTaskMs": 0,
+     "hopCpuGpu": 26,
+     "clickFps": 59.7,
+     "floorSwitchMs": 297,
+     "n": 1
+    },
+    "gpuBase": {
+     "readyMs": 1408,
+     "loadLongTaskMs": 455,
+     "loadLongTaskMax": 145,
+     "loadFreezeMs": 133,
+     "idleCpuGpu": 24,
+     "hopFps": 59.9,
+     "hopRafFps": 60.1,
+     "panFps": 62.5,
+     "hopWorstGap": 30,
+     "hopRafWorst": 17,
+     "hopLongTaskMs": 0,
+     "hopCpuGpu": 31,
+     "clickFps": 59.9,
+     "floorSwitchMs": 252,
+     "n": 1
+    }
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": {
+     "psnr": 99,
+     "ssim": 1
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/explore-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-gpu-bg.webp"
+   }
+  },
+  {
+   "key": "explore.base",
+   "screen": "explore",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 1648,
+     "loadLongTaskMs": 463,
+     "loadLongTaskMax": 131,
+     "loadFreezeMs": 167,
+     "idleCpuGpu": 36,
+     "hopFps": 57.7,
+     "hopRafFps": 57.7,
+     "panFps": 63.1,
+     "hopWorstGap": 84,
+     "hopRafWorst": 83,
+     "hopLongTaskMs": 333,
+     "hopCpuGpu": 375,
+     "clickFps": 58.8,
+     "floorSwitchMs": 403,
+     "sharpReadyMed": 85,
+     "sharpReadyMax": 108,
+     "sharpN": 7,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 3622,
+     "loadLongTaskMs": 1982.5,
+     "loadLongTaskMax": 430,
+     "loadFreezeMs": 425,
+     "idleCpuGpu": 28.5,
+     "hopFps": 35,
+     "hopRafFps": 35.1,
+     "panFps": 19.1,
+     "hopWorstGap": 354,
+     "hopRafWorst": 408.5,
+     "hopLongTaskMs": 2666.5,
+     "hopCpuGpu": 149.5,
+     "clickFps": 43.8,
+     "floorSwitchMs": 1017.5,
+     "sharpReadyMed": 365.5,
+     "sharpReadyMax": 474.5,
+     "sharpN": 3,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 38.17,
+    "ssim": 0.9919,
+    "bg": {
+     "psnr": 39.29,
+     "ssim": 0.993,
+     "edgeSsim": 0.9521
+    },
+    "mole": {
+     "psnr": 28.55,
+     "ssim": 0.9517
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/explore-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-base-bg.webp"
+   }
+  },
+  {
+   "key": "explore.def",
+   "screen": "explore",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 1567,
+     "loadLongTaskMs": 505,
+     "loadLongTaskMax": 136,
+     "loadFreezeMs": 167,
+     "idleCpuGpu": 38,
+     "hopFps": 58.9,
+     "hopRafFps": 58.9,
+     "panFps": 63.8,
+     "hopWorstGap": 84,
+     "hopRafWorst": 83,
+     "hopLongTaskMs": 150,
+     "hopCpuGpu": 357,
+     "clickFps": 57.6,
+     "floorSwitchMs": 320,
+     "sharpReadyMed": 166,
+     "sharpReadyMax": 181,
+     "sharpN": 4,
+     "sharpSaved": 3,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 3195.5,
+     "loadLongTaskMs": 1546.5,
+     "loadLongTaskMax": 306,
+     "loadFreezeMs": 533.5,
+     "idleCpuGpu": 29.5,
+     "hopFps": 33.6,
+     "hopRafFps": 33.9,
+     "panFps": 19.7,
+     "hopWorstGap": 363,
+     "hopRafWorst": 325,
+     "hopLongTaskMs": 2624,
+     "hopCpuGpu": 145.5,
+     "clickFps": 35.3,
+     "floorSwitchMs": 755,
+     "sharpReadyMed": 548,
+     "sharpReadyMax": 577.5,
+     "sharpN": 4,
+     "sharpSaved": 3,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 41.08,
+    "ssim": 0.9955,
+    "bg": {
+     "psnr": 43,
+     "ssim": 0.9963,
+     "edgeSsim": 0.9737
+    },
+    "mole": {
+     "psnr": 29.65,
+     "ssim": 0.9661
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/explore-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-new-bg.webp"
+   }
+  },
+  {
+   "key": "explore.mid",
+   "screen": "explore",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 1763,
+     "loadLongTaskMs": 403.5,
+     "loadLongTaskMax": 132,
+     "loadFreezeMs": 141.5,
+     "idleCpuGpu": 38,
+     "hopFps": 58.9,
+     "hopRafFps": 58.9,
+     "panFps": 62.8,
+     "hopWorstGap": 78,
+     "hopRafWorst": 67,
+     "hopLongTaskMs": 135.5,
+     "hopCpuGpu": 350,
+     "clickFps": 57.9,
+     "floorSwitchMs": 1650.5,
+     "sharpReadyMed": 149,
+     "sharpReadyMax": 163,
+     "sharpN": 4,
+     "sharpSaved": 3,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "explore.fin",
+   "screen": "explore",
+   "name": "최종 (+ 굽기 sRGB·텍스처 묶기·단계 판정 고침)",
+   "desc": "개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 예열의 텍스처 올리기 8ms 묶음 + 기기 단계 판정(첫 값 뺀 중앙값)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능은 개선과 번갈아 잼",
+   "adopted": true,
+   "perf": {
+    "t16": null,
+    "c2": null,
+    "newT16": null,
+    "newC2": null
+   },
+   "quality": {
+    "psnr": 42.31,
+    "ssim": 0.997,
+    "bg": {
+     "psnr": 45.06,
+     "ssim": 0.9978,
+     "edgeSsim": 0.9814
+    },
+    "mole": {
+     "psnr": 29.77,
+     "ssim": 0.9676
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/explore-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-fin-bg.webp"
+   }
+  },
+  {
+   "key": "explore.weak",
+   "screen": "explore",
+   "name": "3차 약한 단계 (weak)",
+   "desc": "2코어급으로 판정된 뒤(다음 방문부터): 굽기 6띠·MSAA 없음, 카메라 이동 0.22배",
+   "adopted": true,
+   "perf": {
+    "t16": null,
+    "c2": {
+     "readyMs": 2863,
+     "loadLongTaskMs": 1716,
+     "loadLongTaskMax": 237,
+     "loadFreezeMs": 266.5,
+     "idleCpuGpu": 30,
+     "hopFps": 30.6,
+     "hopRafFps": 30.6,
+     "panFps": 21.6,
+     "hopWorstGap": 207,
+     "hopRafWorst": 258,
+     "hopLongTaskMs": 2611,
+     "hopCpuGpu": 137.5,
+     "clickFps": 37.1,
+     "floorSwitchMs": 808,
+     "sharpReadyMed": 530,
+     "sharpReadyMax": 626.5,
+     "sharpN": 3.5,
+     "sharpSaved": 2.5,
+     "tierStored": "weak",
+     "n": 2
+    },
+    "strongT16": null,
+    "strongC2": {
+     "readyMs": 2839.5,
+     "loadLongTaskMs": 1517,
+     "loadLongTaskMax": 285.5,
+     "loadFreezeMs": 500,
+     "idleCpuGpu": 31.5,
+     "hopFps": 35.9,
+     "hopRafFps": 36,
+     "panFps": 19.4,
+     "hopWorstGap": 326,
+     "hopRafWorst": 325,
+     "hopLongTaskMs": 2806,
+     "hopCpuGpu": 146.5,
+     "clickFps": 35.1,
+     "floorSwitchMs": 752,
+     "sharpReadyMed": 551.5,
+     "sharpReadyMax": 569,
+     "sharpN": 4,
+     "sharpSaved": 3,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 38.35,
+    "ssim": 0.992,
+    "bg": {
+     "psnr": 39.29,
+     "ssim": 0.9929,
+     "edgeSsim": 0.952
+    },
+    "mole": {
+     "psnr": 29.31,
+     "ssim": 0.9599
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/explore-weak.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/explore-weak-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/explore-weak-bg.webp"
+   }
+  },
+  {
+   "key": "explore.revisit",
+   "screen": "explore",
+   "name": "두 번째 방문",
+   "desc": "같은 프로필로 다시 열기: 기기 단계 기억 + 구운 배경 IndexedDB (기준은 2차 빌드의 두 번째 방문)",
+   "adopted": true,
+   "perf": {
+    "t16": {
+     "readyMs": 1021,
+     "loadLongTaskMs": 239,
+     "loadLongTaskMax": 89,
+     "loadFreezeMs": 117,
+     "stillAtMs": 510,
+     "idleCpuGpu": 33,
+     "hopFps": 58.6,
+     "hopRafFps": 58.6,
+     "panFps": 62.5,
+     "hopWorstGap": 88,
+     "hopRafWorst": 83,
+     "hopLongTaskMs": 145,
+     "hopCpuGpu": 350,
+     "clickFps": 57.8,
+     "floorSwitchMs": 359,
+     "sharpReadyMed": 151,
+     "sharpReadyMax": 167,
+     "sharpN": 3,
+     "sharpSaved": 4,
+     "tierStored": "strong",
+     "n": 1
+    },
+    "c2": {
+     "readyMs": 1853,
+     "loadLongTaskMs": 556,
+     "loadLongTaskMax": 145,
+     "loadFreezeMs": 200,
+     "stillAtMs": 639,
+     "idleCpuGpu": 34,
+     "hopFps": 40.1,
+     "hopRafFps": 40.3,
+     "panFps": 20,
+     "hopWorstGap": 377,
+     "hopRafWorst": 283,
+     "hopLongTaskMs": 2359,
+     "hopCpuGpu": 155,
+     "clickFps": 38.6,
+     "floorSwitchMs": 757,
+     "sharpReadyMed": 528,
+     "sharpReadyMax": 575,
+     "sharpN": 3,
+     "sharpSaved": 4,
+     "tierStored": "weak",
+     "n": 1
+    },
+    "baseT16": {
+     "readyMs": 953,
+     "loadLongTaskMs": 219,
+     "loadLongTaskMax": 81,
+     "loadFreezeMs": 100,
+     "idleCpuGpu": 35,
+     "hopFps": 58,
+     "hopRafFps": 58,
+     "panFps": 63.1,
+     "hopWorstGap": 82,
+     "hopRafWorst": 83,
+     "hopLongTaskMs": 323,
+     "hopCpuGpu": 366,
+     "clickFps": 58.6,
+     "floorSwitchMs": 379,
+     "sharpReadyMed": 83,
+     "sharpReadyMax": 108,
+     "sharpN": 7,
+     "n": 1
+    },
+    "baseC2": {
+     "readyMs": 1633,
+     "loadLongTaskMs": 906,
+     "loadLongTaskMax": 315,
+     "loadFreezeMs": 350,
+     "idleCpuGpu": 31,
+     "hopFps": 41.3,
+     "hopRafFps": 41.4,
+     "panFps": 21.9,
+     "hopWorstGap": 281,
+     "hopRafWorst": 383,
+     "hopLongTaskMs": 2371,
+     "hopCpuGpu": 159,
+     "clickFps": 46.3,
+     "floorSwitchMs": 1038,
+     "sharpReadyMed": 312,
+     "sharpReadyMax": 333,
+     "sharpN": 3,
+     "n": 1
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "explore.bake1",
+   "screen": "explore",
+   "name": "한 번에 굽기 (?fstrips=1&fmsaa=0)",
+   "desc": "2차와 같은 한 장 굽기(띠 1, MSAA 없음). 2코어",
+   "adopted": false,
+   "perf": {
+    "t16": null,
+    "c2": {
+     "readyMs": 3180.5,
+     "loadLongTaskMs": 1312.5,
+     "loadLongTaskMax": 317,
+     "loadFreezeMs": 375,
+     "idleCpuGpu": 28.5,
+     "hopFps": 34,
+     "hopRafFps": 34.1,
+     "panFps": 17.5,
+     "hopWorstGap": 424,
+     "hopRafWorst": 491.5,
+     "hopLongTaskMs": 2793,
+     "hopCpuGpu": 137.5,
+     "clickFps": 48.4,
+     "floorSwitchMs": 726,
+     "sharpReadyMed": 373.5,
+     "sharpReadyMax": 457.5,
+     "sharpN": 3,
+     "tierStored": "weak",
+     "n": 2
+    },
+    "defT16": null,
+    "defC2": {
+     "readyMs": 3055,
+     "loadLongTaskMs": 1798.5,
+     "loadLongTaskMax": 356.5,
+     "loadFreezeMs": 600,
+     "idleCpuGpu": 32,
+     "hopFps": 32,
+     "hopRafFps": 32.1,
+     "panFps": 18.1,
+     "hopWorstGap": 417,
+     "hopRafWorst": 383.5,
+     "hopLongTaskMs": 3073.5,
+     "hopCpuGpu": 139,
+     "clickFps": 36.8,
+     "floorSwitchMs": 647.5,
+     "sharpReadyMed": 659,
+     "sharpReadyMax": 703,
+     "sharpN": 4,
+     "sharpSaved": 3,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "landing.gpu",
+   "screen": "landing",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": {
+     "readyMs": -1,
+     "loadLongTaskMs": 662,
+     "loadLongTaskMax": 355,
+     "loadFreezeMs": 350,
+     "scrollLongTaskMs": 0,
+     "scrollRafFps": 58.4,
+     "roomReadyMs": 1536,
+     "idleCpuGpu": 23,
+     "warmMs": 548,
+     "n": 1
+    },
+    "gpuBase": {
+     "readyMs": -1,
+     "loadLongTaskMs": 1304,
+     "loadLongTaskMax": 819,
+     "loadFreezeMs": 817,
+     "scrollLongTaskMs": 62,
+     "scrollRafFps": 59.1,
+     "roomReadyMs": 1288,
+     "idleCpuGpu": 25,
+     "n": 1
+    }
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/landing-gpu.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-gpu-bg.webp"
+   }
+  },
+  {
+   "key": "landing.base",
+   "screen": "landing",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": -1,
+     "loadLongTaskMs": 1018,
+     "loadLongTaskMax": 547,
+     "loadFreezeMs": 583,
+     "scrollLongTaskMs": 386,
+     "scrollRafFps": 52.3,
+     "roomReadyMs": 2441,
+     "idleCpuGpu": 86,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": -1,
+     "loadLongTaskMs": 2310.5,
+     "loadLongTaskMax": 994,
+     "loadFreezeMs": 1167,
+     "scrollLongTaskMs": 2635.5,
+     "scrollRafFps": 36.7,
+     "roomReadyMs": 6517.5,
+     "idleCpuGpu": 33,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 20.87,
+    "ssim": 0.8281,
+    "bg": {
+     "psnr": 20.87,
+     "ssim": 0.8281,
+     "edgeSsim": 0.4244
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/landing-base.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-base-bg.webp"
+   }
+  },
+  {
+   "key": "landing.def",
+   "screen": "landing",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": -1,
+     "loadLongTaskMs": 217,
+     "loadLongTaskMax": 217,
+     "loadFreezeMs": 200,
+     "scrollLongTaskMs": 337,
+     "scrollRafFps": 53,
+     "roomReadyMs": 2049,
+     "idleCpuGpu": 91,
+     "warmMs": 453,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": -1,
+     "loadLongTaskMs": 1736,
+     "loadLongTaskMax": 438,
+     "loadFreezeMs": 517,
+     "scrollLongTaskMs": 2093.5,
+     "scrollRafFps": 38.1,
+     "roomReadyMs": 5475,
+     "idleCpuGpu": 34,
+     "warmMs": 933.5,
+     "tierStored": "weak",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 20.98,
+    "ssim": 0.8334,
+    "bg": {
+     "psnr": 20.98,
+     "ssim": 0.8334,
+     "edgeSsim": 0.4414
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/landing-new.webp",
+   "crops": {
+    "bg": "explore/gpu/results/round3/crops/landing-new-bg.webp"
+   }
+  },
+  {
+   "key": "landing.mid",
+   "screen": "landing",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": -1,
+     "loadLongTaskMs": 204,
+     "loadLongTaskMax": 179,
+     "loadFreezeMs": 175,
+     "scrollLongTaskMs": 180,
+     "scrollRafFps": 54.2,
+     "roomReadyMs": 2451,
+     "idleCpuGpu": 85.5,
+     "warmMs": 393.5,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "onb.gpu",
+   "screen": "onb",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": null,
+    "gpuBase": null
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": {
+     "psnr": 99,
+     "ssim": 1
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/onb-gpu.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-gpu-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-gpu-bg.webp"
+   }
+  },
+  {
+   "key": "onb.base",
+   "screen": "onb",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2596,
+     "loadLongTaskMs": 480,
+     "loadLongTaskMax": 183,
+     "loadFreezeMs": 167,
+     "idleCpuGpu": 48,
+     "idleSceneFps": 16,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 6523.5,
+     "loadLongTaskMs": 2847.5,
+     "loadLongTaskMax": 975,
+     "loadFreezeMs": 958,
+     "idleCpuGpu": 42.5,
+     "idleSceneFps": 15.1,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 27.51,
+    "ssim": 0.9826,
+    "bg": {
+     "psnr": 39.84,
+     "ssim": 0.9907,
+     "edgeSsim": 0.9522
+    },
+    "mole": {
+     "psnr": 12.65,
+     "ssim": 0.73
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/onb-base.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-base-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-base-bg.webp"
+   }
+  },
+  {
+   "key": "onb.def",
+   "screen": "onb",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2326,
+     "loadLongTaskMs": 499,
+     "loadLongTaskMax": 154,
+     "loadFreezeMs": 150,
+     "idleCpuGpu": 43,
+     "idleSceneFps": 15.5,
+     "bakeMs": 173,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 5939.5,
+     "loadLongTaskMs": 2633,
+     "loadLongTaskMax": 872.5,
+     "loadFreezeMs": 1008,
+     "idleCpuGpu": 46,
+     "idleSceneFps": 17.1,
+     "bakeMs": 720,
+     "tierStored": "strong",
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 35.13,
+    "ssim": 0.9913,
+    "bg": {
+     "psnr": 35.21,
+     "ssim": 0.9918,
+     "edgeSsim": 0.9474
+    },
+    "mole": {
+     "psnr": 33.27,
+     "ssim": 0.9767
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/onb-new.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-new-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-new-bg.webp"
+   }
+  },
+  {
+   "key": "onb.mid",
+   "screen": "onb",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 3049,
+     "loadLongTaskMs": 442,
+     "loadLongTaskMax": 124,
+     "loadFreezeMs": 133,
+     "idleCpuGpu": 45.5,
+     "idleSceneFps": 15.4,
+     "bakeMs": 158,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "onb.fin",
+   "screen": "onb",
+   "name": "최종 (+ 굽기 sRGB·텍스처 묶기·단계 판정 고침)",
+   "desc": "개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 예열의 텍스처 올리기 8ms 묶음 + 기기 단계 판정(첫 값 뺀 중앙값)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능은 개선과 번갈아 잼",
+   "adopted": true,
+   "perf": {
+    "t16": null,
+    "c2": null,
+    "newT16": null,
+    "newC2": null
+   },
+   "quality": {
+    "psnr": 54.07,
+    "ssim": 0.9993,
+    "bg": {
+     "psnr": 54.03,
+     "ssim": 0.9993,
+     "edgeSsim": 0.9978
+    },
+    "mole": {
+     "psnr": 55.23,
+     "ssim": 0.9994
+    }
+   },
+   "shot": "explore/gpu/results/round3/img/onb-fin.webp",
+   "crops": {
+    "mole": "explore/gpu/results/round3/crops/onb-fin-mole.webp",
+    "bg": "explore/gpu/results/round3/crops/onb-fin-bg.webp"
+   }
+  },
+  {
+   "key": "tea.gpu",
+   "screen": "tea",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": {
+     "readyMs": 1033,
+     "loadLongTaskMs": 60,
+     "loadLongTaskMax": 60,
+     "loadFreezeMs": 150,
+     "idleCpuGpu": 14,
+     "idleSceneFps": 59.9,
+     "sendFps": 59.8,
+     "typeLatencyMs": 18,
+     "idle2CpuGpu": 14,
+     "n": 1
+    },
+    "gpuBase": {
+     "readyMs": 1043,
+     "loadLongTaskMs": 373,
+     "loadLongTaskMax": 178,
+     "loadFreezeMs": 184,
+     "idleCpuGpu": 15,
+     "idleSceneFps": 60,
+     "sendFps": 59.9,
+     "typeLatencyMs": 29,
+     "idle2CpuGpu": 15,
+     "n": 1
+    }
+   },
+   "quality": {
+    "psnr": 99,
+    "ssim": 1,
+    "bg": {
+     "psnr": 99,
+     "ssim": 1,
+     "edgeSsim": 1
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/tea-gpu.webp",
+   "crops": {}
+  },
+  {
+   "key": "tea.base",
+   "screen": "tea",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 993,
+     "loadLongTaskMs": 423,
+     "loadLongTaskMax": 233,
+     "loadFreezeMs": 300,
+     "idleCpuGpu": 22,
+     "idleSceneFps": 3.9,
+     "sendFps": 27.3,
+     "typeLatencyMs": 24,
+     "idle2CpuGpu": 57,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 1570.5,
+     "loadLongTaskMs": 596.5,
+     "loadLongTaskMax": 249.5,
+     "loadFreezeMs": 308.5,
+     "idleCpuGpu": 16.5,
+     "idleSceneFps": 4,
+     "sendFps": 22.7,
+     "typeLatencyMs": 22,
+     "idle2CpuGpu": 12.5,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 20.74,
+    "ssim": 0.8564,
+    "bg": {
+     "psnr": 20.74,
+     "ssim": 0.8564,
+     "edgeSsim": 0.5536
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/tea-base.webp",
+   "crops": {}
+  },
+  {
+   "key": "tea.def",
+   "screen": "tea",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 1121,
+     "loadLongTaskMs": 184,
+     "loadLongTaskMax": 99,
+     "loadFreezeMs": 150,
+     "idleCpuGpu": 21,
+     "idleSceneFps": 3.6,
+     "sendFps": 27.3,
+     "typeLatencyMs": 21,
+     "idle2CpuGpu": 17,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 2066.5,
+     "loadLongTaskMs": 580.5,
+     "loadLongTaskMax": 173,
+     "loadFreezeMs": 225,
+     "idleCpuGpu": 16.5,
+     "idleSceneFps": 4,
+     "sendFps": 25.4,
+     "typeLatencyMs": 24.5,
+     "idle2CpuGpu": 36.5,
+     "n": 2
+    }
+   },
+   "quality": {
+    "psnr": 21.44,
+    "ssim": 0.8741,
+    "bg": {
+     "psnr": 21.44,
+     "ssim": 0.8741,
+     "edgeSsim": 0.6064
+    },
+    "mole": null
+   },
+   "shot": "explore/gpu/results/round3/img/tea-new.webp",
+   "crops": {}
+  },
+  {
+   "key": "tea.mid",
+   "screen": "tea",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 1124.5,
+     "loadLongTaskMs": 145,
+     "loadLongTaskMax": 79,
+     "loadFreezeMs": 108.5,
+     "idleCpuGpu": 22,
+     "idleSceneFps": 3.7,
+     "sendFps": 35.4,
+     "typeLatencyMs": 22.5,
+     "idle2CpuGpu": 80.5,
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "nav.gpu",
+   "screen": "nav",
+   "name": "GPU 고화질 (가속 켬, 화질 기준)",
+   "desc": "가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음",
+   "adopted": false,
+   "perf": {
+    "gpu": null,
+    "gpuBase": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "nav.base",
+   "screen": "nav",
+   "name": "2차 결과 (기준)",
+   "desc": "2차 결과 공유 빌드 (54c8b9f)",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2843,
+     "loadLongTaskMs": 585,
+     "loadLongTaskMax": 182,
+     "loadFreezeMs": 183,
+     "burrow_exploreSwitchMs": 1120,
+     "burrow_exploreLongTaskMax": 123,
+     "burrow_exploreLongTaskMs": 323,
+     "burrow_yerinSwitchMs": 1204,
+     "burrow_yerinLongTaskMax": 180,
+     "burrow_yerinLongTaskMs": 327,
+     "burrow_explore2SwitchMs": 369,
+     "burrow_explore2LongTaskMax": 85,
+     "burrow_explore2LongTaskMs": 167,
+     "chat_r-yerinSwitchMs": 491,
+     "chat_r-yerinLongTaskMax": 176,
+     "chat_r-yerinLongTaskMs": 310,
+     "burrowSwitchMs": 732,
+     "burrowLongTaskMax": 0,
+     "burrowLongTaskMs": 0,
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 6625.5,
+     "loadLongTaskMs": 2833,
+     "loadLongTaskMax": 976.5,
+     "loadFreezeMs": 917,
+     "burrow_exploreSwitchMs": 2482.5,
+     "burrow_exploreLongTaskMax": 405,
+     "burrow_exploreLongTaskMs": 1567,
+     "burrow_yerinSwitchMs": 1734,
+     "burrow_yerinLongTaskMax": 464,
+     "burrow_yerinLongTaskMs": 950.5,
+     "burrow_explore2SwitchMs": 958.5,
+     "burrow_explore2LongTaskMax": 392,
+     "burrow_explore2LongTaskMs": 659,
+     "chat_r-yerinSwitchMs": 560,
+     "chat_r-yerinLongTaskMax": 241.5,
+     "chat_r-yerinLongTaskMs": 411.5,
+     "burrowSwitchMs": 1105,
+     "burrowLongTaskMax": 103,
+     "burrowLongTaskMs": 219,
+     "n": 2
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "nav.def",
+   "screen": "nav",
+   "name": "3차 개선 (11-17 오전)",
+   "desc": "기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 2496,
+     "loadLongTaskMs": 562,
+     "loadLongTaskMax": 138,
+     "loadFreezeMs": 150,
+     "burrow_exploreSwitchMs": 1551,
+     "burrow_exploreLongTaskMax": 110,
+     "burrow_exploreLongTaskMs": 263,
+     "burrow_yerinSwitchMs": 1078,
+     "burrow_yerinLongTaskMax": 132,
+     "burrow_yerinLongTaskMs": 190,
+     "burrow_explore2SwitchMs": 364,
+     "burrow_explore2LongTaskMax": 101,
+     "burrow_explore2LongTaskMs": 101,
+     "chat_r-yerinSwitchMs": 531,
+     "chat_r-yerinLongTaskMax": 67,
+     "chat_r-yerinLongTaskMs": 106,
+     "burrowSwitchMs": 665,
+     "burrowLongTaskMax": 67,
+     "burrowLongTaskMs": 67,
+     "tierStored": "strong",
+     "n": 3
+    },
+    "c2": {
+     "readyMs": 5318.5,
+     "loadLongTaskMs": 2426.5,
+     "loadLongTaskMax": 1028.5,
+     "loadFreezeMs": 1008.5,
+     "burrow_exploreSwitchMs": 2276.5,
+     "burrow_exploreLongTaskMax": 382,
+     "burrow_exploreLongTaskMs": 1186,
+     "burrow_yerinSwitchMs": 2035,
+     "burrow_yerinLongTaskMax": 424.5,
+     "burrow_yerinLongTaskMs": 885,
+     "burrow_explore2SwitchMs": 732,
+     "burrow_explore2LongTaskMax": 201.5,
+     "burrow_explore2LongTaskMs": 448,
+     "chat_r-yerinSwitchMs": 773,
+     "chat_r-yerinLongTaskMax": 101.5,
+     "chat_r-yerinLongTaskMs": 257.5,
+     "burrowSwitchMs": 1153.5,
+     "burrowLongTaskMax": 125,
+     "burrowLongTaskMs": 302.5,
+     "tierStored": "strong",
+     "n": 2
+    }
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  },
+  {
+   "key": "nav.mid",
+   "screen": "nav",
+   "name": "3차 중간 (11-16 예열)",
+   "desc": "11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈",
+   "adopted": false,
+   "perf": {
+    "t16": {
+     "readyMs": 3241,
+     "loadLongTaskMs": 526,
+     "loadLongTaskMax": 140.5,
+     "loadFreezeMs": 150,
+     "burrow_exploreSwitchMs": 1274,
+     "burrow_exploreLongTaskMax": 108.5,
+     "burrow_exploreLongTaskMs": 244,
+     "burrow_yerinSwitchMs": 1521,
+     "burrow_yerinLongTaskMax": 128,
+     "burrow_yerinLongTaskMs": 197.5,
+     "burrow_explore2SwitchMs": 1331,
+     "burrow_explore2LongTaskMax": 93.5,
+     "burrow_explore2LongTaskMs": 93.5,
+     "chat_r-yerinSwitchMs": 655.5,
+     "chat_r-yerinLongTaskMax": 95.5,
+     "chat_r-yerinLongTaskMs": 155,
+     "burrowSwitchMs": 1190,
+     "burrowLongTaskMax": 64,
+     "burrowLongTaskMs": 64,
+     "tierStored": "strong",
+     "n": 2
+    },
+    "c2": null
+   },
+   "quality": null,
+   "shot": null,
+   "crops": {}
+  }
+ ],
+ "raw": {
+  "cand|explore|bake1|c2": {
+   "readyMs": 3180.5,
+   "loadLongTaskMs": 1312.5,
+   "loadLongTaskMax": 317,
+   "loadFreezeMs": 375,
+   "idleCpuGpu": 28.5,
+   "hopFps": 34,
+   "hopRafFps": 34.1,
+   "panFps": 17.5,
+   "hopWorstGap": 424,
+   "hopRafWorst": 491.5,
+   "hopLongTaskMs": 2793,
+   "hopCpuGpu": 137.5,
+   "clickFps": 48.4,
+   "floorSwitchMs": 726,
+   "sharpReadyMed": 373.5,
+   "sharpReadyMax": 457.5,
+   "sharpN": 3,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "cand|explore|def|c2": {
+   "readyMs": 3055,
+   "loadLongTaskMs": 1798.5,
+   "loadLongTaskMax": 356.5,
+   "loadFreezeMs": 600,
+   "idleCpuGpu": 32,
+   "hopFps": 32,
+   "hopRafFps": 32.1,
+   "panFps": 18.1,
+   "hopWorstGap": 417,
+   "hopRafWorst": 383.5,
+   "hopLongTaskMs": 3073.5,
+   "hopCpuGpu": 139,
+   "clickFps": 36.8,
+   "floorSwitchMs": 647.5,
+   "sharpReadyMed": 659,
+   "sharpReadyMax": 703,
+   "sharpN": 4,
+   "sharpSaved": 3,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "cand|room|def|c2": {
+   "readyMs": 5490.5,
+   "loadLongTaskMs": 2304.5,
+   "loadLongTaskMax": 765,
+   "loadFreezeMs": 858.5,
+   "idleCpuGpu": 29.5,
+   "idleSceneFps": 11.6,
+   "walkFps": 49.6,
+   "walkRafFps": 49.7,
+   "walkWorstGap": 48,
+   "walkCpuGpu": 142.5,
+   "idle1RafWorst": 58.5,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 699,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "cand|room|old-bake|c2": {
+   "readyMs": 5945,
+   "loadLongTaskMs": 2333,
+   "loadLongTaskMax": 951.5,
+   "loadFreezeMs": 1075,
+   "idleCpuGpu": 29,
+   "idleSceneFps": 11.8,
+   "walkFps": 51.7,
+   "walkRafFps": 51.8,
+   "walkWorstGap": 45,
+   "walkCpuGpu": 145,
+   "idle1RafWorst": 41.5,
+   "idle1LongTaskMax": 0,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "fin|visit|fin|t16": {
+   "readyMs": 2311,
+   "loadLongTaskMs": 383,
+   "loadLongTaskMax": 91,
+   "loadFreezeMs": 117,
+   "idleCpuGpu": 61,
+   "idleSceneFps": 12.3,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 20,
+   "walkCpuGpu": 284,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 163,
+   "tierStored": "strong",
+   "n": 1
+  },
+  "fin|visit|new|t16": {
+   "readyMs": 2619,
+   "loadLongTaskMs": 372,
+   "loadLongTaskMax": 114,
+   "loadFreezeMs": 117,
+   "idleCpuGpu": 59,
+   "idleSceneFps": 12.2,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 20,
+   "walkCpuGpu": 287,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 172,
+   "tierStored": "strong",
+   "n": 1
+  },
+  "gpu|explore|base|gpu": {
+   "readyMs": 1408,
+   "loadLongTaskMs": 455,
+   "loadLongTaskMax": 145,
+   "loadFreezeMs": 133,
+   "idleCpuGpu": 24,
+   "hopFps": 59.9,
+   "hopRafFps": 60.1,
+   "panFps": 62.5,
+   "hopWorstGap": 30,
+   "hopRafWorst": 17,
+   "hopLongTaskMs": 0,
+   "hopCpuGpu": 31,
+   "clickFps": 59.9,
+   "floorSwitchMs": 252,
+   "n": 1
+  },
+  "gpu|explore|new|gpu": {
+   "readyMs": 1470,
+   "loadLongTaskMs": 277,
+   "loadLongTaskMax": 137,
+   "loadFreezeMs": 133,
+   "idleCpuGpu": 20,
+   "hopFps": 59.9,
+   "hopRafFps": 59.9,
+   "panFps": 62.5,
+   "hopWorstGap": 35,
+   "hopRafWorst": 33,
+   "hopLongTaskMs": 0,
+   "hopCpuGpu": 26,
+   "clickFps": 59.7,
+   "floorSwitchMs": 297,
+   "n": 1
+  },
+  "gpu|landing|base|gpu": {
+   "readyMs": -1,
+   "loadLongTaskMs": 1304,
+   "loadLongTaskMax": 819,
+   "loadFreezeMs": 817,
+   "scrollLongTaskMs": 62,
+   "scrollRafFps": 59.1,
+   "roomReadyMs": 1288,
+   "idleCpuGpu": 25,
+   "n": 1
+  },
+  "gpu|landing|new|gpu": {
+   "readyMs": -1,
+   "loadLongTaskMs": 662,
+   "loadLongTaskMax": 355,
+   "loadFreezeMs": 350,
+   "scrollLongTaskMs": 0,
+   "scrollRafFps": 58.4,
+   "roomReadyMs": 1536,
+   "idleCpuGpu": 23,
+   "warmMs": 548,
+   "n": 1
+  },
+  "gpu|room|base|gpu": {
+   "readyMs": 2670,
+   "loadLongTaskMs": 366,
+   "loadLongTaskMax": 130,
+   "loadFreezeMs": 200,
+   "idleCpuGpu": 29,
+   "idleSceneFps": 60,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 19,
+   "walkCpuGpu": 30,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "n": 1
+  },
+  "gpu|room|new|gpu": {
+   "readyMs": 3008,
+   "loadLongTaskMs": 625,
+   "loadLongTaskMax": 349,
+   "loadFreezeMs": 350,
+   "idleCpuGpu": 30,
+   "idleSceneFps": 60,
+   "walkFps": 59.9,
+   "walkRafFps": 59.9,
+   "walkWorstGap": 22,
+   "walkCpuGpu": 31,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "n": 1
+  },
+  "gpu|tea|base|gpu": {
+   "readyMs": 1043,
+   "loadLongTaskMs": 373,
+   "loadLongTaskMax": 178,
+   "loadFreezeMs": 184,
+   "idleCpuGpu": 15,
+   "idleSceneFps": 60,
+   "sendFps": 59.9,
+   "typeLatencyMs": 29,
+   "idle2CpuGpu": 15,
+   "n": 1
+  },
+  "gpu|tea|new|gpu": {
+   "readyMs": 1033,
+   "loadLongTaskMs": 60,
+   "loadLongTaskMax": 60,
+   "loadFreezeMs": 150,
+   "idleCpuGpu": 14,
+   "idleSceneFps": 59.9,
+   "sendFps": 59.8,
+   "typeLatencyMs": 18,
+   "idle2CpuGpu": 14,
+   "n": 1
+  },
+  "main|explore|base|c2": {
+   "readyMs": 3622,
+   "loadLongTaskMs": 1982.5,
+   "loadLongTaskMax": 430,
+   "loadFreezeMs": 425,
+   "idleCpuGpu": 28.5,
+   "hopFps": 35,
+   "hopRafFps": 35.1,
+   "panFps": 19.1,
+   "hopWorstGap": 354,
+   "hopRafWorst": 408.5,
+   "hopLongTaskMs": 2666.5,
+   "hopCpuGpu": 149.5,
+   "clickFps": 43.8,
+   "floorSwitchMs": 1017.5,
+   "sharpReadyMed": 365.5,
+   "sharpReadyMax": 474.5,
+   "sharpN": 3,
+   "n": 2
+  },
+  "main|explore|base|t16": {
+   "readyMs": 1648,
+   "loadLongTaskMs": 463,
+   "loadLongTaskMax": 131,
+   "loadFreezeMs": 167,
+   "idleCpuGpu": 36,
+   "hopFps": 57.7,
+   "hopRafFps": 57.7,
+   "panFps": 63.1,
+   "hopWorstGap": 84,
+   "hopRafWorst": 83,
+   "hopLongTaskMs": 333,
+   "hopCpuGpu": 375,
+   "clickFps": 58.8,
+   "floorSwitchMs": 403,
+   "sharpReadyMed": 85,
+   "sharpReadyMax": 108,
+   "sharpN": 7,
+   "n": 3
+  },
+  "main|explore|mid|t16": {
+   "readyMs": 1763,
+   "loadLongTaskMs": 403.5,
+   "loadLongTaskMax": 132,
+   "loadFreezeMs": 141.5,
+   "idleCpuGpu": 38,
+   "hopFps": 58.9,
+   "hopRafFps": 58.9,
+   "panFps": 62.8,
+   "hopWorstGap": 78,
+   "hopRafWorst": 67,
+   "hopLongTaskMs": 135.5,
+   "hopCpuGpu": 350,
+   "clickFps": 57.9,
+   "floorSwitchMs": 1650.5,
+   "sharpReadyMed": 149,
+   "sharpReadyMax": 163,
+   "sharpN": 4,
+   "sharpSaved": 3,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|explore|new|c2": {
+   "readyMs": 3195.5,
+   "loadLongTaskMs": 1546.5,
+   "loadLongTaskMax": 306,
+   "loadFreezeMs": 533.5,
+   "idleCpuGpu": 29.5,
+   "hopFps": 33.6,
+   "hopRafFps": 33.9,
+   "panFps": 19.7,
+   "hopWorstGap": 363,
+   "hopRafWorst": 325,
+   "hopLongTaskMs": 2624,
+   "hopCpuGpu": 145.5,
+   "clickFps": 35.3,
+   "floorSwitchMs": 755,
+   "sharpReadyMed": 548,
+   "sharpReadyMax": 577.5,
+   "sharpN": 4,
+   "sharpSaved": 3,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "main|explore|new|t16": {
+   "readyMs": 1567,
+   "loadLongTaskMs": 505,
+   "loadLongTaskMax": 136,
+   "loadFreezeMs": 167,
+   "idleCpuGpu": 38,
+   "hopFps": 58.9,
+   "hopRafFps": 58.9,
+   "panFps": 63.8,
+   "hopWorstGap": 84,
+   "hopRafWorst": 83,
+   "hopLongTaskMs": 150,
+   "hopCpuGpu": 357,
+   "clickFps": 57.6,
+   "floorSwitchMs": 320,
+   "sharpReadyMed": 166,
+   "sharpReadyMax": 181,
+   "sharpN": 4,
+   "sharpSaved": 3,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "main|landing|base|c2": {
+   "readyMs": -1,
+   "loadLongTaskMs": 2310.5,
+   "loadLongTaskMax": 994,
+   "loadFreezeMs": 1167,
+   "scrollLongTaskMs": 2635.5,
+   "scrollRafFps": 36.7,
+   "roomReadyMs": 6517.5,
+   "idleCpuGpu": 33,
+   "n": 2
+  },
+  "main|landing|base|t16": {
+   "readyMs": -1,
+   "loadLongTaskMs": 1018,
+   "loadLongTaskMax": 547,
+   "loadFreezeMs": 583,
+   "scrollLongTaskMs": 386,
+   "scrollRafFps": 52.3,
+   "roomReadyMs": 2441,
+   "idleCpuGpu": 86,
+   "n": 3
+  },
+  "main|landing|mid|t16": {
+   "readyMs": -1,
+   "loadLongTaskMs": 204,
+   "loadLongTaskMax": 179,
+   "loadFreezeMs": 175,
+   "scrollLongTaskMs": 180,
+   "scrollRafFps": 54.2,
+   "roomReadyMs": 2451,
+   "idleCpuGpu": 85.5,
+   "warmMs": 393.5,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|landing|new|c2": {
+   "readyMs": -1,
+   "loadLongTaskMs": 1736,
+   "loadLongTaskMax": 438,
+   "loadFreezeMs": 517,
+   "scrollLongTaskMs": 2093.5,
+   "scrollRafFps": 38.1,
+   "roomReadyMs": 5475,
+   "idleCpuGpu": 34,
+   "warmMs": 933.5,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "main|landing|new|t16": {
+   "readyMs": -1,
+   "loadLongTaskMs": 217,
+   "loadLongTaskMax": 217,
+   "loadFreezeMs": 200,
+   "scrollLongTaskMs": 337,
+   "scrollRafFps": 53,
+   "roomReadyMs": 2049,
+   "idleCpuGpu": 91,
+   "warmMs": 453,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "main|nav|base|c2": {
+   "readyMs": 6625.5,
+   "loadLongTaskMs": 2833,
+   "loadLongTaskMax": 976.5,
+   "loadFreezeMs": 917,
+   "burrow_exploreSwitchMs": 2482.5,
+   "burrow_exploreLongTaskMax": 405,
+   "burrow_exploreLongTaskMs": 1567,
+   "burrow_yerinSwitchMs": 1734,
+   "burrow_yerinLongTaskMax": 464,
+   "burrow_yerinLongTaskMs": 950.5,
+   "burrow_explore2SwitchMs": 958.5,
+   "burrow_explore2LongTaskMax": 392,
+   "burrow_explore2LongTaskMs": 659,
+   "chat_r-yerinSwitchMs": 560,
+   "chat_r-yerinLongTaskMax": 241.5,
+   "chat_r-yerinLongTaskMs": 411.5,
+   "burrowSwitchMs": 1105,
+   "burrowLongTaskMax": 103,
+   "burrowLongTaskMs": 219,
+   "n": 2
+  },
+  "main|nav|base|t16": {
+   "readyMs": 2843,
+   "loadLongTaskMs": 585,
+   "loadLongTaskMax": 182,
+   "loadFreezeMs": 183,
+   "burrow_exploreSwitchMs": 1120,
+   "burrow_exploreLongTaskMax": 123,
+   "burrow_exploreLongTaskMs": 323,
+   "burrow_yerinSwitchMs": 1204,
+   "burrow_yerinLongTaskMax": 180,
+   "burrow_yerinLongTaskMs": 327,
+   "burrow_explore2SwitchMs": 369,
+   "burrow_explore2LongTaskMax": 85,
+   "burrow_explore2LongTaskMs": 167,
+   "chat_r-yerinSwitchMs": 491,
+   "chat_r-yerinLongTaskMax": 176,
+   "chat_r-yerinLongTaskMs": 310,
+   "burrowSwitchMs": 732,
+   "burrowLongTaskMax": 0,
+   "burrowLongTaskMs": 0,
+   "n": 3
+  },
+  "main|nav|mid|t16": {
+   "readyMs": 3241,
+   "loadLongTaskMs": 526,
+   "loadLongTaskMax": 140.5,
+   "loadFreezeMs": 150,
+   "burrow_exploreSwitchMs": 1274,
+   "burrow_exploreLongTaskMax": 108.5,
+   "burrow_exploreLongTaskMs": 244,
+   "burrow_yerinSwitchMs": 1521,
+   "burrow_yerinLongTaskMax": 128,
+   "burrow_yerinLongTaskMs": 197.5,
+   "burrow_explore2SwitchMs": 1331,
+   "burrow_explore2LongTaskMax": 93.5,
+   "burrow_explore2LongTaskMs": 93.5,
+   "chat_r-yerinSwitchMs": 655.5,
+   "chat_r-yerinLongTaskMax": 95.5,
+   "chat_r-yerinLongTaskMs": 155,
+   "burrowSwitchMs": 1190,
+   "burrowLongTaskMax": 64,
+   "burrowLongTaskMs": 64,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|nav|new|c2": {
+   "readyMs": 5318.5,
+   "loadLongTaskMs": 2426.5,
+   "loadLongTaskMax": 1028.5,
+   "loadFreezeMs": 1008.5,
+   "burrow_exploreSwitchMs": 2276.5,
+   "burrow_exploreLongTaskMax": 382,
+   "burrow_exploreLongTaskMs": 1186,
+   "burrow_yerinSwitchMs": 2035,
+   "burrow_yerinLongTaskMax": 424.5,
+   "burrow_yerinLongTaskMs": 885,
+   "burrow_explore2SwitchMs": 732,
+   "burrow_explore2LongTaskMax": 201.5,
+   "burrow_explore2LongTaskMs": 448,
+   "chat_r-yerinSwitchMs": 773,
+   "chat_r-yerinLongTaskMax": 101.5,
+   "chat_r-yerinLongTaskMs": 257.5,
+   "burrowSwitchMs": 1153.5,
+   "burrowLongTaskMax": 125,
+   "burrowLongTaskMs": 302.5,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|nav|new|t16": {
+   "readyMs": 2496,
+   "loadLongTaskMs": 562,
+   "loadLongTaskMax": 138,
+   "loadFreezeMs": 150,
+   "burrow_exploreSwitchMs": 1551,
+   "burrow_exploreLongTaskMax": 110,
+   "burrow_exploreLongTaskMs": 263,
+   "burrow_yerinSwitchMs": 1078,
+   "burrow_yerinLongTaskMax": 132,
+   "burrow_yerinLongTaskMs": 190,
+   "burrow_explore2SwitchMs": 364,
+   "burrow_explore2LongTaskMax": 101,
+   "burrow_explore2LongTaskMs": 101,
+   "chat_r-yerinSwitchMs": 531,
+   "chat_r-yerinLongTaskMax": 67,
+   "chat_r-yerinLongTaskMs": 106,
+   "burrowSwitchMs": 665,
+   "burrowLongTaskMax": 67,
+   "burrowLongTaskMs": 67,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "main|onb|base|c2": {
+   "readyMs": 6523.5,
+   "loadLongTaskMs": 2847.5,
+   "loadLongTaskMax": 975,
+   "loadFreezeMs": 958,
+   "idleCpuGpu": 42.5,
+   "idleSceneFps": 15.1,
+   "n": 2
+  },
+  "main|onb|base|t16": {
+   "readyMs": 2596,
+   "loadLongTaskMs": 480,
+   "loadLongTaskMax": 183,
+   "loadFreezeMs": 167,
+   "idleCpuGpu": 48,
+   "idleSceneFps": 16,
+   "n": 3
+  },
+  "main|onb|mid|t16": {
+   "readyMs": 3049,
+   "loadLongTaskMs": 442,
+   "loadLongTaskMax": 124,
+   "loadFreezeMs": 133,
+   "idleCpuGpu": 45.5,
+   "idleSceneFps": 15.4,
+   "bakeMs": 158,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|onb|new|c2": {
+   "readyMs": 5939.5,
+   "loadLongTaskMs": 2633,
+   "loadLongTaskMax": 872.5,
+   "loadFreezeMs": 1008,
+   "idleCpuGpu": 46,
+   "idleSceneFps": 17.1,
+   "bakeMs": 720,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|onb|new|t16": {
+   "readyMs": 2326,
+   "loadLongTaskMs": 499,
+   "loadLongTaskMax": 154,
+   "loadFreezeMs": 150,
+   "idleCpuGpu": 43,
+   "idleSceneFps": 15.5,
+   "bakeMs": 173,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "main|room|base|c2": {
+   "readyMs": 6989.5,
+   "loadLongTaskMs": 2902.5,
+   "loadLongTaskMax": 831.5,
+   "loadFreezeMs": 891.5,
+   "idleCpuGpu": 30,
+   "idleSceneFps": 8.7,
+   "walkFps": 44.4,
+   "walkRafFps": 44.5,
+   "walkWorstGap": 63.5,
+   "walkCpuGpu": 140,
+   "idle1RafWorst": 58,
+   "idle1LongTaskMax": 0,
+   "n": 2
+  },
+  "main|room|base|t16": {
+   "readyMs": 2635,
+   "loadLongTaskMs": 427,
+   "loadLongTaskMax": 154,
+   "loadFreezeMs": 133,
+   "idleCpuGpu": 36,
+   "idleSceneFps": 12.1,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 19,
+   "walkCpuGpu": 192,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "n": 3
+  },
+  "main|room|mid|c2": {
+   "readyMs": 6346.5,
+   "loadLongTaskMs": 2506,
+   "loadLongTaskMax": 905.5,
+   "loadFreezeMs": 891.5,
+   "idleCpuGpu": 32,
+   "idleSceneFps": 11.5,
+   "walkFps": 51.8,
+   "walkRafFps": 51.8,
+   "walkWorstGap": 48.5,
+   "walkCpuGpu": 144,
+   "idle1RafWorst": 41.5,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 689.5,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "main|room|mid|t16": {
+   "readyMs": 3031,
+   "loadLongTaskMs": 595,
+   "loadLongTaskMax": 166.5,
+   "loadFreezeMs": 158,
+   "idleCpuGpu": 38,
+   "idleSceneFps": 12.1,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 23.5,
+   "walkCpuGpu": 192,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 175,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|room|new|c2": {
+   "readyMs": 5452,
+   "loadLongTaskMs": 2249.5,
+   "loadLongTaskMax": 896,
+   "loadFreezeMs": 908.5,
+   "idleCpuGpu": 31.5,
+   "idleSceneFps": 9.4,
+   "walkFps": 45.6,
+   "walkRafFps": 45.7,
+   "walkWorstGap": 50,
+   "walkCpuGpu": 143,
+   "idle1RafWorst": 50,
+   "idle1LongTaskMax": 30,
+   "bakeMs": 722.5,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|room|new|t16": {
+   "readyMs": 2600,
+   "loadLongTaskMs": 594,
+   "loadLongTaskMax": 185,
+   "loadFreezeMs": 183,
+   "idleCpuGpu": 37,
+   "idleSceneFps": 12.2,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 22,
+   "walkCpuGpu": 198,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 189,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "main|tea|base|c2": {
+   "readyMs": 1570.5,
+   "loadLongTaskMs": 596.5,
+   "loadLongTaskMax": 249.5,
+   "loadFreezeMs": 308.5,
+   "idleCpuGpu": 16.5,
+   "idleSceneFps": 4,
+   "sendFps": 22.7,
+   "typeLatencyMs": 22,
+   "idle2CpuGpu": 12.5,
+   "n": 2
+  },
+  "main|tea|base|t16": {
+   "readyMs": 993,
+   "loadLongTaskMs": 423,
+   "loadLongTaskMax": 233,
+   "loadFreezeMs": 300,
+   "idleCpuGpu": 22,
+   "idleSceneFps": 3.9,
+   "sendFps": 27.3,
+   "typeLatencyMs": 24,
+   "idle2CpuGpu": 57,
+   "n": 3
+  },
+  "main|tea|mid|t16": {
+   "readyMs": 1124.5,
+   "loadLongTaskMs": 145,
+   "loadLongTaskMax": 79,
+   "loadFreezeMs": 108.5,
+   "idleCpuGpu": 22,
+   "idleSceneFps": 3.7,
+   "sendFps": 35.4,
+   "typeLatencyMs": 22.5,
+   "idle2CpuGpu": 80.5,
+   "n": 2
+  },
+  "main|tea|new|c2": {
+   "readyMs": 2066.5,
+   "loadLongTaskMs": 580.5,
+   "loadLongTaskMax": 173,
+   "loadFreezeMs": 225,
+   "idleCpuGpu": 16.5,
+   "idleSceneFps": 4,
+   "sendFps": 25.4,
+   "typeLatencyMs": 24.5,
+   "idle2CpuGpu": 36.5,
+   "n": 2
+  },
+  "main|tea|new|t16": {
+   "readyMs": 1121,
+   "loadLongTaskMs": 184,
+   "loadLongTaskMax": 99,
+   "loadFreezeMs": 150,
+   "idleCpuGpu": 21,
+   "idleSceneFps": 3.6,
+   "sendFps": 27.3,
+   "typeLatencyMs": 21,
+   "idle2CpuGpu": 17,
+   "n": 3
+  },
+  "main|visit|base|c2": {
+   "readyMs": 5849,
+   "loadLongTaskMs": 2447.5,
+   "loadLongTaskMax": 708.5,
+   "loadFreezeMs": 700,
+   "idleCpuGpu": 36,
+   "idleSceneFps": 8.7,
+   "walkFps": 34.5,
+   "walkRafFps": 34.5,
+   "walkWorstGap": 64,
+   "walkCpuGpu": 135.5,
+   "idle1RafWorst": 67,
+   "idle1LongTaskMax": 51,
+   "n": 2
+  },
+  "main|visit|base|t16": {
+   "readyMs": 2346,
+   "loadLongTaskMs": 457,
+   "loadLongTaskMax": 153,
+   "loadFreezeMs": 150,
+   "idleCpuGpu": 64,
+   "idleSceneFps": 12.1,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 19,
+   "walkCpuGpu": 301,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "n": 3
+  },
+  "main|visit|mid|t16": {
+   "readyMs": 3151.5,
+   "loadLongTaskMs": 485,
+   "loadLongTaskMax": 129.5,
+   "loadFreezeMs": 133,
+   "idleCpuGpu": 64.5,
+   "idleSceneFps": 12.1,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 23.5,
+   "walkCpuGpu": 300,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 183.5,
+   "tierStored": "strong",
+   "n": 2
+  },
+  "main|visit|new|c2": {
+   "readyMs": 5293.5,
+   "loadLongTaskMs": 2210.5,
+   "loadLongTaskMax": 911.5,
+   "loadFreezeMs": 891.5,
+   "idleCpuGpu": 65,
+   "idleSceneFps": 15.6,
+   "walkFps": 33.7,
+   "walkRafFps": 33.8,
+   "walkWorstGap": 76.5,
+   "walkCpuGpu": 141,
+   "idle1RafWorst": 50,
+   "idle1LongTaskMax": 31.5,
+   "bakeMs": 563.5,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "main|visit|new|t16": {
+   "readyMs": 2718,
+   "loadLongTaskMs": 418,
+   "loadLongTaskMax": 117,
+   "loadFreezeMs": 117,
+   "idleCpuGpu": 64,
+   "idleSceneFps": 12.1,
+   "walkFps": 59.9,
+   "walkRafFps": 59.9,
+   "walkWorstGap": 21,
+   "walkCpuGpu": 298,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 165,
+   "tierStored": "strong",
+   "n": 3
+  },
+  "revisit|explore|base|c2": {
+   "readyMs": 1633,
+   "loadLongTaskMs": 906,
+   "loadLongTaskMax": 315,
+   "loadFreezeMs": 350,
+   "idleCpuGpu": 31,
+   "hopFps": 41.3,
+   "hopRafFps": 41.4,
+   "panFps": 21.9,
+   "hopWorstGap": 281,
+   "hopRafWorst": 383,
+   "hopLongTaskMs": 2371,
+   "hopCpuGpu": 159,
+   "clickFps": 46.3,
+   "floorSwitchMs": 1038,
+   "sharpReadyMed": 312,
+   "sharpReadyMax": 333,
+   "sharpN": 3,
+   "n": 1
+  },
+  "revisit|explore|base|t16": {
+   "readyMs": 953,
+   "loadLongTaskMs": 219,
+   "loadLongTaskMax": 81,
+   "loadFreezeMs": 100,
+   "idleCpuGpu": 35,
+   "hopFps": 58,
+   "hopRafFps": 58,
+   "panFps": 63.1,
+   "hopWorstGap": 82,
+   "hopRafWorst": 83,
+   "hopLongTaskMs": 323,
+   "hopCpuGpu": 366,
+   "clickFps": 58.6,
+   "floorSwitchMs": 379,
+   "sharpReadyMed": 83,
+   "sharpReadyMax": 108,
+   "sharpN": 7,
+   "n": 1
+  },
+  "revisit|explore|new|c2": {
+   "readyMs": 1853,
+   "loadLongTaskMs": 556,
+   "loadLongTaskMax": 145,
+   "loadFreezeMs": 200,
+   "stillAtMs": 639,
+   "idleCpuGpu": 34,
+   "hopFps": 40.1,
+   "hopRafFps": 40.3,
+   "panFps": 20,
+   "hopWorstGap": 377,
+   "hopRafWorst": 283,
+   "hopLongTaskMs": 2359,
+   "hopCpuGpu": 155,
+   "clickFps": 38.6,
+   "floorSwitchMs": 757,
+   "sharpReadyMed": 528,
+   "sharpReadyMax": 575,
+   "sharpN": 3,
+   "sharpSaved": 4,
+   "tierStored": "weak",
+   "n": 1
+  },
+  "revisit|explore|new|t16": {
+   "readyMs": 1021,
+   "loadLongTaskMs": 239,
+   "loadLongTaskMax": 89,
+   "loadFreezeMs": 117,
+   "stillAtMs": 510,
+   "idleCpuGpu": 33,
+   "hopFps": 58.6,
+   "hopRafFps": 58.6,
+   "panFps": 62.5,
+   "hopWorstGap": 88,
+   "hopRafWorst": 83,
+   "hopLongTaskMs": 145,
+   "hopCpuGpu": 350,
+   "clickFps": 57.8,
+   "floorSwitchMs": 359,
+   "sharpReadyMed": 151,
+   "sharpReadyMax": 167,
+   "sharpN": 3,
+   "sharpSaved": 4,
+   "tierStored": "strong",
+   "n": 1
+  },
+  "revisit|room|base|c2": {
+   "readyMs": 6033,
+   "loadLongTaskMs": 2576,
+   "loadLongTaskMax": 1023,
+   "loadFreezeMs": 1000,
+   "idleCpuGpu": 33,
+   "idleSceneFps": 11.6,
+   "walkFps": 55.9,
+   "walkRafFps": 55.9,
+   "walkWorstGap": 44,
+   "walkCpuGpu": 151,
+   "idle1RafWorst": 33,
+   "idle1LongTaskMax": 0,
+   "n": 1
+  },
+  "revisit|room|base|t16": {
+   "readyMs": 2198,
+   "loadLongTaskMs": 497,
+   "loadLongTaskMax": 180,
+   "loadFreezeMs": 167,
+   "idleCpuGpu": 32,
+   "idleSceneFps": 12.1,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 20,
+   "walkCpuGpu": 176,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "n": 1
+  },
+  "revisit|room|new|c2": {
+   "readyMs": 5557,
+   "loadLongTaskMs": 1477,
+   "loadLongTaskMax": 321,
+   "loadFreezeMs": 367,
+   "stillAtMs": 996,
+   "idleCpuGpu": 33,
+   "idleSceneFps": 12,
+   "walkFps": 55.3,
+   "walkRafFps": 55.3,
+   "walkWorstGap": 54,
+   "walkCpuGpu": 152,
+   "idle1RafWorst": 33,
+   "idle1LongTaskMax": 0,
+   "tierStored": "strong",
+   "n": 1
+  },
+  "revisit|room|new|t16": {
+   "readyMs": 2197,
+   "loadLongTaskMs": 300,
+   "loadLongTaskMax": 73,
+   "loadFreezeMs": 133,
+   "stillAtMs": 624,
+   "idleCpuGpu": 33,
+   "idleSceneFps": 12.2,
+   "walkFps": 60,
+   "walkRafFps": 60,
+   "walkWorstGap": 19,
+   "walkCpuGpu": 177,
+   "idle1RafWorst": 17,
+   "idle1LongTaskMax": 0,
+   "tierStored": "strong",
+   "n": 1
+  },
+  "weak|explore|strong|c2": {
+   "readyMs": 2839.5,
+   "loadLongTaskMs": 1517,
+   "loadLongTaskMax": 285.5,
+   "loadFreezeMs": 500,
+   "idleCpuGpu": 31.5,
+   "hopFps": 35.9,
+   "hopRafFps": 36,
+   "panFps": 19.4,
+   "hopWorstGap": 326,
+   "hopRafWorst": 325,
+   "hopLongTaskMs": 2806,
+   "hopCpuGpu": 146.5,
+   "clickFps": 35.1,
+   "floorSwitchMs": 752,
+   "sharpReadyMed": 551.5,
+   "sharpReadyMax": 569,
+   "sharpN": 4,
+   "sharpSaved": 3,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "weak|explore|weak|c2": {
+   "readyMs": 2863,
+   "loadLongTaskMs": 1716,
+   "loadLongTaskMax": 237,
+   "loadFreezeMs": 266.5,
+   "idleCpuGpu": 30,
+   "hopFps": 30.6,
+   "hopRafFps": 30.6,
+   "panFps": 21.6,
+   "hopWorstGap": 207,
+   "hopRafWorst": 258,
+   "hopLongTaskMs": 2611,
+   "hopCpuGpu": 137.5,
+   "clickFps": 37.1,
+   "floorSwitchMs": 808,
+   "sharpReadyMed": 530,
+   "sharpReadyMax": 626.5,
+   "sharpN": 3.5,
+   "sharpSaved": 2.5,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "weak|room|strong|c2": {
+   "readyMs": 5002.5,
+   "loadLongTaskMs": 2407.5,
+   "loadLongTaskMax": 1012.5,
+   "loadFreezeMs": 1008,
+   "idleCpuGpu": 30.5,
+   "idleSceneFps": 12.1,
+   "walkFps": 49,
+   "walkRafFps": 49.1,
+   "walkWorstGap": 68,
+   "walkCpuGpu": 141,
+   "idle1RafWorst": 41.5,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 645,
+   "tierStored": "weak",
+   "n": 2
+  },
+  "weak|room|weak|c2": {
+   "readyMs": 5064,
+   "loadLongTaskMs": 2100.5,
+   "loadLongTaskMax": 629.5,
+   "loadFreezeMs": 800,
+   "idleCpuGpu": 29,
+   "idleSceneFps": 12.1,
+   "walkFps": 47.8,
+   "walkRafFps": 47.9,
+   "walkWorstGap": 51,
+   "walkCpuGpu": 139.5,
+   "idle1RafWorst": 41.5,
+   "idle1LongTaskMax": 0,
+   "bakeMs": 681,
+   "tierStored": "strong",
+   "n": 2
+  }
+ }
+}

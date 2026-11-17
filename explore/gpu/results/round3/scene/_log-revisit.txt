@@ -1,0 +1,8 @@
+revisit-room-base-t16-0 cpu22.2% 38s ready 2198 ltMax 180 frz 167
+revisit-room-new-t16-0 cpu18.4% 39s ready 2197 ltMax 73 frz 133
+revisit-explore-base-t16-0 cpu16.9% 42s ready 953 ltMax 81 frz 100
+revisit-explore-new-t16-0 cpu24.6% 41s ready 1021 ltMax 89 frz 117
+revisit-room-base-c2-0 cpu6.1% 48s ready 6033 ltMax 1023 frz 1000
+revisit-room-new-c2-0 cpu13.7% 46s ready 5557 ltMax 321 frz 367
+revisit-explore-base-c2-0 cpu7.3% 46s ready 1633 ltMax 315 frz 350
+revisit-explore-new-c2-0 cpu23.3% 45s ready 1853 ltMax 145 frz 200

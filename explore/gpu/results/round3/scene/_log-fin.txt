@@ -1,0 +1,2 @@
+fin-visit-new-t16-0 cpu7.5% 29s ready 2619 ltMax 114 frz 117
+fin-visit-fin-t16-0 cpu10% 29s ready 2311 ltMax 91 frz 117

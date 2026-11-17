@@ -35,8 +35,14 @@ const PLAN = {
   revisit: ['room', 'explore'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   // 약한 단계 강제 (2코어 첫 방문이 strong 으로 시작하므로 따로)
   weak: ['room', 'explore'].map((k) => [k, [['strong', NEW, 'tier=strong'], ['weak', NEW, 'tier=weak']]]),
-  // 텍스처 올리기 묶기 (11-17 마지막 고침): 개선(5341, 한 장마다 펜스) ↔ 최종(5343)
-  tex: ['visit', 'room', 'onb'].map((k) => [k, [['new', NEW, ''], ['fin', FIN, '']]]),
+  // 11-17 마지막 고침 (텍스처 올리기 묶기 + 기기 단계 판정·탐색 들판 그 자리에서 바꾸기): 개선(5341) ↔ 최종(5343)
+  fin: [
+    ['visit', [['new', NEW, ''], ['fin', FIN, '']]],
+    ['onb', [['new', NEW, ''], ['fin', FIN, '']], 't16'],
+    ['room', [['new', NEW, ''], ['fin', FIN, '']], 't16'],
+    ['explore', [['new', NEW, ''], ['fin', FIN, '']], 'c2'],
+    ['nav', [['new', NEW, ''], ['fin', FIN, '']], 't16'],
+  ],
   // 후보별 (손잡이로 하나씩 되돌림). 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
   cand: [
     // 예열은 main 의 mid(11-16 예열: 물체마다 compileAsync·펜스, 결과 파일 이름을 new → mid 로 바꿔 둠)·base 와 비교
@@ -62,6 +68,7 @@ const log = path.join(OUT, `_log-${set}.txt`)
 for (const cfg of cfgs) {
   for (const [screen, pair, only] of PLAN[set]) {
     if (only && only !== cfg) continue
+    if (process.env.ONLY && !process.env.ONLY.split(',').includes(screen)) continue // ONLY=room,explore 처럼 화면 고르기
     const [p, scenario] = SCREENS[screen]
     for (let i = 0; i < REPS; i++) {
       for (const [label, host, extra] of pair) {

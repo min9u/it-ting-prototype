@@ -1,0 +1,8 @@
+cand-explore-bake1-c2-0 cpu13.8% 37s ready 3337 ltMax 320 frz 400
+cand-explore-def-c2-0 cpu23% 38s ready 3206 ltMax 435 frz 700
+cand-explore-bake1-c2-1 cpu22.6% 37s ready 3024 ltMax 314 frz 350
+cand-explore-def-c2-1 cpu23.9% 37s ready 2904 ltMax 278 frz 500
+cand-room-old-bake-c2-0 cpu10% 34s ready 6323 ltMax 1123 frz 1267
+cand-room-def-c2-0 cpu11.3% 33s ready 5689 ltMax 655 frz 850
+cand-room-old-bake-c2-1 cpu17.6% 33s ready 5567 ltMax 780 frz 883
+cand-room-def-c2-1 cpu20.3% 33s ready 5292 ltMax 875 frz 867
