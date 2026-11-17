@@ -123,6 +123,9 @@ export const peekCachedStill = (key: string): ImageBitmap | null => (off() ? nul
 /** 구운 그림 저장 (webp, 쉴 때). 오래된 것부터 지워 MAX_KEEP 개까지 */
 export function putCachedStill(key: string, canvas: HTMLCanvasElement) {
   if (off() || typeof indexedDB === 'undefined') return
+  // 이 탭에서 곧 다시 쓸 수 있게 메모리에도 (저장은 쉴 때 webp 로 바꾸느라 몇 초 걸려서, 그 전에 같은 자리로 돌아오면 다시 구웠음.
+  // 탐색 들판 점프의 도착 자리 미리 굽기가 왔다 갔다 할 때 바로 씀, docs/explore-move-quality.md)
+  if (typeof createImageBitmap === 'function') createImageBitmap(canvas).then((b) => { mem.set(key, b) }).catch(() => {})
   const w = canvas.width, h = canvas.height
   const run = () => canvas.toBlob((blob) => {
     if (!blob) return

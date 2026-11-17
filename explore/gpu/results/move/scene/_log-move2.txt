@@ -1,0 +1,4 @@
+move2-explore-base-c2-0 cpu5.6% 49s ready 3206 ltMax 535 frz 517
+move2-explore-new-c2-0 cpu18.2% 39s ready 3316 ltMax 267 frz 300
+move2-explore-base-c2-0 cpu10% 39s ready 3724 ltMax 228 frz 433
+move2-explore-new-c2-0 cpu20.6% 39s ready 2917 ltMax 425 frz 417

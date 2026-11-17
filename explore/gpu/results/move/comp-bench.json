@@ -1,0 +1,31 @@
+{
+  "what": "가속 끈 크롬(소프트웨어 합성)에서 1904×985 선명한 그림을 옮기는 방법별 비용. explore/gpu/move/comp-bench.html·.mjs, 2026-11-17. fps = rAF, msPerDraw = 화면 합성 한 번(Display::DrawAndSwap) 평균 ms. 모든 모드에 위 0.55배 투명 WebGL 캔버스(작은 사각형) 있음. 2코어 = 크롬을 CPU 2개에 묶음(AFF=3). 같은 모드를 여러 번 잰 것은 배열",
+  "t16": {
+    "static (2D 캔버스 그대로)": { "fps": [59.5], "msPerDraw": [9.7] },
+    "tx (한 장 translate3d)": { "fps": [59.0], "msPerDraw": [14.2] },
+    "m3d (한 장 투영 matrix3d)": { "fps": [47.3], "msPerDraw": [21.2] },
+    "m3d2 (두 장 투영, 위 장 opacity)": { "fps": [29.5], "msPerDraw": [32.4] },
+    "m3d3 (세 장 투영)": { "fps": [17.8], "msPerDraw": [48.6] },
+    "gl1x (WebGL 캔버스 1배, 셰이더로 두 장 투영·섞기)": { "fps": [58.8], "msPerDraw": [13.5] },
+    "st1 (한 장, 가로 띠 32개 translate3d+scale)": { "fps": [59.8], "msPerDraw": [13.8] },
+    "st2 (두 장 띠)": { "fps": [44.8], "msPerDraw": [22.0] },
+    "st3 (세 장 띠, 맨 위 opacity)": { "fps": [30.8], "msPerDraw": [26.7] }
+  },
+  "c2": {
+    "static (2D 캔버스 그대로)": { "fps": [59.3], "msPerDraw": [10.1] },
+    "tx (한 장 translate3d)": { "fps": [56.5, 57.3, 45.8], "msPerDraw": [15.6, 14.1, 15.7] },
+    "m3d (한 장 투영 matrix3d)": { "fps": [35.0], "msPerDraw": [23.5] },
+    "gl1x (WebGL 캔버스 1배, 셰이더로 두 장 투영·섞기)": { "fps": [23.5, 26.3, 26.3, 31.3], "msPerDraw": [22.1, 14.5, 15.2, 12.1] },
+    "gl1x1 (gl1x 인데 한 장)": { "fps": [22.3], "msPerDraw": [21.9] },
+    "gl08 (gl1x 를 0.8배)": { "fps": [40.3], "msPerDraw": [14.9] },
+    "st1 (한 장, 띠 32개 translate3d+scale)": { "fps": [56.5, 54.5], "msPerDraw": [15.2, 14.8] },
+    "st2 (두 장, 띠 32개 translate3d+scale)": { "fps": [42.3, 42.8], "msPerDraw": [20.1, 21.4] },
+    "st2 띠 32 + 가로 기울임 matrix(2D)": { "fps": [15.0], "msPerDraw": [56.0] },
+    "st2 띠 32 기울임 없음 matrix(2D)": { "fps": [38.8], "msPerDraw": [26.2] },
+    "st2 띠 32 기울임 + will-change": { "fps": [19.0], "msPerDraw": [46.2] },
+    "st2 띠 64 기울임 없음 + will-change": { "fps": [42.0], "msPerDraw": [22.7] },
+    "st2 띠 64 기울임 matrix(2D)": { "fps": [12.3, 10.8], "msPerDraw": [64.2, 68.9] },
+    "st2 띠 64 기울임 + 불투명 캔버스": { "fps": [13.3, 13.5], "msPerDraw": [59.2, 64.7] },
+    "st1 띠 64 기울임 + 불투명 캔버스": { "fps": [22.0, 24.8], "msPerDraw": [34.3, 35.3] }
+  }
+}

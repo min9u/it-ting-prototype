@@ -36,9 +36,11 @@ export interface LabState {
   S: boolean
   /** N 가구는 처음부터 제자리 (땅굴 가구 낙하 연출 끔. 두더지·천장 구멍은 그대로) */
   N: boolean
+  /** M 이동 중에도 선명 (탐색 들판: 도착할 자리를 미리 굽고, 카메라 이동 중엔 구운 그림을 띠로 밀어 보여 줌. S 필요. docs/explore-move-quality.md) */
+  M: boolean
 }
 
-export const LAB_DEFAULT: LabState = { force: 'auto', tier: 'auto', A: true, B: false, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
+export const LAB_DEFAULT: LabState = { force: 'auto', tier: 'auto', A: true, B: false, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true, M: true }
 
 // 2026-11-13 v2: 기본값에서 B(스톱모션 10fps)를 끔. 예전에 저장된 선택(B 켜짐)이 남지 않게 키를 바꿈
 const KEY = 'digul.lowlab.v2'

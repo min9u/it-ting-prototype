@@ -37,3 +37,6 @@ design/digul_3d_handoff_v3_9/images/
 # 렌더링 실험 2 (2026-11-16): 단계별 스크린샷·CPU 프로필은 다시 만들 수 있어서 제외. 화질 비교 그림(results/quality)은 커밋
 explore/gpu/results/scene/*.png
 explore/gpu/results/scene/*.cpuprofile
+
+# 프론트엔드 가이드 웹 페이지 결과물 (node tools/guide-page/build.mjs)
+tools/guide-page/out/

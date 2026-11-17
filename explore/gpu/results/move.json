@@ -1,0 +1,533 @@
+{
+ "quality": {
+  "r25": {
+   "old": {
+    "psnr": 34.11,
+    "ssim": 0.9739,
+    "edgeSsim": 0.8417,
+    "alignedSsim": 0.9769,
+    "sharpness": 0.866,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/r25-old.webp"
+   },
+   "new": {
+    "psnr": 34.26,
+    "ssim": 0.9856,
+    "edgeSsim": 0.9068,
+    "alignedSsim": 0.9915,
+    "sharpness": 0.967,
+    "slideFrames": 238,
+    "shot": "explore/gpu/results/move/r25-new.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-r25.webp",
+    "box": [
+     320,
+     199,
+     720,
+     424
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "r5": {
+   "old": {
+    "psnr": 33.44,
+    "ssim": 0.97,
+    "edgeSsim": 0.8201,
+    "alignedSsim": 0.974,
+    "sharpness": 0.862,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/r5-old.webp"
+   },
+   "new": {
+    "psnr": 28.84,
+    "ssim": 0.9573,
+    "edgeSsim": 0.75,
+    "alignedSsim": 0.9809,
+    "sharpness": 0.979,
+    "slideFrames": 238,
+    "shot": "explore/gpu/results/move/r5-new.webp"
+   },
+   "css": {
+    "psnr": 28.79,
+    "ssim": 0.9564,
+    "edgeSsim": 0.7474,
+    "alignedSsim": 0.9793,
+    "sharpness": 0.996,
+    "slideFrames": 133,
+    "shot": "explore/gpu/results/move/r5-css.webp"
+   },
+   "weak": {
+    "psnr": 28.52,
+    "ssim": 0.9541,
+    "edgeSsim": 0.7341,
+    "alignedSsim": 0.9777,
+    "sharpness": 1.015,
+    "slideFrames": 237,
+    "shot": "explore/gpu/results/move/r5-weak.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-r5.webp",
+    "box": [
+     80,
+     199,
+     480,
+     424
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "r75": {
+   "old": {
+    "psnr": 32.68,
+    "ssim": 0.9635,
+    "edgeSsim": 0.7855,
+    "alignedSsim": 0.9694,
+    "sharpness": 0.842,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/r75-old.webp"
+   },
+   "new": {
+    "psnr": 33.32,
+    "ssim": 0.9805,
+    "edgeSsim": 0.8823,
+    "alignedSsim": 0.9895,
+    "sharpness": 0.963,
+    "slideFrames": 238,
+    "shot": "explore/gpu/results/move/r75-new.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-r75.webp",
+    "box": [
+     1440,
+     64,
+     1840,
+     289
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "rstop": {
+   "old": {
+    "psnr": 42.35,
+    "ssim": 0.9959,
+    "edgeSsim": 0.9663,
+    "alignedSsim": 0.9966,
+    "sharpness": 0.981,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/rstop-old.webp"
+   },
+   "new": {
+    "psnr": 42.35,
+    "ssim": 0.9959,
+    "edgeSsim": 0.9663,
+    "alignedSsim": 0.9966,
+    "sharpness": 0.981,
+    "slideFrames": 24,
+    "shot": "explore/gpu/results/move/rstop-new.webp"
+   },
+   "css": {
+    "psnr": 42.35,
+    "ssim": 0.9959,
+    "edgeSsim": 0.9663,
+    "alignedSsim": 0.9966,
+    "sharpness": 0.981,
+    "slideFrames": 8,
+    "shot": "explore/gpu/results/move/rstop-css.webp"
+   },
+   "weak": {
+    "psnr": 37.27,
+    "ssim": 0.9886,
+    "edgeSsim": 0.9245,
+    "alignedSsim": 0.9895,
+    "sharpness": 1.027,
+    "slideFrames": 24,
+    "shot": "explore/gpu/results/move/rstop-weak.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-rstop.webp",
+    "box": [
+     1440,
+     64,
+     1840,
+     289
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "u25": {
+   "old": {
+    "psnr": 34.57,
+    "ssim": 0.9761,
+    "edgeSsim": 0.85,
+    "alignedSsim": 0.9785,
+    "sharpness": 0.868,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/u25-old.webp"
+   },
+   "new": {
+    "psnr": 36.96,
+    "ssim": 0.9884,
+    "edgeSsim": 0.9206,
+    "alignedSsim": 0.9915,
+    "sharpness": 0.938,
+    "slideFrames": 235,
+    "shot": "explore/gpu/results/move/u25-new.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-u25.webp",
+    "box": [
+     400,
+     199,
+     800,
+     424
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "u5": {
+   "old": {
+    "psnr": 34.55,
+    "ssim": 0.9764,
+    "edgeSsim": 0.852,
+    "alignedSsim": 0.979,
+    "sharpness": 0.869,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/u5-old.webp"
+   },
+   "new": {
+    "psnr": 29.78,
+    "ssim": 0.9657,
+    "edgeSsim": 0.7994,
+    "alignedSsim": 0.985,
+    "sharpness": 0.936,
+    "slideFrames": 230,
+    "shot": "explore/gpu/results/move/u5-new.webp"
+   },
+   "css": {
+    "psnr": 29.79,
+    "ssim": 0.9654,
+    "edgeSsim": 0.7991,
+    "alignedSsim": 0.985,
+    "sharpness": 0.944,
+    "slideFrames": 140,
+    "shot": "explore/gpu/results/move/u5-css.webp"
+   },
+   "weak": {
+    "psnr": 29.59,
+    "ssim": 0.9644,
+    "edgeSsim": 0.7916,
+    "alignedSsim": 0.9838,
+    "sharpness": 0.959,
+    "slideFrames": 231,
+    "shot": "explore/gpu/results/move/u5-weak.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-u5.webp",
+    "box": [
+     320,
+     424,
+     720,
+     649
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "u75": {
+   "old": {
+    "psnr": 34.53,
+    "ssim": 0.9773,
+    "edgeSsim": 0.8493,
+    "alignedSsim": 0.9808,
+    "sharpness": 0.844,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/u75-old.webp"
+   },
+   "new": {
+    "psnr": 33.19,
+    "ssim": 0.9826,
+    "edgeSsim": 0.8941,
+    "alignedSsim": 0.9908,
+    "sharpness": 0.94,
+    "slideFrames": 236,
+    "shot": "explore/gpu/results/move/u75-new.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-u75.webp",
+    "box": [
+     320,
+     649,
+     720,
+     874
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  },
+  "ustop": {
+   "old": {
+    "psnr": 40.73,
+    "ssim": 0.9952,
+    "edgeSsim": 0.9581,
+    "alignedSsim": 0.9956,
+    "sharpness": 0.963,
+    "slideFrames": 0,
+    "shot": "explore/gpu/results/move/ustop-old.webp"
+   },
+   "new": {
+    "psnr": 40.73,
+    "ssim": 0.9952,
+    "edgeSsim": 0.9581,
+    "alignedSsim": 0.9956,
+    "sharpness": 0.963,
+    "slideFrames": 24,
+    "shot": "explore/gpu/results/move/ustop-new.webp"
+   },
+   "crop": {
+    "file": "explore/gpu/results/move/crop-ustop.webp",
+    "box": [
+     240,
+     739,
+     640,
+     964
+    ],
+    "order": "GPU | 기준(이동 중 0.33배) | 개선(M)"
+   }
+  }
+ },
+ "perf": {
+  "move": {
+   "gpu": {
+    "base": {
+     "n": 2,
+     "다 보이기까지 (ms)": 1772,
+     "첫 진입 가장 긴 멈춤 (ms)": 190,
+     "첫 진입 페이지 최악 간격 (ms)": 158.5,
+     "점프 장면 fps": 59.8,
+     "카메라 이동 fps (rAF)": 62.5,
+     "카메라 이동 fps (화면 합성)": 62.5,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 17,
+     "점프 중 가장 긴 장면 끊김 (ms)": 39,
+     "점프 중 페이지 최악 간격 (ms)": 33,
+     "점프 중 긴 작업 합 (ms)": 0,
+     "점프 중 가장 긴 멈춤 (ms)": 0,
+     "구멍 클릭 점프: 장면 fps": 60,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 62.5,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 18,
+     "들판 바꾸기 (ms)": 543,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 91,
+     "가만히 그리기 CPU (%)": 25.5,
+     "점프 중 그리기 CPU (%)": 31.5
+    },
+    "new": {
+     "n": 2,
+     "다 보이기까지 (ms)": 1736,
+     "첫 진입 가장 긴 멈춤 (ms)": 151,
+     "첫 진입 페이지 최악 간격 (ms)": 142,
+     "점프 장면 fps": 59.9,
+     "카메라 이동 fps (rAF)": 62.5,
+     "카메라 이동 fps (화면 합성)": 62.5,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 17,
+     "점프 중 가장 긴 장면 끊김 (ms)": 37,
+     "점프 중 페이지 최악 간격 (ms)": 33,
+     "점프 중 긴 작업 합 (ms)": 0,
+     "점프 중 가장 긴 멈춤 (ms)": 0,
+     "구멍 클릭 점프: 장면 fps": 60,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 62.5,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 19,
+     "들판 바꾸기 (ms)": 526,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 89.5,
+     "가만히 그리기 CPU (%)": 25.5,
+     "점프 중 그리기 CPU (%)": 31
+    }
+   }
+  },
+  "move16": {
+   "t16": {
+    "base": {
+     "n": 2,
+     "다 보이기까지 (ms)": 2013.5,
+     "첫 진입 가장 긴 멈춤 (ms)": 223,
+     "첫 진입 페이지 최악 간격 (ms)": 217,
+     "점프 장면 fps": 55.9,
+     "카메라 이동 fps (rAF)": 57.6,
+     "카메라 이동 fps (화면 합성)": 62.2,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 26,
+     "점프 중 가장 긴 장면 끊김 (ms)": 85,
+     "점프 중 페이지 최악 간격 (ms)": 83.5,
+     "점프 중 긴 작업 합 (ms)": 150,
+     "점프 중 가장 긴 멈춤 (ms)": 82.5,
+     "구멍 클릭 점프: 장면 fps": 54.5,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 56.3,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 84,
+     "들판 바꾸기 (ms)": 522.5,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 139,
+     "가만히 그리기 CPU (%)": 46,
+     "점프 중 그리기 CPU (%)": 372.5,
+     "도착 뒤 다시 굽기 (횟수)": 4,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 164
+    },
+    "new": {
+     "n": 2,
+     "다 보이기까지 (ms)": 1839,
+     "첫 진입 가장 긴 멈춤 (ms)": 194.5,
+     "첫 진입 페이지 최악 간격 (ms)": 192,
+     "점프 장면 fps": 55.9,
+     "카메라 이동 fps (rAF)": 57.5,
+     "카메라 이동 fps (화면 합성)": 60.7,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 22.5,
+     "점프 중 가장 긴 장면 끊김 (ms)": 73.5,
+     "점프 중 페이지 최악 간격 (ms)": 75,
+     "점프 중 긴 작업 합 (ms)": 281,
+     "점프 중 가장 긴 멈춤 (ms)": 73,
+     "구멍 클릭 점프: 장면 fps": 54.2,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 47.5,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 74.5,
+     "들판 바꾸기 (ms)": 568.5,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 173,
+     "가만히 그리기 CPU (%)": 44.5,
+     "점프 중 그리기 CPU (%)": 288,
+     "도착 자리 준비 (중앙, ms)": 160,
+     "도착하자마자 선명 (바꿔 끼운 횟수)": 5,
+     "도착 뒤 다시 굽기 (횟수)": 2,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 167
+    }
+   }
+  },
+  "move2": {
+   "c2": {
+    "base": {
+     "n": 1,
+     "다 보이기까지 (ms)": 3724,
+     "첫 진입 가장 긴 멈춤 (ms)": 228,
+     "첫 진입 페이지 최악 간격 (ms)": 433,
+     "점프 장면 fps": 36.7,
+     "카메라 이동 fps (rAF)": 22.5,
+     "카메라 이동 fps (화면 합성)": 66.3,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 32,
+     "점프 중 가장 긴 장면 끊김 (ms)": 162,
+     "점프 중 페이지 최악 간격 (ms)": 217,
+     "점프 중 긴 작업 합 (ms)": 2161,
+     "점프 중 가장 긴 멈춤 (ms)": 207,
+     "구멍 클릭 점프: 장면 fps": 43.7,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 30,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 135,
+     "들판 바꾸기 (ms)": 677,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 166,
+     "가만히 그리기 CPU (%)": 29,
+     "점프 중 그리기 CPU (%)": 146,
+     "도착 뒤 다시 굽기 (횟수)": 4,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 530
+    },
+    "new": {
+     "n": 1,
+     "다 보이기까지 (ms)": 2917,
+     "첫 진입 가장 긴 멈춤 (ms)": 425,
+     "첫 진입 페이지 최악 간격 (ms)": 417,
+     "점프 장면 fps": 41.7,
+     "카메라 이동 fps (rAF)": 26.3,
+     "카메라 이동 fps (화면 합성)": 48.1,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 61,
+     "점프 중 가장 긴 장면 끊김 (ms)": 156,
+     "점프 중 페이지 최악 간격 (ms)": 167,
+     "점프 중 긴 작업 합 (ms)": 971,
+     "점프 중 가장 긴 멈춤 (ms)": 181,
+     "구멍 클릭 점프: 장면 fps": 40.1,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 17.5,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 129,
+     "들판 바꾸기 (ms)": 762,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 181,
+     "가만히 그리기 CPU (%)": 32,
+     "점프 중 그리기 CPU (%)": 137,
+     "땅속 기다림 (중앙, ms)": 33,
+     "땅속 기다림 (최대, ms)": 33,
+     "도착 자리 준비 (중앙, ms)": 92,
+     "도착하자마자 선명 (바꿔 끼운 횟수)": 5,
+     "도착 뒤 다시 굽기 (횟수)": 2,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 617
+    }
+   }
+  },
+  "move2b": {
+   "c2": {
+    "base": {
+     "n": 2,
+     "다 보이기까지 (ms)": 3023,
+     "첫 진입 가장 긴 멈춤 (ms)": 338,
+     "첫 진입 페이지 최악 간격 (ms)": 425,
+     "점프 장면 fps": 38.1,
+     "카메라 이동 fps (rAF)": 24.4,
+     "카메라 이동 fps (화면 합성)": 62.2,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 44.5,
+     "점프 중 가장 긴 장면 끊김 (ms)": 176,
+     "점프 중 페이지 최악 간격 (ms)": 217,
+     "점프 중 긴 작업 합 (ms)": 1975,
+     "점프 중 가장 긴 멈춤 (ms)": 207.5,
+     "구멍 클릭 점프: 장면 fps": 40.1,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 28.8,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 134.5,
+     "들판 바꾸기 (ms)": 729,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 176.5,
+     "가만히 그리기 CPU (%)": 30.5,
+     "점프 중 그리기 CPU (%)": 149,
+     "도착 뒤 다시 굽기 (횟수)": 4.5,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 511
+    },
+    "css": {
+     "n": 2,
+     "다 보이기까지 (ms)": 3443,
+     "첫 진입 가장 긴 멈춤 (ms)": 462,
+     "첫 진입 페이지 최악 간격 (ms)": 525,
+     "점프 장면 fps": 38.2,
+     "카메라 이동 fps (rAF)": 25,
+     "카메라 이동 fps (화면 합성)": 38.5,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 58,
+     "점프 중 가장 긴 장면 끊김 (ms)": 154.5,
+     "점프 중 페이지 최악 간격 (ms)": 250,
+     "점프 중 긴 작업 합 (ms)": 1421.5,
+     "점프 중 가장 긴 멈춤 (ms)": 258,
+     "구멍 클릭 점프: 장면 fps": 44,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 25,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 85.5,
+     "들판 바꾸기 (ms)": 673.5,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 158.5,
+     "가만히 그리기 CPU (%)": 31.5,
+     "점프 중 그리기 CPU (%)": 126.5,
+     "땅속 기다림 (중앙, ms)": 25,
+     "땅속 기다림 (최대, ms)": 25,
+     "도착 자리 준비 (중앙, ms)": 74,
+     "도착하자마자 선명 (바꿔 끼운 횟수)": 5,
+     "도착 뒤 다시 굽기 (횟수)": 2,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 670.5
+    },
+    "gl": {
+     "n": 2,
+     "다 보이기까지 (ms)": 3103,
+     "첫 진입 가장 긴 멈춤 (ms)": 335,
+     "첫 진입 페이지 최악 간격 (ms)": 383.5,
+     "점프 장면 fps": 40,
+     "카메라 이동 fps (rAF)": 26,
+     "카메라 이동 fps (화면 합성)": 53.2,
+     "카메라 이동 중 가장 긴 합성 간격 (ms)": 64,
+     "점프 중 가장 긴 장면 끊김 (ms)": 139,
+     "점프 중 페이지 최악 간격 (ms)": 158,
+     "점프 중 긴 작업 합 (ms)": 1018,
+     "점프 중 가장 긴 멈춤 (ms)": 143.5,
+     "구멍 클릭 점프: 장면 fps": 38.4,
+     "구멍 클릭 점프: 카메라 이동 fps (rAF)": 17.5,
+     "구멍 클릭 점프: 가장 긴 장면 끊김 (ms)": 110.5,
+     "들판 바꾸기 (ms)": 720,
+     "들판 바꾸기 가장 긴 멈춤 (ms)": 176,
+     "가만히 그리기 CPU (%)": 30.5,
+     "점프 중 그리기 CPU (%)": 142.5,
+     "땅속 기다림 (중앙, ms)": 50,
+     "땅속 기다림 (최대, ms)": 50,
+     "도착 자리 준비 (중앙, ms)": 113,
+     "도착하자마자 선명 (바꿔 끼운 횟수)": 5,
+     "도착 뒤 다시 굽기 (횟수)": 2,
+     "도착 뒤 다시 굽기 시간 (중앙, ms)": 653
+    }
+   }
+  }
+ }
+}

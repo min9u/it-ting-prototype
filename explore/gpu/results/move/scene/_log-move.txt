@@ -1,0 +1,4 @@
+move-explore-base-gpu-0 cpu16.5% 35s ready 1794 ltMax 219 frz 184
+move-explore-new-gpu-0 cpu13.8% 34s ready 1751 ltMax 147 frz 134
+move-explore-base-gpu-1 cpu9% 34s ready 1750 ltMax 161 frz 133
+move-explore-new-gpu-1 cpu11.1% 34s ready 1721 ltMax 155 frz 150
