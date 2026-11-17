@@ -75,6 +75,8 @@ export const router = createRouter([{ errorElement: <RouteError />, children: [
   { path: '/screens', element: <ScreenIndex /> },
   // F11 관리자: 서비스 메뉴에 없는 별도 주소. 역할이 없으면 없는 주소처럼 보임
   { path: '/admin', element: <Admin /> },
+  // 땅굴 다양성 실험실 (2026-11-16, docs/burrow-diversity.md). three.js 를 쓰는 화면이라 따로 불러옴
+  { path: '/lab/style', lazy: () => import('./screens/lab/StyleLab').then((m) => ({ Component: m.default })) },
   {
     // 비로그인이면 로그인 화면으로 (00 공통 11)
     element: <RequireLogin><AppLayout /></RequireLogin>,
