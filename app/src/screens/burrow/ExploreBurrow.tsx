@@ -53,6 +53,8 @@ export default function ExploreBurrow() {
   const [toast, setToast] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [ready, setReady] = useState(false)
+  // 3D 를 못 만듦 (SceneBoundary): 어두운 막·로딩 글자를 거두고 정지 그림을 보여 줌
+  const [failed3d, setFailed3d] = useState(false)
   const handle = useRef<HoleFieldHandle | null>(null)
   // 안내판 위치: 장면이 두더지 머리 화면 좌표를 알려 줌. 안내판이 나중에 붙어도 마지막 값을 씀
   const anchor = useRef({ x: 0, y: 0, vis: false })
@@ -137,7 +139,7 @@ export default function ExploreBurrow() {
     <main className={s.page}>
       <div className={`${rv.scene} ${x.sceneBg}`}>
         {/* 3D 를 못 만들면(WebGL 없음 등) 3D 자리에 GPU 로 미리 찍은 들판 그림 (three/stills.ts, docs/rendering-experiments-3.md 4번) */}
-        <SceneBoundary fallback={<img src={fieldStill.src} alt="" aria-hidden draggable={false} style={stillStyle(fieldStill, focusX)} />}>
+        <SceneBoundary onError={() => setFailed3d(true)} fallback={<img src={fieldStill.src} alt="" aria-hidden draggable={false} style={stillStyle(fieldStill, focusX)} />}>
         <Suspense fallback={null}>
           <HoleFieldCanvas
             fieldKey={floor.id}
@@ -212,7 +214,7 @@ export default function ExploreBurrow() {
           <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 옆 구멍으로 · 구멍을 누르면 바로 이동 · <kbd>Enter</kbd> 땅굴에 들어가기
         </p>
         <RoomModeToggle style={{ left: `${focusX * 100}%` }} />
-        {!ready && <span className={x.loading} style={{ left: `${focusX * 100}%` }} role="status">들판으로 나가는 중…</span>}
+        {!ready && !failed3d && <span className={x.loading} style={{ left: `${focusX * 100}%` }} role="status">들판으로 나가는 중…</span>}
       </div>
 
       {/* 가장 가까운(서 있는) 땅굴 주인 정보 */}
@@ -260,7 +262,7 @@ export default function ExploreBurrow() {
       <Toast open={!!toast} onClose={() => setToast(null)} title={toast ?? ''} />
 
       {/* 땅굴로 들어갈 때 어두워짐 · 들판에 나올 때(땅굴에서 나옴·처음 들어옴) 어두운 화면에서 밝아짐 */}
-      <div className={`${x.fade} ${leaving ? x.fadeIn : ready ? x.fadeOut : x.fadeHold}`} aria-hidden />
+      <div className={`${x.fade} ${leaving ? x.fadeIn : ready || failed3d ? x.fadeOut : x.fadeHold}`} aria-hidden />
     </main>
   )
 }
