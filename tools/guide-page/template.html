@@ -1,0 +1,242 @@
+<title>디굴디굴 프론트엔드 가이드</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 배치: 왼쪽에 붙어 있는 목차(두 문서) + 오른쪽 읽기 칸 하나. 좁은 화면은 목차를 접어 맨 위로.
+   색은 앱의 디자인 토큰(app/src/styles/tokens.css: 크림 바탕 · 흙 갈색 글자 · 주황 행동색)을 그대로 씀 */
+:root {
+  --paper: #fbf4ec;        /* 앱 페이지 바탕 */
+  --rail: #f4e6d8;         /* 자기소개 박스 색 → 목차 */
+  --code-bg: #f1e2d2;
+  --ink: #3e2a1f;
+  --ink-soft: #5c4334;
+  --ink-mute: #8a7262;
+  --line: #e8d3bf;
+  --accent: #9a4a2c;       /* 앱 링크색 */
+  --accent-soft: #f6dccb;
+  --cta: #c8643a;          /* 앱 주요 행동색 → 현재 위치 표시 */
+  --chip-rose-bg: #f2d9d9;   --chip-rose-fg: #7d3a3f;
+  --chip-butter-bg: #f3e6be; --chip-butter-fg: #6b5410;
+  --chip-sage-bg: #dde7cc;   --chip-sage-fg: #3f5a24;
+  --chip-mint-bg: #d5e8df;   --chip-mint-fg: #2e5e4c;
+  --chip-sky-bg: #d9e6ec;    --chip-sky-fg: #2f5868;
+  --chip-sand-bg: #eadfc6;   --chip-sand-fg: #5e4a1e;
+  --chip-clay-bg: #f1dccb;   --chip-clay-fg: #7e3b22;
+  --font-display: 'Do Hyeon', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-body: 'Noto Sans KR', 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-code: 'Nanum Gothic Coding', 'D2Coding', Consolas, 'Malgun Gothic', monospace;
+  --rail-w: 300px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1e1610; --rail: #271c15; --code-bg: #2f231b;
+    --ink: #f1e4d6; --ink-soft: #d9c5b3; --ink-mute: #a8917f; --line: #3d2d22;
+    --accent: #eba27c; --accent-soft: #46291c; --cta: #e58a5c;
+    --chip-rose-bg: #4a2a2c;   --chip-rose-fg: #f4c9c9;
+    --chip-butter-bg: #463b1b; --chip-butter-fg: #f0dd9f;
+    --chip-sage-bg: #2e3b21;   --chip-sage-fg: #cfe3b4;
+    --chip-mint-bg: #213a30;   --chip-mint-fg: #b9e2cf;
+    --chip-sky-bg: #20333b;    --chip-sky-fg: #bcd8e4;
+    --chip-sand-bg: #3b3222;   --chip-sand-fg: #e8d7ad;
+    --chip-clay-bg: #44281c;   --chip-clay-fg: #f0c4a8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1e1610; --rail: #271c15; --code-bg: #2f231b;
+  --ink: #f1e4d6; --ink-soft: #d9c5b3; --ink-mute: #a8917f; --line: #3d2d22;
+  --accent: #eba27c; --accent-soft: #46291c; --cta: #e58a5c;
+  --chip-rose-bg: #4a2a2c;   --chip-rose-fg: #f4c9c9;
+  --chip-butter-bg: #463b1b; --chip-butter-fg: #f0dd9f;
+  --chip-sage-bg: #2e3b21;   --chip-sage-fg: #cfe3b4;
+  --chip-mint-bg: #213a30;   --chip-mint-fg: #b9e2cf;
+  --chip-sky-bg: #20333b;    --chip-sky-fg: #bcd8e4;
+  --chip-sand-bg: #3b3222;   --chip-sand-fg: #e8d7ad;
+  --chip-clay-bg: #44281c;   --chip-clay-fg: #f0c4a8;
+  color-scheme: dark;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.78;
+  word-break: keep-all; overflow-wrap: break-word;
+}
+.shell {
+  display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); gap: 56px;
+  max-width: 1240px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- 목차 ---------- */
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 28px 40px; scrollbar-width: thin; }
+.toc-box { background: var(--rail); border: 1px solid var(--line); border-radius: 14px; padding: 18px 14px 14px; }
+.toc-box > summary { display: none; }
+.brand { display: flex; align-items: baseline; gap: 8px; padding: 0 8px 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.brand b { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; color: var(--ink); letter-spacing: -0.01em; }
+.brand span { font-size: .78rem; color: var(--ink-mute); }
+.toc-find { display: block; width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); font: inherit; font-size: .88rem; }
+.toc-find:focus-visible { outline: 2px solid var(--cta); outline-offset: 1px; }
+.toc-doc + .toc-doc { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.toc-doc-title { display: block; padding: 0 8px; font-family: var(--font-display); font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+.toc-doc-note { margin: 0 8px 8px; font-size: .76rem; color: var(--ink-mute); line-height: 1.5; }
+.toc-list, .toc-list ul { list-style: none; margin: 0; padding: 0; }
+.toc-list ul { display: none; margin: 2px 0 6px 10px; padding-left: 8px; border-left: 1px solid var(--line); }
+.toc-list li.open > ul, .rail.filtering .toc-list ul { display: block; }
+.toc-list a { display: block; padding: 4px 8px; border-radius: 7px; color: var(--ink-soft); text-decoration: none; font-size: .87rem; line-height: 1.45; }
+.toc-list a[data-lv="3"] { font-size: .8rem; color: var(--ink-mute); }
+.toc-list a:hover { background: var(--paper); color: var(--ink); }
+.toc-list a:focus-visible, .toc-doc-title:focus-visible { outline: 2px solid var(--cta); outline-offset: 1px; }
+.toc-list a[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; box-shadow: inset 3px 0 0 var(--cta); }
+.toc-list li[hidden] { display: none; }
+.toc-empty { margin: 8px; font-size: .82rem; color: var(--ink-mute); }
+
+/* ---------- 본문 ---------- */
+main { min-width: 0; padding-block: 36px 80px; }
+.doc { max-width: 46em; }
+.doc + .doc { margin-top: 88px; padding-top: 40px; border-top: 3px double var(--line); }
+.doc h1, .doc h2, .doc h3, .doc h4 { text-wrap: balance; scroll-margin-top: 16px; line-height: 1.3; color: var(--ink); }
+.doc h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 1.4rem + 2.4vw, 2.8rem); letter-spacing: -0.01em; margin: 0 0 18px; }
+.doc h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.55rem, 1.3rem + 1vw, 1.95rem); margin: 64px 0 14px; }
+.doc h3 { font-size: 1.22rem; font-weight: 700; margin: 40px 0 10px; }
+.doc h4 { font-size: 1.06rem; font-weight: 700; margin: 36px 0 8px; padding-top: 20px; border-top: 1px solid var(--line); }
+.case-no { display: inline-block; margin-right: .5em; padding: .05em .55em .1em; border-radius: 7px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-display); font-weight: 400; font-size: 1.02em; vertical-align: .05em; white-space: nowrap; }
+.doc p { margin: 0 0 14px; }
+.doc ul, .doc ol { margin: 0 0 16px; padding-left: 1.35em; }
+.doc li { margin: 0; }
+.doc li + li { margin-top: 5px; }
+.doc li > ul, .doc li > ol { margin: 6px 0 4px; }
+.doc li::marker { color: var(--ink-mute); }
+.doc strong { font-weight: 700; color: var(--ink); }
+.doc a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.doc a:hover { text-decoration-thickness: 2px; }
+.doc a:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; border-radius: 3px; }
+.doc a[target="_blank"]::after { content: "↗"; font-size: .75em; margin-left: 2px; color: var(--ink-mute); }
+.doc hr { border: 0; height: 1px; background: var(--line); margin: 44px 0; }
+.doc code { font-family: var(--font-code); font-size: .9em; background: var(--code-bg); color: var(--ink); padding: .08em .38em; border-radius: 5px; overflow-wrap: anywhere; word-break: normal; }
+.doc pre { margin: 0 0 18px; padding: 16px 18px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; font-size: .84rem; line-height: 1.55; }
+.doc pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; white-space: pre; }
+.table-wrap { margin: 0 0 20px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.doc table { width: 100%; border-collapse: collapse; font-size: .875rem; line-height: 1.58; font-variant-numeric: tabular-nums; }
+.doc th { background: var(--rail); text-align: left; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.doc th, .doc td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.doc td { min-width: 5.5em; }
+.doc tbody tr:last-child td { border-bottom: 0; }
+.doc td code { font-size: .86em; }
+.chip { display: inline-block; padding: .08em .62em .12em; border-radius: 999px; font-size: .8rem; font-weight: 500; white-space: nowrap; }
+.chip a, .chip code { color: inherit; }
+.sev-high { background: var(--chip-rose-bg); color: var(--chip-rose-fg); }
+.sev-mid { background: var(--chip-butter-bg); color: var(--chip-butter-fg); }
+.sev-low { background: var(--chip-sage-bg); color: var(--chip-sage-fg); }
+.st-done { background: var(--chip-mint-bg); color: var(--chip-mint-fg); white-space: normal; }
+.st-partial { background: var(--chip-clay-bg); color: var(--chip-clay-fg); white-space: normal; }
+.st-prevent { background: var(--chip-sky-bg); color: var(--chip-sky-fg); white-space: normal; }
+.st-rule { background: var(--chip-sand-bg); color: var(--chip-sand-fg); white-space: normal; }
+.colophon { max-width: 46em; margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .82rem; color: var(--ink-mute); line-height: 1.6; }
+.colophon code { font-family: var(--font-code); background: var(--code-bg); padding: .05em .35em; border-radius: 4px; }
+
+/* ---------- 좁은 화면: 목차를 접어 맨 위로 ---------- */
+@media (max-width: 960px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail { position: static; max-height: none; overflow: visible; padding-block: 16px 0; }
+  .toc-box > summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; font-family: var(--font-display); font-size: 1.15rem; padding: 0 6px; }
+  .toc-box > summary::-webkit-details-marker { display: none; }
+  .toc-box > summary::after { content: "펼치기"; font-family: var(--font-body); font-size: .8rem; color: var(--accent); }
+  .toc-box[open] > summary { margin-bottom: 12px; }
+  .toc-box[open] > summary::after { content: "접기"; }
+  .toc-box { padding: 14px; }
+  .brand { display: none; }
+  main { padding-block: 20px 60px; }
+  .doc + .doc { margin-top: 64px; }
+}
+</style>
+
+<div class="shell">
+  <aside class="rail" id="rail" aria-label="목차">
+    <details class="toc-box" id="toc-box" open>
+      <summary>목차</summary>
+      <div class="brand"><b>프론트엔드 가이드</b><span>디굴디굴 app/</span></div>
+      <input class="toc-find" id="toc-find" type="search" aria-label="목차에서 찾기" placeholder="목차에서 찾기 (예: 사건, 3D, 배포)" autocomplete="off">
+      <nav id="toc">
+<!--TOC-->
+      </nav>
+      <p class="toc-empty" id="toc-empty" hidden>찾는 항목이 없어요. 본문은 브라우저 찾기(Ctrl+F)로 찾아보세요.</p>
+    </details>
+  </aside>
+
+  <main id="main">
+<!--GUIDE-->
+<!--CONCEPTS-->
+    <p class="colophon">이 페이지는 저장소의 <code>docs/frontend-guide.md</code>와 <code>docs/frontend-guide-concepts.md</code>를 그대로 옮긴 것입니다 (만든 날 <!--BUILT-->). 문서가 바뀌면 <code>node tools/guide-page/build.mjs</code>로 다시 만듭니다. ↗ 표시가 붙은 링크는 GitHub의 원본 문서로 열립니다.</p>
+  </main>
+</div>
+
+<script>
+(() => {
+  const box = document.getElementById('toc-box')
+  const rail = document.getElementById('rail')
+  const narrow = matchMedia('(max-width: 960px)')
+  const syncOpen = () => { box.open = !narrow.matches }
+  syncOpen()
+  narrow.addEventListener('change', syncOpen)
+
+  // 목차 링크를 누르면 좁은 화면에선 목차를 접음
+  document.getElementById('toc').addEventListener('click', (e) => {
+    if (e.target.closest('a') && narrow.matches) box.open = false
+  })
+
+  // 지금 읽는 곳 표시 (h2 · h3)
+  const links = new Map([...document.querySelectorAll('#toc a[href^="#"]')].map((a) => [a.getAttribute('href').slice(1), a]))
+  const heads = [...document.querySelectorAll('.doc h1[id], .doc h2[id], .doc h3[id]')].filter((h) => links.has(h.id) || h.tagName === 'H1')
+  let current = null
+  const mark = (id) => {
+    const a = links.get(id)
+    if (!a || a === current) return
+    if (current) current.removeAttribute('aria-current')
+    document.querySelectorAll('#toc li.open').forEach((li) => li.classList.remove('open'))
+    a.setAttribute('aria-current', 'true')
+    const top = a.closest('.toc-list > li')
+    if (top) top.classList.add('open')
+    current = a
+    if (!narrow.matches) {
+      const r = a.getBoundingClientRect(), rr = rail.getBoundingClientRect()
+      if (r.top < rr.top + 60 || r.bottom > rr.bottom - 40) rail.scrollTop += r.top - rr.top - rr.height / 3
+    }
+  }
+  const onScroll = () => {
+    let best = null
+    for (const h of heads) { if (h.getBoundingClientRect().top <= 120) best = h; else break }
+    if (best) {
+      // h1(문서 시작)이면 그 문서의 첫 h2 를 표시
+      if (best.tagName === 'H1') { const next = heads[heads.indexOf(best) + 1]; if (next) mark(next.id) } else mark(best.id)
+    }
+  }
+  let raf = 0
+  addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; onScroll() }) }, { passive: true })
+  onScroll()
+
+  // 목차에서 찾기
+  const find = document.getElementById('toc-find'), empty = document.getElementById('toc-empty')
+  find.addEventListener('input', () => {
+    const q = find.value.trim().toLowerCase()
+    rail.classList.toggle('filtering', !!q)
+    let shown = 0
+    document.querySelectorAll('.toc-list > li').forEach((li) => {
+      const self = li.querySelector(':scope > a').textContent.toLowerCase().includes(q)
+      let anyChild = false
+      li.querySelectorAll(':scope > ul > li').forEach((c) => {
+        const hit = !q || self || c.textContent.toLowerCase().includes(q)
+        c.hidden = !hit
+        if (hit && q && !self) anyChild = true
+      })
+      li.hidden = !!q && !self && !anyChild
+      if (!li.hidden) shown++
+    })
+    empty.hidden = shown > 0
+  })
+})()
+</script>
