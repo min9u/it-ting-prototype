@@ -103,6 +103,8 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     window.addEventListener('keydown', onInput)
   }
   let wasAnim = false
+  /** lite: 카메라가 움직이는 동안 숨겨 둠 (들판 점프 0.4초·방 돌리기). 3D 가 가장 무거운 순간에 겹 캔버스 합성을 쉬게 */
+  let hiddenForMove = false
   const tick = (now: number) => {
     if (!alive) return
     raf = requestAnimationFrame(tick)
@@ -112,6 +114,10 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     last = now
     const moved = camChanged()
     if (moved) wake()
+    if (mode.level === 'lite') {
+      if (moved) { if (!hiddenForMove) { hiddenForMove = true; cv.style.visibility = 'hidden' } return }
+      if (hiddenForMove) { hiddenForMove = false; cv.style.visibility = ''; dirty = true }
+    }
     const calm = mode.level === 'still' || (mode.restAfter > 0 && now > awakeUntil)
     const anim = mode.level !== 'still' && animating(calm)
     // 움직이다 멈추는 순간 한 번 더 그려서 마지막 그림이 멈춘 모습이 되게
