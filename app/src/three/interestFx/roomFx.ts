@@ -470,6 +470,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   let greetFx: { t0: number; subs: string[]; line: string; shared: boolean } | null = null
   /** 누른 가구의 카드를 잠깐 물림 (r_poke) */
   let cardMute: { em: Em; until: number } | null = null
+  let disposedFx = false
   let lastMe: THREE.Vector3 | null = null
 
   /* ---------- 그리기 ---------- */
@@ -516,7 +517,8 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     if (introEnd < 0) {
       introEnd = t
       // 입장 이름표: 입장 연출이 끝나고 조금 뒤
-      if (!roll.done && fxOn('r_rollcall')) { roll.start = rt + .35; roll.end = rt + .35 + groups.length * ROLL_GAP + ROLL_HOLD; roll.done = true; later((.35 + groups.length * ROLL_GAP + ROLL_HOLD + .7) * 1000) }
+      // (움직임 없는 단계는 다음 그림이 언제 올지 몰라서 기다림 없이 바로, 한꺼번에)
+      if (!roll.done && fxOn('r_rollcall')) { const d = still ? 0 : .35; roll.start = rt + d; roll.end = rt + d + groups.length * ROLL_GAP + ROLL_HOLD; roll.done = true; later((d + groups.length * ROLL_GAP + ROLL_HOLD + .7) * 1000) }
     }
     if (!measured || performance.now() - lastMeasure > 1000) measure()
     const fade = still ? 1 : Math.min(1, (t - introEnd) / .6)
@@ -655,11 +657,18 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       const zz = stickerSize(sz, SPRITE)
       ctx.drawImage(gl, px - zz / 2, py - zz / 2, zz, zz)
     }
-    const name = subName(e.item.sub ?? '')
     if (ba <= .02) return
-    const text = legend ? `${name} · 아주 드문 취미` : e.rare === 'rare' ? `${name} · 드문 취미` : `${name} · 이 방에서 제일 드묾`
-    placeBadge(ctx, pill(text, legend ? '#A86FDB' : '#D49A1F', 'gem', '#ffffff', s), s, e.sx, e.sy - 8, ba * (hidden(e.sx, e.sy - 18, e.depth) ? .35 : 1))
+    placeBadge(ctx, rarePill(e.item.sub ?? '', e.rare!, s), s, e.sx, e.sy - 8, ba * (hidden(e.sx, e.sy - 18, e.depth) ? .35 : 1))
   }
+  const rarePill = (sub: string, r: Rarity, s: number) => {
+    const name = subName(sub)
+    const text = r === 'legend' ? `${name} · 아주 드문 취미` : r === 'rare' ? `${name} · 드문 취미` : `${name} · 이 방에서 제일 드묾`
+    return pill(text, r === 'legend' ? '#A86FDB' : '#D49A1F', 'gem', '#ffffff', s)
+  }
+  const rollTag = (g: (typeof groups)[number], s: number) => tag({
+    text: `${g.shared ? '♥ ' : ''}${rollcallText(g)}`, cat: g.cat, catColor: fxColor(g.cat), s, h: 24,
+    bg: g.shared ? '#FFF0EC' : '#fffaf2', fg: g.shared ? '#a8352a' : '#3e2a1f', border: g.shared ? SHARE : undefined,
+  })
 
   /* ---------- 요약 줄에서 불 켜기 ---------- */
   const focusTargets = () => {
@@ -728,8 +737,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       const tIn = still ? 1 : clamp01((rt - roll.start - i * ROLL_GAP) / .28)
       const tOut = roll.end === Infinity ? 1 : clamp01((roll.end - rt) / .5)
       const a = Math.min(tIn, tOut)
-      const text = `${g.shared ? '♥ ' : ''}${rollcallText(g)}`
-      const cv = tag({ text, cat: g.cat, catColor: fxColor(g.cat), s, h: 24, bg: g.shared ? '#FFF0EC' : '#fffaf2', fg: g.shared ? '#a8352a' : '#3e2a1f', border: g.shared ? SHARE : undefined })
+      const cv = rollTag(g, s)
       // 자리는 보이지 않아도 잡아 둠 (차례로 뜰 때 이미 뜬 것이 자리를 옮기지 않게)
       const p = placeBadge(ctx, cv, s, e.sx, e.sy - 10, a, still ? 1 : .6 + .4 * easeBack(tIn))
       // 겹쳐서 위로 비켜난 이름표는 가구까지 점선
@@ -1043,6 +1051,31 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     !o.intro() && (ps.length > 0 || pops.length > 0 || !!greetFx || anyTimed() || (!!focusSub && !calm)
       || (!calm && (fxOn('r_particles') || fxOn('r_rare') || (fxOn('r_shared') && !!o.viewer) || fxOn('r_beam') || (fxOn('r_talk') && !!o.talk) || fxOn('r_notice')))))
   still = overlay.mode.level === 'still'
+  /*
+   * 그림 미리 만들기 (2차): 이름표·배지·스티커는 처음 쓸 때 캔버스에 그려 두는데, 입장 이름표가 뜨는 순간 한꺼번에 만들면
+   * 가속 꺼진 PC 에서 겹 캔버스 한 프레임이 32ms 까지 걸렸음 (그림자 흐림이 CPU 로 그려짐) → 입장 연출 동안 쉬는 틈에 하나씩
+   */
+  {
+    const s0 = overlay.mode.dpr
+    const warm: (() => void)[] = []
+    for (const g of groups) warm.push(() => rollTag(g, s0))
+    if (o.viewer) for (const id of shared) warm.push(() => pill(`나도 ${subName(id)}`, SHARE, 'heart', '#ffffff', s0))
+    if (rarest) warm.push(() => rarePill(rarest.id, rarest.rarity, s0))
+    if (o.talk) warm.push(() => tag({ text: TALK_LABEL[o.talk!], icon: o.talk === 'open' ? 'star4' : 'moon', iconColor: o.talk === 'open' ? '#FBFFC4' : '#FFF3C4', bg: o.talk === 'open' ? '#4E9A3A' : '#7E6CB8', fg: '#ffffff', s: s0, h: 22 }), () => glow('#E9FF7A', 32, .3))
+    if (o.viewer) warm.push(() => glow('#FF8A6A', 64, .2))
+    const cats = new Set(groups.map((g) => g.cat))
+    if (!still) {
+      if (cats.has('music')) { const c = fxColor('music'); warm.push(() => sticker('note', SPRITE, c, s0), () => sticker('note', SPRITE, lighten(c, .3), s0)) }
+      if (cats.has('nature')) for (const c of PAL.nature) warm.push(() => sticker('nature', SPRITE, c, s0))
+      if (cats.has('movie')) for (const c of PAL.movie) warm.push(() => sticker('popcorn', SPRITE, c, s0))
+      if (cats.has('book')) warm.push(() => sticker('page', SPRITE, '#fffaf0', s0))
+      if (o.viewer || cats.has('pet')) warm.push(() => sticker('heart', SPRITE, SHARE, s0))
+      if (rarest) for (const c of rarest.rarity === 'legend' ? RAINBOW : [GOLD, '#FFF1B8']) warm.push(() => sticker('star4', SPRITE, c, s0))
+    }
+    const idle = (f: () => void) => (window.requestIdleCallback ? window.requestIdleCallback(f, { timeout: 600 }) : window.setTimeout(f, 30))
+    const step = () => { if (disposedFx) return; const f = warm.shift(); if (!f) return; const t0 = performance.now(); f(); cost('warm', performance.now() - t0); idle(step) }
+    idle(step)
+  }
   // 입장 연출이 끝나는 순간 다시 그림 (움직임 없는 단계는 카메라가 그대로면 스스로 다시 그리지 않아서, 연출 중에 비워 둔 그림이 그대로 남았음)
   let introWas = o.intro()
   const introPoll = window.setInterval(() => {
@@ -1105,6 +1138,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       later(3800)
     },
     dispose() {
+      disposedFx = true
       unsub()
       clearInterval(introPoll)
       timers.forEach((id) => clearTimeout(id)); timers.clear()
