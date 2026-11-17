@@ -226,7 +226,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (useBaker) {
       // 굽기 시작 (다 되면 stepBake 가 보이게 하고 캐시에 넣음)
       const cv = sharpCv
-      baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips) }, () => cv)
+      baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips), linear: testParam('bakelin') === '1' }, () => cv)
       bakeKey = key
       baker.start(scene, camera, Math.max(1, Math.round(W * out)), Math.max(1, Math.round(H * out)))
       baker.step()
@@ -599,7 +599,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const makeBaker = () => {
         if (!sharp || !useBaker || opts.canvas) return
         const cv = sharpCv ?? document.createElement('canvas')
-        baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips) }, () => sharpCv ?? cv)
+        baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips), linear: testParam('bakelin') === '1' }, () => sharpCv ?? cv)
       }
       if (testParam('rwarm') === '0') {
         // 예전 방식 (2차까지): 장면 전체를 두 군데 다 컴파일 + 텍스처 + 25ms 묶음 그리기
@@ -616,9 +616,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       } else {
         // 3차 (warm.ts): 층마다 실제로 그려지는 곳만 컴파일·그리기, 하나 그릴 때마다 GPU 가 끝날 때까지 비동기로 기다림.
         // 셰이더가 다 준비된 뒤에 S 굽기용 렌더 타깃·톤매핑 셰이더 (작은 크기로 한 번, sharpBake.ts)
-        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, dead: () => disposed })
-        if (disposed) return
+        // 선명한 방 굽기 렌더 타깃은 캔버스처럼 톤매핑·sRGB 셰이더를 써서(sharpBake.ts) layer 0 을 그쪽으로도 예열 (extra)
         makeBaker()
+        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, extra: baker?.warmTarget() ?? null, dead: () => disposed })
+        if (disposed) return
         if (baker) { baker.warm(scene, camera); await waitGpu(renderer) }
         backdrop?.invalidate(); fullNext = true
       }

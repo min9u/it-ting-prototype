@@ -567,7 +567,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       const hide = !scissorOk
       if (hide) renderer.domElement.style.visibility = 'hidden'
       try {
-        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, dead: () => disposed })
+        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, extra: baker?.warmTarget() ?? null, dead: () => disposed })
         if (disposed) return
         if (baker) { baker.warm(scene, camera); await waitGpu(renderer) }
       } finally {
@@ -708,7 +708,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     container.insertBefore(sharpCv, renderer.domElement)
     return sharpCv
   }
-  let baker: SharpBaker | null = sharpField ? createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv) : null
+  /** 시험용 ?bakelin=1 = 선형 렌더 타깃에 굽고 마지막에 톤매핑 (11-16 방식, sharpBake.ts) */
+  const bakeLinear = testParam('bakelin') === '1'
+  let baker: SharpBaker | null = sharpField ? createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips, linear: bakeLinear }, makeSharpCv) : null
   /*
    * 기기 단계가 이 장면에서 정해지면(첫 방문, lib/deviceTier.ts) 그 자리에서 바꿈: 굽기 띠·MSAA(굽기가 쉬고 있을 때 baker 를 새로)·
    * 카메라 이동 해상도(다음 이동부터). 주소 손잡이로 고정한 값은 그대로 (docs/rendering-experiments-3.md, 2코어 첫 방문)
@@ -743,7 +745,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 굽기 한 걸음 (매 프레임). 이번에 다 됐으면 true (다음 그리기는 전체) */
   const stepSharp = (quiet: boolean): boolean => {
     if (!baker) return false
-    if (bakerStale && !baker.busy()) { baker.dispose(); baker = createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv); bakerStale = false }
+    if (bakerStale && !baker.busy()) { baker.dispose(); baker = createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips, linear: bakeLinear }, makeSharpCv); bakerStale = false }
     const st = baker.step()
     if (st === 'done') {
       sharpCv!.style.visibility = 'visible'

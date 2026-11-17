@@ -14,14 +14,28 @@ import * as THREE from 'three'
  * - MSAA(samples 4): GPU 화면(안티앨리어싱 켬)과 같은 방식으로 가장자리를 매끈하게. 땅굴의 1.5배 슈퍼샘플(픽셀 2.2배)보다 쌈
  * - 땅굴은 예전엔 그 자리에서 읽어(drawImage) 메인 스레드가 그림을 기다렸음 (16스레드 0.13초, 2코어 0.5초) → 비동기
  *
- * 톤매핑: three 는 렌더 타깃에 톤매핑을 안 하므로 선형(HalfFloat)으로 그리고, 마지막 한 번에 renderer.toneMapping 과 같은 함수로.
- * 렌더 타깃 내용은 (MSAA 가장자리·투명 물체 때문에) 알파가 곱해진 색이라 나눠서 톤매핑하고 알파는 그대로 → 2D 캔버스(곱해지지 않은 색)
+ * 색 공간 (2026-11-17 고침): 처음엔 선형(HalfFloat) 렌더 타깃에 그리고 마지막에 톤매핑·sRGB 를 한 번에 했는데, 그러면 반투명 물체가
+ *   **선형 공간에서 섞여** 캔버스(sRGB 공간에서 섞임)와 달라짐 → 땅굴 가구 밑 그림자 판(shadow_*)이 거의 사라졌음 (화질 비교에서 발견).
+ *   이제는 렌더 타깃을 캔버스처럼 다룸: isXRRenderTarget + colorSpace sRGB 로 three 가 재질 셰이더 안에서 톤매핑·sRGB 를 하게 하고,
+ *   저장 형식은 RGBA8 로 못 박아(internalFormat, 하드웨어 sRGB 변환 없음) 캔버스와 같은 값·같은 섞임. 반으로 줄어든 픽셀 크기(16 → 8비트)도 덤.
+ *   이 렌더 타깃용 셰이더는 캔버스용과 같아서, 저사양(layer 0 은 배경 렌더 타깃에만 그림)에서는 따로 예열해야 함 → warmTarget() 을 warm.ts extra 로.
+ *   시험용 ?bakelin=1 = 예전(선형 + 마지막 톤매핑)
+ * 렌더 타깃 내용은 (MSAA 가장자리·바깥 투명 때문에) 알파가 곱해진 색이라 마지막 한 번에 알파로 나눠 2D 캔버스(곱해지지 않은 색)에
  */
 export interface BakeOptions {
   /** MSAA 샘플 수 (0 = 없음) */
   samples: number
   /** 몇 프레임에 나눠 그릴지 (1 = 한 번에) */
   strips: number
+  /** true = 예전 방식(선형 HalfFloat 에 그리고 마지막에 톤매핑·sRGB). 기본 false = 캔버스처럼 (위 설명) */
+  linear?: boolean
+}
+
+/** 캔버스처럼 다루는 렌더 타깃 (재질 셰이더가 톤매핑·sRGB, 저장은 RGBA8 그대로). 위 "색 공간" 설명 */
+function displayTarget(w: number, h: number, samples: number, depth: boolean) {
+  const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.UnsignedByteType, colorSpace: THREE.SRGBColorSpace, internalFormat: 'RGBA8', depthBuffer: depth, samples })
+  ;(rt as unknown as { isXRRenderTarget: boolean }).isXRRenderTarget = true
+  return rt
 }
 
 export interface SharpBaker {
@@ -41,6 +55,8 @@ export interface SharpBaker {
   readonly lastMs: number
   /** 결과 2D 캔버스 (처음 start 때 만듦) */
   readonly canvas: HTMLCanvasElement | null
+  /** 예열용: 굽는 렌더 타깃과 같은 종류의 작은 렌더 타깃 (셰이더 종류가 같음, warm.ts extra) */
+  warmTarget(): THREE.WebGLRenderTarget
 }
 
 const QUAD_VS = /* glsl */`
@@ -55,6 +71,8 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
   let lastMs = 0
   let canvas: HTMLCanvasElement | null = null
   const strips = Math.max(1, Math.round(o.strips))
+  const linear = !!o.linear
+  let warmRt: THREE.WebGLRenderTarget | null = null
 
   // 톤매핑 + sRGB (renderer 와 같은 함수, three 의 tonemapping_pars_fragment 를 그대로 씀. 노출값 이름만 바꿈)
   const tm = renderer.toneMapping === THREE.AgXToneMapping ? 'AgXToneMapping' : renderer.toneMapping === THREE.NeutralToneMapping ? 'NeutralToneMapping'
@@ -70,8 +88,8 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
       void main() {
         vec4 c = texture2D(tColor, vUv);
         vec3 rgb = c.a > 0.0 ? c.rgb / c.a : vec3(0.0);
-        ${tm ? `rgb = ${tm}(rgb);` : ''}
-        gl_FragColor = vec4(sRGBTransferOETF(vec4(rgb, 1.0)).rgb, c.a);
+        ${linear ? `${tm ? `rgb = ${tm}(rgb);` : ''}
+        gl_FragColor = vec4(sRGBTransferOETF(vec4(rgb, 1.0)).rgb, c.a);` : 'gl_FragColor = vec4(rgb, c.a);'}
       }`,
     depthTest: false, depthWrite: false, toneMapped: false,
   })
@@ -83,7 +101,7 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
   const ensure = (w: number, h: number) => {
     if (!rtScene || rtScene.width !== w || rtScene.height !== h) {
       rtScene?.dispose()
-      rtScene = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, depthBuffer: true, samples: o.samples })
+      rtScene = linear ? new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, depthBuffer: true, samples: o.samples }) : displayTarget(w, h, o.samples, true)
     }
     if (!rtOut || rtOut.width !== w || rtOut.height !== h) {
       rtOut?.dispose()
@@ -187,10 +205,13 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     cancel() { job = null; dropPending() },
     dispose() {
       job = null; dropPending()
-      rtScene?.dispose(); rtOut?.dispose(); rtScene = rtOut = null
+      rtScene?.dispose(); rtOut?.dispose(); warmRt?.dispose(); rtScene = rtOut = warmRt = null
       quad.geometry.dispose(); mat.dispose()
     },
     get lastMs() { return lastMs },
     get canvas() { return canvas },
+    warmTarget() {
+      return (warmRt ??= linear ? new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, depthBuffer: true }) : displayTarget(2, 2, 0, true))
+    },
   }
 }

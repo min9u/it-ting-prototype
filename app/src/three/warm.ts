@@ -69,11 +69,13 @@ const batchMs = () => {
  * @param o.split 배경 렌더 타깃 (저사양 A): layer 0 물체는 여기, layer 1 물체는 캔버스. 없으면 모두 캔버스(두 층 같이)
  * @param o.all 후처리(EffectComposer)처럼 장면 전체를 렌더 타깃에 그리는 경우 그 렌더 타깃 (GPU 옛 밭: 셰이더가 캔버스용과 다름)
  * @param o.roots 이 물체들만 (예: 나중에 불러온 두더지). 나머지는 그동안 숨김 → 그동안 보통 프레임은 쉬어야 함
+ * @param o.extra 움직이지 않는 층(layer 0)을 여기에도 컴파일·그리기 (선명한 배경 굽기 렌더 타깃: 캔버스처럼 톤매핑·sRGB 셰이더, sharpBake warmTarget)
  * @param o.draw false 면 캔버스에는 1×1 그리기를 안 함 (컴파일·텍스처·렌더 타깃 그리기만). 캔버스가 이미 보이고 지난 그림을 남기지 않는
  *   렌더러는 캔버스에 1×1 만 그려도 지워진 화면이 보임
  */
 export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, o: {
   split?: THREE.WebGLRenderTarget | null
+  extra?: THREE.WebGLRenderTarget | null
   all?: THREE.WebGLRenderTarget | null
   roots?: THREE.Object3D[]
   draw?: boolean
@@ -101,13 +103,17 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
     seen.add(key); meshes.push(m)
   })
 
+  // 물체 × 그려지는 곳 (layer 0 은 extra 에도)
+  const jobs = meshes.map((m) => ({ m, ...passOf(m) }))
+  if (o.extra && split && !o.all) for (const m of meshes) if (!isDyn(m)) jobs.push({ m, rt: o.extra, mask: 1 })
+
   // 1) 셰이더: 그려지는 곳(렌더 타깃·층)마다 그 물체들만 컴파일하고 다 될 때까지 기다림
   const groups = new Map<string, { rt: THREE.WebGLRenderTarget | null; mask: number; list: THREE.Mesh[] }>()
-  for (const m of meshes) {
-    const p = passOf(m), k = `${p.rt ? p.rt.texture.uuid : 'canvas'}|${p.mask}`
+  for (const j of jobs) {
+    const k = `${j.rt ? j.rt.texture.uuid : 'canvas'}|${j.mask}`
     let g = groups.get(k)
-    if (!g) groups.set(k, (g = { ...p, list: [] }))
-    g.list.push(m)
+    if (!g) groups.set(k, (g = { rt: j.rt, mask: j.mask, list: [] }))
+    g.list.push(j.m)
   }
   const mask0 = camera.layers.mask
   if (oneWait()) {
@@ -165,13 +171,12 @@ export async function warmScene(renderer: THREE.WebGLRenderer, scene: THREE.Scen
   const t2 = performance.now(), budget = batchMs()
   let b0 = performance.now()
   try {
-    for (const m of meshes) {
+    for (const { m, rt, mask } of jobs) {
       if (dead()) return
-      if (o.draw === false && !passOf(m).rt) continue
+      if (o.draw === false && !rt) continue
       m.visible = true
       const hidden: THREE.Object3D[] = []
       for (let p = m.parent; p; p = p.parent) if (!p.visible) { hidden.push(p); p.visible = true }
-      const { rt, mask } = passOf(m)
       camera.layers.mask = mask
       renderer.autoClear = false
       renderer.setRenderTarget(rt)
