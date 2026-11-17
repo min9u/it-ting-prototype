@@ -15,8 +15,11 @@ export interface Backdrop {
   /** 배경을 다시 그려야 함 (크기·카메라 구도가 바뀜) */
   invalidate(): void
   isDirty(): boolean
-  /** 배경 렌더 (기본 layer 0 만, 두더지 빼고. mask 를 주면 그 층들) */
-  capture(scene: THREE.Scene, camera: THREE.Camera, mask?: number): void
+  /**
+   * 배경 렌더 (기본 layer 0 만, 두더지 빼고. mask 를 주면 그 층들).
+   * rects: 이 사각형들(0–1, 위가 0)에만 그림 (탐색 들판 이동 중 빈 곳 메우기, three/moveSlide.ts). 없으면 전체
+   */
+  capture(scene: THREE.Scene, camera: THREE.Camera, mask?: number, rects?: { x0: number; y0: number; x1: number; y1: number }[]): void
   /** 저장해 둔 배경을 지금 그리기 대상에 붙임 (색 + 깊이) */
   blit(): void
   /** 깊이만 붙임 (색은 안 씀). 방을 다른 캔버스에 고해상도로 깔아 두고 두더지만 그릴 때 가림용 */
@@ -76,7 +79,7 @@ export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: numbe
   return {
     invalidate() { dirty = true },
     isDirty: () => dirty,
-    capture(scene, camera, mask) {
+    capture(scene, camera, mask, rects) {
       const target = ensure()
       const layers = camera.layers.mask
       if (mask === undefined) camera.layers.set(0); else camera.layers.mask = mask
@@ -84,7 +87,17 @@ export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: numbe
       const t0 = performance.now()
       renderer.setRenderTarget(target)
       renderer.autoClear = true
-      renderer.render(scene, camera)
+      if (rects) {
+        const w = target.width, h = target.height
+        for (const r of rects) {
+          const x0 = Math.floor(r.x0 * w), x1 = Math.ceil(r.x1 * w), y0 = Math.floor((1 - r.y1) * h), y1 = Math.ceil((1 - r.y0) * h)
+          if (x1 <= x0 || y1 <= y0) continue
+          target.scissor.set(x0, y0, x1 - x0, y1 - y0); target.scissorTest = true
+          renderer.setRenderTarget(target) // scissor 바꾼 것을 적용
+          renderer.render(scene, camera)
+        }
+        target.scissor.set(0, 0, w, h); target.scissorTest = false
+      } else renderer.render(scene, camera)
       renderer.setRenderTarget(prevTarget)
       renderer.autoClear = prevClear
       camera.layers.mask = layers
