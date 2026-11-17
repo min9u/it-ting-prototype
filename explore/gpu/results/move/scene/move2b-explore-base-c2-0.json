@@ -1,0 +1,365 @@
+{
+  "summary": {
+    "name": "move2b-explore-base-c2-0",
+    "mode": "hwoff",
+    "url": "http://localhost:5352/#/burrow/explore?tier=weak",
+    "scenario": "explore",
+    "aff": "3",
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 2843,
+      "longTaskMs": 1543,
+      "longTaskMax": 465,
+      "worstFreezeMs": 450,
+      "heapMB": 41,
+      "warmMs": 1050,
+      "mb": 2.4,
+      "cpuGpuSec": 4.05,
+      "cpuRendererSec": 2.5
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 57.1,
+      "sceneFps": 10.2,
+      "worstGap": 33,
+      "sceneWorstGap": 38,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 16,
+      "cpuGpu": 32,
+      "drawsPerFrame": 29,
+      "ktrisPerFrame": 15
+    },
+    "hop": {
+      "sec": 7.7,
+      "rafFps": 40.4,
+      "sceneFps": 40.2,
+      "worstGap": 217,
+      "sceneWorstGap": 183,
+      "longTaskMs": 1481,
+      "longTaskMax": 197,
+      "panFps": 25,
+      "panWorstGap": 85,
+      "cpuRenderer": 24,
+      "cpuGpu": 144,
+      "drawsPerFrame": 52,
+      "ktrisPerFrame": 28,
+      "compFps": 63.8,
+      "compWorstGap": 45,
+      "compAllFps": 58.2
+    },
+    "idle2": {
+      "sec": 6,
+      "rafFps": 59.3,
+      "sceneFps": 11.5,
+      "worstGap": 33,
+      "sceneWorstGap": 40,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 11,
+      "cpuGpu": 33,
+      "drawsPerFrame": 29,
+      "ktrisPerFrame": 15
+    },
+    "click": {
+      "sec": 2.3,
+      "rafFps": 37,
+      "sceneFps": 37,
+      "worstGap": 183,
+      "sceneWorstGap": 108,
+      "longTaskMs": 545,
+      "longTaskMax": 182,
+      "panFps": 25,
+      "panWorstGap": 57,
+      "cpuRenderer": 28,
+      "cpuGpu": 161,
+      "drawsPerFrame": 52,
+      "ktrisPerFrame": 28
+    },
+    "floor": {
+      "sec": 2.4,
+      "rafFps": 36,
+      "sceneFps": 29.8,
+      "worstGap": 233,
+      "sceneWorstGap": 194,
+      "longTaskMs": 960,
+      "longTaskMax": 178,
+      "cpuRenderer": 43,
+      "cpuGpu": 138,
+      "drawsPerFrame": 61,
+      "ktrisPerFrame": 33
+    },
+    "captures": {
+      "n": 18,
+      "bdMax": 86,
+      "sharpMed": 7,
+      "sharpMax": 9,
+      "waitMed": 512,
+      "waitMax": 632
+    },
+    "floorSwitchMs": 760
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 2843,
+        "longTaskMs": 1543,
+        "longTaskMax": 465,
+        "worstFreezeMs": 450,
+        "heapMB": 41,
+        "warmMs": 1050,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 2.4,
+        "cpuGpuSec": 4.05,
+        "cpuRendererSec": 2.5
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 57.1,
+        "sceneFps": 10.2,
+        "worstGap": 33,
+        "sceneWorstGap": 38,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 16,
+        "cpuGpu": 32,
+        "drawsPerFrame": 29,
+        "ktrisPerFrame": 15
+      },
+      "hop": {
+        "sec": 7.7,
+        "rafFps": 40.4,
+        "sceneFps": 40.2,
+        "worstGap": 217,
+        "sceneWorstGap": 183,
+        "longTaskMs": 1481,
+        "longTaskMax": 197,
+        "panFps": 25,
+        "panWorstGap": 85,
+        "cpuRenderer": 24,
+        "cpuGpu": 144,
+        "drawsPerFrame": 52,
+        "ktrisPerFrame": 28,
+        "seats": [
+          "13",
+          "14",
+          "13",
+          "14",
+          "13"
+        ],
+        "compFps": 63.8,
+        "compWorstGap": 45,
+        "compPans": [
+          {
+            "n": 26,
+            "worst": 43
+          },
+          {
+            "n": 25,
+            "worst": 22
+          },
+          {
+            "n": 27,
+            "worst": 36
+          },
+          {
+            "n": 24,
+            "worst": 45
+          }
+        ],
+        "compAllFps": 58.2
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 59.3,
+        "sceneFps": 11.5,
+        "worstGap": 33,
+        "sceneWorstGap": 40,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 11,
+        "cpuGpu": 33,
+        "drawsPerFrame": 29,
+        "ktrisPerFrame": 15
+      },
+      "clickAt": {
+        "x": 780,
+        "y": 100
+      },
+      "click": {
+        "sec": 2.3,
+        "rafFps": 37,
+        "sceneFps": 37,
+        "worstGap": 183,
+        "sceneWorstGap": 108,
+        "longTaskMs": 545,
+        "longTaskMax": 182,
+        "panFps": 25,
+        "panWorstGap": 57,
+        "cpuRenderer": 28,
+        "cpuGpu": 161,
+        "drawsPerFrame": 52,
+        "ktrisPerFrame": 28,
+        "moved": true
+      },
+      "floorSwitchMs": 760,
+      "floor": {
+        "sec": 2.4,
+        "rafFps": 36,
+        "sceneFps": 29.8,
+        "worstGap": 233,
+        "sceneWorstGap": 194,
+        "longTaskMs": 960,
+        "longTaskMax": 178,
+        "cpuRenderer": 43,
+        "cpuGpu": 138,
+        "drawsPerFrame": 61,
+        "ktrisPerFrame": 33
+      },
+      "tier": {
+        "samples": [
+          [
+            "hole",
+            205,
+            0.53,
+            387
+          ],
+          [
+            "hole",
+            198,
+            0.53,
+            373
+          ],
+          [
+            "hole",
+            104,
+            0.53,
+            196
+          ],
+          [
+            "hole",
+            106,
+            0.53,
+            199
+          ],
+          [
+            "hole",
+            100,
+            0.53,
+            189
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794894990537,\"low\":\"weak\",\"score\":199}"
+      },
+      "captures": {
+        "kinds": {
+          "bd": {
+            "n": 7,
+            "med": 70,
+            "max": 86
+          },
+          "sharp": {
+            "n": 4,
+            "med": 7,
+            "max": 9
+          },
+          "sharpWait": {
+            "n": 4,
+            "med": 512,
+            "max": 632
+          },
+          "sharpSaved": {
+            "n": 3,
+            "med": 0,
+            "max": 0
+          }
+        },
+        "raw": [
+          [
+            "bd",
+            70
+          ],
+          [
+            "sharp",
+            9
+          ],
+          [
+            "sharpWait",
+            486
+          ],
+          [
+            "bd",
+            86
+          ],
+          [
+            "sharp",
+            7
+          ],
+          [
+            "sharpWait",
+            512
+          ],
+          [
+            "bd",
+            48
+          ],
+          [
+            "sharpSaved",
+            0
+          ],
+          [
+            "bd",
+            81
+          ],
+          [
+            "sharpSaved",
+            0
+          ],
+          [
+            "bd",
+            3
+          ],
+          [
+            "sharpSaved",
+            0
+          ],
+          [
+            "bd",
+            79
+          ],
+          [
+            "sharp",
+            3
+          ],
+          [
+            "sharpWait",
+            425
+          ],
+          [
+            "bd",
+            5
+          ],
+          [
+            "sharp",
+            4
+          ],
+          [
+            "sharpWait",
+            632
+          ]
+        ],
+        "n": 18,
+        "bdMax": 86,
+        "sharpMed": 7,
+        "sharpMax": 9,
+        "waitMed": 512,
+        "waitMax": 632
+      }
+    }
+  ]
+}

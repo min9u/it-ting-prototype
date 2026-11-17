@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>합성 비용 시험</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8CC56A }
+  #box { position: absolute; inset: 0; overflow: hidden }
+  canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; transform-origin: 0 0 }
+</style>
+<div id="box"></div>
+<script>
+/*
+ * 이동 중 배경 화질 실험 (docs/explore-move-quality.md): 가속 끈 크롬(소프트웨어 합성)에서
+ * 선명한 2D 캔버스를 CSS 변환(평행 이동·투영 matrix3d)으로 옮길 때 한 프레임 비용을 잼.
+ * ?mode=static | tx | m3d | m3d2 | m3d3 | gl1x  (아래 설명), ?sec=4
+ *  - 모든 모드: 위에 WebGL 캔버스(0.55배, 투명)가 있고 매 프레임 작은 사각형(목표 링 흉내)을 그림
+ *  - static: 2D 캔버스 그대로 (지금 멈춰 있을 때와 같은 합성)
+ *  - tx: 2D 캔버스 한 장을 translate 로 밀기
+ *  - m3d: 한 장을 투영 matrix3d 로 (들판 바닥 호모그래피)
+ *  - m3d2: 두 장 (위 장은 opacity 바뀜)
+ *  - m3d3: 세 장 (맨 아래 = 위 장의 복사본, 가림 메우기)
+ *  - st1·st2·st3: 한 장(두·세 장)을 가로 띠 ?ns=32 개 캔버스로 잘라 띠마다 matrix(평행 이동 + 확대 + 가로 기울임), ?op=1 불투명 캔버스 (투영을 띠별 평행 이동·확대로 흉내)
+ *  - gl1x1: gl1x 인데 텍스처 한 장만 (섞지 않음), gl08: gl1x 를 0.8배로
+ *  - gl1x: 2D 캔버스 없이 WebGL 캔버스를 1배로 두고 텍스처 두 장을 셰이더로 투영해 섞어 그림
+ */
+const P = new URLSearchParams(location.search)
+const mode = P.get('mode') || 'static', SEC = +(P.get('sec') || 4)
+const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1
+const box = document.getElementById('box')
+function makeImage(seed) {
+  const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr)
+  const x = c.getContext('2d')
+  const g = x.createLinearGradient(0, 0, 0, c.height); g.addColorStop(0, '#9fd27a'); g.addColorStop(1, '#6aa04c')
+  x.fillStyle = g; x.fillRect(0, 0, c.width, c.height)
+  let s = seed
+  const r = () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)
+  for (let i = 0; i < 2500; i++) { x.fillStyle = `hsl(${80 + r() * 60},${40 + r() * 30}%,${30 + r() * 40}%)`; x.beginPath(); x.ellipse(r() * c.width, r() * c.height, 3 + r() * 30, 2 + r() * 14, r() * 3, 0, 7); x.fill() }
+  return c
+}
+const layers = []
+const n2d = { static: 1, tx: 1, m3d: 1, m3d2: 2, m3d3: 3, gl1x: 0, gl1x1: 0, gl08: 0, st1: 0, st2: 0, st3: 0 }[mode]
+for (let i = 0; i < n2d; i++) { const c = makeImage(7 + i); c.setAttribute('aria-hidden', 'true'); box.appendChild(c); layers.push(c) }
+// st1·st2·st3: 띠 캔버스 (한 장을 가로 띠 NS 개로 잘라 띠마다 translate + scale). 장 수 1·2·3
+const NS = +(P.get('ns') || 32)
+const strips = []
+if (mode.startsWith('st')) {
+  const nl = +mode[2]
+  for (let l = 0; l < nl; l++) {
+    const src = makeImage(7 + l), row = []
+    for (let i = 0; i < NS; i++) {
+      const y0 = Math.round(i * src.height / NS), y1 = Math.round((i + 1) * src.height / NS)
+      const c = document.createElement('canvas'); c.width = src.width; c.height = y1 - y0
+      c.getContext('2d', { alpha: P.get('op') !== '1' }).drawImage(src, 0, y0, src.width, y1 - y0, 0, 0, src.width, y1 - y0)
+      c.style.cssText = `position:absolute;left:0;top:0;width:${W}px;height:${(y1 - y0) / dpr}px;transform-origin:0 0${P.get('wc') === '1' ? ';will-change:transform' : ''}`
+      box.appendChild(c); row.push({ c, y0: y0 / dpr, h: (y1 - y0) / dpr })
+    }
+    strips.push(row)
+  }
+}
+// WebGL 캔버스 (위)
+const gc = document.createElement('canvas')
+const glScale = mode === 'gl08' ? 0.8 * dpr : mode.startsWith('gl') ? dpr : 0.55
+gc.width = Math.round(W * glScale); gc.height = Math.round(H * glScale)
+box.appendChild(gc)
+const gl = gc.getContext('webgl2', { alpha: true, antialias: false, preserveDrawingBuffer: true })
+const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o }
+const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); return p }
+const quadBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+const pSolid = prog(`#version 300 es
+in vec2 p; uniform vec4 r; void main(){ gl_Position = vec4(r.xy + p * r.zw, 0., 1.); }`, `#version 300 es
+precision mediump float; out vec4 o; void main(){ o = vec4(1., .82, .48, .9); }`)
+const pTex = prog(`#version 300 es
+in vec2 p; out vec2 v; void main(){ v = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`, `#version 300 es
+precision highp float; in vec2 v; out vec4 o; uniform sampler2D a; uniform sampler2D b; uniform mat3 ha; uniform mat3 hb; uniform float w;
+vec4 at(sampler2D t, mat3 h){ vec3 q = h * vec3(v, 1.); vec2 u = q.xy / q.z; float ok = step(0., u.x) * step(u.x, 1.) * step(0., u.y) * step(u.y, 1.); return vec4(texture(t, u).rgb, ok); }
+uniform int one;
+void main(){ if (one == 1) { vec3 q = ha * vec3(v, 1.); o = vec4(texture(a, q.xy / q.z).rgb, 1.); return; } vec4 x = at(a, ha), y = at(b, hb); float k = y.a * (x.a > 0. ? w : 1.); o = vec4(mix(x.rgb, y.rgb, k), max(x.a, y.a)); }`)
+let texA, texB
+if (mode.startsWith('gl')) {
+  const up = (c) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t }
+  texA = up(makeImage(7)); texB = up(makeImage(8))
+}
+// 들판 바닥 호모그래피 흉내: 아래쪽 행이 위쪽보다 1.8배 많이 움직이는 투영
+function homog(k, sign) {
+  const dx = sign * k * 0.3, dy = sign * k * 0.15
+  // 화면 좌표(0..1)에서: x' = (x + dx*(0.55+0.45y)) / (1 + 0.2*dy*y) 비슷한 투영
+  const g = 0.25 * dy
+  return [1, 0, 0, 0.45 * dx, 1 + dy * 0.3, g, dx * 0.55, dy * 0.4, 1] // 열 우선 3×3
+}
+function m3dCss(h) {
+  // 정규화 좌표 h(0..1) → px: S·h·S⁻¹ (S = diag(W,H,1)), CSS matrix3d 는 열 우선 4×4
+  const [a, b, c, d, e, f, g, i, j] = h
+  // 행렬 M = [[a d g],[b e i],[c f j]] (열 우선 배열을 풀어 씀)
+  const m00 = a, m01 = d * W / H, m02 = g * W, m10 = b * H / W, m11 = e, m12 = i * H, m20 = c / W, m21 = f / H, m22 = j
+  return `matrix3d(${m00},${m10},0,${m20},${m01},${m11},0,${m21},0,0,1,0,${m02},${m12},0,${m22})`
+}
+const gaps = [], t0 = performance.now()
+let last = t0, frames = 0
+function frame(now) {
+  const t = (now - t0) / 1000
+  if (t > SEC) return done()
+  gaps.push(now - last); last = now; frames++
+  const k = (Math.sin(t * Math.PI * 2 / 0.8) * .5 + .5)
+  if (mode === 'tx') layers[0].style.transform = `translate3d(${(-k * 300).toFixed(2)}px,${(k * 80).toFixed(2)}px,0)`
+  if (mode.startsWith('st')) {
+    strips.forEach((row, l) => {
+      const sg = l === 1 ? -1 : 1
+      for (const st of row) {
+        const yy = st.y0 / H, dx = sg * k * 300 * (0.55 + 0.45 * yy), sc = 1 + sg * k * 0.08 * yy
+        // 기울임(skew): 띠 안에서 아래 행이 더 많이 밀림 (실제 들판 투영과 같은 모양)
+        const sk = P.get('sk') === '0' ? 0 : sg * k * 300 * 0.45 / H
+        st.c.style.transform = `matrix(${sc.toFixed(4)},0,${sk.toFixed(5)},${(sc * 1.02).toFixed(4)},${dx.toFixed(2)},${(st.y0 + sg * k * 60 * yy).toFixed(2)})`
+      }
+      if (l === 2) row.forEach((st) => { st.c.style.opacity = k.toFixed(3) })
+    })
+  }
+  if (mode.startsWith('m3d')) {
+    layers.forEach((c, i) => { c.style.transform = m3dCss(homog(k, i === 1 ? -1 : 1)) })
+    if (layers[1]) layers[1].style.opacity = k.toFixed(3)
+  }
+  gl.viewport(0, 0, gc.width, gc.height)
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT)
+  if (mode.startsWith('gl')) {
+    gl.useProgram(pTex)
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texA); gl.uniform1i(gl.getUniformLocation(pTex, 'a'), 0)
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texB); gl.uniform1i(gl.getUniformLocation(pTex, 'b'), 1)
+    gl.uniformMatrix3fv(gl.getUniformLocation(pTex, 'ha'), false, homog(k, 1))
+    gl.uniformMatrix3fv(gl.getUniformLocation(pTex, 'hb'), false, homog(1 - k, -1))
+    gl.uniform1f(gl.getUniformLocation(pTex, 'w'), k)
+    gl.uniform1i(gl.getUniformLocation(pTex, 'one'), mode === 'gl1x1' ? 1 : 0)
+    const loc = gl.getAttribLocation(pTex, 'p'); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+  }
+  gl.useProgram(pSolid)
+  gl.uniform4f(gl.getUniformLocation(pSolid, 'r'), -0.1 + k * .2, 0, .08, .05)
+  const loc = gl.getAttribLocation(pSolid, 'p'); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+  requestAnimationFrame(frame)
+}
+function done() {
+  const g = gaps.slice(2).sort((a, b) => a - b)
+  window.__result = { mode, frames, fps: +(frames / SEC).toFixed(1), p50: +g[g.length >> 1].toFixed(1), p95: +g[Math.floor(g.length * .95)].toFixed(1), worst: +g[g.length - 1].toFixed(1), W, H, dpr, gl: gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER) }
+}
+requestAnimationFrame((n) => { last = n; requestAnimationFrame(frame) })
+</script>

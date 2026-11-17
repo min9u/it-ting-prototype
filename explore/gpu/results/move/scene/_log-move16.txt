@@ -1,0 +1,4 @@
+move16-explore-base-t16-0 cpu20.9% 36s ready 2075 ltMax 234 frz 217
+move16-explore-new-t16-0 cpu19.3% 36s ready 2108 ltMax 231 frz 217
+move16-explore-base-t16-1 cpu22.8% 35s ready 1952 ltMax 212 frz 217
+move16-explore-new-t16-1 cpu16.9% 35s ready 1570 ltMax 158 frz 167

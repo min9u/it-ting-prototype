@@ -41,8 +41,11 @@ function displayTarget(w: number, h: number, samples: number, depth: boolean) {
 export interface SharpBaker {
   /** 예열: 아주 작은 크기로 한 번 구워 톤매핑 셰이더·MSAA 렌더 타깃 준비 (들어올 때 예열 단계에서, 첫 굽기가 멈추지 않게) */
   warm(scene: THREE.Scene, camera: THREE.Camera): void
-  /** 굽기 시작 (진행 중이던 것은 버림). w·h = 결과 그림 크기(기기 픽셀). 카메라·장면은 끝날 때까지 그대로여야 함 (바뀌면 cancel) */
-  start(scene: THREE.Scene, camera: THREE.Camera, w: number, h: number): void
+  /**
+   * 굽기 시작 (진행 중이던 것은 버림). w·h = 결과 그림 크기(기기 픽셀). 카메라·장면은 끝날 때까지 그대로여야 함 (바뀌면 cancel).
+   * into: 이번 결과를 넣을 2D 캔버스 (없으면 기본 결과 캔버스). 탐색 들판이 도착할 자리를 지금 그림을 둔 채 따로 구울 때 (docs/explore-move-quality.md)
+   */
+  start(scene: THREE.Scene, camera: THREE.Camera, w: number, h: number, into?: HTMLCanvasElement): void
   /**
    * 매 프레임 한 번: 띠 하나를 그리거나, 다 그렸으면 읽기를 걸거나, 읽기가 끝났으면 2D 캔버스에 넣음.
    * 반환: 'idle' 할 일 없음 · 'busy' 진행 중 · 'done' 이번에 2D 캔버스에 그림이 들어감
@@ -71,8 +74,8 @@ const QUAD_VS = /* glsl */`
 export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, out: () => HTMLCanvasElement): SharpBaker {
   let rtScene: THREE.WebGLRenderTarget | null = null
   let rtOut: THREE.WebGLRenderTarget | null = null
-  let job: { scene: THREE.Scene; camera: THREE.Camera; w: number; h: number; i: number; t0: number } | null = null
-  let pending: { pbo: WebGLBuffer; sync: WebGLSync; w: number; h: number; t0: number } | null = null
+  let job: { scene: THREE.Scene; camera: THREE.Camera; w: number; h: number; i: number; t0: number; into?: HTMLCanvasElement } | null = null
+  let pending: { pbo: WebGLBuffer; sync: WebGLSync; w: number; h: number; t0: number; into?: HTMLCanvasElement } | null = null
   let lastMs = 0
   let canvas: HTMLCanvasElement | null = null
   let broken = false
@@ -158,7 +161,7 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     gl.flush()
     renderer.setRenderTarget(prevTarget)
     renderer.autoClear = prevAuto
-    pending = { pbo, sync, w: j.w, h: j.h, t0: j.t0 }
+    pending = { pbo, sync, w: j.w, h: j.h, t0: j.t0, into: j.into }
     job = null
   }
   /** 읽기가 끝났으면 2D 캔버스로 (위아래 뒤집어서) */
@@ -170,11 +173,11 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pd.pbo)
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, data)
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
-    const t0 = pd.t0
+    const t0 = pd.t0, into = pd.into
     dropPending()
     const img = new ImageData(pd.w, pd.h), row = pd.w * 4
     for (let y = 0; y < pd.h; y++) img.data.set(data.subarray((pd.h - 1 - y) * row, (pd.h - y) * row), y * row)
-    const cv = canvas ??= out()
+    const cv = into ?? (canvas ??= out())
     if (cv.width !== pd.w || cv.height !== pd.h) { cv.width = pd.w; cv.height = pd.h }
     const ctx = cv.getContext('2d')
     if (!ctx) { broken = true; return false } // 2D 컨텍스트를 못 얻음 → 이 그림은 버리고 굽기를 그만둠 (broken)
@@ -196,12 +199,12 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
       renderer.autoClear = prevAuto
       job = null
     },
-    start(scene, camera, w, h) {
+    start(scene, camera, w, h, into) {
       dropPending()
       if (broken) return
       ensure(w, h)
-      canvas ??= out()
-      job = { scene, camera, w, h, i: 0, t0: performance.now() }
+      if (!into) canvas ??= out()
+      job = { scene, camera, w, h, i: 0, t0: performance.now(), into }
     },
     step() {
       if (pending) return poll() ? 'done' : 'busy'

@@ -1,0 +1,6 @@
+move2b-explore-base-c2-0 cpu16.2% 39s ready 2843 ltMax 465 frz 450
+move2b-explore-gl-c2-0 cpu6.2% 39s ready 3026 ltMax 423 frz 467
+move2b-explore-css-c2-0 cpu24.3% 39s ready 3929 ltMax 683 frz 667
+move2b-explore-base-c2-1 cpu20.4% 49s ready 3203 ltMax 211 frz 400
+move2b-explore-gl-c2-1 cpu24.4% 54s ready 3180 ltMax 247 frz 300
+move2b-explore-css-c2-1 cpu5.5% 38s ready 2957 ltMax 241 frz 383
