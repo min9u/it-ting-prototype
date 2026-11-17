@@ -601,7 +601,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         const cv = sharpCv ?? document.createElement('canvas')
         baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips), linear: testParam('bakelin') === '1' }, () => sharpCv ?? cv)
       }
-      if (testParam('rwarm') === '0') {
+      // GPU(가속 켬)는 2차 방식 그대로: 3차 예열(펜스로 나눠 기다림)은 WARP 의 동기 호출 멈춤용이라 GPU 에선 이득 없이 다 보이기까지만 0.2~0.4초 늘었음
+      // (docs/rendering-experiments-3.md 6번). 시험용 ?rwarm=0 은 저사양에서도 예전 방식
+      if (testParam('rwarm') === '0' || q.level !== 'low') {
         // 예전 방식 (2차까지): 장면 전체를 두 군데 다 컴파일 + 텍스처 + 25ms 묶음 그리기
         if (backdrop) await backdrop.precompile(scene, camera)
         await renderer.compileAsync(scene, camera).catch(() => {})

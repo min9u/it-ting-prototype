@@ -1,0 +1,4 @@
+navfin-nav-base-t16-0 cpu20.7% 26s ready 2434 ltMax 175 frz 167
+navfin-nav-fin-t16-0 cpu21.9% 26s ready 2346 ltMax 129 frz 133
+navfin-nav-base-t16-1 cpu8.2% 26s ready 2440 ltMax 156 frz 150
+navfin-nav-fin-t16-1 cpu10.5% 26s ready 2541 ltMax 199 frz 183

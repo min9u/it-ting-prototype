@@ -562,7 +562,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const w0 = performance.now()
     // 3차 (warm.ts): 층마다 실제로 그려지는 곳만 컴파일·그리기, 하나 그릴 때마다 GPU 가 끝날 때까지 비동기로 기다림.
     // 셰이더가 다 준비된 뒤 S 굽기용 렌더 타깃·톤매핑 셰이더. 시험용 ?hwarm=0 예전 방식(아래)
-    if (testParam('hwarm') !== '0') {
+    // GPU(가속 켬)는 2차 방식(아래) 그대로: 3차 예열은 WARP 의 동기 호출 멈춤용 (docs/rendering-experiments-3.md 6번)
+    if (testParam('hwarm') !== '0' && q.level === 'low') {
       // 지난 그림을 남기지 않는 캔버스(GPU)는 1×1 그리기만 해도 지워진 화면이 보이므로 예열하는 동안 숨김
       const hide = !scissorOk
       if (hide) renderer.domElement.style.visibility = 'hidden'

@@ -15,7 +15,7 @@ const NEW = process.env.NEW || 'http://localhost:5341/#'
 const FIN = process.env.FIN || 'http://localhost:5343/#'
 const REPS = +(process.env.REPS || 2)
 const [set = 'main', ...cfgArg] = process.argv.slice(2)
-const cfgs = cfgArg.length ? cfgArg : set === 'gpu' ? ['gpu'] : ['t16', 'c2']
+const cfgs = cfgArg.length ? cfgArg : set.startsWith('gpu') ? ['gpu'] : ['t16', 'c2']
 
 const SCREENS = {
   room: ['/burrow', 'room'],
@@ -31,6 +31,10 @@ const q = (u, extra) => (extra ? u + (u.includes('?') ? '&' : '?') + extra : u)
 const PLAN = {
   main: Object.keys(SCREENS).map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   gpu: ['room', 'explore', 'landing', 'tea'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
+  // 최종 빌드를 GPU 에서 (기준과 번갈아)
+  gpufin: ['room', 'visit', 'explore'].map((k) => [k, [['base', BASE, ''], ['fin', FIN, '']]]),
+  // 마지막 커밋(텍스처 묶기 되돌림) 빌드로 화면 전환 다시 (기준과 번갈아)
+  navfin: [['nav', [['base', BASE, ''], ['fin', FIN, '']], 't16']],
   // 두 번째 방문 (같은 프로필): 기기 단계 기억 + 구운 그림 IndexedDB
   revisit: ['room', 'explore'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   // 약한 단계 강제 (2코어 첫 방문이 strong 으로 시작하므로 따로)

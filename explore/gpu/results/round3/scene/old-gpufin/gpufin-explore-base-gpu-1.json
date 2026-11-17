@@ -1,0 +1,198 @@
+{
+  "summary": {
+    "name": "gpufin-explore-base-gpu-1",
+    "mode": "gpu",
+    "url": "http://localhost:5342/#/burrow/explore",
+    "scenario": "explore",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 1576,
+      "longTaskMs": 594,
+      "longTaskMax": 172,
+      "worstFreezeMs": 150,
+      "heapMB": 31,
+      "warmMs": 466,
+      "mb": 2.4,
+      "cpuGpuSec": 3.14,
+      "cpuRendererSec": 2.51
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 60,
+      "sceneFps": 60,
+      "worstGap": 17,
+      "sceneWorstGap": 19,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 23,
+      "cpuGpu": 20,
+      "drawsPerFrame": 282,
+      "ktrisPerFrame": 141
+    },
+    "hop": {
+      "sec": 7.1,
+      "rafFps": 59.9,
+      "sceneFps": 59.9,
+      "worstGap": 33,
+      "sceneWorstGap": 42,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "panFps": 62.5,
+      "panWorstGap": 23,
+      "cpuRenderer": 27,
+      "cpuGpu": 30,
+      "drawsPerFrame": 308,
+      "ktrisPerFrame": 151
+    },
+    "idle2": {
+      "sec": 6,
+      "rafFps": 60,
+      "sceneFps": 60,
+      "worstGap": 17,
+      "sceneWorstGap": 19,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 18,
+      "cpuGpu": 21,
+      "drawsPerFrame": 282,
+      "ktrisPerFrame": 141
+    },
+    "click": {
+      "sec": 2.2,
+      "rafFps": 60,
+      "sceneFps": 60,
+      "worstGap": 17,
+      "sceneWorstGap": 19,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "panFps": 62.5,
+      "panWorstGap": 17,
+      "cpuRenderer": 14,
+      "cpuGpu": 26,
+      "drawsPerFrame": 262,
+      "ktrisPerFrame": 128
+    },
+    "floor": {
+      "sec": 1.7,
+      "rafFps": 58.2,
+      "sceneFps": 58.2,
+      "worstGap": 50,
+      "sceneWorstGap": 32,
+      "longTaskMs": 68,
+      "longTaskMax": 68,
+      "cpuRenderer": 50,
+      "cpuGpu": 31,
+      "drawsPerFrame": 343,
+      "ktrisPerFrame": 183
+    },
+    "floorSwitchMs": 184
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 1576,
+        "longTaskMs": 594,
+        "longTaskMax": 172,
+        "worstFreezeMs": 150,
+        "heapMB": 31,
+        "warmMs": 466,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 2.4,
+        "cpuGpuSec": 3.14,
+        "cpuRendererSec": 2.51
+      },
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 60,
+        "sceneFps": 60,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 23,
+        "cpuGpu": 20,
+        "drawsPerFrame": 282,
+        "ktrisPerFrame": 141
+      },
+      "hop": {
+        "sec": 7.1,
+        "rafFps": 59.9,
+        "sceneFps": 59.9,
+        "worstGap": 33,
+        "sceneWorstGap": 42,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "panFps": 62.5,
+        "panWorstGap": 23,
+        "cpuRenderer": 27,
+        "cpuGpu": 30,
+        "drawsPerFrame": 308,
+        "ktrisPerFrame": 151,
+        "seats": [
+          "13",
+          "14",
+          "13",
+          "14",
+          "13"
+        ]
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 60,
+        "sceneFps": 60,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 18,
+        "cpuGpu": 21,
+        "drawsPerFrame": 282,
+        "ktrisPerFrame": 141
+      },
+      "clickAt": {
+        "x": 780,
+        "y": 100
+      },
+      "click": {
+        "sec": 2.2,
+        "rafFps": 60,
+        "sceneFps": 60,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "panFps": 62.5,
+        "panWorstGap": 17,
+        "cpuRenderer": 14,
+        "cpuGpu": 26,
+        "drawsPerFrame": 262,
+        "ktrisPerFrame": 128,
+        "moved": true
+      },
+      "floorSwitchMs": 184,
+      "floor": {
+        "sec": 1.7,
+        "rafFps": 58.2,
+        "sceneFps": 58.2,
+        "worstGap": 50,
+        "sceneWorstGap": 32,
+        "longTaskMs": 68,
+        "longTaskMax": 68,
+        "cpuRenderer": 50,
+        "cpuGpu": 31,
+        "drawsPerFrame": 343,
+        "ktrisPerFrame": 183
+      },
+      "tier": {
+        "samples": null,
+        "store": null
+      }
+    }
+  ]
+}

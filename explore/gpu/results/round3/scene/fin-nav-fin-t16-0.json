@@ -1,0 +1,223 @@
+{
+  "summary": {
+    "name": "fin-nav-fin-t16-0",
+    "mode": "hwoff",
+    "url": "http://localhost:5343/#/burrow",
+    "scenario": "nav",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 2818,
+      "longTaskMs": 626,
+      "longTaskMax": 216,
+      "worstFreezeMs": 200,
+      "heapMB": 79,
+      "mb": 5.7,
+      "cpuGpuSec": 12.75,
+      "cpuRendererSec": 5.36
+    },
+    "captures": {
+      "n": 7,
+      "bdMax": 8,
+      "sharpMed": 3,
+      "sharpMax": 3,
+      "waitMed": 109,
+      "waitMax": 109
+    },
+    "nav": [
+      {
+        "to": "/burrow/explore",
+        "switchMs": 920,
+        "longTaskMs": 210,
+        "longTaskMax": 102,
+        "worstGap": 83
+      },
+      {
+        "to": "/burrow/yerin",
+        "switchMs": 1347,
+        "longTaskMs": 312,
+        "longTaskMax": 122,
+        "worstGap": 133
+      },
+      {
+        "to": "/burrow/explore",
+        "switchMs": 351,
+        "longTaskMs": 99,
+        "longTaskMax": 99,
+        "worstGap": 117
+      },
+      {
+        "to": "/chat/r-yerin",
+        "switchMs": 532,
+        "longTaskMs": 51,
+        "longTaskMax": 51,
+        "worstGap": 33
+      },
+      {
+        "to": "/burrow",
+        "switchMs": 552,
+        "longTaskMs": 57,
+        "longTaskMax": 57,
+        "worstGap": 50
+      }
+    ]
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 2818,
+        "longTaskMs": 626,
+        "longTaskMax": 216,
+        "worstFreezeMs": 200,
+        "heapMB": 79,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.7,
+        "cpuGpuSec": 12.75,
+        "cpuRendererSec": 5.36
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "nav": [
+        {
+          "to": "/burrow/explore",
+          "switchMs": 920,
+          "longTaskMs": 210,
+          "longTaskMax": 102,
+          "worstGap": 83
+        },
+        {
+          "to": "/burrow/yerin",
+          "switchMs": 1347,
+          "longTaskMs": 312,
+          "longTaskMax": 122,
+          "worstGap": 133
+        },
+        {
+          "to": "/burrow/explore",
+          "switchMs": 351,
+          "longTaskMs": 99,
+          "longTaskMax": 99,
+          "worstGap": 117
+        },
+        {
+          "to": "/chat/r-yerin",
+          "switchMs": 532,
+          "longTaskMs": 51,
+          "longTaskMax": 51,
+          "worstGap": 33
+        },
+        {
+          "to": "/burrow",
+          "switchMs": 552,
+          "longTaskMs": 57,
+          "longTaskMax": 57,
+          "worstGap": 50
+        }
+      ],
+      "tier": {
+        "samples": [
+          [
+            "room",
+            85,
+            0.53,
+            160
+          ],
+          [
+            "room",
+            17,
+            0.53,
+            32
+          ],
+          [
+            "room",
+            19,
+            0.53,
+            35
+          ],
+          [
+            "room",
+            37,
+            0.53,
+            69
+          ],
+          [
+            "room",
+            153,
+            0.53,
+            288
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794883349052,\"low\":\"strong\",\"score\":32}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 2,
+            "med": 192,
+            "max": 192
+          },
+          "bd": {
+            "n": 2,
+            "med": 8,
+            "max": 8
+          },
+          "sharp": {
+            "n": 1,
+            "med": 3,
+            "max": 3
+          },
+          "sharpWait": {
+            "n": 1,
+            "med": 109,
+            "max": 109
+          },
+          "sharpSaved": {
+            "n": 1,
+            "med": 0,
+            "max": 0
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            184
+          ],
+          [
+            "bd",
+            7
+          ],
+          [
+            "sharp",
+            3
+          ],
+          [
+            "sharpWait",
+            109
+          ],
+          [
+            "roomBake",
+            192
+          ],
+          [
+            "bd",
+            8
+          ],
+          [
+            "sharpSaved",
+            0
+          ]
+        ],
+        "n": 7,
+        "bdMax": 8,
+        "sharpMed": 3,
+        "sharpMax": 3,
+        "waitMed": 109,
+        "waitMax": 109
+      }
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "summary": {
+    "name": "gpufin-room-fin-gpu-1",
+    "mode": "gpu",
+    "url": "http://localhost:5343/#/burrow",
+    "scenario": "room",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 2124,
+      "longTaskMs": 336,
+      "longTaskMax": 110,
+      "worstFreezeMs": 150,
+      "heapMB": 70,
+      "mb": 5.7,
+      "cpuGpuSec": 2.9,
+      "cpuRendererSec": 4.67
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 60,
+      "sceneFps": 60,
+      "worstGap": 17,
+      "sceneWorstGap": 20,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 26,
+      "cpuGpu": 28,
+      "drawsPerFrame": 450,
+      "ktrisPerFrame": 206
+    },
+    "idle2": {
+      "sec": 6,
+      "rafFps": 59.8,
+      "sceneFps": 59.8,
+      "worstGap": 17,
+      "sceneWorstGap": 20,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 21,
+      "cpuGpu": 26,
+      "drawsPerFrame": 449,
+      "ktrisPerFrame": 205
+    },
+    "walk": {
+      "sec": 8,
+      "rafFps": 60,
+      "sceneFps": 60,
+      "worstGap": 17,
+      "sceneWorstGap": 19,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 22,
+      "cpuGpu": 25,
+      "drawsPerFrame": 449,
+      "ktrisPerFrame": 205
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 2124,
+        "longTaskMs": 336,
+        "longTaskMax": 110,
+        "worstFreezeMs": 150,
+        "heapMB": 70,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 5.7,
+        "cpuGpuSec": 2.9,
+        "cpuRendererSec": 4.67
+      },
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 60,
+        "sceneFps": 60,
+        "worstGap": 17,
+        "sceneWorstGap": 20,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 26,
+        "cpuGpu": 28,
+        "drawsPerFrame": 450,
+        "ktrisPerFrame": 206
+      },
+      "walk": {
+        "sec": 8,
+        "rafFps": 60,
+        "sceneFps": 60,
+        "worstGap": 17,
+        "sceneWorstGap": 19,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 22,
+        "cpuGpu": 25,
+        "drawsPerFrame": 449,
+        "ktrisPerFrame": 205
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 59.8,
+        "sceneFps": 59.8,
+        "worstGap": 17,
+        "sceneWorstGap": 20,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 21,
+        "cpuGpu": 26,
+        "drawsPerFrame": 449,
+        "ktrisPerFrame": 205
+      },
+      "tier": {
+        "samples": null,
+        "store": null
+      }
+    }
+  ]
+}

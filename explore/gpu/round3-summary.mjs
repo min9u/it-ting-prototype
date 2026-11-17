@@ -80,14 +80,16 @@ const candidates = []
 for (const screen of Object.keys(SCREEN_NAME)) {
   const add = (key, name, desc, adopted, perf, qv) => candidates.push({ key: `${screen}.${key}`, screen, name, desc, adopted, perf, ...qOf(screen, qv) })
   add('gpu', 'GPU 고화질 (가속 켬, 화질 기준)', '가속 켠 크롬(RTX). 3차 빌드. 저사양 기능은 꺼져 있음', false,
-    { gpu: get('gpu', screen, 'new', 'gpu'), gpuBase: get('gpu', screen, 'base', 'gpu') }, 'gpu')
+    { gpu: get('gpu', screen, 'new', 'gpu'), gpuBase: get('gpu', screen, 'base', 'gpu'), gpuFin: get('gpufin', screen, 'fin', 'gpu'), gpuFinBase: get('gpufin', screen, 'base', 'gpu') }, 'gpu')
   add('base', '2차 결과 (기준)', '2차 결과 공유 빌드 (54c8b9f)', false, { t16: get('main', screen, 'base', 't16'), c2: get('main', screen, 'base', 'c2') }, 'base')
   add('def', '3차 개선 (11-17 오전)', '기기 단계 자동(첫 방문은 strong) + 예열(warm.ts, 한 번 기다리기·8ms 묶음) + 선명한 배경 띠 굽기(sharpBake, 선형 렌더 타깃) + 정지 그림·구운 그림 기억. 최종(fin)의 바탕', false,
     { t16: get('main', screen, 'new', 't16'), c2: get('main', screen, 'new', 'c2') }, 'new')
   add('mid', '3차 중간 (11-16 예열)', '11-16 에 해 둔 그대로: 예열에서 물체마다 compileAsync(확인 루프 54개) + 1×1 그리기마다 펜스 기다림. 11-17 에 한 번 기다리기·묶기로 바꿈', false,
     { t16: get('main', screen, 'mid', 't16'), c2: get('main', screen, 'mid', 'c2') }, null)
+  if (screen === 'nav') add('final', '마지막 커밋 빌드 (텍스처 묶기 되돌린 뒤)', '화면 전환을 마지막 커밋 빌드로 다시 잼 (기준과 번갈아 2번씩)', true,
+    { t16: get('navfin', 'nav', 'fin', 't16'), baseT16: get('navfin', 'nav', 'base', 't16') }, null)
   if (['room', 'visit', 'onb', 'explore'].includes(screen)) {
-    add('fin', '최종 (+ 굽기 sRGB·텍스처 묶기·단계 판정 고침)', '개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 예열의 텍스처 올리기 8ms 묶음 + 기기 단계 판정(첫 값 뺀 중앙값)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능은 개선과 번갈아 잼', true,
+    add('fin', '최종 (+ 굽기 sRGB·단계 판정 고침)', '개선 + 선명한 배경 굽기를 캔버스와 같은 색 공간(sRGB 섞임, 가구 밑 그림자 되살림) + 기기 단계 판정(이 빌드는 첫 값 뺀 중앙값, 마지막 커밋은 가장 작은 값 > 50 이고 첫 값 뺀 두 번째 > 110)·탐색 들판은 판정되면 그 자리에서 weak (11-17 마지막 고침). 성능(fin 묶음)은 개선과 번갈아 잰 것으로, 그 빌드엔 텍스처 올리기 8ms 묶음도 있었는데 GPU 에서 느려져 마지막에 되돌림', true,
       { t16: get('fin', screen, 'fin', 't16'), c2: get('fin', screen, 'fin', 'c2'), newT16: get('fin', screen, 'new', 't16'), newC2: get('fin', screen, 'new', 'c2') }, 'fin')
   }
   if (screen === 'room' || screen === 'explore') {
