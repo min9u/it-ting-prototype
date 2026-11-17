@@ -319,14 +319,16 @@ const STAR = 'M0 -3 L.9 -.9 L3 -.9 L1.3 .5 L1.9 2.7 L0 1.4 L-1.9 2.7 L-1.3 .5 L-
 const HEART = 'M0 2.6 C-3.4 .4 -2.8 -2.8 0 -1 C2.8 -2.8 3.4 .4 0 2.6 Z'
 
 /** 동네 이름표 (관심사 이펙트 f_zones): 켜진 구역 위쪽 가장자리에 "음악 동네" (구역 카테고리 색 글자 + 흰 바탕) */
-function ZoneLabels({ v, names, size }: { v: Village; names: ZoneName[]; size: number }) {
+function ZoneLabels({ v, names, size, inside = false }: { v: Village; names: ZoneName[]; size: number; inside?: boolean }) {
   return (
     <g pointerEvents="none">
       {v.zonesOn.map((z) => {
         const n = names.find((x) => x.zone === z.zone)
         if (!n) return null
         const south = Math.max(z.bounds.z[0], z.bounds.z[1]) > -1
-        const x = (z.bounds.x[0] + z.bounds.x[1]) / 2, y = south ? Math.max(z.bounds.z[0], z.bounds.z[1]) + size * 1.15 : Math.min(z.bounds.z[0], z.bounds.z[1]) - size * 1.15
+        // 작은 지도는 바깥 여백(7m)에, 크게 보기는 여백이 좁아 구역 안쪽 가장자리에
+        const off = inside ? -size * 1.2 : size * 1.15
+        const x = (z.bounds.x[0] + z.bounds.x[1]) / 2, y = south ? Math.max(z.bounds.z[0], z.bounds.z[1]) + off : Math.min(z.bounds.z[0], z.bounds.z[1]) - off
         const text = zoneLabel(n)
         const w = text.length * size * 0.95 + size * 1.2
         return (
@@ -404,7 +406,7 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
             <svg ref={svg} viewBox={viewBox} onClick={pick} onMouseMove={move} onMouseLeave={() => setHover(null)} role="img" aria-label={`${floorLabel(floor)} 마을 전체 지도`}>
               <rect x={VB.x} y={VB.y} width={VB.w} height={VB.h} fill={MAP_COLORS.grass} />
               {v && <FieldArt v={v} detail="big" />}
-              {v && fxOn('f_zones') && <ZoneLabels v={v} names={zoneNames} size={2.2} />}
+              {v && fxOn('f_zones') && <ZoneLabels v={v} names={zoneNames} size={2.2} inside />}
               {v && (
                 <Holes v={v} bySeat={bySeat} regulars={regulars} scale={1.22} selected={selected} hoverSeat={hover} close={close}
                   dim={filter === 'all' ? undefined : (r) => !r.mine && !test[filter](r)}
@@ -452,6 +454,7 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
               <div><dt><b className={m.star}>★</b></dt><dd>단골</dd></div>
               <div><dt><i className={m.lgLadder} /></dt><dd>사다리 (다른 캠퍼스-층)</dd></div>
               {viewPts && <div><dt><ViewIcon /></dt><dd>지금 화면에 보이는 곳</dd></div>}
+              {fxOn('f_mapheart') && <div><dt><b className={m.lgHeart}>♥</b></dt><dd>나와 잘 맞는 이웃 (이 마을 위쪽 1/4)</dd></div>}
             </dl>
           </div>
         </div>

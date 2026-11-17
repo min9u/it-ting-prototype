@@ -211,7 +211,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     const here = o.here()
     const cur = o.holes.get(here.seat)
     const lan = fxOn('f_lantern') ? getLantern() : null
-    pinGap = lan ? 92 : 62
+    pinGap = lan ? 112 : 62
     const vis: Seat[] = [], shown: Seat[] = []
     for (const st of seats) {
       const g = proj(st.x, .08, st.z)
