@@ -8,6 +8,8 @@ app/node_modules/
 app/dist/
 app/*.tsbuildinfo
 app/dist-share/
+# 번들 크기 보고 결과 (npm run bundle-report -- --md/--json, CI 아티팩트로만)
+app/bundle-report.*
 # 개인 환경 변수 (vite 관례 .env.local · .env.[mode].local). 목록·설명은 app/.env.example
 .env.local
 .env.*.local

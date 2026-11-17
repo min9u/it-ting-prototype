@@ -22,6 +22,8 @@ import { ROOM_FRAME } from './roomFrame'
 import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
 import { applyChoice, type FurnChoice } from '../data/myBurrow'
 import { interestCatOf, subOf } from '../data/interests'
+import { createStyler, type Styler } from './roomStyle'
+import type { RoomStyle } from '../data/roomStyle'
 
 /*
  * 땅굴 방 장면 — 3D 핸드오프 v2 (design/digul_3d_handoff_v2, docs/room_spec.md) + v3 (design/digul_3d_handoff_v3)
@@ -57,6 +59,8 @@ export interface RoomSceneOptions {
   onMailbox?: () => void
   /** 꾸미기 가구 탭에서 고른 가구 (세부 관심사 id → 가구 id, data/myBurrow). 그 뒤 바뀌는 건 handle.setFurniture */
   furniture?: FurnChoice
+  /** 가구 칠하기·무늬·마감·모양 (data/roomStyle.ts, 2026-11-16 실험). 없으면 디자이너 원래 모습 */
+  style?: RoomStyle
 }
 
 /** 땅굴 장면 손잡이: 공통 + 우체통 상태 바꾸기 + 고른 가구 바꾸기 */
@@ -182,7 +186,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const sharpKeyOf = (out: number) => {
     camera.updateMatrixWorld()
     const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
-    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
+    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
   }
   const ensureSharpCv = () => {
     if (!sharpCv) {
@@ -295,7 +299,21 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
 
   const furniture = new THREE.Group(); furniture.name = 'furniture'; scene.add(furniture)
   /** 두더지가 못 들어가는 가구 바닥 영역 (월드 xz 사각형, 두더지 반지름만큼 넓힘) */
-  const feet: { x0: number; x1: number; z0: number; z1: number }[] = []
+  type Foot = { x0: number; x1: number; z0: number; z1: number }
+  const feet: Foot[] = []
+  /** 기본 가구 발자리 (모양을 바꾸면 다시 잼) / 관심사 가구 발자리 */
+  let baseFeet: Foot[] = []
+  const itemFeet: Foot[] = []
+  /** 우체통 발자리 */
+  let mailboxFeet: Foot[] = []
+  const syncFeet = () => { feet.length = 0; feet.push(...baseFeet, ...itemFeet, ...mailboxFeet) }
+  /** 칠하기·모양 (three/roomStyle.ts) */
+  let style = opts.style
+  let styler: Styler | null = null
+  /** 기본 가구 노드와 카탈로그 행 (모양이 바뀌면 발자리·앉는 높이를 다시 잼) */
+  const baseNodes: { c: FurnitureRow; node: THREE.Object3D }[] = []
+  /** 칠하기 모드: 가구를 누르면 걷지 않고 이 함수로 가구 id 를 알림 */
+  let pickCb: ((id: string | null) => void) | null = null
 
   const clampRoom = (p: THREE.Vector3) => {
     const fr = ROOM_R - .5, d = Math.hypot(p.x, p.z)
@@ -311,6 +329,22 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (dd < need) { p.x = h.x + dx / (dd || 1) * need; p.z = h.z + dz / (dd || 1) * need }
     }
     return p
+  }
+
+  /** 기본 가구 발자리·앉는 높이를 지금 모양(크기·두께)으로 다시 잼 */
+  const measureBase = () => {
+    scene.updateMatrixWorld(true)
+    baseFeet = []
+    for (const { c, node } of baseNodes) {
+      const box = new THREE.Box3().setFromObject(node)
+      if (box.min.y > 1) continue
+      const data = node.userData.furniture as FurnitureData | undefined
+      if (data?.seat && data.sitAt) data.seat.h = data.sitAt.getWorldPosition(new THREE.Vector3()).y
+      // 방석처럼 앉는 낮은 가구는 발자리를 조금 작게 (앞까지 걸어와야 해서)
+      const pad = c.sit_point ? MOLE_R * .6 : MOLE_R
+      baseFeet.push({ x0: box.min.x - pad, x1: box.max.x + pad, z0: box.min.z - pad, z1: box.max.z + pad })
+    }
+    syncFeet()
   }
 
   let host: MoleActor | null = null
@@ -451,11 +485,19 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       ;(isBase ? furniture : scene).add(root)
       markShadows(root)
     })
-    scene.updateMatrixWorld(true)
+    // 칠하기·모양: 기본 가구·전구 줄·러그를 등록하고 먼저 한 번 적용 (모양이 바뀐 상태로 발자리·앉는 높이를 잼)
+    styler = createStyler(renderer)
     for (const c of fixedRows) {
-      if (c.type !== 'base') continue
       const node = roots.get(urlOf(c)!)?.getObjectByName(c.node)
       if (!node) continue
+      if (c.type === 'base') { styler.register(c.id, c.name_ko, node, 'base'); baseNodes.push({ c, node }) }
+    }
+    for (const r of roots.values()) { const sl = r.getObjectByName('string_lights'); if (sl) styler.register('string_lights', '전구 줄', sl, 'lights') }
+    const rugMesh = shellS.getObjectByName('round_rug') as THREE.Mesh | undefined
+    if (rugMesh?.isMesh) styler.registerRug(rugMesh)
+    if (style) styler.apply(style)
+    scene.updateMatrixWorld(true)
+    for (const { c, node } of baseNodes) {
       const box = new THREE.Box3().setFromObject(node)
       if (box.min.y > 1) continue // 천장 램프처럼 매달린 것: 누를 수 없고 걸리지도 않음
       const data: FurnitureData = { id: c.id, label: c.name_ko, act: ACTS[c.id], stand: Math.max(c.size_m.w, c.size_m.d) / 2 + .55 }
@@ -469,10 +511,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         }
       }
       node.userData.furniture = data
-      // 방석처럼 앉는 낮은 가구는 발자리를 조금 작게 (앞까지 걸어와야 해서)
-      const pad = c.sit_point ? MOLE_R * .6 : MOLE_R
-      feet.push({ x0: box.min.x - pad, x1: box.max.x + pad, z0: box.min.z - pad, z1: box.max.z + pad })
     }
+    measureBase()
 
     // 관심사 가구·소품: 슬롯 자리에 묶음(g)을 두고 그 안에 모델 또는 블록
     const planRoots = new Map(planUrls.map((u, i) => [u, planG[i]?.scene ?? null]))
@@ -503,11 +543,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       }
       g.userData.furniture = data
       furniture.add(g)
+      styler.register(row.id, row.name_ko, g, 'item')
       if (!hung) {
         // 발자리: 회전한 사각형의 축 정렬 경계 + 두더지 반지름
         const c = Math.abs(Math.cos(ry)), sn = Math.abs(Math.sin(ry))
         const hx = c * size.w / 2 + sn * size.d / 2 + MOLE_R, hz = sn * size.w / 2 + c * size.d / 2 + MOLE_R
-        feet.push({ x0: g.position.x - hx, x1: g.position.x + hx, z0: g.position.z - hz, z1: g.position.z + hz })
+        itemFeet.push({ x0: g.position.x - hx, x1: g.position.x + hx, z0: g.position.z - hz, z1: g.position.z + hz })
       }
       drops.push({ g, it, pos, ry, dir: new THREE.Vector3(-g.position.x, 0, -g.position.z).normalize(), dustDone: false })
       if (furnDrop) toDynamicLayer(g) // 떨어지는 동안은 움직이는 층, 착지하면 layer 0 (stepDrops)
@@ -520,8 +561,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       toDynamicLayer(mb.root)
       mb.setNew(mailboxNew, true)
       const [mx, , mz] = mailboxSlot.pos_three
-      feet.push({ x0: mx - mb.half.x - MOLE_R, x1: mx + mb.half.x + MOLE_R, z0: mz - mb.half.z - MOLE_R, z1: mz + mb.half.z + MOLE_R })
+      mailboxFeet = [{ x0: mx - mb.half.x - MOLE_R, x1: mx + mb.half.x + MOLE_R, z0: mz - mb.half.z - MOLE_R, z1: mz + mb.half.z + MOLE_R }]
     }
+    syncFeet()
+    if (style) styler.apply(style)
 
     // 천장 구멍
     holeObj = holeS
@@ -716,6 +759,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   }
   const actionOf = (g: THREE.Object3D | null) => {
     const f = g?.userData.furniture as FurnitureData | undefined
+    if (pickCb) return f ? `🖌 ${f.label}` : null
     return f?.seat ? `${f.label}에 앉기` : f?.act === 'drink' ? '커피 마시기' : f?.hint ?? null
   }
   // 말풍선(리액션)·가구 이름표(마우스를 올렸을 때). 말풍선은 두더지 오른쪽 위, 꼬리는 왼쪽 아래
@@ -843,6 +887,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         d.g.clear()
         fillSlot(d.g, it, gl?.scene.getObjectByName(row.node) ?? null)
         d.it = it
+        // 칠하기: 새 가구로 다시 등록하고 지금 스타일을 다시 입힘
+        if (styler) { styler.replace(d.g, row.id, row.name_ko, 'item'); if (style) styler.apply(style) }
         const f = d.g.userData.furniture as FurnitureData | undefined
         if (f) { f.id = row.id; f.label = row.name_ko; if (!f.seat) f.hint = it.built ? row.name_ko : `${row.name_ko} · 3D 모델 준비 중` }
         if (seqT >= 0) toDynamicLayer(d.g)
@@ -858,6 +904,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const onUp = (e: PointerEvent) => {
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
     down = null
+    if (pickCb) {
+      pick(e) // 광선만 맞춤
+      const hit = ray.intersectObject(furniture, true).find((h) => !/^shadow_/.test(h.object.name))
+      pickCb(hit ? styler?.idOf(hit.object) ?? null : null)
+      return
+    }
     if (!mole) return
     const { g, onHost, onMailbox } = pick(e)
     if (onHost) return
@@ -1067,7 +1119,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         holeMixer.update(dt)
         if (holeT > HOLE_CLOSE + .7 && holeObj) { holeT = -1; holeMixer.stopAllAction(); holeObj.visible = false }
       }
-      if (seqT >= 0) stepDrops(dt)
+      if (seqT >= 0) { stepDrops(dt); styler?.update() }
       mailboxDirty = !!mailbox && mailbox.update(dt, t)
       stepDust(dt)
       stepLook(dt)
@@ -1135,6 +1187,28 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     setHighlight(sub) { hlSub = sub; placeHighlight() },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
+    setStyle(next) {
+      style = next
+      if (!styler) return
+      styler.apply(next)
+      measureBase()
+      // 방 그림이 바뀜 → 배경(A)·선명한 방(S) 다시
+      backdrop?.invalidate(); sharpOff(); fullNext = true
+      loop.wake()
+    },
+    styleTargets: () => (styler && style ? styler.info(style) : styler?.info({ theme: 'base', parts: {}, shape: {} }) ?? []),
+    setPickMode(cb) { pickCb = cb; hint.style.opacity = '0' },
+    snapshot() {
+      // 지금 장면을 한 번 전부 그려서 바로 읽음 (preserveDrawingBuffer 없이도 같은 작업 안이면 읽힘)
+      const mask = camera.layers.mask
+      camera.layers.enableAll()
+      renderer.setRenderTarget(null)
+      renderer.setScissorTest(false); renderer.autoClear = true
+      renderer.render(scene, camera)
+      camera.layers.mask = mask
+      fullNext = true
+      return renderer.domElement.toDataURL('image/png')
+    },
     onHostScreen(cb) { hostCb = cb; hostSent = false; reportHost() },
     react(kind) {
       if (!mole) return
@@ -1168,6 +1242,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       // 이 장면에서 만든 블록·먼지 재질만 해제 (glb 것은 캐시가 다시 씀)
       blockGeos.forEach((g) => g.dispose()); blockMats.forEach((m) => m.dispose())
       wallMat?.map?.dispose(); wallMat?.dispose()
+      styler?.dispose()
       for (const d of dusts) d.mats.forEach((m) => m.dispose())
       bubbles.forEach((b) => b.el.remove()); hint.remove(); tip.remove(); hl.remove(); clearTimeout(tipTimer)
       el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('wheel', onWheel)
