@@ -7,7 +7,7 @@ import { gradientEnv, FIELD_ENV } from './lighting'
 import { blobShadow } from './roomLook'
 import { createBackdrop, toDynamicLayer, type Backdrop } from './staticBackdrop'
 import { createSharpBaker, type SharpBaker } from './sharpBake'
-import { createSlide, type Slide } from './moveSlide'
+import { createGlSlide, createSlide, type GlSlide, type Slide } from './moveSlide'
 import { waitGpu, warmScene } from './warm'
 import { getCachedStill, peekCachedStill, putCachedStill, stillKey } from './stills'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
@@ -306,6 +306,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     target.copy(start).setY(0); clampTarget(target); placeCamera(); followSun()
     if (precompile) await warm()
     if (disposed) return
+    // M: 약한 PC(띠 밀기)면 띠 캔버스를 쉬는 틈에 미리 만들어 둠
+    if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, 1500)
     ev.onStand?.(curSeat)
     markReady()
   })().catch((e) => { console.warn('[들판] 불러오지 못했어요', e) })
@@ -458,7 +460,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (baker) void getCachedStill(seatKey(to)) // 도착할 자리의 구운 배경을 미리 읽어 둠
     if (slide) {
       // M: 떠날 자리 그림(지금 선명한 배경)을 띠에 넣고, 도착할 자리를 미리 굽기 시작
-      if (sharpOk && sharpCv) slide.load(0, sharpCv, camera.clone()); else slide.drop()
+      slideKind = wantGl() ? 'gl' : 'css'
+      slideDrop()
+      if (sharpOk && sharpCv) slideLoad(0, sharpCv, camera.clone())
       const dc = camera.clone()
       dc.position.copy(anim.camTo).add(camOff); dc.lookAt(anim.camTo); dc.updateMatrixWorld()
       startPrep(dc, seatKey(to))
@@ -599,7 +603,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
         await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, extra: baker?.warmTarget() ?? null, dead: () => disposed })
         if (disposed) return
         if (baker) { baker.warm(scene, camera); await waitGpu(renderer) }
-        if (slide && !disposed) await slide.prepare(renderer) // M: 구멍 뚫기 셰이더
+        // M: 구멍 뚫기·옮기기 셰이더 컴파일만 걸어 둠 (기다리지 않음, 첫 점프는 몇 초 뒤)
+        if (!disposed) { slide?.prepare(renderer); glSlide?.prepare(renderer) }
       } finally {
         backdrop?.invalidate(); sharpOff(); fullNext = true
         warming = false
@@ -751,6 +756,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (testParam('fstrips') == null) bakeStrips = nq.bakeStrips
     if (testParam('fmsaa') == null) bakeSamples = nq.bakeSamples
     if (testParam('panscale') == null && nq.panScale !== panScale) { panScale = nq.panScale; panStale = true }
+    tierNow = nq.tier
+    if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, 500)
     bakerStale = !!baker
   }) : () => {}
   /** 카메라가 움직임: 선명한 그림을 내리고 굽던 것은 버림 (M 의 도착 자리 굽기는 그대로) */
@@ -770,6 +777,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const ctx = cv.getContext('2d')!
     ctx.clearRect(0, 0, cv.width, cv.height)
     ctx.drawImage(img, 0, 0)
+    bumpCv(cv)
     cv.style.visibility = 'visible'
   }
   /** 굽기 한 걸음 (매 프레임). 이번에 다 됐으면 true (다음 그리기는 전체) */
@@ -778,6 +786,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (bakerStale && !baker.busy()) { baker.dispose(); baker = createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips, linear: bakeLinear }, makeSharpCv); bakerStale = false }
     const st = baker.step()
     if (st === 'done') {
+      bumpCv(sharpCv)
       sharpCv!.style.visibility = 'visible'
       sharpOk = true
       noteCapture('sharpWait', performance.now() - baker.lastMs) // 굽기 시작 → 2D 캔버스 (그동안 3D 는 띠마다 조금씩)
@@ -832,6 +841,31 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const slideNs = testParam('slidens')
   const slide: Slide | null = baker && (q.lab?.M ?? true) && testParam('fslide') !== '0'
     ? createSlide(container, renderer.domElement, { yRef: slideY, ns: slideNs ? +slideNs : undefined }) : null
+  /*
+   * 옮기는 방법 두 가지 (moveSlide.ts, docs/explore-move-quality.md 3번): 강한 PC(16스레드급)는 이동 0.4초 동안만 WebGL 캔버스를 1배로 키워
+   * 셰이더로 옮김(gl, 합성기가 캔버스 한 장만), 약한 PC(2코어급)는 띠 밀기(css, 1배 캔버스를 매 프레임 읽어 오는 비용이 커서).
+   * 시험용 ?slidemode=gl|css 로 고정
+   */
+  const glSlide: GlSlide | null = slide ? createGlSlide({ yRef: slideY }) : null
+  let tierNow = q.tier
+  const wantGl = () => { const m = testParam('slidemode'); return m ? m === 'gl' : tierNow !== 'weak' }
+  /** 이번 이동에 쓰는 방법 */
+  let slideKind: 'gl' | 'css' = 'css'
+  /** 2D 캔버스 내용 판 (gl 텍스처를 다시 올릴지) */
+  const cvVer = new WeakMap<HTMLCanvasElement, number>()
+  const bumpCv = (cv: HTMLCanvasElement | null) => { if (cv) cvVer.set(cv, (cvVer.get(cv) ?? 0) + 1) }
+  const slideLoad = (slot: 0 | 1, cv: HTMLCanvasElement, cam: THREE.PerspectiveCamera) => {
+    if (slideKind === 'gl') glSlide!.load(slot, cv, cam, cvVer.get(cv) ?? 0); else slide!.load(slot, cv, cam)
+  }
+  const slideHas = (slot: 0 | 1) => (slideKind === 'gl' ? !!glSlide?.has(slot) : !!slide?.has(slot))
+  const slideDrop = () => { slide?.drop(); glSlide?.drop() }
+  /** gl 로 옮기는 동안의 원래 픽셀 배율 (0 = 아님) */
+  let glPr = 0
+  const enterGl = () => { if (glPr) return; glPr = renderer.getPixelRatio(); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(W, H, false) }
+  const exitGl = () => { if (!glPr) return; renderer.setPixelRatio(glPr); glPr = 0; renderer.setSize(W, H, false); prevRect = null; fullNext = true }
+  const slideHide = () => { slide?.hide(); exitGl() }
+  /** gl 로 옮기는 중 빈 곳 메우기 (캔버스가 1배라 배율을 낮춤: 0.55배, 빈 곳이 크면 0.33배) */
+  let glFill: Backdrop | null = null, glFillLow: Backdrop | null = null
   const freezeP = testParam('movefreeze')
   const moveFreeze = freezeP != null ? +freezeP.replace('_', '.') : null
   let nextCv: HTMLCanvasElement | null = null
@@ -873,6 +907,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
         const ctx = cv.getContext('2d')
         if (!ctx) { prep = null; return }
         ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(saved, 0, 0)
+        bumpCv(cv)
         p.img = true; p.save = false
         noteCapture('prepSaved', p.t0)
       } else if (!p.baking) {
@@ -882,7 +917,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
         baker!.step(); p.baking = true
       } else {
         const st = baker!.step()
-        if (st === 'done') { p.img = true; p.save = true; p.baking = false; noteCapture('prepBake', p.t0) }
+        if (st === 'done') { bumpCv(nextCv); p.img = true; p.save = true; p.baking = false; noteCapture('prepBake', p.t0) }
         else if (st === 'idle' || baker!.broken) { prep = null } // 누가 취소함
       }
       return
@@ -896,7 +931,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     }
     if (!p.loaded) {
       // 띠 칸 1 에 넣기 + 구운 그림 기억 (다음 프레임에 나눠서)
-      if (slide?.has(0)) slide.load(1, nextCv!, p.cam)
+      if (slideHas(0)) slideLoad(1, nextCv!, p.cam)
       savePrep(p)
       p.loaded = true
     }
@@ -912,8 +947,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 카메라 이동 시작: 띠 밀기를 쓸지 정함 (떠날 자리·도착할 자리 그림이 둘 다 있을 때) */
   function beginCam() {
     if (!anim) return
-    anim.slide = !!slide && slide.has(0) && prepReady()
-    if (anim.slide && !slide!.has(1)) slide!.load(1, nextCv!, prep!.cam)
+    anim.slide = !!slide && slideHas(0) && prepReady()
+    if (anim.slide && !slideHas(1)) slideLoad(1, nextCv!, prep!.cam)
   }
   /** 도착 자리 그림·깊이를 지금 배경으로 바꿔 끼움 */
   function finishPrep() {
@@ -926,12 +961,13 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     sharpOk = true
     const ob = backdrop
     backdrop = bdNext; bdNext = ob
-    slide?.hide(); slide?.drop()
+    slideHide(); slideDrop()
     lowActive = false; prevRect = null; fullNext = true; bakeSeat = null
     noteCapture('swap', performance.now())
   }
   /** 카메라 이동 중 (M): 띠 밀기 + 빈 곳만 3D 로 메움 + 움직이는 층 */
   const drawSlide = (k: number) => {
+    if (slideKind === 'gl') { drawSlideGl(k); return }
     const sl = slide!
     if (sharpCv) sharpCv.style.visibility = 'hidden'
     if (nextCv) nextCv.style.visibility = 'hidden'
@@ -961,6 +997,37 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const w = window as unknown as { __slide?: { n: number; gap: number[] } }
     if (w.__slide) { w.__slide.n++; w.__slide.gap.push(+gp.frac.toFixed(3)) } // 측정용 (도구가 만들어 둔 경우만)
   }
+  /** 카메라 이동 중 (M, 강한 PC): 캔버스를 1배로 → 빈 곳만 3D → 두 그림을 셰이더로 옮겨 그림 → 움직이는 층 */
+  const drawSlideGl = (k: number) => {
+    enterGl()
+    if (sharpCv) sharpCv.style.visibility = 'hidden'
+    if (nextCv) nextCv.style.visibility = 'hidden'
+    sharpOk = false
+    backdrop!.invalidate(); prevRect = null; fullNext = true
+    renderer.setScissorTest(false)
+    renderer.setClearColor(0x000000, 0)
+    renderer.autoClear = false
+    renderer.clear(true, true, false)
+    const gs = glSlide!
+    const gp = gs.gaps(camera)
+    if (gp.boxes.length) {
+      const fb = gp.frac > FILL_LOW_FRAC ? (glFillLow ??= createBackdrop(renderer, { scale: .33 })) : (glFill ??= createBackdrop(renderer, { scale: .55 }))
+      fb.capture(scene, camera, undefined, gp.boxes.map((b) => ({ x0: b.x0 / W, y0: b.y0 / H, x1: b.x1 / W, y1: b.y1 / H })))
+      renderer.setScissorTest(true)
+      for (const b of gp.boxes) { renderer.setScissor(b.x0, H - b.y1, b.x1 - b.x0, b.y1 - b.y0); fb.blit() }
+      renderer.setScissorTest(false)
+    }
+    gs.draw(renderer, camera, k < .5 ? 0 : 1)
+    const bg = scene.background
+    scene.background = null
+    camera.layers.set(1)
+    renderer.render(scene, camera)
+    camera.layers.set(0); camera.layers.enable(1)
+    scene.background = bg
+    renderer.autoClear = true
+    const w = window as unknown as { __slide?: { n: number; gap: number[] } }
+    if (w.__slide) { w.__slide.n++; w.__slide.gap.push(+gp.frac.toFixed(3)) } // 측정용
+  }
 
   /** 조용해진 시각 (카메라·점프가 끝난 뒤). 이때부터 interimFor 초가 지나면 bd(·S)를 다시 찍음 */
   let lowActive = false
@@ -976,7 +1043,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     drawWith(bd, full, sharpOk)
   }
   const drawMoving = () => {
-    sharpOff(); slide?.hide()
+    sharpOff(); slideHide()
     backdrop!.invalidate(); prevRect = null; fullNext = true
     if (panScale > 0) {
       // 낮은 해상도 배경 + 움직이는 층(목표 링). 도착하면 이 그림을 잠깐 그대로 씀 (lowActive)
@@ -1008,8 +1075,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let pulse = 0
   const loop = startLoop(container, {
     resize(w, h) {
+      exitGl()
       W = w; H = h; renderer.setSize(w, h, false); applyFrame(); lastAnchor = ''
-      cancelPrep(); slide?.size(w, h, Math.min(window.devicePixelRatio || 1, 2)); slide?.drop()
+      cancelPrep(); slide?.size(w, h, Math.min(window.devicePixelRatio || 1, 2)); glSlide?.size(w, h); slideDrop()
       if (anim) anim.slide = false
       backdrop?.invalidate(); sharpOff(); lowActive = false; fullNext = true
     },
@@ -1024,16 +1092,18 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       // 카메라 구도가 바뀌는 프레임(패널 이동·점프 카메라)은 따로 (drawMoving), 멈추면 A 배경을 다시 찍음
       let camMoved = false
       // M: 점프 중에 패널이 열리고 닫혀 구도가 바뀌면 미리 구운 도착 그림은 맞지 않음 → 버리고 예전 길로
-      if (focus !== focusTarget && prep && anim) { cancelPrep(); slide?.hide(); slide?.drop(); anim.slide = false }
+      if (focus !== focusTarget && prep && anim) { cancelPrep(); slideHide(); slideDrop(); anim.slide = false }
       // M: 패널 이동 시작 → 지금 그림을 띠에 넣고 새 구도를 미리 굽기. 도중에 목표가 또 바뀌면 버리고 예전 길로
       if (focus !== focusTarget && !anim && slide && focusTr !== focusTarget) {
         if (focusTr == null && sharpOk && sharpCv && !prep && mole) {
-          slide.load(0, sharpCv, camera.clone())
+          slideKind = wantGl() ? 'gl' : 'css'
+          slideDrop()
+          slideLoad(0, sharpCv, camera.clone())
           const dc = camera.clone()
           frameCamera(dc, W, H, { left: focusTarget * W - W / 2, top: 0, w: W, h: H })
           startPrep(dc, holes.has(curSeat) ? seatKey(curSeat, focusTarget) : null)
           if (prep) focusTr = focusTarget
-        } else if (focusTr != null) { cancelPrep(); slide.hide(); slide.drop() }
+        } else if (focusTr != null) { cancelPrep(); slideHide(); slideDrop() }
       }
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); lastAnchor = ''; camMoved = true }
       if (stepAnim(dt)) camMoved = true
@@ -1042,7 +1112,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (camMoved && anim) (window as unknown as { __panT?: number[] }).__panT?.push(performance.now()) // 측정용 (cdp-scene.mjs 가 배열을 만들어 둔 경우만)
       if (!backdrop) renderer.render(scene, camera)
       else if (camMoved && anim?.slide) drawSlide(anim.k ?? 0)
-      else if (focusTr != null && !anim) drawSlide(slide!.has(1) ? 1 : 0) // 패널 이동 중·새 구도 굽기를 기다리는 중
+      else if (focusTr != null && !anim) drawSlide(slideHas(1) ? 1 : 0) // 패널 이동 중·새 구도 굽기를 기다리는 중
       else if (camMoved) drawMoving()
       else drawStatic(full, dt)
       emitAnchor()
@@ -1091,7 +1161,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       own.forEach((x) => x.dispose())
       ;(hoverRing.material as THREE.Material).dispose(); (targetRing.material as THREE.Material).dispose()
       unTier(); baker?.dispose(); sharpCv?.remove()
-      slide?.dispose(); nextCv?.remove(); bdNext?.dispose(); fillBd?.dispose()
+      slide?.dispose(); glSlide?.dispose(); nextCv?.remove(); bdNext?.dispose(); fillBd?.dispose(); glFill?.dispose(); glFillLow?.dispose()
       backdrop?.dispose(); panBd?.dispose()
       envTex?.dispose()
       sun.shadow.dispose()

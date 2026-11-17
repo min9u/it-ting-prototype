@@ -33,12 +33,14 @@ export interface Slide {
   place(cam: THREE.PerspectiveCamera, top: 0 | 1): void
   /** 띠를 내림 (그림은 남겨 둠) */
   hide(): void
-  /** 두 칸 다 덮지 못하는 곳: 위·아래 절반마다 경계 상자 (CSS px, 위 = 0) + 화면 대비 비율. 없으면 빈 배열 */
+  /** 두 칸 다 덮지 못하는 곳: 화면 네 귀퉁이(사분면)마다 경계 상자 (CSS px, 위 = 0) + 화면 대비 비율. 없으면 빈 배열 */
   gaps(cam: THREE.PerspectiveCamera): { boxes: { x0: number; y0: number; x1: number; y1: number }[]; frac: number }
   /** 띠가 덮은 곳을 WebGL 캔버스에서 투명하게 (지금 그리기 대상에, place 다음에 부를 것) */
   punch(renderer: THREE.WebGLRenderer): void
-  /** 구멍 뚫기 셰이더 미리 컴파일 (예열 때, 첫 이동에서 멈추지 않게) */
-  prepare(renderer: THREE.WebGLRenderer): Promise<void>
+  /** 구멍 뚫기 셰이더 컴파일을 걸어 둠 (예열 때. 기다리지 않음: WARP 에서 완료 확인을 돌리면 예열이 1초 넘게 늘었음) */
+  prepare(renderer: THREE.WebGLRenderer): void
+  /** 띠 캔버스를 미리 만들어 둠 (쉬는 동안. 첫 이동 때 384개를 만드느라 멈추지 않게) */
+  prebuild(): void
   /** 크기 (CSS px). 바뀌면 그림을 비움 */
   size(w: number, h: number, dpr: number): void
   dispose(): void
@@ -131,9 +133,10 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
     }
   }
 
+  /** 그 카메라 화면 안인지 (가장자리 1px 여유: 화면 테두리 점이 반올림 때문에 밖으로 나와 늘 빈 곳으로 잡히던 것 막기) */
   const inside = (cam: THREE.PerspectiveCamera, p: THREE.Vector3) => {
     const s = toScreen(cam, p)
-    return s.x >= 0.5 && s.x <= W - 0.5 && s.y >= 0.5 && s.y <= H - 0.5
+    return s.x >= -1 && s.x <= W + 1 && s.y >= -1 && s.y <= H + 1
   }
 
   // punch: 띠 평행사변형마다 투명으로 (깊이는 먼 곳으로 → 그 위 움직이는 층은 가려지지 않음)
@@ -190,20 +193,21 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
       for (const s of slots) if (s.shown) { s.box.style.display = 'none'; s.shown = false }
     },
     gaps(cam) {
-      // 화면을 격자로 훑어 어느 칸에도 안 들어가는 점 → 위·아래 절반마다 경계 상자 (격자 한 칸만큼 넓힘)
+      // 화면을 격자로 훑어(칸 가운데 + 테두리에서 2px 안쪽) 어느 칸에도 안 들어가는 점 → 사분면마다 경계 상자 (격자 한 칸만큼 넓힘).
+      // 사분면으로 나누는 건 대각선 점프에서 빈 곳이 마주 보는 두 모서리에 생겨서 (상자 하나면 화면 전체가 됨)
       const step = 32
       const nx = Math.ceil(W / step), ny = Math.ceil(H / step)
-      const box = [{ x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }, { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }]
+      const box = [0, 1, 2, 3].map(() => ({ x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }))
       let miss = 0, all = 0
       const src = slots.filter((s) => s.cam).map((s) => s.cam!)
       for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
-        const u = Math.min(W, i * step), v = Math.min(H, j * step)
+        const u = Math.min(W - 2, Math.max(2, i * step)), v = Math.min(H - 2, Math.max(2, j * step))
         all++
         let ok = false
         if (toGround(cam, u, v, g)) for (const sc of src) if (inside(sc, g)) { ok = true; break }
         if (ok) continue
         miss++
-        const b = box[v < H / 2 ? 0 : 1]
+        const b = box[(v < H / 2 ? 0 : 2) + (u < W / 2 ? 0 : 1)]
         b.x0 = Math.min(b.x0, u - step); b.x1 = Math.max(b.x1, u + step); b.y0 = Math.min(b.y0, v - step); b.y1 = Math.max(b.y1, v + step)
       }
       const boxes = box.filter((b) => b.x1 > b.x0).map((b) => ({ x0: Math.max(0, b.x0), y0: Math.max(0, b.y0), x1: Math.min(W, b.x1), y1: Math.min(H, b.y1) }))
@@ -235,7 +239,10 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
       renderer.render(pScene, pCam)
       renderer.autoClear = prevAuto
     },
-    async prepare(renderer) { await renderer.compileAsync(pScene, pCam).catch(() => {}) },
+    prepare(renderer) { try { renderer.compile(pScene, pCam) } catch { /* 무시 */ } },
+    prebuild() {
+      for (const sl of slots) if (sl.strips.length === 0) { build(sl); for (const st of sl.strips) st.cv.getContext('2d') }
+    },
     size(w, h, d) {
       if (w === W && h === H && d === dpr) return
       W = w; H = h; dpr = d
@@ -244,6 +251,168 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
     dispose() {
       for (const s of slots) s.box.remove()
       geo.dispose(); mat.dispose()
+    },
+  }
+}
+
+/* ===================================================================================================
+ * WebGL 로 옮기기 (강한 PC = 16스레드급, docs/explore-move-quality.md 3·4번)
+ *
+ * 띠 밀기(위)는 화면 합성기(한 스레드)가 띠 두 장을 매 프레임 옮겨 그려서 16스레드에서도 약 40~45fps 가 끝(예전 0.33배 다시 그리기는 62fps).
+ * 16스레드급은 WARP 가 넉넉하므로 이동하는 0.4초 동안만 WebGL 캔버스를 1배로 키우고, 두 그림을 텍스처로 올려
+ * 셰이더에서 바닥 평면 호모그래피로 정확히 옮겨 그림(띠 계단 없음). 합성기는 캔버스 한 장만 (시험 59fps).
+ * 2코어급은 1배 캔버스를 매 프레임 합성기로 읽어 오는 비용이 커서(23~31fps) 띠 밀기를 씀
+ * =================================================================================================== */
+
+export interface GlSlide {
+  /** 칸에 그림을 넣음. ver = 그 캔버스 내용 판(바뀌었으면 텍스처를 다시 올림, 지금 바로 → 이동 중에 멈추지 않게) */
+  load(slot: 0 | 1, cv: HTMLCanvasElement, cam: THREE.PerspectiveCamera, ver: number): void
+  has(slot: 0 | 1): boolean
+  drop(slot?: 0 | 1): void
+  /** 지금 그리기 대상에 두 그림을 옮겨 그림 (top 칸 먼저, 못 덮는 곳은 다른 칸, 둘 다 못 덮으면 그리지 않음). 깊이는 먼 곳으로 */
+  draw(renderer: THREE.WebGLRenderer, cam: THREE.PerspectiveCamera, top: 0 | 1): void
+  /** 두 칸 다 못 덮는 곳 (Slide.gaps 와 같음) */
+  gaps(cam: THREE.PerspectiveCamera): { boxes: { x0: number; y0: number; x1: number; y1: number }[]; frac: number }
+  size(w: number, h: number): void
+  prepare(renderer: THREE.WebGLRenderer): void
+  dispose(): void
+}
+
+/** 네 점 짝 (x, y) → (X, Y) 의 호모그래피 (행 우선 9개, h8 = 1) */
+function solveHomography(src: number[][], dst: number[][]): number[] | null {
+  const A: number[][] = []
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i], [X, Y] = dst[i]
+    A.push([x, y, 1, 0, 0, 0, -x * X, -y * X, X])
+    A.push([0, 0, 0, x, y, 1, -x * Y, -y * Y, Y])
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r
+    if (Math.abs(A[p][c]) < 1e-12) return null
+    const tmp = A[c]; A[c] = A[p]; A[p] = tmp
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue
+      const f = A[r][c] / A[c][c]
+      for (let k = c; k < 9; k++) A[r][k] -= f * A[c][k]
+    }
+  }
+  return [...A.map((row, i) => row[8] / row[i]), 1]
+}
+
+export function createGlSlide(o: { yRef: number }): GlSlide {
+  let W = 1, H = 1
+  const ndc = new THREE.Vector3(), dir = new THREE.Vector3(), g = new THREE.Vector3()
+  const toGround = (cam: THREE.PerspectiveCamera, u: number, v: number, out: THREE.Vector3) => {
+    ndc.set(u / W * 2 - 1, 1 - v / H * 2, 0.5).unproject(cam)
+    dir.copy(ndc).sub(cam.position)
+    if (dir.y > -1e-6) return false
+    out.copy(cam.position).addScaledVector(dir, (o.yRef - cam.position.y) / dir.y)
+    return true
+  }
+  const toScreen = (cam: THREE.PerspectiveCamera, p: THREE.Vector3) => {
+    ndc.copy(p).project(cam)
+    return [(ndc.x + 1) / 2 * W, (1 - ndc.y) / 2 * H]
+  }
+  type SlotG = { tex: THREE.Texture | null; cam: THREE.PerspectiveCamera | null }
+  const slots: [SlotG, SlotG] = [{ tex: null, cam: null }, { tex: null, cam: null }]
+  /** 캔버스마다 텍스처 하나 (두 캔버스가 역할을 바꿔도 다시 올리지 않게) */
+  const texOf = new Map<HTMLCanvasElement, { tex: THREE.Texture; ver: number }>()
+  let renderer: THREE.WebGLRenderer | null = null
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { tA: { value: null }, tB: { value: null }, hA: { value: new THREE.Matrix3() }, hB: { value: new THREE.Matrix3() }, hasA: { value: 0 }, hasB: { value: 0 }, topB: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: /* glsl */`
+      uniform sampler2D tA; uniform sampler2D tB; uniform mat3 hA; uniform mat3 hB; uniform int hasA; uniform int hasB; uniform int topB;
+      varying vec2 vUv;
+      vec4 at(sampler2D t, mat3 h) {
+        vec3 q = h * vec3(vUv, 1.0);
+        vec2 u = q.xy / q.z;
+        if (q.z <= 0.0 || u.x < 0.0 || u.y < 0.0 || u.x > 1.0 || u.y > 1.0) return vec4(0.0);
+        return vec4(texture2D(t, u).rgb, 1.0);
+      }
+      void main() {
+        vec4 a = hasA == 1 ? at(tA, hA) : vec4(0.0);
+        vec4 b = hasB == 1 ? at(tB, hB) : vec4(0.0);
+        vec4 c = topB == 1 ? (b.a > 0.0 ? b : a) : (a.a > 0.0 ? a : b);
+        if (c.a == 0.0) discard;
+        gl_FragColor = c;
+        gl_FragDepth = 1.0;
+      }`,
+    depthTest: true, depthWrite: true, depthFunc: THREE.AlwaysDepth, toneMapped: false, blending: THREE.NoBlending,
+  })
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat)
+  quad.frustumCulled = false
+  const qScene = new THREE.Scene(); qScene.add(quad)
+  const qCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  /** 지금 화면 uv(위가 1) → 찍은 그림 uv 호모그래피 */
+  const homography = (src: THREE.PerspectiveCamera, cur: THREE.PerspectiveCamera, out: THREE.Matrix3) => {
+    const s: number[][] = [], d: number[][] = []
+    for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      if (!toGround(cur, u * W, (1 - v) * H, g)) return false
+      const [x, y] = toScreen(src, g)
+      s.push([u, v]); d.push([x / W, 1 - y / H])
+    }
+    const h = solveHomography(s, d)
+    if (!h) return false
+    out.set(h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], h[8])
+    return true
+  }
+  return {
+    load(slot, cv, cam, ver) {
+      let t = texOf.get(cv)
+      if (!t) {
+        const tex = new THREE.Texture(cv)
+        tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter
+        tex.colorSpace = THREE.NoColorSpace // 이미 화면 색(sRGB) 값 그대로
+        t = { tex, ver: -1 }
+        texOf.set(cv, t)
+      }
+      if (t.ver !== ver) { t.tex.needsUpdate = true; t.ver = ver; renderer?.initTexture(t.tex) } // 지금 올림 (첫 이동 프레임에서 멈추지 않게)
+      slots[slot].tex = t.tex; slots[slot].cam = cam
+    },
+    has: (slot) => !!slots[slot].cam,
+    drop(slot) { for (const i of slot == null ? [0, 1] as const : [slot]) { slots[i].cam = null; slots[i].tex = null } },
+    draw(r, cam, top) {
+      const u = mat.uniforms
+      u.hasA.value = slots[0].cam && homography(slots[0].cam, cam, u.hA.value) ? 1 : 0
+      u.hasB.value = slots[1].cam && homography(slots[1].cam, cam, u.hB.value) ? 1 : 0
+      u.tA.value = slots[0].tex ?? slots[1].tex; u.tB.value = slots[1].tex ?? slots[0].tex
+      u.topB.value = top
+      const prev = r.autoClear
+      r.autoClear = false
+      r.render(qScene, qCam)
+      r.autoClear = prev
+    },
+    gaps(cam) {
+      const step = 32
+      const nx = Math.ceil(W / step), ny = Math.ceil(H / step)
+      const box = [0, 1, 2, 3].map(() => ({ x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }))
+      let miss = 0, all = 0
+      const src = slots.filter((s) => s.cam).map((s) => s.cam!)
+      for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
+        const u = Math.min(W - 2, Math.max(2, i * step)), v = Math.min(H - 2, Math.max(2, j * step))
+        all++
+        let ok = false
+        if (toGround(cam, u, v, g)) for (const sc of src) { const [x, y] = toScreen(sc, g); if (x >= -1 && x <= W + 1 && y >= -1 && y <= H + 1) { ok = true; break } }
+        if (ok) continue
+        miss++
+        const b = box[(v < H / 2 ? 0 : 2) + (u < W / 2 ? 0 : 1)]
+        b.x0 = Math.min(b.x0, u - step); b.x1 = Math.max(b.x1, u + step); b.y0 = Math.min(b.y0, v - step); b.y1 = Math.max(b.y1, v + step)
+      }
+      const boxes = box.filter((b) => b.x1 > b.x0).map((b) => ({ x0: Math.max(0, b.x0), y0: Math.max(0, b.y0), x1: Math.min(W, b.x1), y1: Math.min(H, b.y1) }))
+      return { boxes, frac: miss / all }
+    },
+    size(w, h) {
+      if (w === W && h === H) return
+      W = w; H = h
+      slots[0].cam = null; slots[1].cam = null
+    },
+    prepare(r) { renderer = r; try { r.compile(qScene, qCam) } catch { /* 무시 */ } }, // 기다리지 않음 (Slide.prepare 설명)
+    dispose() {
+      texOf.forEach((t) => t.tex.dispose()); texOf.clear()
+      quad.geometry.dispose(); mat.dispose()
     },
   }
 }
