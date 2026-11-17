@@ -255,8 +255,10 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
           display: 'inline-flex', marginTop: '6px', padding: '3px 8px', borderRadius: '999px', fontWeight: '700', fontSize: '11px',
           background: r === 'legend' ? 'linear-gradient(90deg,#ff9a9e,#fad0c4,#a1c4fd,#c2e9fb)' : r === 'rare' ? '#F5C452' : '#f3e6be',
           color: r === 'legend' ? '#4a2c3a' : '#5e4510',
-        }, `✦ ${RARITY_LABEL[r]}${rank ? ` · ${SUB_TOTAL}개 중 ${rank}번째로 드묾` : ''}`)
+        }, `✦ ${RARITY_LABEL[r]}`)
         card.append(tag)
+        // 순위는 드문 쪽 20위 안일 때만 (중간쯤이면 숫자가 오히려 평범해 보임)
+        if (rank && rank <= 20) line(`관심사 ${SUB_TOTAL}개 중 ${rank}번째로 드물어요`, { color: '#8a6a2a', fontSize: '11px', marginTop: '3px' })
       }
       const nb = neighborsWith(sub, o.ownerId ? [o.ownerId] : [])
       line(nb.n ? `${nb.where} 들판 이웃 중 ${nb.n}명도 좋아해요` : `${nb.where} 들판엔 아직 같은 관심사 이웃이 없어요`, { color: '#6e5444' })
@@ -346,9 +348,9 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     const d = proj(hx - camRight.x * rb, .02, hz - camRight.z * rb), dxp = d.x, dyp = d.y
     const top = (ay + by) / 2, bot = (cy + dyp) / 2
     ctx.save()
-    ctx.globalCompositeOperation = 'screen'
+    // 밝은 땅굴 벽 위라 screen 으로 섞으면 거의 안 보임 → 대표 색을 얇게 그대로 (위가 진하고 아래로 사라짐)
     const g = ctx.createLinearGradient(0, top, 0, bot)
-    g.addColorStop(0, toRgba(lighten(col, .35), .5)); g.addColorStop(.55, toRgba(col, .16)); g.addColorStop(1, toRgba(col, 0))
+    g.addColorStop(0, toRgba(lighten(col, .2), .34)); g.addColorStop(.6, toRgba(col, .12)); g.addColorStop(1, toRgba(col, 0))
     ctx.fillStyle = g
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx, cy); ctx.lineTo(dxp, dyp); ctx.closePath(); ctx.fill()
     // 바닥에 닿는 빛 웅덩이
@@ -358,7 +360,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     const ry = Math.max(6, Math.abs(fz - fy))
     ctx.translate(fx, fy); ctx.scale(1, ry / rx)
     const pg = ctx.createRadialGradient(0, 0, 0, 0, 0, rx)
-    pg.addColorStop(0, toRgba(col, .3)); pg.addColorStop(1, toRgba(col, 0))
+    pg.addColorStop(0, toRgba(col, .26)); pg.addColorStop(1, toRgba(col, 0))
     ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill()
     ctx.restore()
     // 떠다니는 먼지 (움직일 때만)

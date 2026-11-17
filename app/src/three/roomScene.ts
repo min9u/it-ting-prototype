@@ -596,7 +596,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (opts.fx && !opts.canvas) {
       fx = createRoomFx({
         container, after: renderer.domElement, camera, ownerId: opts.ownerId, interests: opts.interests ?? [], viewer: opts.fx.viewer,
-        hole: new THREE.Box3().setFromObject(holeS).getCenter(new THREE.Vector3()),
+        // 천장 구멍은 두더지가 떨어지는 자리(원점) 바로 위. glb 경계 상자 가운데는 뚜껑 조각 때문에 옆으로 치우쳐 있어서 x·z 는 0
+        hole: new THREE.Vector3(0, Math.min(3.3, new THREE.Box3().setFromObject(holeS).max.y || 3.2), 0),
         items: () => drops.map((d) => ({ g: d.g, sub: d.it.sub, category: d.it.category, rowId: d.it.row.id, type: d.it.row.type })),
         intro: () => holeT >= 0 || seqT >= 0,
       })
