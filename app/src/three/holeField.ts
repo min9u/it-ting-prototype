@@ -307,7 +307,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (precompile) await warm()
     if (disposed) return
     // M: 약한 PC(띠 밀기)면 띠 캔버스를 쉬는 틈에 미리 만들어 둠
-    if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, 1500)
+    prebuildSoon(1500)
     ev.onStand?.(curSeat)
     markReady()
   })().catch((e) => { console.warn('[들판] 불러오지 못했어요', e) })
@@ -757,7 +757,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (testParam('fmsaa') == null) bakeSamples = nq.bakeSamples
     if (testParam('panscale') == null && nq.panScale !== panScale) { panScale = nq.panScale; panStale = true }
     tierNow = nq.tier
-    if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, 500)
+    prebuildSoon(500)
     bakerStale = !!baker
   }) : () => {}
   /** 카메라가 움직임: 선명한 그림을 내리고 굽던 것은 버림 (M 의 도착 자리 굽기는 그대로) */
@@ -864,6 +864,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const enterGl = () => { if (glPr) return; glPr = renderer.getPixelRatio(); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(W, H, false) }
   const exitGl = () => { if (!glPr) return; renderer.setPixelRatio(glPr); glPr = 0; renderer.setSize(W, H, false); prevRect = null; fullNext = true }
   const slideHide = () => { slide?.hide(); exitGl() }
+  /** 약한 PC(띠 밀기)면 띠 캔버스를 쉬는 틈에 미리 만들어 둠 (첫 점프에서 384개를 만드느라 멈추지 않게) */
+  function prebuildSoon(ms: number) { if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, ms) }
   /** gl 로 옮기는 중 빈 곳 메우기 (캔버스가 1배라 배율을 낮춤: 0.55배, 빈 곳이 크면 0.33배) */
   let glFill: Backdrop | null = null, glFillLow: Backdrop | null = null
   const freezeP = testParam('movefreeze')
