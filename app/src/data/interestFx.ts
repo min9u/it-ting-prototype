@@ -86,6 +86,8 @@ export function neighborsWith(sub: string, exclude: string[] = []): { n: number;
 /** 탐색 들판 구멍 하나에 보일 이펙트 정보 */
 export interface HoleFx {
   seat: number
+  /** 땅굴 주인 닉네임 (화면 밖 이웃 이정표) */
+  name: string
   /** 대표 카테고리 (말풍선·연기 색) */
   cat: string
   /** 펼쳤을 때 아이콘 (세부 관심사 id, 최대 3개): 겹치는 것 → 가장 드문 것 → 고른 순서 */
@@ -103,7 +105,7 @@ export interface HoleFx {
   mine: boolean
 }
 
-export function holeFxOf(seat: number, user: { interests: string[]; online?: boolean }, mine: boolean, myInterests: string[]): HoleFx | null {
+export function holeFxOf(seat: number, user: { interests: string[]; online?: boolean; nickname?: string }, mine: boolean, myInterests: string[]): HoleFx | null {
   const ids = toSubIds(user.interests)
   const lead = leadOf(ids)
   if (!lead) return null
@@ -116,7 +118,7 @@ export function holeFxOf(seat: number, user: { interests: string[]; online?: boo
   ids.forEach(add)
   const rarity = rare && rare.rarity !== 'uncommon' ? rare.rarity : null
   return {
-    seat, cat: lead.cat, icons, more: Math.max(0, ids.length - icons.length), shared: sharedIds.length, sharedIds,
+    seat, name: mine ? '내 땅굴' : user.nickname ?? '', cat: lead.cat, icons, more: Math.max(0, ids.length - icons.length), shared: sharedIds.length, sharedIds,
     rarity, rareId: rarity ? rare!.id : null, online: !!user.online, mine,
   }
 }

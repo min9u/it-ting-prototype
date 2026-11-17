@@ -9,7 +9,7 @@
 export type FxArea = 'room' | 'field'
 export type FxId =
   | 'r_particles' | 'r_card' | 'r_shared' | 'r_rare' | 'r_beam'
-  | 'f_bubble' | 'f_smoke' | 'f_shared' | 'f_rare' | 'f_expand' | 'f_online'
+  | 'f_bubble' | 'f_smoke' | 'f_shared' | 'f_rare' | 'f_expand' | 'f_online' | 'f_edge'
 
 export interface FxDef {
   id: FxId
@@ -31,6 +31,7 @@ export const FX_DEFS: FxDef[] = [
   { id: 'r_rare', area: 'room', name: '가장 드문 관심사', desc: '이 방에서 가장 드문 관심사 가구에 반짝이와 "드문 취미" 배지 (아주 드물면 무지개)', aims: [3], rec: true },
   { id: 'r_beam', area: 'room', name: '대표 관심사 빛줄기', desc: '천장 구멍 빛줄기와 떠다니는 먼지를 대표 관심사(맨 앞) 색으로 물들임', aims: [1], rec: false },
   { id: 'f_bubble', area: 'field', name: '대표 관심사 말풍선', desc: '구멍마다 대표 관심사 아이콘 말풍선 (멀리서도 한눈에)', aims: [1, 3], rec: true },
+  { id: 'f_edge', area: 'field', name: '옆 땅굴 이정표', desc: '화면 밖 옆 구멍(약 10m 안)의 관심사를 화면 가장자리에 화살표·이름과 함께 → 어느 쪽으로 갈지 고르기 쉬움', aims: [1, 2, 3], rec: true },
   { id: 'f_expand', area: 'field', name: '가까이 가면 펼쳐짐', desc: '두더지 가까운 땅굴은 말풍선이 관심사 3개로 펼쳐짐 (겹치는 것·드문 것 먼저)', aims: [1, 3], rec: true },
   { id: 'f_shared', area: 'field', name: '겹치는 관심사 고리', desc: '나와 겹치는 관심사가 있는 구멍에 고리가 맥박치듯 퍼짐 (겹칠수록 여러 겹) + ♥ 개수', aims: [1, 2], rec: true },
   { id: 'f_rare', area: 'field', name: '드문 관심사 반짝', desc: '드문 관심사를 가진 땅굴 위에 금빛 별 (아주 드물면 무지개)', aims: [3], rec: true },

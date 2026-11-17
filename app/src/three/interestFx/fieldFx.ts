@@ -27,7 +27,7 @@ export interface FieldFxOptions {
 }
 export interface FieldFx { dispose(): void }
 
-const EXPAND_R = 6.6
+const EXPAND_R = 6.6, EDGE_R = 10.5, ICON_GAP = 27
 const SHARE = '#FF8A5B', GOLD = '#F5C452'
 const RAINBOW = Array.from({ length: 12 }, (_, i) => `#${new THREE.Color().setHSL(i / 12, .85, .66).getHexString()}`)
 
@@ -40,6 +40,8 @@ interface Seat {
   phase: number
   // 이번 프레임
   sx: number; sy: number; bx: number; by: number; dist: number; vis: boolean; active: boolean
+  /** 화면 밖이라 가장자리 이정표로 보임 */
+  pin: boolean
 }
 interface Puff { s: Seat; x: number; y: number; z: number; age: number; life: number; size: number; drift: number; color: string }
 
@@ -51,7 +53,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     if (!h) continue
     seats.push({
       info, x: h.x, z: h.z, color: fxColor(info.cat), expand: 0, smokeAcc: Math.random(), phase: Math.random() * 6,
-      sx: 0, sy: 0, bx: 0, by: 0, dist: 0, vis: false, active: false,
+      sx: 0, sy: 0, bx: 0, by: 0, dist: 0, vis: false, active: false, pin: false,
     })
   }
   const puffs: Puff[] = []
@@ -65,12 +67,33 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }
   let still = false
 
+  /** 화면 안 안전한 곳 (정보 패널에 가린 오른쪽·아래 조작 줄을 뺌). 카메라 view offset 으로 장면 가운데(focusX)를 알아냄 */
+  const safe = { x0: 0, x1: 0, y0: 0, y1: 0, cx: 0, cy: 0 }
+  const measureSafe = () => {
+    const view = (camera as THREE.PerspectiveCamera).view
+    const focus = view?.enabled ? (W / 2 - view.offsetX) / W : .5
+    // 장면이 왼쪽으로 치우쳐 있으면(focusX < 0.5) 오른쪽 정보 패널(오른쪽 32 + 폭 340)이 열려 있음 (ExploreBurrow, 미니맵 coverRight 와 같은 값)
+    safe.x0 = 30; safe.x1 = (focus < .49 ? W - 372 : W) - 30
+    safe.y0 = 70; safe.y1 = H - 150
+    safe.cx = focus * W; safe.cy = H * .5
+  }
+  /** 화면 가운데에서 (x, y) 쪽으로 가다 안전한 곳 가장자리에 닿는 점 */
+  const pinTo = (x: number, y: number) => {
+    const dx = x - safe.cx, dy = y - safe.cy
+    let k = 1
+    if (dx > 0) k = Math.min(k, (safe.x1 - safe.cx) / dx); else if (dx < 0) k = Math.min(k, (safe.x0 - safe.cx) / dx)
+    if (dy > 0) k = Math.min(k, (safe.y1 - safe.cy) / dy); else if (dy < 0) k = Math.min(k, (safe.y0 - safe.cy) / dy)
+    return { x: safe.cx + dx * k, y: safe.cy + dy * k, ang: Math.atan2(dy, dx) }
+  }
+  const inSafe = (x: number, y: number) => x >= safe.x0 && x <= safe.x1 && y >= safe.y0 && y <= safe.y1
+
   const draw = ({ ctx, W: w, H: h, dt, t }: OverlayFrame) => {
     W = w; H = h
+    measureSafe()
     const s = overlay.mode.dpr
     const here = o.here()
     const cur = o.holes.get(here.seat)
-    const vis: Seat[] = []
+    const vis: Seat[] = [], shown: Seat[] = []
     for (const st of seats) {
       const g = proj(st.x, .08, st.z)
       st.sx = g.x; st.sy = g.y
@@ -79,30 +102,40 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
       st.bx = b.x; st.by = b.y
       st.dist = cur ? Math.hypot(st.x - cur.x, st.z - cur.z) : 99
       st.active = false
+      const standing = st.info.seat === here.seat && !here.moving
+      // 화면 밖 옆 구멍(약 10m 안)은 가장자리 이정표로
+      st.pin = !standing && fxOn('f_edge') && b.ok && !inSafe(st.bx, st.by) && st.dist > .1 && st.dist < EDGE_R
       if (st.vis) vis.push(st)
+      if (!standing && (st.pin || (st.vis && inSafe(st.bx, st.by + 20)))) shown.push(st)
     }
-    // 움직이는 구멍: 화면 안에서 두더지에 가까운 순 N개
-    if (!still) [...vis].sort((a, b) => a.dist - b.dist).slice(0, overlay.mode.active).forEach((st) => { st.active = true })
+    // 움직이는 구멍: 두더지에 가까운 순 N개 (화면 안 + 이정표)
+    if (!still) [...shown].sort((a, b) => a.dist - b.dist).slice(0, overlay.mode.active).forEach((st) => { st.active = true })
     // 1) 바닥 고리 (겹치는 관심사)
     if (fxOn('f_shared')) for (const st of vis) if (st.info.shared && !st.info.mine) ring(ctx, st, t)
     // 2) 연기
     if (fxOn('f_smoke')) smoke(ctx, vis, dt, t)
     else puffs.length = 0
-    // 3) 말풍선·펼친 알약 (먼 것 먼저 → 가까운 것이 위)
-    vis.sort((a, b) => a.by - b.by)
-    for (const st of vis) {
-      const standing = st.info.seat === here.seat && !here.moving
-      const near = fxOn('f_expand') && !standing && st.dist > .1 && st.dist < EXPAND_R
+    // 3) 말풍선·펼친 알약 (먼 것 먼저 → 가까운 것이 위, 이정표는 맨 위)
+    shown.sort((a, b) => (a.pin ? 1 : 0) - (b.pin ? 1 : 0) || a.by - b.by)
+    for (const st of shown) {
+      const near = fxOn('f_expand') && st.dist > .1 && st.dist < EXPAND_R
       st.expand += ((near ? 1 : 0) - st.expand) * Math.min(1, still ? 1 : dt * 7)
-      if (standing) continue
       const lively = fxOn('f_online') && st.info.online
       const bob = lively && st.active ? Math.abs(Math.sin(t * 3.2 + st.phase)) * -5 : 0
-      const x = st.bx, y = st.by + bob
-      if (st.expand > .04) drawPill(ctx, st, x, y, s)
-      else if (fxOn('f_bubble')) drawBubble(ctx, st, x, y, s)
+      let x = st.bx, y = st.by + bob
+      if (st.pin) {
+        // 이정표: 알약·말풍선 높이만큼 안쪽으로 들인 자리 + 바깥쪽 화살표 + 이름
+        const pt = pinTo(st.bx, st.by)
+        x = Math.min(safe.x1 - pillHalf(st), Math.max(safe.x0 + pillHalf(st), pt.x))
+        y = Math.min(safe.y1, Math.max(safe.y0 + 46, pt.y)) + bob
+        signpost(ctx, st, x, y, pt.ang)
+      }
+      const pill = st.expand > .04
+      if (pill) drawPill(ctx, st, x, y, s)
+      else if (fxOn('f_bubble') || st.pin) drawBubble(ctx, st, x, y, s)
       else continue
       if (lively) {
-        const dx = st.expand > .04 ? pillHalf(st) - 4 : 11, dy = st.expand > .04 ? -26 : -32
+        const dx = pill ? pillHalf(st) - 4 : 11, dy = pill ? -38 : -32
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x + dx, y + dy, 5, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = '#5FBF3A'; ctx.beginPath(); ctx.arc(x + dx, y + dy, 3.4, 0, Math.PI * 2); ctx.fill()
       }
@@ -111,20 +144,42 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     }
   }
 
+  /** 이정표: 바깥쪽을 가리키는 작은 화살표 + 이름표 (말풍선 아래) */
+  const signpost = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, ang: number) => {
+    const cy = y - 24
+    const r = Math.max(pillHalf(st), 17) + 12
+    // 화살표: 알약 둘레에서 이웃 쪽으로
+    const ax = x + Math.cos(ang) * r, ay = cy + Math.sin(ang) * 20
+    ctx.save()
+    ctx.translate(ax, ay); ctx.rotate(ang)
+    ctx.fillStyle = 'rgba(62,42,31,.82)'
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-4, -7); ctx.lineTo(-4, 7); ctx.closePath(); ctx.fill()
+    ctx.restore()
+    // 이름
+    const name = st.info.name
+    if (!name) return
+    ctx.font = "700 11px Pretendard, system-ui, sans-serif"
+    const tw = ctx.measureText(name).width
+    ctx.fillStyle = 'rgba(62,42,31,.82)'
+    ctx.beginPath(); ctx.roundRect(x - tw / 2 - 7, y + 1, tw + 14, 18, 9); ctx.fill()
+    ctx.fillStyle = '#fbf4ec'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(name, x, y + 10.5)
+  }
+
   /** 펼친 알약 반폭 (아이콘 개수에 따라) */
   const pillHalf = (st: Seat) => {
     const n = st.info.icons.length + (st.info.more ? .8 : 0)
-    const full = (n * 22 + 10) / 2
-    return 17 + (full - 17) * st.expand
+    const full = (n * ICON_GAP + 10) / 2
+    return 19 + (full - 19) * st.expand
   }
   const drawBubble = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, s: number) => {
-    const b = bubble(st.info.cat, 30, st.color, s)
+    const b = bubble(st.info.cat, 34, st.color, s)
     const w = b.cv.width / s, h = b.cv.height / s
     ctx.drawImage(b.cv, x - w / 2, y - b.tip / s, w, h)
   }
   const drawPill = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, s: number) => {
     const k = st.expand
-    const half = pillHalf(st), hh = 16
+    const half = pillHalf(st), hh = 18
     const cy = y - 24
     ctx.save()
     ctx.shadowColor = 'rgba(60,35,20,.28)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1.5
@@ -139,20 +194,20 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     ctx.globalAlpha = Math.min(1, k * 1.4)
     for (let i = 0; i < icons.length; i++) {
       const id = icons[i], cat = catOfSub(id) ?? st.info.cat
-      const ox = (i - (n - 1) / 2) * 22 * k
-      const b = badge(cat, 18, fxColor(cat), s)
+      const ox = (i - (n - 1) / 2) * ICON_GAP * k
+      const b = badge(cat, 23, fxColor(cat), s)
       const bw = b.width / s
       ctx.drawImage(b, x + ox - bw / 2, cy - bw / 2, bw, bw)
       // 표시: 겹치는 것 ♥ · 드문 것 ✦
       const mark = st.info.sharedIds.includes(id) && fxOn('f_shared') ? 'heart' : id === st.info.rareId && fxOn('f_rare') ? 'star4' : null
       if (mark) {
         const g = glyph(mark, 16, mark === 'heart' ? SHARE : GOLD, s)
-        ctx.drawImage(g, x + ox + 4, cy - 15, 10, 10)
+        ctx.drawImage(g, x + ox + 5, cy - 18, 11, 11)
       }
     }
     if (st.info.more) {
       ctx.fillStyle = '#6e5444'; ctx.font = "700 10px Pretendard, system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      ctx.fillText(`+${st.info.more}`, x + ((n - 1) / 2) * 22 * k - 2, cy + .5)
+      ctx.fillText(`+${st.info.more}`, x + ((n - 1) / 2) * ICON_GAP * k - 3, cy + .5)
     }
     ctx.globalAlpha = 1
   }
@@ -243,7 +298,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     void t
   }
 
-  const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke')
+  const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || fxOn('f_edge')
   const overlay = createOverlay(o.container, o.after, camera, draw, () => anyOn() && (seats.some((x) => x.expand > .01 && x.expand < .99) || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || puffs.length > 0))
   still = overlay.mode.level === 'still'
   // 서 있는 자리가 바뀌면(점프) 다시 그림 (still 단계에서도 펼침·숨김이 바뀌므로)

@@ -75,7 +75,9 @@ interface P {
   seed: number
 }
 
-const RATE_MAIN = 1.3, RATE_PROP = 0.3, PET_STEP = 0.42, HEART_RATE = 0.7
+const RATE_MAIN = 1.7, RATE_PROP = 0.45, PET_STEP = 0.42, HEART_RATE = 0.8
+/** 입자 크기 배율 (첫 스크린샷에서 너무 작아 보였음) */
+const K = 1.45
 const pickOf = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]
 const PAL = {
   nature: ['#5FAE45', '#8CC56A', '#3F8A3A', '#A9D46F'],
@@ -153,13 +155,13 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       em: e, kind: e.cat, x: e.top.x + (r() - .5) * e.half * 1.1, y: e.top.y + .02, z: e.top.z + (r() - .5) * e.half * .5,
       vx: 0, vy: 0, vz: 0, age: 0, life: 2, size: .12, rot: 0, vr: 0, color: e.color, seed: r() * 10,
     }
-    const k = small ? .75 : 1
+    const k = (small ? .75 : 1) * K
     switch (e.cat) {
       case 'music': p.vy = .36; p.vx = (r() - .5) * .1; p.life = 2.4; p.size = .16 * k; p.color = r() < .5 ? e.color : lighten(e.color, .45); p.rot = (r() - .5) * .5; break
       case 'photo': p.kind = 'flash'; p.y = e.top.y - r() * .25; p.vy = .04; p.life = .55; p.size = .16 * k; p.color = '#ffffff'; break
       case 'nature': p.vy = .2; p.vx = (r() - .5) * .22; p.life = 3; p.size = .13 * k; p.vr = (r() - .5) * 2.5; p.rot = r() * 6; p.color = pickOf(PAL.nature); break
       case 'game': p.vy = .34; p.vx = (r() - .5) * .12; p.life = 1.8; p.size = .07 * k; p.color = pickOf(PAL.game); break
-      case 'craft': p.vy = .3; p.vx = (r() - .5) * .18; p.life = 2; p.size = (.08 + r() * .04) * k; p.color = pickOf(PAL.craft); break
+      case 'craft': p.vy = .75 + r() * .3; p.vx = (r() - .5) * .45; p.vz = (r() - .5) * .2; p.life = 1.3; p.size = (.045 + r() * .03) * k; p.color = pickOf(PAL.craft); break
       case 'book': p.vy = .2; p.vx = (r() - .5) * .15; p.life = 2.6; p.size = .12 * k; p.color = '#fffaf0'; p.vr = (r() - .5) * .8; break
       case 'science': {
         const a = r() * Math.PI * 2, rr = e.half + .1 + r() * .25
@@ -327,6 +329,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     if (fxOn('r_particles')) stepParticles(ctx, dt, t, fade)
     else ps.length = 0
     ctx.globalAlpha = fade
+    taken.length = 0
     if (fxOn('r_rare')) for (const e of ems) if (e.rare && e.on) drawRare(ctx, e, t, s)
     if (fxOn('r_shared') && o.viewer) for (const e of ems) if (e.shared && e.on) drawShareBadge(ctx, e, s)
     ctx.globalAlpha = 1
@@ -379,21 +382,41 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   }
 
   const drawShareGlow = (ctx: CanvasRenderingContext2D, e: Em, t: number) => {
-    const c = proj(e.center.x, e.center.y, e.center.z)
-    const r = Math.max(26, e.half * e.ppm * 1.25)
-    const k = still ? .8 : .7 + .3 * Math.sin(t * 3)
+    const c = proj(e.center.x, e.center.y, e.center.z), cx = c.x, cy = c.y
+    const r = Math.max(34, e.half * e.ppm * 1.7)
+    const k = still ? .8 : .5 + .5 * Math.sin(t * 3 + e.center.x)
+    const base = ctx.globalAlpha
+    // 밝은 벽 위라 screen 으로 섞으면 거의 안 보임 → 따뜻한 산호색을 그대로 얇게 (숨 쉬듯)
     ctx.save()
-    ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = .55 * k * (ctx.globalAlpha || 1)
-    const g = glow('#FFB07A', 64, .25)
-    ctx.drawImage(g, c.x - r, c.y - r, r * 2, r * 2)
+    ctx.globalAlpha = (.3 + .2 * k) * base
+    ctx.drawImage(glow('#FF8A6A', 64, .2), cx - r, cy - r * .8, r * 2, r * 1.6)
     ctx.restore()
+    // 둘레를 도는 작은 하트 셋 (움직임 없는 단계는 둘, 제자리)
+    const n = still ? 2 : 3
+    const g = glyph('heart', SPRITE, SHARE, overlay.mode.dpr)
+    for (let i = 0; i < n; i++) {
+      const a = (still ? .8 : t * 1.3) + i * Math.PI * 2 / n
+      const z = 9 + 2 * Math.sin(t * 4 + i)
+      ctx.globalAlpha = (.75 + .25 * Math.sin(a)) * base
+      ctx.drawImage(g, cx + Math.cos(a) * r * .85 - z / 2, cy + Math.sin(a) * r * .38 - z / 2, z, z)
+    }
+    ctx.globalAlpha = base
+  }
+  /** 이번 프레임에 놓은 배지 자리 (선반 소품끼리 붙어 있어 배지가 겹치면 위로 올림) */
+  const taken: { x0: number; y0: number; x1: number; y1: number }[] = []
+  const placeBadge = (ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, s: number, cx: number, bottom: number) => {
+    const w = cv.width / s, h = cv.height / s
+    let x0 = cx - w / 2, y0 = bottom - h
+    for (let k = 0; k < 4; k++) {
+      const hit = taken.find((r) => x0 < r.x1 && x0 + w > r.x0 && y0 < r.y1 && y0 + h > r.y0)
+      if (!hit) break
+      y0 = hit.y0 - h - 1
+    }
+    taken.push({ x0, y0, x1: x0 + w, y1: y0 + h })
+    ctx.drawImage(cv, x0, y0, w, h)
   }
   const drawShareBadge = (ctx: CanvasRenderingContext2D, e: Em, s: number) => {
-    const cv = pill('나도 좋아해요', SHARE, 'heart', '#ffffff', s)
-    const w = cv.width / s, h = cv.height / s
-    const y = e.sy - 10 - (e.rare && fxOn('r_rare') ? 24 : 0)
-    ctx.drawImage(cv, e.sx - w / 2, y - h, w, h)
+    placeBadge(ctx, pill('나도!', SHARE, 'heart', '#ffffff', s), s, e.sx, e.sy - 8)
   }
   const drawRare = (ctx: CanvasRenderingContext2D, e: Em, t: number, s: number) => {
     const legend = e.rare === 'legend'
@@ -411,9 +434,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       ctx.drawImage(gl, p.x - sz / 2, p.y - sz / 2, sz, sz)
     }
     const text = legend ? '아주 드문 취미' : e.rare === 'rare' ? '드문 취미' : '이 방에서 가장 드문 취미'
-    const cv = pill(text, legend ? '#B07CE0' : '#D9A22E', 'gem', '#ffffff', s)
-    const w = cv.width / s, h = cv.height / s
-    ctx.drawImage(cv, e.sx - w / 2, e.sy - 10 - h, w, h)
+    placeBadge(ctx, pill(text, legend ? '#B07CE0' : '#D9A22E', 'gem', '#ffffff', s), s, e.sx, e.sy - 8)
   }
 
   const stepParticles = (ctx: CanvasRenderingContext2D, dt: number, t: number, fade: number) => {
@@ -470,7 +491,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       const p = ps[i]
       p.age += dt
       if (p.age >= p.life) { ps.splice(i, 1); continue }
-      if (p.kind === 'movie') p.vy -= 2.4 * dt
+      if (p.kind === 'movie' || p.kind === 'craft') p.vy -= (p.kind === 'craft' ? 1.6 : 2.4) * dt
       if (p.kind !== 'paw') { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt }
       p.rot += p.vr * dt
       drawParticle(ctx, p, t, fade, s)
