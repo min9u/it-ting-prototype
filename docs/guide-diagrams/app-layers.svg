@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 610" width="760" height="610" role="img" aria-label="앱 한 장 그림: 브라우저 주소가 화면 층으로 들어가고, 화면은 데이터 층(훅 → 목 서버 또는 실제 서버, 실시간)과 3D 층(그때만 받는 3D 장면)을 쓰며, 전체는 빌드 · 검사 · 배포 층에서 포장된다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="610" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 브라우저 -->
+  <rect x="16" y="16" width="728" height="36" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <circle cx="34" cy="34" r="4" style="fill:var(--ink-mute,#8a7262)"/>
+  <circle cx="48" cy="34" r="4" style="fill:var(--ink-mute,#8a7262)"/>
+  <circle cx="62" cy="34" r="4" style="fill:var(--ink-mute,#8a7262)"/>
+  <text x="80" y="39" font-weight="700">사용자 브라우저</text>
+  <rect x="200" y="23" width="372" height="22" rx="11" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="214" y="38.5" font-size="12">주소 /meetups/m1  (팀 공유본은 #/meetups/m1)</text>
+  <line x1="380" y1="52" x2="380" y2="72" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="390" y="67" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">주소에 맞는 화면을 그림</text>
+
+  <!-- ① 화면 층 -->
+  <rect x="16" y="76" width="728" height="122" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="86" width="88" height="22" rx="11" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="72" y="101.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">① 화면 층</text>
+
+  <rect x="28" y="118" width="124" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="135" font-weight="700">main.tsx</text>
+  <text x="40" y="152" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">시작 · 캐시 · 라우터</text>
+  <line x1="152" y1="139" x2="170" y2="139" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="172" y="118" width="146" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="184" y="135" font-weight="700">App.tsx</text>
+  <text x="184" y="152" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">주소 → 화면 표</text>
+  <line x1="318" y1="139" x2="338" y2="139" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="340" y="118" width="130" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--cta,#c8643a)" stroke-width="1.6"/>
+  <text x="352" y="135" font-weight="700">screens/*</text>
+  <text x="352" y="152" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">화면 (모임 상세 …)</text>
+  <line x1="498" y1="139" x2="472" y2="139" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="486" y="131" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">씀</text>
+  <rect x="500" y="114" width="236" height="50" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 3"/>
+  <rect x="506" y="120" width="108" height="38" rx="6" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="516" y="135" font-size="12.5" font-weight="700">components/*</text>
+  <text x="516" y="151" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">공용 조각</text>
+  <rect x="622" y="120" width="108" height="38" rx="6" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="632" y="135" font-size="12.5" font-weight="700">styles/</text>
+  <text x="632" y="151" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">색 · 글자 토큰</text>
+
+  <rect x="28" y="168" width="708" height="22" rx="6" style="fill:var(--accent-soft,#f6dccb)"/>
+  <text x="382" y="183.5" text-anchor="middle" font-size="12" style="fill:var(--accent,#9a4a2c)">에러 경계 3겹: 화면이 깨져도 헤더는 남음 · 3D 경계: 3D가 깨지면 정지 그림</text>
+
+  <!-- 갈래 -->
+  <line x1="194" y1="198" x2="194" y2="217" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="202" y="212" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">데이터가 필요하면</text>
+  <line x1="566" y1="198" x2="566" y2="217" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="574" y="212" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">3D 화면이면</text>
+
+  <!-- ② 데이터 층 -->
+  <rect x="16" y="220" width="356" height="252" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="230" width="96" height="22" rx="11" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="76" y="245.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">② 데이터 층</text>
+
+  <rect x="28" y="262" width="332" height="38" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="277" font-size="12.5" font-weight="700">api/queries.tsx</text>
+  <text x="40" y="293" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">TanStack Query 훅: 불러오는 중 · 오류 · 없음 · 캐시</text>
+  <line x1="194" y1="300" x2="194" y2="311" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="28" y="312" width="332" height="26" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="330" font-size="12.5" font-weight="700">api/index.ts</text>
+  <text x="348" y="330" text-anchor="end" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">VITE_API_MODE로 고름</text>
+  <line x1="110" y1="338" x2="110" y2="355" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="118" y="351" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">mock</text>
+  <line x1="278" y1="338" x2="278" y2="355" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="286" y="351" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">real</text>
+  <rect x="28" y="356" width="162" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--cta,#c8643a)" stroke-width="1.6"/>
+  <text x="40" y="374" font-size="12.5" font-weight="700">mock (지금)</text>
+  <text x="40" y="391" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">api/mock/server.ts</text>
+  <text x="40" y="406" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">→ data/*Store.ts</text>
+  <rect x="198" y="356" width="162" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="210" y="374" font-size="12.5" font-weight="700">real</text>
+  <text x="210" y="391" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">api/client.ts</text>
+  <text x="210" y="406" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">→ fetch /api → 백엔드</text>
+  <rect x="28" y="424" width="332" height="38" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="439" font-size="12.5" font-weight="700">realtime/</text>
+  <text x="40" y="455" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">채팅: WebSocket + STOMP (지금은 목 서버)</text>
+
+  <!-- ③ 3D 층 -->
+  <rect x="388" y="220" width="356" height="252" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="400" y="230" width="80" height="22" rx="11" style="fill:var(--chip-sage-bg,#dde7cc)"/>
+  <text x="440" y="245.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-sage-fg,#3f5a24)">③ 3D 층</text>
+  <text x="732" y="246" text-anchor="end" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">그 화면에 들어갈 때만 내려받음</text>
+
+  <rect x="400" y="262" width="332" height="38" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="412" y="277" font-size="12.5" font-weight="700">RoomView · ExploreBurrow · TeaRoom …</text>
+  <text x="412" y="293" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">→ lazy(three/*Canvas): 3D 코드를 이때 받음</text>
+  <line x1="566" y1="300" x2="566" y2="311" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="400" y="312" width="332" height="26" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="412" y="330" font-size="12.5" font-weight="700">SceneCanvas (div 하나)</text>
+  <text x="720" y="330" text-anchor="end" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">React는 손잡이로만 말함</text>
+  <line x1="566" y1="338" x2="566" y2="355" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="400" y="356" width="106" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="410" y="373" font-size="12.5" font-weight="700">roomScene</text>
+  <text x="410" y="390" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">땅굴</text>
+  <rect x="513" y="356" width="106" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="523" y="373" font-size="12.5" font-weight="700">holeField</text>
+  <text x="523" y="390" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">탐색 들판</text>
+  <rect x="626" y="356" width="106" height="42" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="636" y="373" font-size="12.5" font-weight="700">fieldScene</text>
+  <text x="636" y="390" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">랜딩 밭</text>
+  <text x="566" y="414" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">각 장면: 렌더러 · glb 모델 · 예열 · 그리기 루프</text>
+  <rect x="400" y="424" width="332" height="38" rx="8" style="fill:var(--chip-butter-bg,#f3e6be)"/>
+  <text x="412" y="439" font-size="12.5" font-weight="700" style="fill:var(--chip-butter-fg,#6b5410)">그래픽 가속이 꺼진 PC면 저사양 묶음</text>
+  <text x="412" y="455" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">lib/graphicsTier.ts · lib/deviceTier.ts</text>
+
+  <!-- ④ 빌드 · 검사 · 배포 -->
+  <line x1="380" y1="474" x2="380" y2="495" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="388" y="489" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">전부 묶어 포장</text>
+  <rect x="16" y="498" width="728" height="98" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="508" width="140" height="22" rx="11" style="fill:var(--accent-soft,#f6dccb)"/>
+  <text x="98" y="523.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent,#9a4a2c)">④ 빌드 · 검사 · 배포</text>
+
+  <rect x="28" y="540" width="72" height="44" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="64" y="567" text-anchor="middle" font-weight="700">Vite</text>
+  <line x1="100" y1="562" x2="118" y2="562" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="120" y="536" width="310" height="52" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 3"/>
+  <rect x="128" y="541" width="98" height="42" rx="6" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="138" y="557" font-size="12.5" font-weight="700">dist/</text>
+  <text x="138" y="574" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">실서버용</text>
+  <rect x="234" y="541" width="190" height="42" rx="6" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="244" y="557" font-size="12.5" font-weight="700">dist-share/</text>
+  <text x="244" y="574" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">아티팩트용 · # 주소 · glb 내장</text>
+
+  <line x1="444" y1="510" x2="444" y2="586" style="stroke:var(--box-line,#e3cbb5)"/>
+  <text x="458" y="526" font-size="12.5" font-weight="700">검사</text>
+  <g font-size="12">
+    <text x="458" y="546">tsc 타입 검사 · vitest 단위 테스트 166개</text>
+    <text x="458" y="565">스모크: 헤드리스 크롬으로 96개 화면</text>
+    <text x="458" y="584">GitHub Actions (CI 설정)</text>
+  </g>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 486" width="760" height="486" role="img" aria-label="새 버전 배포 뒤 열려 있던 옛 탭이 지워진 옛 파일 이름을 요청해 404가 나면 한 번만 새로고침해 새 파일 이름을 받고, 30초 안에 또 실패하면 새로고침 대신 안내를 보여 준다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="486" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 머리 -->
+  <rect x="140" y="16" width="170" height="28" rx="14" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="225" y="35" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">열어 둔 옛 탭</text>
+  <rect x="547" y="16" width="170" height="28" rx="14" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="632" y="35" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">서버의 assets/</text>
+
+  <!-- 1 -->
+  <circle cx="27" cy="83" r="11" style="fill:var(--cta,#c8643a)"/>
+  <text x="27" y="87.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">1</text>
+  <rect x="46" y="58" width="384" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="60" y="79" font-weight="700">앱을 엶</text>
+  <text x="60" y="98" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">옛 index.html이 RoomCanvas-ab12.js 라는 이름을 기억</text>
+  <rect x="520" y="58" width="224" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="534" y="88" font-weight="700">RoomCanvas-ab12.js 있음</text>
+
+  <!-- 2 -->
+  <circle cx="27" cy="145" r="11" style="fill:var(--cta,#c8643a)"/>
+  <text x="27" y="149.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">2</text>
+  <rect x="46" y="120" width="384" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="60" y="141" font-weight="700">탭을 그대로 열어 둠</text>
+  <text x="60" y="160" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">그동안 새 버전이 배포됨</text>
+  <rect x="520" y="120" width="224" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="534" y="141" font-weight="700">새 이름 …cd34.js (예)</text>
+  <text x="534" y="160" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">옛 ab12.js 는 지움</text>
+
+  <!-- 3 -->
+  <circle cx="27" cy="207" r="11" style="fill:var(--cta,#c8643a)"/>
+  <text x="27" y="211.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
+  <rect x="46" y="182" width="384" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="60" y="203" font-weight="700">땅굴에 들어감 (3D 코드를 이때 받음)</text>
+  <text x="60" y="222" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">기억한 이름 RoomCanvas-ab12.js 를 요청</text>
+  <line x1="432" y1="207" x2="516" y2="207" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="474" y="199" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">ab12 줘</text>
+  <rect x="520" y="182" width="224" height="50" rx="10" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="534" y="203" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">404 없음</text>
+  <text x="534" y="222" font-size="11.5" style="fill:var(--chip-rose-fg,#7d3a3f)">고치기 전: 앱 전체가 에러 화면</text>
+
+  <!-- 4 -->
+  <circle cx="27" cy="269" r="11" style="fill:var(--cta,#c8643a)"/>
+  <text x="27" y="273.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">4</text>
+  <rect x="46" y="244" width="384" height="50" rx="10" style="fill:var(--accent-soft,#f6dccb);stroke:var(--accent,#9a4a2c)"/>
+  <text x="60" y="265" font-weight="700" style="fill:var(--accent,#9a4a2c)">vite:preloadError → 한 번만 새로고침</text>
+  <text x="60" y="284" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">새로고침한 시각을 적어 둠 (lib/chunkReload.ts)</text>
+
+  <!-- 5 -->
+  <circle cx="27" cy="331" r="11" style="fill:var(--cta,#c8643a)"/>
+  <text x="27" y="335.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">5</text>
+  <rect x="46" y="306" width="384" height="50" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="60" y="327" font-weight="700">새 index.html → 새 이름을 요청</text>
+  <text x="60" y="346" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">RoomCanvas-cd34.js</text>
+  <line x1="432" y1="331" x2="516" y2="331" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="474" y="323" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">cd34 줘</text>
+  <rect x="520" y="306" width="224" height="50" rx="10" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="534" y="327" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">있음</text>
+  <text x="534" y="346" font-size="11.5" style="fill:var(--chip-mint-fg,#2e5e4c)">땅굴이 뜸</text>
+
+  <!-- 30초 안에 또 실패 -->
+  <rect x="46" y="372" width="384" height="56" rx="10" style="fill:var(--chip-butter-bg,#f3e6be)"/>
+  <text x="60" y="394" font-weight="700" style="fill:var(--chip-butter-fg,#6b5410)">30초 안에 또 실패하면 새로고침하지 않음</text>
+  <text x="60" y="414" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">“다시 시도” 안내 (3D 자리는 “새 버전이 나왔어요”)</text>
+  <text x="446" y="394" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">← 무한 새로고침 방지</text>
+
+  <!-- 서버 쪽 예방 -->
+  <rect x="16" y="442" width="728" height="32" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 4"/>
+  <text x="380" y="463" text-anchor="middle" font-size="12.5" style="fill:var(--ink-soft,#5c4334)">서버 쪽 예방: 배포할 때 직전 두 번의 assets 를 남겨 두면 그사이 열린 탭은 3번의 404를 겪지 않음</text>
+</svg>

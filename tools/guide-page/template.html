@@ -24,6 +24,12 @@
   --chip-sky-bg: #d9e6ec;    --chip-sky-fg: #2f5868;
   --chip-sand-bg: #eadfc6;   --chip-sand-fg: #5e4a1e;
   --chip-clay-bg: #f1dccb;   --chip-clay-fg: #7e3b22;
+  /* 그림(SVG)용: docs/guide-diagrams/*.svg 가 var(--이름, 밝은 기본값) 으로 씀. GitHub 에서는 기본값이 쓰임 */
+  --fig-bg: #fffaf4;
+  --box: #f4e6d8;
+  --box-line: #e3cbb5;
+  --strong: #6b4a3a;
+  --on-strong: #fbf4ec;
   --font-display: 'Do Hyeon', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --font-body: 'Noto Sans KR', 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --font-code: 'Nanum Gothic Coding', 'D2Coding', Consolas, 'Malgun Gothic', monospace;
@@ -41,6 +47,7 @@
     --chip-sky-bg: #20333b;    --chip-sky-fg: #bcd8e4;
     --chip-sand-bg: #3b3222;   --chip-sand-fg: #e8d7ad;
     --chip-clay-bg: #44281c;   --chip-clay-fg: #f0c4a8;
+    --fig-bg: #241a13; --box: #33261d; --box-line: #4d3a2c; --strong: #d9b89c; --on-strong: #1e1610;
     color-scheme: dark;
   }
 }
@@ -55,6 +62,7 @@
   --chip-sky-bg: #20333b;    --chip-sky-fg: #bcd8e4;
   --chip-sand-bg: #3b3222;   --chip-sand-fg: #e8d7ad;
   --chip-clay-bg: #44281c;   --chip-clay-fg: #f0c4a8;
+  --fig-bg: #241a13; --box: #33261d; --box-line: #4d3a2c; --strong: #d9b89c; --on-strong: #1e1610;
   color-scheme: dark;
 }
 
@@ -139,6 +147,34 @@ main { min-width: 0; padding-block: 36px 80px; }
 .colophon { max-width: 46em; margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .82rem; color: var(--ink-mute); line-height: 1.6; }
 .colophon code { font-family: var(--font-code); background: var(--code-bg); padding: .05em .35em; border-radius: 4px; }
 
+
+/* ---------- 그림 ---------- */
+/* SVG 는 본문에 인라인(색은 위 토큰을 따름), 넓은 화면에선 본문 폭에 맞추고 좁은 화면에선 상자 안에서 가로로 밀어 봄 */
+.fig { margin: 22px 0 28px; }
+.doc li .fig { margin: 12px 0 16px; }
+.fig-frame { position: relative; overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--fig-bg); cursor: zoom-in; scrollbar-width: thin; }
+.fig-frame svg.dg { display: block; width: 100%; min-width: var(--minw, 0); height: auto; font-family: var(--font-body); }
+.fig-photo { background: var(--rail); }
+.fig-photo img { display: block; width: 100%; height: auto; }
+.fig figcaption { margin-top: 9px; font-size: .86rem; line-height: 1.6; color: var(--ink-soft); }
+.fig-no { display: inline-block; margin-right: .55em; font-family: var(--font-display); color: var(--accent); white-space: nowrap; }
+.fig-zoom { position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink-soft); font: inherit; font-size: .76rem; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.fig-frame:hover .fig-zoom, .fig-zoom:focus-visible { opacity: 1; }
+.fig-zoom:focus-visible { outline: 2px solid var(--cta); outline-offset: 1px; }
+@media (hover: none) { .fig-zoom { opacity: 1; } }
+.fig-missing { color: var(--chip-rose-fg); background: var(--chip-rose-bg); padding: 8px 12px; border-radius: 8px; }
+/* 크게 보기 (같은 페이지 안 덮개) */
+.zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto 1fr; background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: blur(2px); }
+.zoom[hidden] { display: none; }
+.zoom-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--paper); font-size: .9rem; color: var(--ink-soft); }
+.zoom-bar button { flex: none; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--rail); color: var(--ink); font: inherit; cursor: pointer; }
+.zoom-bar button:focus-visible { outline: 2px solid var(--cta); outline-offset: 1px; }
+.zoom-body { overflow: auto; padding: 20px 16px 40px; }
+.zoom-body > * { margin: 0 auto; }
+.zoom-body svg.dg { display: block; width: min(1500px, max(100%, var(--minw, 0px) * 1.5)); height: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--fig-bg); font-family: var(--font-body); }
+.zoom-body img { display: block; max-width: none; width: auto; border-radius: 12px; }
+body.zooming { overflow: hidden; }
+
 /* ---------- 좁은 화면: 목차를 접어 맨 위로 ---------- */
 @media (max-width: 960px) {
   .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -171,8 +207,13 @@ main { min-width: 0; padding-block: 36px 80px; }
   <main id="main">
 <!--GUIDE-->
 <!--CONCEPTS-->
-    <p class="colophon">이 페이지는 저장소의 <code>docs/frontend-guide.md</code>와 <code>docs/frontend-guide-concepts.md</code>를 그대로 옮긴 것입니다 (만든 날 <!--BUILT-->). 문서가 바뀌면 <code>node tools/guide-page/build.mjs</code>로 다시 만듭니다. ↗ 표시가 붙은 링크는 GitHub의 원본 문서로 열립니다.</p>
+    <p class="colophon">이 페이지는 저장소의 <code>docs/frontend-guide.md</code>와 <code>docs/frontend-guide-concepts.md</code>를 그대로 옮긴 것입니다 (만든 날 <!--BUILT-->). 그림은 <code>docs/guide-diagrams/</code>(SVG), 사진은 <code>docs/guide-images/</code>에 있습니다. 문서가 바뀌면 <code>node tools/guide-page/build.mjs</code>로 다시 만듭니다. ↗ 표시가 붙은 링크는 GitHub의 원본 문서로 열립니다. 그림을 누르면 크게 볼 수 있습니다.</p>
   </main>
+</div>
+
+<div class="zoom" id="zoom" hidden role="dialog" aria-modal="true" aria-labelledby="zoom-title">
+  <div class="zoom-bar"><span id="zoom-title"></span><button type="button" id="zoom-close">닫기 (Esc)</button></div>
+  <div class="zoom-body" id="zoom-body"></div>
 </div>
 
 <script>
@@ -237,6 +278,49 @@ main { min-width: 0; padding-block: 36px 80px; }
       if (!li.hidden) shown++
     })
     empty.hidden = shown > 0
+  })
+
+  // 그림 크게 보기: 그림을 누르거나 "크게 보기" 버튼 → 같은 페이지 안 덮개. Esc · 닫기 · 바깥을 누르면 닫힘
+  const zoom = document.getElementById('zoom'), zoomBody = document.getElementById('zoom-body'), zoomTitle = document.getElementById('zoom-title'), zoomClose = document.getElementById('zoom-close')
+  let opener = null
+  const openZoom = (fig) => {
+    const frame = fig.querySelector('.fig-frame')
+    const node = frame.querySelector('svg, img').cloneNode(true)
+    if (node.tagName.toLowerCase() === 'img') { node.loading = 'eager'; node.style.width = Math.min(node.naturalWidth || 1200, 1600) + 'px' }
+    else node.style.setProperty('--minw', frame.style.getPropertyValue('--minw'))
+    zoomBody.replaceChildren(node)
+    zoomTitle.textContent = (fig.querySelector('figcaption')?.textContent ?? '').replace(/^(그림 \d+)/, '$1 · ')
+    opener = document.activeElement
+    zoom.hidden = false
+    document.body.classList.add('zooming')
+    zoomClose.focus()
+  }
+  const closeZoom = () => {
+    if (zoom.hidden) return
+    zoom.hidden = true
+    document.body.classList.remove('zooming')
+    zoomBody.replaceChildren()
+    opener?.focus?.()
+  }
+  document.querySelectorAll('.fig').forEach((fig) => {
+    const frame = fig.querySelector('.fig-frame')
+    if (!frame) return
+    const b = document.createElement('button')
+    b.type = 'button'; b.className = 'fig-zoom'; b.textContent = '크게 보기'
+    b.setAttribute('aria-label', `${fig.querySelector('.fig-no')?.textContent ?? '그림'} 크게 보기`)
+    frame.append(b)
+    frame.addEventListener('click', (e) => {
+      // 좁은 화면에서 가로로 밀다가 손을 뗀 것은 누름으로 치지 않음 (버튼은 늘 열림)
+      if (e.target !== b && frame.scrollWidth > frame.clientWidth + 2 && matchMedia('(hover: none)').matches) return
+      openZoom(fig)
+    })
+  })
+  zoomClose.addEventListener('click', closeZoom)
+  zoom.addEventListener('click', (e) => { if (e.target === zoom || e.target === zoomBody) closeZoom() })
+  addEventListener('keydown', (e) => {
+    if (zoom.hidden) return
+    if (e.key === 'Escape') { e.preventDefault(); closeZoom() }
+    if (e.key === 'Tab') { e.preventDefault(); zoomClose.focus() } // 덮개 안에서 초점이 갈 곳은 닫기 버튼 하나
   })
 })()
 </script>

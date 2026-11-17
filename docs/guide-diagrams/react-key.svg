@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 392" width="760" height="392" role="img" aria-label="key가 없으면 React가 채팅 방 컴포넌트를 재사용해 헤더는 B인데 메시지는 A로 남고, key를 방 id로 주면 방이 바뀔 때 새로 만들어 B의 메시지가 보인다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="392" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- ===== 왼쪽: key 없음 ===== -->
+  <rect x="16" y="16" width="356" height="360" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="28" width="100" height="26" rx="13" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="78" y="46" text-anchor="middle" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">key 없음</text>
+  <text x="138" y="46" font-size="12" style="fill:var(--ink-soft,#5c4334)">예전 코드 (버그)</text>
+
+  <!-- 방 A → 방 B -->
+  <rect x="40" y="70" width="110" height="30" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="95" y="90" text-anchor="middle">방 A 보는 중</text>
+  <line x1="152" y1="85" x2="232" y2="85" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="192" y="78" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">B를 누름</text>
+  <rect x="236" y="70" width="124" height="30" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="298" y="90" text-anchor="middle">&lt;Room room=B&gt;</text>
+
+  <text x="40" y="128" font-weight="700">React: “같은 자리, 같은 종류네 → 재사용”</text>
+
+  <!-- 채팅 칸 모형 -->
+  <rect x="40" y="142" width="308" height="140" rx="10" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <path d="M40,152 a10,10 0 0 1 10,-10 h288 a10,10 0 0 1 10,10 v22 h-308 z" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="54" y="164" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">헤더: 방 B</text>
+  <text x="334" y="164" text-anchor="end" font-size="11.5" style="fill:var(--chip-mint-fg,#2e5e4c)">props 라 바로 바뀜</text>
+  <rect x="54" y="188" width="170" height="28" rx="14" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="68" y="206" style="fill:var(--chip-rose-fg,#7d3a3f)">A 방의 메시지</text>
+  <rect x="164" y="224" width="170" height="28" rx="14" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="178" y="242" style="fill:var(--chip-rose-fg,#7d3a3f)">A 방의 메시지</text>
+  <text x="54" y="272" font-size="11.5" style="fill:var(--chip-rose-fg,#7d3a3f)">← 메시지 목록은 A 그대로</text>
+
+  <text x="40" y="310" font-size="12" font-family="'Nanum Gothic Coding',Consolas,monospace" style="fill:var(--accent,#9a4a2c)">useState(room.messages)</text>
+  <text x="40" y="332" font-size="12" style="fill:var(--ink-soft,#5c4334)">처음 값은 처음 만들 때 한 번만 읽음</text>
+  <text x="40" y="352" font-size="12" style="fill:var(--ink-soft,#5c4334)">→ 다시 쓰면 A의 state 가 남음</text>
+
+  <!-- ===== 오른쪽: key={room.id} ===== -->
+  <rect x="388" y="16" width="356" height="360" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="400" y="28" width="132" height="26" rx="13" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="466" y="46" text-anchor="middle" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">key={room.id}</text>
+  <text x="542" y="46" font-size="12" style="fill:var(--ink-soft,#5c4334)">지금 코드 (고침)</text>
+
+  <rect x="412" y="70" width="110" height="30" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="467" y="90" text-anchor="middle">key = "A"</text>
+  <line x1="524" y1="85" x2="604" y2="85" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="564" y="78" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">B를 누름</text>
+  <rect x="608" y="70" width="110" height="30" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="663" y="90" text-anchor="middle">key = "B"</text>
+
+  <text x="412" y="128" font-weight="700">React: “이름표가 다르네 → 버리고 새로”</text>
+
+  <rect x="412" y="142" width="308" height="140" rx="10" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <path d="M412,152 a10,10 0 0 1 10,-10 h288 a10,10 0 0 1 10,10 v22 h-308 z" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="426" y="164" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">헤더: 방 B</text>
+  <rect x="426" y="188" width="170" height="28" rx="14" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="440" y="206" style="fill:var(--chip-mint-fg,#2e5e4c)">B 방의 메시지</text>
+  <rect x="536" y="224" width="170" height="28" rx="14" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="550" y="242" style="fill:var(--chip-mint-fg,#2e5e4c)">B 방의 메시지</text>
+  <text x="426" y="272" font-size="11.5" style="fill:var(--chip-mint-fg,#2e5e4c)">입력 중이던 글도 B 방에선 빈칸</text>
+
+  <text x="412" y="310" font-size="12" font-family="'Nanum Gothic Coding',Consolas,monospace" style="fill:var(--accent,#9a4a2c)">&lt;RoomPane key={room.id} …/&gt;</text>
+  <text x="412" y="332" font-size="12" style="fill:var(--ink-soft,#5c4334)">key 는 “이 컴포넌트가 누구인지” 이름표</text>
+  <text x="412" y="352" font-size="12" style="fill:var(--ink-soft,#5c4334)">→ 바뀌면 state 까지 처음부터</text>
+</svg>

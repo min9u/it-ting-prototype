@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" width="760" height="560" role="img" aria-label="내 땅굴 3D 화면이 뜨기까지: 3D 코드 받기부터 정리까지 아홉 단계와, 그동안 사용자에게 보이는 로딩 애니메이션 · 0.6초 페이드 인 · 방" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <rect width="760" height="560" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 머리 -->
+  <rect x="16" y="16" width="490" height="30" rx="15" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="261" y="36" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">뒤에서 하는 일 (내 땅굴 /burrow에 들어갈 때)</text>
+  <rect x="520" y="16" width="224" height="30" rx="15" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="632" y="36" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">사용자에게 보이는 것</text>
+
+  <!-- 순서 줄 -->
+  <line x1="34" y1="80" x2="34" y2="480" style="stroke:var(--box-line,#e3cbb5)" stroke-width="2"/>
+
+  <g>
+    <rect x="56" y="58" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="76" font-weight="700">3D 코드 받기</text>
+    <text x="70" y="93" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">lazy(() =&gt; import(…/RoomCanvas)): 이 화면에 처음 올 때만 내려받음</text>
+
+    <rect x="56" y="108" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="126" font-weight="700">렌더러 만들기</text>
+    <text x="70" y="143" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">SceneCanvas(div 하나) → mountRoomScene이 캔버스 · 렌더러를 만듦</text>
+
+    <rect x="56" y="158" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="176" font-weight="700">가구 배치 계산</text>
+    <text x="70" y="193" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">data/roomPlan.ts: 관심사 → 자리마다 가구. 받을 모델이 여기서 정해짐</text>
+
+    <rect x="56" y="208" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="226" font-weight="700">모델 받기 (glb)</text>
+    <text x="70" y="243" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">방 껍데기 · 두더지 · 액세서리 · 가구 · 벽지를 한꺼번에 (three/glb.ts)</text>
+
+    <rect x="56" y="258" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="276" font-weight="700">압축 풀고 장면에 놓기</text>
+    <text x="70" y="293" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">Draco로 압축한 모델은 Worker(별도 일꾼)가 풂 → 메인 스레드가 덜 막힘</text>
+
+    <rect x="56" y="308" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="326" font-weight="700">예열</text>
+    <text x="70" y="343" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">셰이더 컴파일 · 텍스처 올리기 · 1×1로 미리 그리기. 그동안 그리기 루프는 쉼</text>
+
+    <rect x="56" y="358" width="450" height="44" rx="8" style="fill:var(--accent-soft,#f6dccb);stroke:var(--accent,#9a4a2c)"/>
+    <text x="70" y="376" font-weight="700" style="fill:var(--accent,#9a4a2c)">loaded 신호</text>
+    <text x="70" y="393" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">SceneHandle.loaded → RoomView가 로딩 그림을 걷고 0.6초 페이드 인</text>
+
+    <rect x="56" y="408" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="426" font-weight="700">그리기 루프</text>
+    <text x="70" y="443" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">매 프레임: 움직임 계산 → 그리기 (requestAnimationFrame, engine.ts)</text>
+
+    <rect x="56" y="458" width="450" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="70" y="476" font-weight="700">떠나면 정리 (dispose)</text>
+    <text x="70" y="493" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">장면이 만든 것 · 렌더러를 풀고 WebGL 컨텍스트를 돌려줌 (모델은 캐시에 남김)</text>
+  </g>
+
+  <!-- 번호 -->
+  <g font-size="12" font-weight="700" text-anchor="middle">
+    <circle cx="34" cy="80" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="84.5" style="fill:var(--on-strong,#fbf4ec)">1</text>
+    <circle cx="34" cy="130" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="134.5" style="fill:var(--on-strong,#fbf4ec)">2</text>
+    <circle cx="34" cy="180" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="184.5" style="fill:var(--on-strong,#fbf4ec)">3</text>
+    <circle cx="34" cy="230" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="234.5" style="fill:var(--on-strong,#fbf4ec)">4</text>
+    <circle cx="34" cy="280" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="284.5" style="fill:var(--on-strong,#fbf4ec)">5</text>
+    <circle cx="34" cy="330" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="334.5" style="fill:var(--on-strong,#fbf4ec)">6</text>
+    <circle cx="34" cy="380" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="384.5" style="fill:var(--on-strong,#fbf4ec)">7</text>
+    <circle cx="34" cy="430" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="434.5" style="fill:var(--on-strong,#fbf4ec)">8</text>
+    <circle cx="34" cy="480" r="12" style="fill:var(--cta,#c8643a)"/><text x="34" y="484.5" style="fill:var(--on-strong,#fbf4ec)">9</text>
+  </g>
+
+  <!-- 사용자에게 보이는 것 -->
+  <rect x="520" y="58" width="224" height="294" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <g text-anchor="middle">
+    <text x="632" y="184" font-weight="700">로딩 애니메이션</text>
+    <text x="632" y="205">“땅굴 파는 중...”</text>
+    <text x="632" y="227" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">흙더미에서 두더지가 고개를 내밂</text>
+    <text x="632" y="334" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">3D 캔버스는 아직 숨겨 둠</text>
+  </g>
+  <rect x="520" y="358" width="224" height="44" rx="10" style="fill:var(--accent-soft,#f6dccb)"/>
+  <text x="632" y="376" text-anchor="middle" font-weight="700" style="fill:var(--accent,#9a4a2c)">0.6초 페이드 인</text>
+  <text x="632" y="393" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">다 차려진 방이 한 번에 나타남</text>
+  <rect x="520" y="408" width="224" height="44" rx="10" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="632" y="426" text-anchor="middle" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">방이 보임</text>
+  <text x="632" y="443" text-anchor="middle" font-size="11.5" style="fill:var(--chip-mint-fg,#2e5e4c)">두더지가 움직이고 리액션 버튼이 뜸</text>
+  <rect x="520" y="458" width="224" height="44" rx="10" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 4"/>
+  <text x="632" y="485" text-anchor="middle" style="fill:var(--ink-soft,#5c4334)">다른 화면으로 이동</text>
+
+  <!-- 실패할 때 -->
+  <rect x="16" y="516" width="728" height="30" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 4"/>
+  <text x="380" y="536" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">WebGL을 못 쓰거나 8초가 지나도 안 뜨면 → 같은 구도의 정지 그림 (RoomView · SceneBoundary)</text>
+</svg>

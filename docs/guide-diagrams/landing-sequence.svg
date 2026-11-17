@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 410" width="760" height="410" role="img" aria-label="첫 화면 로딩: 고치기 전에는 그림, 빈 화면, 가구가 하나씩, 이름표가 먼저 뜨며 번잡했고, 고친 뒤에는 준비 신호가 올 때까지 로딩 애니메이션만 보여 주다가 다 차려진 방을 0.6초에 한 번에 보여 준다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="410" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- ===== 고치기 전 ===== -->
+  <rect x="16" y="16" width="214" height="24" rx="12" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="123" y="33" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">고치기 전 · 11-12 사용자 제보</text>
+
+  <rect x="16" y="52" width="160" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="96" y="70" text-anchor="middle" font-size="12.5" font-weight="700">자리표시 그림</text>
+  <text x="96" y="87" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">방 렌더 한 장</text>
+  <line x1="178" y1="74" x2="190" y2="74" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="192" y="52" width="108" height="44" rx="8" style="fill:none;stroke:var(--chip-rose-fg,#7d3a3f)" stroke-dasharray="4 3"/>
+  <text x="246" y="79" text-anchor="middle" font-size="12.5" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">빈 화면</text>
+  <line x1="302" y1="74" x2="314" y2="74" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="316" y="52" width="428" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="530" y="70" text-anchor="middle" font-size="12.5" font-weight="700">3D 방이 뜸</text>
+  <text x="530" y="87" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">천장 구멍 → 두더지 낙하 → 가구가 하나씩 떨어짐</text>
+
+  <line x1="110" y1="98" x2="110" y2="110" style="stroke:var(--chip-butter-fg,#6b5410)" stroke-width="1.4"/>
+  <rect x="16" y="110" width="170" height="24" rx="12" style="fill:var(--chip-butter-bg,#f3e6be)"/>
+  <text x="101" y="127" text-anchor="middle" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">이름표는 0.3초에 먼저 뜸</text>
+  <line x1="191" y1="98" x2="191" y2="110" style="stroke:var(--chip-rose-fg,#7d3a3f)" stroke-width="1.4"/>
+  <text x="198" y="127" font-size="11.5" style="fill:var(--chip-rose-fg,#7d3a3f)">3D 캔버스가 만들어지자마자(모델을 받기 전) 그림을 치움</text>
+
+  <line x1="16" y1="152" x2="744" y2="152" style="stroke:var(--box-line,#e3cbb5)" stroke-dasharray="4 4"/>
+
+  <!-- ===== 고친 뒤 ===== -->
+  <rect x="16" y="166" width="150" height="24" rx="12" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="91" y="183" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">고친 뒤 · 11-12</text>
+
+  <rect x="16" y="202" width="282" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="157" y="220" text-anchor="middle" font-size="12.5" font-weight="700">문장 + 로딩 애니메이션</text>
+  <text x="157" y="237" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">흙더미 두더지 · “땅굴 파는 중...”</text>
+  <line x1="300" y1="224" x2="310" y2="224" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6"/>
+  <path d="M318,214 L328,224 L318,234 L308,224 Z" style="fill:var(--cta,#c8643a)"/>
+  <line x1="328" y1="224" x2="338" y2="224" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="318" y="264" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--cta,#c8643a)">loaded 신호</text>
+  <text x="318" y="280" text-anchor="middle" font-size="11" style="fill:var(--ink-soft,#5c4334)">모델을 다 받고 첫 그림을 그린 뒤</text>
+  <rect x="340" y="202" width="222" height="44" rx="8" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="451" y="220" text-anchor="middle" font-size="12.5" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">0.6초 페이드 인</text>
+  <text x="451" y="237" text-anchor="middle" font-size="11.5" style="fill:var(--chip-mint-fg,#2e5e4c)">다 차려진 방을 한 번에 (낙하 연출 없음)</text>
+  <line x1="564" y1="224" x2="576" y2="224" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="578" y="202" width="166" height="44" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="661" y="220" text-anchor="middle" font-size="12.5" font-weight="700">이름표 차례로</text>
+  <text x="661" y="237" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">방이 뜬 뒤 0.08초 간격</text>
+
+  <text x="380" y="310" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">준비 신호(SceneHandle.loaded) 하나로 “전”과 “후”만 나눔 → 중간 단계가 보이지 않음</text>
+
+  <!-- ===== 지금 ===== -->
+  <rect x="16" y="326" width="728" height="52" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 4"/>
+  <text x="28" y="347" font-size="11.5" style="fill:var(--ink-soft,#5c4334)"><tspan font-weight="700">11-17 지금</tspan> · 시작 화면: 로딩 애니메이션 대신 같은 구도의 정지 그림(GPU로 미리 찍음)을 깔고 그 위로 3D가 0.6초 페이드 인</text>
+  <text x="28" y="367" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">내 땅굴 · 남의 땅굴: 로딩 애니메이션 → loaded → 0.6초 페이드 인 → 천장 구멍 · 두더지 낙하 연출</text>
+  <text x="380" y="400" text-anchor="middle" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">시간 → (상자 길이는 순서만 보여 줌, 실제 시간 비율 아님)</text>
+</svg>

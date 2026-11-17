@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 472" width="760" height="472" role="img" aria-label="메인 스레드는 계산대 직원 한 명: 가속이 꺼지면 3D 그리기가 직원을 붙잡아 클릭·스크롤·키 입력이 줄을 서고, 고친 뒤에는 두더지만 짧게 그리고 해독은 Worker가 맡아 입력이 사이사이 바로 처리된다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="472" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- ===== 고치기 전 ===== -->
+  <rect x="16" y="16" width="728" height="182" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="28" width="164" height="24" rx="12" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="110" y="45" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">고치기 전 · 가속 꺼짐</text>
+
+  <text x="82" y="78" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">줄 선 손님</text>
+  <rect x="36" y="86" width="92" height="24" rx="12" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="82" y="102" text-anchor="middle" font-size="12">클릭</text>
+  <rect x="36" y="114" width="92" height="24" rx="12" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="82" y="130" text-anchor="middle" font-size="12">스크롤</text>
+  <rect x="36" y="142" width="92" height="24" rx="12" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="82" y="158" text-anchor="middle" font-size="12">키 입력</text>
+  <line x1="132" y1="126" x2="168" y2="126" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+  <text x="150" y="118" text-anchor="middle" font-size="11" style="fill:var(--ink-soft,#5c4334)">기다림</text>
+
+  <rect x="172" y="94" width="112" height="64" rx="10" style="fill:var(--strong,#6b4a3a)"/>
+  <text x="228" y="121" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">메인 스레드</text>
+  <text x="228" y="140" text-anchor="middle" font-size="11.5" style="fill:var(--on-strong,#fbf4ec)">계산대 직원 한 명</text>
+
+  <text x="300" y="90" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">직원이 하는 일 (시간 →)</text>
+  <rect x="300" y="100" width="152" height="52" rx="6" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="376" y="131" text-anchor="middle" font-size="12" style="fill:var(--chip-rose-fg,#7d3a3f)">3D 그리기</text>
+  <rect x="456" y="100" width="144" height="52" rx="6" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="528" y="131" text-anchor="middle" font-size="12" style="fill:var(--chip-rose-fg,#7d3a3f)">3D 그리기</text>
+  <rect x="604" y="100" width="132" height="52" rx="6" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="670" y="131" text-anchor="middle" font-size="12" style="fill:var(--chip-rose-fg,#7d3a3f)">3D 그리기</text>
+
+  <text x="380" y="183" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">땅굴 3fps · 탐색하기 1.1fps · 16초 중 15초 넘게 막힘 · 키를 누르고 화면까지 0.4~0.6초</text>
+
+  <!-- ===== 고친 뒤 ===== -->
+  <rect x="16" y="212" width="728" height="222" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <rect x="28" y="224" width="212" height="24" rx="12" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="134" y="241" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">고친 뒤 · 11-13 실제 SSAFY PC</text>
+
+  <text x="82" y="274" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">줄 선 손님</text>
+  <rect x="36" y="282" width="92" height="52" rx="10" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 3"/>
+  <text x="82" y="306" text-anchor="middle" font-size="12" style="fill:var(--ink-mute,#8a7262)">없음</text>
+  <text x="82" y="323" text-anchor="middle" font-size="11" style="fill:var(--ink-mute,#8a7262)">바로 처리</text>
+
+  <rect x="172" y="276" width="112" height="64" rx="10" style="fill:var(--strong,#6b4a3a)"/>
+  <text x="228" y="303" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">메인 스레드</text>
+  <text x="228" y="322" text-anchor="middle" font-size="11.5" style="fill:var(--on-strong,#fbf4ec)">계산대 직원 한 명</text>
+
+  <text x="300" y="272" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">직원이 하는 일 (시간 →)</text>
+  <rect x="300" y="282" width="58" height="40" rx="6" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="329" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-clay-fg,#7e3b22)">두더지</text>
+  <rect x="362" y="282" width="44" height="40" rx="6" style="fill:var(--chip-sage-bg,#dde7cc)"/>
+  <text x="384" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-sage-fg,#3f5a24)">클릭</text>
+  <rect x="410" y="282" width="58" height="40" rx="6" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="439" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-clay-fg,#7e3b22)">두더지</text>
+  <rect x="472" y="282" width="54" height="40" rx="6" style="fill:var(--chip-sage-bg,#dde7cc)"/>
+  <text x="499" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-sage-fg,#3f5a24)">스크롤</text>
+  <rect x="530" y="282" width="58" height="40" rx="6" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="559" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-clay-fg,#7e3b22)">두더지</text>
+  <rect x="592" y="282" width="84" height="40" rx="6" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 3"/>
+  <text x="634" y="306" text-anchor="middle" font-size="12" style="fill:var(--ink-mute,#8a7262)">쉬면 멈춤</text>
+  <rect x="680" y="282" width="56" height="40" rx="6" style="fill:var(--chip-sage-bg,#dde7cc)"/>
+  <text x="708" y="306" text-anchor="middle" font-size="12" style="fill:var(--chip-sage-fg,#3f5a24)">키 입력</text>
+  <text x="300" y="340" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">배경은 한 번 그려 두고 두더지 둘레만 · 안 움직이면 그리지 않음</text>
+
+  <rect x="172" y="354" width="112" height="44" rx="10" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="228" y="373" text-anchor="middle" font-weight="700">Worker</text>
+  <text x="228" y="390" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">옆 계산대</text>
+  <rect x="300" y="358" width="236" height="36" rx="6" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="418" y="381" text-anchor="middle" font-size="12" style="fill:var(--chip-sky-fg,#2f5868)">Draco 해독 (모델 압축 풀기)</text>
+  <text x="552" y="381" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">← 첫 진입 때 무거운 일</text>
+
+  <text x="380" y="420" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">땅굴 걷기: 페이지 60fps · 긴 작업 0  /  첫 진입 가장 긴 멈춤 0.72 → 0.15초</text>
+
+  <text x="380" y="458" text-anchor="middle" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">막대 길이는 모양을 보여 주는 예시 (실제 시간 비율이 아님)</text>
+</svg>
