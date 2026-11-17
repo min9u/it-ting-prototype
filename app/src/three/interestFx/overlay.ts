@@ -104,7 +104,7 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     window.addEventListener('keydown', onInput)
   }
   let wasAnim = false
-  /** lite: 카메라가 움직이는 동안 숨겨 둠 (들판 점프 0.4초·방 돌리기). 3D 가 가장 무거운 순간에 겹 캔버스 합성을 쉬게 */
+  /** lite: 카메라가 움직이는 동안 비워 둠 (들판 점프 0.4초·방 돌리기). 3D 가 가장 무거운 순간에 겹 캔버스 그리기·합성을 쉬게 */
   let hiddenForMove = false
   const tick = (now: number) => {
     if (!alive) return
@@ -117,8 +117,9 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     last = now
     if (moved) wake()
     if (mode.level === 'lite') {
-      if (moved) { if (!hiddenForMove) { hiddenForMove = true; cv.style.visibility = 'hidden' } return }
-      if (hiddenForMove) { hiddenForMove = false; cv.style.visibility = ''; dirty = true }
+      // 지우기만 한 번 (style.visibility 를 바꾸면 3차 측정에서 점프 fps 가 더 떨어졌음: 스타일 다시 계산·층 다시 올리기)
+      if (moved) { if (!hiddenForMove) { hiddenForMove = true; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height) } return }
+      if (hiddenForMove) { hiddenForMove = false; dirty = true }
     }
     const calm = mode.level === 'still' || (mode.restAfter > 0 && now > awakeUntil)
     const anim = mode.level !== 'still' && animating(calm)
