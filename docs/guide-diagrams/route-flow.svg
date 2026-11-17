@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 384" width="760" height="384" role="img" aria-label="주소 /burrow/yerin이 라우터 표, 로그인 확인, 헤더가 있는 틀(AppLayout)을 거쳐 Outlet 자리에 VisitBurrow 화면으로 그려지는 순서" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="384" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 왼쪽: 순서 -->
+  <g>
+    <rect x="16" y="20" width="364" height="56" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="38" cy="48" r="11" style="fill:var(--cta,#c8643a)"/>
+    <text x="38" y="52.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">1</text>
+    <text x="60" y="43" font-weight="700">주소창: <tspan font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace">/burrow/yerin</tspan></text>
+    <text x="60" y="63" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">앱 안에서 이동하면 서버에 HTML을 묻지 않음</text>
+
+    <line x1="38" y1="77" x2="38" y2="85" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="16" y="88" width="364" height="56" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="38" cy="116" r="11" style="fill:var(--cta,#c8643a)"/>
+    <text x="38" y="120.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">2</text>
+    <text x="60" y="111" font-weight="700">라우터 표(App.tsx)에서 찾기</text>
+    <text x="60" y="131" font-size="11.5" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--ink-soft,#5c4334)">/burrow/:userId → &lt;VisitBurrow /&gt;</text>
+
+    <line x1="38" y1="145" x2="38" y2="153" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="16" y="156" width="364" height="56" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="38" cy="184" r="11" style="fill:var(--cta,#c8643a)"/>
+    <text x="38" y="188.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
+    <text x="60" y="179" font-weight="700">RequireLogin: 로그인 확인</text>
+    <text x="60" y="199" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">지금은 LOGIN_FREE = true 라 그냥 통과</text>
+
+    <line x1="38" y1="213" x2="38" y2="221" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="16" y="224" width="364" height="56" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="38" cy="252" r="11" style="fill:var(--cta,#c8643a)"/>
+    <text x="38" y="256.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">4</text>
+    <text x="60" y="247" font-weight="700">AppLayout: 로그인 뒤 화면의 틀</text>
+    <text x="60" y="267" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">헤더 + 채팅 실시간 시작 + &lt;Outlet /&gt; 자리</text>
+
+    <line x1="38" y1="281" x2="38" y2="289" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="16" y="292" width="364" height="56" rx="10" style="fill:var(--accent-soft,#f6dccb);stroke:var(--cta,#c8643a)"/>
+    <circle cx="38" cy="320" r="11" style="fill:var(--cta,#c8643a)"/>
+    <text x="38" y="324.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">5</text>
+    <text x="60" y="315" font-weight="700">VisitBurrow 화면</text>
+    <text x="60" y="335" font-size="11.5" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--ink-soft,#5c4334)">useParams() → userId = 'yerin'</text>
+  </g>
+
+  <!-- 오른쪽: 화면 모양 -->
+  <rect x="412" y="20" width="332" height="300" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <circle cx="430" cy="38" r="4.5" style="fill:var(--ink-mute,#8a7262)"/>
+  <circle cx="444" cy="38" r="4.5" style="fill:var(--ink-mute,#8a7262)"/>
+  <circle cx="458" cy="38" r="4.5" style="fill:var(--ink-mute,#8a7262)"/>
+  <rect x="474" y="28" width="258" height="20" rx="10" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="486" y="42.5" font-size="12" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--ink-soft,#5c4334)">/burrow/yerin</text>
+
+  <rect x="424" y="58" width="308" height="44" rx="6" style="fill:var(--strong,#6b4a3a)"/>
+  <text x="436" y="77" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">헤더 (AppHeader)</text>
+  <text x="436" y="94" font-size="11" style="fill:var(--on-strong,#fbf4ec)">땅굴 · 커뮤니티 · 모임 · 채팅</text>
+
+  <rect x="424" y="110" width="308" height="198" rx="6" style="fill:var(--fig-bg,#fffaf4);stroke:var(--cta,#c8643a)" stroke-dasharray="6 4" stroke-width="1.5"/>
+  <text x="436" y="130" font-size="12" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--cta,#c8643a)">&lt;Outlet /&gt; 자리</text>
+  <text x="578" y="200" text-anchor="middle" font-size="16" font-weight="700">VisitBurrow</text>
+  <text x="578" y="222" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">예린의 땅굴 (3D)</text>
+
+  <!-- 잇는 선 -->
+  <path d="M380,252 C396,252 396,80 422,80" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="3 3"/>
+  <path d="M380,320 C398,320 398,210 422,210" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="3 3"/>
+
+  <text x="578" y="342" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">/board 로 가면 헤더는 그대로,</text>
+  <text x="578" y="360" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">Outlet 칸만 BoardList 로 바뀜</text>
+</svg>

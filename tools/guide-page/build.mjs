@@ -1,7 +1,10 @@
 // docs/frontend-guide.md + docs/frontend-guide-concepts.md → 아티팩트용 웹 페이지 한 장
 // 사용: node tools/guide-page/build.mjs [출력 파일]   (기본 tools/guide-page/out/frontend-guide.html)
-// 외부 패키지 없이 이 두 문서가 쓰는 마크다운만 처리함: 제목 · 문단 · 목록(2칸 들여쓰기) · 표 · 코드 블록 · 줄 · 링크 · 굵게 · 코드
+// 외부 패키지 없이 이 두 문서가 쓰는 마크다운만 처리함: 제목 · 문단 · 목록(2칸 들여쓰기) · 표 · 코드 블록 · 줄 · 링크 · 굵게 · 코드 · 이미지
 // 문서 사이 링크는 페이지 안 이동으로, 다른 docs/ 문서는 GitHub 링크로 바꿈. 제목 id 는 ASCII(g-12, c-3)
+// 이미지만 있는 문단은 <figure>: SVG(docs/guide-diagrams/)는 본문에 인라인(다크 모드를 따름, id 에 접두사),
+// 사진(docs/guide-images/)은 out/img/ 로 복사하고 크기를 넣어 lazy 로. 아티팩트에 같이 올릴 파일 목록은 out/files.json
+// 링크·이미지가 가리키는 파일이 없으면 경고
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +20,10 @@ const DOCS = [
 ]
 const byFile = Object.fromEntries(DOCS.map((d) => [path.basename(d.file), d]))
 const warnings = []
+const outDir = path.dirname(out)
+const imgDir = path.join(outDir, 'img')
+const copied = new Map() // 원본 경로 → 페이지 기준 상대 경로 (img/x.jpg)
+let figNo = 0, svgNo = 0
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const escAttr = (s) => esc(s).replace(/"/g, '&quot;')
@@ -59,7 +66,84 @@ function rewrite(href, doc) {
   }
   // 그 밖의 저장소 파일 → GitHub
   const rel = path.posix.normalize(path.posix.join('docs', p))
+  if (!fs.existsSync(path.join(root, rel))) warnings.push(`링크한 파일 없음: ${href} (${doc.file})`)
   return { href: GH + rel + (hash ? `#${hash}` : ''), ext: true }
+}
+
+/* ---------- 이미지 ---------- */
+const IMG = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/
+const IMG_ONLY = new RegExp(`^${IMG.source}$`)
+
+/** PNG · JPEG · WebP 머리에서 가로·세로 (패키지 없이) */
+function imageSize(buf) {
+  if (buf.readUInt32BE(0) === 0x89504e47) return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) }
+  if (buf[0] === 0xff && buf[1] === 0xd8) {
+    let i = 2
+    while (i < buf.length) {
+      if (buf[i] !== 0xff) { i++; continue }
+      const marker = buf[i + 1], len = buf.readUInt16BE(i + 2)
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { w: buf.readUInt16BE(i + 7), h: buf.readUInt16BE(i + 5) }
+      i += 2 + len
+    }
+  }
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+    const kind = buf.toString('ascii', 12, 16)
+    if (kind === 'VP8X') return { w: 1 + buf.readUIntLE(24, 3), h: 1 + buf.readUIntLE(27, 3) }
+    if (kind === 'VP8 ') return { w: buf.readUInt16LE(26) & 0x3fff, h: buf.readUInt16LE(28) & 0x3fff }
+    if (kind === 'VP8L') { const b = buf.readUInt32LE(21); return { w: 1 + (b & 0x3fff), h: 1 + ((b >> 14) & 0x3fff) } }
+  }
+  return null
+}
+
+/** SVG 파일 → 본문에 넣을 <svg>. 크기는 CSS 가 정하고, id 는 그림마다 접두사를 붙여 겹치지 않게 */
+function svgInline(file, alt) {
+  const pre = `s${++svgNo}-`
+  let s = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+    .replace(/<\?xml[^>]*\?>\s*/g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<title>[\s\S]*?<\/title>/g, '').trim()
+  for (const bad of ['<script', '<style', '<foreignObject', '<image']) if (s.includes(bad)) warnings.push(`${path.relative(root, file)}: ${bad} 는 쓰지 않기로 함`)
+  const ids = [...s.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])
+  for (const id of ids) {
+    const re = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    s = s.replace(new RegExp(`(\\sid=")${re}"`, 'g'), `$1${pre}${id}"`)
+      .replace(new RegExp(`url\\(#${re}\\)`, 'g'), `url(#${pre}${id})`)
+      .replace(new RegExp(`(href=")#${re}"`, 'g'), `$1#${pre}${id}"`)
+  }
+  const root0 = /^<svg\b[^>]*>/.exec(s)
+  if (!root0) { warnings.push(`${path.relative(root, file)}: <svg> 로 시작하지 않음`); return { html: '', w: 0 } }
+  const vb = /viewBox="([\d.\s-]+)"/.exec(root0[0])
+  const w = vb ? +vb[1].trim().split(/\s+/)[2] : 760
+  let tag = root0[0].replace(/\s(width|height)="[^"]*"/g, '').replace(/\sclass="[^"]*"/, '')
+  tag = tag.replace(/^<svg/, '<svg class="dg" focusable="false"')
+  if (!/\srole=/.test(tag)) tag = tag.replace(/^<svg/, '<svg role="img"')
+  if (!/\saria-label=/.test(tag)) tag = tag.replace(/^<svg/, `<svg aria-label="${escAttr(alt)}"`)
+  return { html: tag + s.slice(root0[0].length), w }
+}
+
+/** ![alt](경로 "제목") → <figure>. 캡션은 제목이 있으면 제목, 없으면 alt */
+function figure(alt, src, title, doc) {
+  const file = path.resolve(root, path.dirname(doc.file), src)
+  const cap = title || alt
+  if (!fs.existsSync(file)) { warnings.push(`그림 파일 없음: ${src} (${doc.file})`); return `<p class="fig-missing">[그림 없음: ${esc(src)}]</p>` }
+  const n = ++figNo
+  const caption = `<figcaption><span class="fig-no">그림 ${n}</span>${inline(cap, doc)}</figcaption>`
+  if (/\.svg$/i.test(file)) {
+    const { html, w } = svgInline(file, alt)
+    return `<figure class="fig fig-svg" id="fig-${n}"><div class="fig-frame" style="--minw:${Math.round(w * 0.8)}px">${html}</div>${caption}</figure>`
+  }
+  let rel = copied.get(file)
+  if (!rel) {
+    rel = `img/${path.basename(file)}`
+    if ([...copied.values()].includes(rel)) warnings.push(`같은 이름의 사진이 둘: ${rel}`)
+    fs.mkdirSync(imgDir, { recursive: true })
+    fs.copyFileSync(file, path.join(outDir, rel))
+    copied.set(file, rel)
+  }
+  const buf = fs.readFileSync(file)
+  const size = imageSize(buf)
+  if (!size) warnings.push(`사진 크기를 못 읽음: ${src}`)
+  if (buf.length > 200 * 1024) warnings.push(`사진이 200KB 넘음: ${src} (${Math.round(buf.length / 1024)}KB)`)
+  const dim = size ? ` width="${size.w}" height="${size.h}"` : ''
+  return `<figure class="fig fig-img" id="fig-${n}"><div class="fig-frame fig-photo"><img src="${escAttr(rel)}"${dim} alt="${escAttr(alt)}" loading="lazy" decoding="async"></div>${caption}</figure>`
 }
 
 /* ---------- 인라인 ---------- */
@@ -67,6 +151,8 @@ function inline(text, doc) {
   const slots = []
   const keep = (html) => `\u0000${slots.push(html) - 1}\u0000`
   let s = text.replace(/(`+)([\s\S]*?)\1/g, (_, __, code) => keep(`<code>${esc(code)}</code>`))
+  // 문장 안의 이미지는 쓰지 않기로 함 (그림은 문단 하나로). 혹시 있으면 링크로
+  s = s.replace(new RegExp(IMG.source, 'g'), (_, alt, src) => { warnings.push(`문장 안 이미지는 링크로 바꿈: ${src} (${doc.file})`); return keep(`<a href="${escAttr(src)}">${esc(alt || src)}</a>`) })
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
     const r = rewrite(href, doc)
     return keep(`<a href="${escAttr(r.href)}"${r.ext ? ' target="_blank" rel="noopener"' : ''}>${inlineRest(label, slots)}</a>`)
@@ -127,7 +213,7 @@ function table(rows, doc) {
 /* ---------- 블록 ---------- */
 const indentOf = (l) => l.match(/^ */)[0].length
 const LIST = /^( *)([-*]|\d+\.) +(.*)$/
-const isBlockStart = (l) => /^\s*```/.test(l) || /^#{1,6}\s/.test(l) || /^---+\s*$/.test(l) || /^\s*\|/.test(l) || LIST.test(l)
+const isBlockStart = (l) => /^\s*```/.test(l) || /^#{1,6}\s/.test(l) || /^---+\s*$/.test(l) || /^\s*\|/.test(l) || LIST.test(l) || IMG_ONLY.test(l.trim())
 
 function blocks(lines, doc, ctx) {
   const html = []
@@ -196,6 +282,9 @@ function blocks(lines, doc, ctx) {
       html.push(`<${tag}${start}>${items.map((it) => `<li>${blocks(it.lines, doc, { head: ctx.head, tight: true })}</li>`).join('')}</${tag}>`)
       continue
     }
+    // 그림 (한 줄에 이미지 하나만)
+    const im = IMG_ONLY.exec(line.trim())
+    if (im) { html.push(figure(im[1], im[2], im[3], doc)); i++; continue }
     // 문단
     const para = []
     while (i < lines.length && lines[i].trim() && !(para.length && isBlockStart(lines[i]))) para.push(lines[i++].trim())
@@ -231,6 +320,7 @@ function toc(doc) {
   return `<section class="toc-doc"><a class="toc-doc-title" href="#${doc.prefix}-top">${doc.label}</a><p class="toc-doc-note">${doc.note}</p><ul class="toc-list">${items.join('')}</ul></section>`
 }
 
+fs.rmSync(imgDir, { recursive: true, force: true }) // 옛 사진이 남지 않게
 const articles = DOCS.map((d) => `<article class="doc" id="${d.prefix}-top" aria-label="${d.label}">\n${render(d)}\n</article>`)
 const tpl = fs.readFileSync(path.join(here, 'template.html'), 'utf8')
 const built = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric' })
@@ -239,7 +329,20 @@ const page = tpl
   .replace('<!--GUIDE-->', articles[0])
   .replace('<!--CONCEPTS-->', articles[1])
   .replace('<!--BUILT-->', esc(built))
-fs.mkdirSync(path.dirname(out), { recursive: true })
+// 깨진 페이지 안 링크 (#g-12 같은 id 가 실제로 있는지)
+const idsInPage = new Set([...page.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]))
+for (const m of page.matchAll(/href="#([^"]+)"/g)) if (!idsInPage.has(m[1])) warnings.push(`페이지 안 앵커 없음: #${m[1]}`)
+fs.mkdirSync(outDir, { recursive: true })
 fs.writeFileSync(out, page)
-console.log(`${out} (${Math.round(page.length / 1024)}KB)`)
+// 로컬 미리보기용: 아티팩트가 게시할 때 붙이는 뼈대를 씌운 판 (게시에는 쓰지 않음)
+fs.writeFileSync(out.replace(/\.html$/, '.preview.html'), `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+${page}
+</body></html>
+`)
+// 아티팩트 publish 의 files 로 같이 올릴 파일 (페이지 기준 상대 경로)
+const files = [...copied.values()].sort()
+fs.writeFileSync(path.join(outDir, 'files.json'), JSON.stringify(files, null, 2) + '\n')
+const imgBytes = files.reduce((a, f) => a + fs.statSync(path.join(outDir, f)).size, 0)
+console.log(`${out} (${Math.round(Buffer.byteLength(page) / 1024)}KB, 그림 ${figNo}개 중 SVG ${svgNo}개 · 사진 ${files.length}장 ${Math.round(imgBytes / 1024)}KB → files.json)`)
 for (const w of warnings) console.warn('경고:', w)
+if (warnings.length) process.exitCode = 1

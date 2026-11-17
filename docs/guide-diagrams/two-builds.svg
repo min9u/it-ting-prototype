@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 392" width="760" height="392" role="img" aria-label="같은 app/src 코드를 일반 빌드는 dist로 묶어 실서버에, 공유 빌드는 --mode share로 라우터·glb·Draco·데이터를 바꿔 dist-share로 묶어 아티팩트에 올린다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="392" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 같은 코드 -->
+  <rect x="16" y="150" width="100" height="90" rx="10" style="fill:var(--strong,#6b4a3a)"/>
+  <text x="66" y="190" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">app/src</text>
+  <text x="66" y="210" text-anchor="middle" font-size="11.5" style="fill:var(--on-strong,#fbf4ec)">같은 코드</text>
+  <path d="M116,180 H132 V84 H146" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M116,210 H132 V316 H146" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- 일반 빌드 -->
+  <text x="150" y="34" font-weight="700">일반 빌드 · 실서버용</text>
+  <rect x="150" y="44" width="140" height="80" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="162" y="68" font-weight="700" font-size="12.5">npm run build</text>
+  <text x="162" y="88" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">tsc -b (타입 검사)</text>
+  <text x="162" y="106" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">→ vite build</text>
+  <line x1="290" y1="84" x2="326" y2="84" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="308" y="76" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">만듦</text>
+  <rect x="330" y="44" width="170" height="80" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="342" y="68" font-weight="700">dist/</text>
+  <text x="342" y="88" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">assets/ JS · CSS · glb 파일</text>
+  <text x="342" y="106" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">draco/ wasm 해독기</text>
+  <line x1="500" y1="84" x2="536" y2="84" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="518" y="76" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">올림</text>
+  <rect x="540" y="44" width="96" height="80" rx="10" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="588" y="78" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">실서버</text>
+  <text x="588" y="98" text-anchor="middle" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">Nginx (가정)</text>
+  <line x1="636" y1="84" x2="660" y2="84" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="648" y="76" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">엶</text>
+  <rect x="664" y="44" width="80" height="80" rx="10" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="704" y="78" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">/burrow</text>
+  <text x="704" y="98" text-anchor="middle" font-size="11.5" style="fill:var(--chip-clay-fg,#7e3b22)">브라우저</text>
+
+  <!-- mode share 가 바꾸는 것 -->
+  <rect x="150" y="144" width="594" height="102" rx="10" style="fill:var(--accent-soft,#f6dccb)"/>
+  <text x="164" y="166" font-weight="700" style="fill:var(--accent,#9a4a2c)">공유 빌드(--mode share)에서 달라지는 것</text>
+  <g font-size="12">
+    <rect x="160" y="176" width="286" height="28" rx="6" style="fill:var(--fig-bg,#fffaf4)"/>
+    <text x="172" y="195">라우터: 브라우저 → 해시 (.env.share)</text>
+    <rect x="452" y="176" width="284" height="28" rx="6" style="fill:var(--fig-bg,#fffaf4)"/>
+    <text x="464" y="195">glb: 파일 → JS 안 data URL</text>
+    <rect x="160" y="210" width="286" height="28" rx="6" style="fill:var(--fig-bg,#fffaf4)"/>
+    <text x="172" y="229">Draco: wasm → JS 해독기 (Worker)</text>
+    <rect x="452" y="210" width="284" height="28" rx="6" style="fill:var(--fig-bg,#fffaf4)"/>
+    <text x="464" y="229">파일 경로: / → 상대 경로 ./</text>
+  </g>
+
+  <!-- 공유 빌드 -->
+  <text x="150" y="268" font-weight="700">공유 빌드 · 팀 공유용</text>
+  <rect x="150" y="276" width="140" height="80" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="162" y="300" font-weight="700" font-size="12.5">npm run build:share</text>
+  <text x="162" y="320" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">tsc -b → vite build</text>
+  <text x="162" y="338" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">--mode share</text>
+  <line x1="290" y1="316" x2="326" y2="316" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="308" y="308" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">만듦</text>
+  <rect x="330" y="276" width="170" height="80" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="342" y="300" font-weight="700">dist-share/</text>
+  <text x="342" y="320" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">share-page.html</text>
+  <text x="342" y="338" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">+ 올릴 목록 files.json</text>
+  <line x1="500" y1="316" x2="536" y2="316" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="518" y="308" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">올림</text>
+  <rect x="540" y="276" width="96" height="80" rx="10" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="588" y="310" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">Claude</text>
+  <text x="588" y="330" text-anchor="middle" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">아티팩트</text>
+  <line x1="636" y1="316" x2="660" y2="316" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="648" y="308" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">엶</text>
+  <rect x="664" y="276" width="80" height="80" rx="10" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="704" y="310" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">#/burrow</text>
+  <text x="704" y="330" text-anchor="middle" font-size="11.5" style="fill:var(--chip-clay-fg,#7e3b22)">브라우저</text>
+
+  <text x="150" y="380" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">데이터: 공유 빌드는 늘 목 서버, 일반 빌드는 VITE_API_MODE 에 따라 (기본 mock)</text>
+</svg>

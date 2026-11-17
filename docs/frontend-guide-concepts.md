@@ -1,10 +1,11 @@
 # 디굴디굴 프론트엔드 개념 학습
 
-- 날짜: 2026-11-17 (2026-11-10 가이드의 2~7장을 지금 코드에 맞게 고치고 데이터·실시간·그래픽 성능·테스트를 더함)
-- 요청: 프론트엔드 전문성이 부족한 기획·관리자가 이 프로젝트로 프론트엔드를 이해할 수 있게 (요청 원문은 [frontend-guide.md](frontend-guide.md) 맨 위)
-- 대상 독자: 이 프로젝트의 기획·관리자
+디굴디굴 프론트엔드를 이해하는 데 필요한 개념을 이 프로젝트의 실제 코드로 설명하는 학습 문서다.
+
+- 날짜: 2026-11-17 (2026-11-10 가이드의 2~7장을 지금 코드에 맞게 고치고 데이터·실시간·그래픽 성능·테스트를 더함. 같은 날 그림·사진 추가)
+- 대상 독자: 이 프로젝트의 기획·관리자, 프론트엔드를 처음 보는 팀원
 - 짝 문서: [frontend-guide.md](frontend-guide.md) (기술 선택의 이유, 사건 기록, 구조, 백엔드 연결, 용어집)
-- 읽는 법: 장마다 **개념 → 이 프로젝트에서는 → 직접 해 볼 것** 순서. 코드 위치는 `app/src/` 기준. 용어는 [가이드 7장 용어집](frontend-guide.md#7-용어집)
+- 읽는 법: 장마다 **개념 → 이 프로젝트에서는 → 직접 해 볼 것** 순서. 코드 위치는 `app/src/` 기준. 용어는 [가이드 8장 용어집](frontend-guide.md#8-용어집)
 
 ## 목차
 1. [전체 그림: SPA](#1-전체-그림-spa)
@@ -26,6 +27,8 @@
 ### 개념
 - **SPA(Single Page Application)**: 서버에서 HTML을 한 번만 받고, 그 뒤 화면 전환은 브라우저 안의 JavaScript가 처리한다. 메뉴를 눌러도 페이지가 새로고침되지 않는다
 - 브라우저는 TypeScript·JSX를 바로 읽지 못한다. **빌드 도구**(Vite)가 브라우저가 읽는 JavaScript로 바꾸고, 묶고(번들), 줄이고, 필요할 때 받을 조각(청크)으로 나눈다
+
+![전통 웹은 클릭할 때마다 서버가 새 HTML 페이지를 보내 화면이 다시 뜬다. SPA인 디굴디굴은 처음에 HTML 한 장과 JS를 받고, 3D 코드는 땅굴에 처음 들어갈 때 한 번, 게시판으로 갈 때는 글 목록 데이터(GET /api/posts)만 받는다](guide-diagrams/spa.svg)
 
 ### 이 프로젝트에서는
 ```
@@ -75,6 +78,10 @@
 - `RoomView`는 `focusX`를 props로 받기만 한다. 패널이 열리면 부모가 0.403을 내려보내고 방이 왼쪽으로 밀린다
 - `useMemo`는 계산 결과를 기억했다가 재료(관심사 목록)가 바뀔 때만 다시 계산한다
 
+![MyBurrow가 state(패널이 열렸나)를 갖고, focusX는 그 state에서 계산해 RoomView에 props로 내려준다. 버튼은 함수를 불러 부모의 state를 바꾼다](guide-diagrams/component-tree.svg)
+
+![같은 내 땅굴: 패널이 열리면 focusX 0.403으로 방이 왼쪽으로, ?panel=closed면 0.5로 가운데 온다 (스모크 화면)](guide-images/panel-focus.jpg)
+
 `key` 실제 사례: 채팅방 A → B로 바꿔도 메시지가 A 것으로 남던 버그는 `<RoomPane key={room.id}>`로 고쳤다 ([가이드 사건 13](frontend-guide.md#사건-13-채팅방을-바꿔도-이전-메시지가-남음))
 
 | 공용 컴포넌트 | 배울 점 |
@@ -112,11 +119,15 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 - `:userId`는 `useParams()`로 꺼낸다 (`/burrow/yerin` → `yerin`)
 - 화면 상태를 주소에 담는다: `?panel=closed`, `?modal=guestbook`, `?page=3`. 시안 검토와 새로고침에 편하다. 전체 목록은 `/screens`
 
+![주소 /burrow/yerin이 화면이 되기까지: 라우터 표에서 /burrow/:userId를 찾고, 로그인 검사와 헤더 틀(AppLayout)을 지나 안쪽 자리(Outlet)에 VisitBurrow가 userId = 'yerin'으로 그려진다](guide-diagrams/route-flow.svg)
+
 ### 3-2. 브라우저 라우터와 해시 라우터
 | | 주소 모양 | 필요한 것 | 이 프로젝트 |
 |---|---|---|---|
 | `createBrowserRouter` | `/burrow` | 서버가 **어떤 주소로 와도 index.html을 돌려줘야** 함. 안 그러면 새로고침 때 404 | 일반 빌드(실서버용). Nginx `try_files` 필요 |
 | `createHashRouter` | `#/burrow` | `#` 뒤는 서버로 안 가서 아무 정적 호스팅에서나 동작 | 공유 빌드(아티팩트). 경로를 바꿀 수 없는 곳이라 |
+
+- 새로고침 때 서버에 무엇이 가는지는 [가이드 사건 11의 그림](frontend-guide.md#사건-11-새로고침하면-404-브라우저-라우터)
 
 - 빌드할 때 `ENV.hashRouter`(`lib/env.ts`, 값은 `.env.share`의 `VITE_HASH_ROUTER=1`)로 고른다. 같은 코드로 빌드 설정만 달리하는 방법은 실무에서 흔하다(개발/스테이징/운영)
 - 함정: 환경 변수는 늘 문자열이라 `"0"`도 참으로 읽혔다. 지금은 `flag()`가 `1·true·yes·on`만 참으로 읽는다 ([가이드 사건 11](frontend-guide.md#사건-11-새로고침하면-404-브라우저-라우터))
@@ -129,7 +140,7 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
   3. 화면 하나(`RouteError inline`): 헤더는 남기고 안쪽만 "잠시 문제가 생겼어요 · 다시 시도"
   - 3D는 따로 `components/SceneBoundary.tsx`가 감싼다. 3D만 비우고 그 화면이 깔아 둔 정지 그림·2D 두더지를 보여 준다
   - 재배포 뒤 파일을 못 받은 에러(청크 404)면 한 번 새로고침한다
-- 어디서 무엇이 잡히는지 전체 표는 [가이드 4-3](frontend-guide.md#4-3-에러가-났을-때-어디서-잡히나)
+- 어디서 무엇이 잡히는지 전체 표는 [가이드 5-3](frontend-guide.md#5-3-에러가-났을-때-어디서-잡히나)
 
 ### 직접 해 볼 것
 - 개발 서버에서 `/dev/crash`를 열어 헤더는 남고 안쪽만 안내가 나오는 것을 본다
@@ -142,11 +153,13 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 ### 개념
 - **디자인 토큰** = 색·글자 크기·간격에 붙인 이름. 디자인과 코드가 같은 말을 쓰게 한다
 - **CSS 변수**(`--brown-700`)로 토큰을 두면 한 곳만 고쳐도 전체가 바뀐다
-- **CSS Modules**: `Board.module.css`의 `.title`은 빌드 때 `_title_x8f2` 같은 고유 이름이 된다 → 다른 파일의 `.title`과 안 겹친다
+- **CSS Modules**: `Board.module.css`의 `.title`은 빌드 때 `_title_9r79a_297` 같은 고유 이름이 된다(2026-11-17 빌드에서 실제로 본 이름, 다시 빌드하면 바뀔 수 있음) → 다른 파일의 `.title`과 안 겹친다
 
 ### 이 프로젝트에서는
 - `styles/tokens.css`: Figma 스크린샷에서 픽셀로 뽑은 색. 관심사 칩 8톤(`--tone-sage-bg` …)은 Figma 컴포넌트 이름(`Tone=Sage`)과 같은 이름
 - 컴포넌트 CSS는 색을 직접 쓰지 않고 `var(--ink-700)`처럼 토큰만 쓴다
+
+![Figma 시안에서 뽑은 색에 tokens.css가 이름을 붙이고, 컴포넌트 CSS는 그 이름만 쓴다. --brown-700 한 줄을 고치면 그 이름을 쓰는 CSS 17개(헤더 활성 메뉴, 쪽 번호, 게시판 탭 등)가 같이 바뀐다. CSS Modules는 같은 .title도 파일마다 다른 이름으로 바꾼다](guide-diagrams/tokens.svg)
 - 서체: 제목·버튼 Do Hyeon(Google Fonts), 본문 Pretendard(npm에서 받아 번들에 포함. 아티팩트가 외부 CSS를 막아서)
 - `styles/global.css`의 `[hidden]{display:none!important}`는 지우지 않는다. 컴포넌트의 `display` 값이 `hidden` 속성을 덮어 모달 배경이 남던 버그가 있었다
 - 움직임 줄이기(운영체제 설정 `prefers-reduced-motion`)를 켜면 전역 CSS가 애니메이션을 거의 끄고, 땅굴은 입장 연출 없이 다 차려진 방으로 연다
@@ -166,10 +179,12 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 
 ### 이 프로젝트에서는
 - **두 가지 모양**을 나눴다
-  - 앱 모양: `data/types.ts` (화면이 쓰는 모양. 예: 모임에 `members: string[]`)
+  - 앱 모양: `data/types.ts`와 `data/*Store.ts` (화면이 쓰는 모양. 예: 모임에 `members: string[]`, 댓글은 `boardStore.ts`의 `BoardComment`)
   - 서버 모양(DTO): `api/types.ts` (ERD 칼럼을 camelCase로 옮긴 것. ID는 문자열, 날짜는 `IsoDateTime`)
   - 둘 사이 번역: `api/mappers.ts` (서버가 숫자 ID를 줘도 문자열로, ISO 날짜를 ms 숫자로, 탈퇴한 사람은 `'gone'`으로)
   - 이렇게 나누면 서버 응답 모양이 바뀌어도 매퍼만 고치고 화면은 그대로 둔다
+
+![서버가 주는 댓글 모양(CommentDto)을 api/mappers.ts가 앱 모양(BoardComment)으로 바꾼다: ID는 문자열로, ISO 날짜는 ms 숫자로, 탈퇴한 사람은 'gone'으로. 화면(BoardPost.tsx)은 오른쪽 모양만 안다](guide-diagrams/dto-mapper.svg)
 - `npm run build`는 먼저 `tsc -b`(타입 검사)를 돌린다. 타입이 틀리면 빌드가 실패한다. 테스트 파일도 같이 검사한다
 - 예외: `three/mole.ts`, `three/furniture.ts`는 자동 생성 파일이라 타입 검사를 끈다(`// @ts-nocheck`). 원본은 `explore/3d/lib/`에 있다 (8-8)
 
@@ -199,7 +214,7 @@ export function useMeetupDetail(id: string) {
 ```
 - `QueryGate`(`components/AsyncState.tsx`): 오는 중이면 스켈레톤, 404면 없음 안내, 그 밖 오류면 "다시 시도". **이미 받은 값이 있으면 다시 받다 실패해도 그 값을 계속 보여 준다**
 - 목록은 거르기를 바꿔도 이전 목록을 보여 주다 바꿔 끼운다(`keepPreviousData`) → 스켈레톤이 깜빡이지 않음
-- 쓰기는 `useOptimistic()`: 캐시를 먼저 바꾸고(patches) → 서버 호출 → 실패하면 원래대로 + 빨간 토스트(서버 `message`) → 끝나면 관련 캐시를 새로 받음. 진행 중엔 같은 버튼을 다시 못 누름
+- 쓰기는 `useOptimistic()`: 캐시를 먼저 바꾸고(patches) → 서버 호출 → 실패하면 원래대로 + 빨간 토스트(서버 `message`) → 성공·실패 어느 쪽이든 끝나면 관련 캐시를 새로 받음. 신청하기·대화 요청 보내기·수락처럼 두 번 눌리면 안 되는 버튼은 진행 중에 잠근다(`isPending`). 찜은 잠그지 않는다
 - 실제 서버용 `api/client.ts`: 10초 타임아웃, 쿠키 포함, 401이면 리프레시를 **한 번만** 시도, GET만 네트워크 오류·502/503/504일 때 두 번 재시도
 - 목 서버 `api/mock/server.ts`: 요청마다 0.15~0.4초 기다림. 주소 손잡이 `?api=slow|fast|fail|flaky|writefail|empty|notfound|unauth`로 행동을 바꿈 (이 탭에 기억, 왼쪽 아래 배지의 ✕로 끔)
 
@@ -226,7 +241,7 @@ export function useMeetupDetail(id: string) {
 ```
 | 문제 | 이 프로젝트의 대응 (`app/src/realtime/`) |
 |---|---|
-| 끊김 | 지수 백오프 + 지터로 다시 시도 (0 ~ min(30초, 0.5초 × 2^n)) |
+| 끊김 | 지수 백오프 + 지터로 다시 시도 (0 ~ min(30초, 0.5초 × 2^n) 사이에서 무작위, 단 0.3초보다 짧게는 안 기다림) |
 | 놓친 메시지 | 다시 붙으면 구독부터 다시 하고, 방마다 "내가 가진 마지막 번호 이후"를 받음 |
 | 두 번 보임 | 보낼 때 clientId(UUID)를 붙이고, 서버가 같은 id로 돌려주면 임시 말풍선을 교체 (`order.ts`) |
 | 끊긴 동안 보내기 | 60초까지 쥐고 있다가 붙으면 보냄. 보낸 뒤 10초 안에 확인이 없으면 실패 + "다시 보내기" |
@@ -258,6 +273,8 @@ Renderer(그리는 기계, <canvas>) ← Scene(물체·조명) + Camera(어디�
 ### 8-2. React와 three.js의 경계
 React는 "선언형"(상태 → 화면), three.js는 "명령형"(만들고, 바꾸고, 지움)이다. 둘을 섞는 요령은 **경계를 하나로 정하는 것**이다. 이 프로젝트의 경계는 `three/SceneCanvas.tsx`다.
 
+![React 세계와 three.js 세계 사이의 경계는 SceneCanvas 하나다. React는 손잡이(SceneHandle)의 메서드로만 3D에 말을 걸고, 화면을 떠나면 dispose가 GPU 자원을 정리한다](guide-diagrams/react-three.svg)
+
 ```tsx
 useEffect(() => {
   const h = mount(el, focusX)   // 마운트: 렌더러·장면 만들기 (실패하면 3D 경계에 알림)
@@ -265,7 +282,7 @@ useEffect(() => {
 }, [deps])                       // 방 주인이 바뀌면 새로 만들기
 ```
 - 장면은 `SceneHandle`(손잡이 객체: `dispose`, `resize`, `setFocusX`, `react`, `setWorn`, `loaded` …)만 내놓는다. React는 이 손잡이로만 말한다. 두더지 위치 같은 3D 상태는 React state가 아니라 장면 안에 있어서, 매 프레임 React가 다시 그리지 않는다
-- **정리(cleanup)가 중요한 이유**: WebGL 컨텍스트는 브라우저당 개수가 제한(보통 16개)되어 있다. 화면을 오갈 때마다 정리하지 않으면 결국 가장 오래된 3D가 검게 변한다. `engine.ts`가 지오메트리·재질·텍스처를 해제하고 컨텍스트를 반납한다(`forceContextLoss`)
+- **정리(cleanup)가 중요한 이유**: WebGL 컨텍스트는 브라우저당 개수가 제한(보통 16개)되어 있다. 화면을 오갈 때마다 정리하지 않으면 결국 가장 오래된 3D가 검게 변한다. 장면은 자기가 만든 것(블록·먼지·그림자 판 등)을 해제하고, `engine.ts`의 `destroyRenderer`가 렌더러를 버리고 컨텍스트를 반납한다(`forceContextLoss`). glb 모델은 다음 장면에서 다시 쓰려고 캐시에 남긴다(GPU 쪽은 렌더러와 함께 풀림)
 - **StrictMode**: 개발 중 React가 effect를 일부러 두 번 돌려 정리 누락을 드러낸다. 그래서 캔버스를 매번 새로 만든다
 - **컨텍스트를 도중에 잃으면**(드라이버 재시작, GPU 메모리 부족): 1.5초 뒤 장면을 다시 만든다(최대 2번, 그 뒤엔 2D). 우리가 정리할 때 부르는 `forceContextLoss`도 같은 신호를 내므로 정리 전에 듣기를 끈다
 - **장면 위 HTML**: 집주인 머리 위 말풍선 같은 것은 `overlay`로 장면과 같은 자리에 겹친다
@@ -301,6 +318,8 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 - `data/roomPlan.ts`의 `planRoom`이 three.js 없이 배치를 계산한다(어느 슬롯에 무엇, 떨어지는 순서·시각). 그래서 단위 테스트로 "무작위 조합 300개에서 슬롯이 안 겹친다"를 확인할 수 있다 (`tests/room-plan.test.ts`)
 - `roomScene.ts`는 그 계획대로 모델을 받아 놓는다. 새 모델이 오면 glb와 JSON만 바꾸면 된다
 
+![관심사가 다르면 가구가 다르다: 내 땅굴과 예린의 땅굴. 같은 장면 코드가 관심사 목록만 달리 받아 배치했다 (스모크 화면)](guide-images/my-vs-yerin.jpg)
+
 ### 8-8. 원본은 한 곳에
 - 처음 만든 코드 두더지·가구는 `explore/3d/lib/`에 원본이 있고, `node explore/3d/lib/build-app.js`가 앱용 `three/mole.ts`, `three/furniture.ts`를 만든다. 이 두 파일은 직접 고치지 않는다
 - 지금 앱의 장면은 디자이너 glb를 쓰고 이 두 파일을 불러오지 않는다. 실험 페이지(`explore/3d/`)와 생성 관계 때문에 남겨 두었다
@@ -334,6 +353,8 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 | 부분 그리기 (P) | 두더지 둘레 사각형만 지우고 다시 그린다(scissor) | 영역 계산이 틀리면 잔상 ([사건 7](frontend-guide.md#사건-7-저사양에서-두더지가-떨어질-때-머리가-잘리고-잔상이-남음-2026-11-12)) |
 | 해상도 낮추기 | 0.55배로 그리고 CSS로 늘린다. 카메라 이동 중엔 더 낮게 | 저사양 기본. 대신 흐려짐 → 9-4 |
 
+- 배경 한 번(A)과 선명한 배경(S)을 그림으로 보려면 [가이드 2-7](frontend-guide.md#2-7-3d-화면이-뜨기까지)
+
 ### 9-4. 선명하게
 - **안티앨리어싱**: 사선의 계단을 부드럽게 하는 것. 슈퍼샘플(더 크게 그려 줄이기, 비쌈)과 **MSAA**(가장자리에서만 여러 점을 샘플링, GPU 화면과 같은 방식)가 있다
 - **선명한 배경(S)**: 멈춰 있을 때 배경만 고해상도로 한 번 구워 2D 캔버스에 깔고, 위 WebGL 캔버스는 투명하게 두고 두더지만 낮은 해상도로 그린다. "배경은 선명하게, 두더지는 조금 낮춰도 된다"는 요청에서 나왔다
@@ -356,6 +377,8 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 - **SSIM**(0~1): 구조(모양·경계)가 얼마나 같은지. 1에 가까울수록 같다
 - 이 프로젝트는 영역을 나눠 잰다: 배경, 두더지, **가장자리**(밝기가 크게 바뀌는 상위 10%, 계단·흐림이 드러나는 곳)
 - 숫자만 보지 말고 차이 지도를 눈으로 본다 (사건 5는 숫자만으로는 원인을 몰랐다)
+
+![내 땅굴 배경 확대: GPU 그림, 가속 끔 2차 빌드, 가속 끔 최종(3차). 3차에서 배경 PSNR 35~36 → 52~54dB, 가장자리 SSIM 0.95 → 0.998이 됐다 (docs/rendering-experiments-3.md)](guide-images/quality-compare.jpg)
 
 ### 9-8. 측정하는 법
 | 지표 | 뜻 |
@@ -399,6 +422,8 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 - `VITE_`로 시작하는 값은 빌드 결과 JS에 글자 그대로 들어가 누구나 볼 수 있다 → 비밀 키 금지
 - 개인 설정은 `app/.env.local`(git에 안 올라감), 공유 빌드는 `.env.share`
 
+![같은 app/src에서 빌드 두 가지가 나온다: 일반 빌드(dist/, 실서버용)와 공유 빌드(dist-share/, 아티팩트용). 공유 빌드는 해시 라우터, JS 안에 넣은 glb, JS 해독기, 목 서버를 쓴다](guide-diagrams/two-builds.svg)
+
 ### 두 가지 빌드
 | | 일반 빌드 (`build`) | 공유 빌드 (`build:share`) |
 |---|---|---|
@@ -429,7 +454,11 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
   - 화면 규칙을 화면 밖 함수로 빼 두었기 때문에 테스트하기 쉽다(모임 상태, 방 배치, 들판 자리, 비밀번호 규칙 등)
   - "할 일"(`it.todo`) 3개는 지금 구현과 명세가 달라서 통과시킬 수 없는 것을 적어 둔 것이다 (예: 가입 캠퍼스-층 목록과 들판 목록이 다름)
 - 스모크 `app/scripts/smoke.mjs`: 화면 목록(`/screens`) + 라우트에서 96개 주소를 만들어 하나씩 연다. 잡는 것: 처리 안 된 예외, `console.error`, 리소스 4xx/5xx, 빈 화면, 오류 화면, 캔버스가 WebGL을 얻었는지. 모드: 가속 켬 · 끔 · WebGL 없음 · SwiftShader
-- CI `.github/workflows/ci.yml`: 설치(`npm ci`) → 타입 → 테스트 → 빌드 → 번들 크기 → 스모크 → 스크린샷·보고서 올리기. GitHub에서는 아직 안 돌려 봤다
+- CI `.github/workflows/ci.yml`: 설치(`npm ci`) → 타입 → 테스트 → 빌드 → 번들 크기 → 스모크 → 스크린샷·보고서 올리기. CI의 스모크는 그래픽카드가 없는 러너라 SwiftShader 한 모드로 돌고, 번들 크기는 예산을 넘어도 막지 않고 경고만 한다. GitHub에서는 아직 안 돌려 봤다
+
+![세 가지 검사: 단위 테스트는 함수 규칙을 좁고 빠르게, 스모크는 96개 화면을 세 모드로 넓고 얕게, CI는 올릴 때마다 둘을 순서대로 돌린다](guide-diagrams/test-layers.svg)
+
+![스모크가 찍은 화면 96개 중 24개 (가속 켬, 2026-11-17). 매번 이 화면들이 열리는지, 예외·콘솔 에러·빈 화면이 없는지 본다](guide-images/smoke-sheet.jpg)
 
 ### 직접 해 볼 것
 - `npm test`를 돌리고, `src/tests/meetup.test.ts`에서 명세 번호(M2, M5, M7 …)가 붙은 테스트 이름을 찾아 명세 문서([meetup-spec-review.md](meetup-spec-review.md))와 맞춰 본다

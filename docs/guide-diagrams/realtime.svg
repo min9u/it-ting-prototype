@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 488" width="760" height="488" role="img" aria-label="채팅은 서버가 먼저 보낼 수 있는 계속 열린 연결(WebSocket)을 쓰고, 끊기면 점점 길게 기다렸다 다시 붙은 뒤 놓친 메시지를 받고 쥐고 있던 메시지를 보낸다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+    <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--cta,#c8643a)"/></marker>
+  </defs>
+  <rect width="760" height="488" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 위 왼쪽: HTTP -->
+  <rect x="16" y="16" width="356" height="170" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="32" y="40" font-weight="700">HTTP: 물어보면 답한다</text>
+  <rect x="32" y="56" width="92" height="84" rx="8" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="78" y="103" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">브라우저</text>
+  <rect x="264" y="56" width="92" height="84" rx="8" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="310" y="103" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">서버</text>
+  <line x1="128" y1="80" x2="260" y2="80" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="194" y="74" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">요청</text>
+  <line x1="260" y1="108" x2="128" y2="108" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="194" y="102" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">응답</text>
+  <text x="194" y="132" text-anchor="middle" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">그러고 끝</text>
+  <text x="32" y="166" font-size="12" style="fill:var(--ink-soft,#5c4334)">서버가 먼저 “새 메시지 왔어”라고 할 수 없다</text>
+
+  <!-- 위 오른쪽: WebSocket -->
+  <rect x="388" y="16" width="356" height="170" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="404" y="40" font-weight="700">WebSocket: 계속 열린 전화선</text>
+  <rect x="404" y="56" width="92" height="84" rx="8" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="450" y="103" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">브라우저</text>
+  <rect x="636" y="56" width="92" height="84" rx="8" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="682" y="103" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">서버</text>
+  <rect x="496" y="62" width="140" height="72" style="fill:var(--accent-soft,#f6dccb)"/>
+  <line x1="500" y1="76" x2="632" y2="76" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="566" y="71" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">구독: 이 방 소식 줘</text>
+  <line x1="632" y1="102" x2="500" y2="102" style="stroke:var(--cta,#c8643a)" stroke-width="2" marker-end="url(#ahc)"/>
+  <text x="566" y="97" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--cta,#c8643a)">새 메시지 (서버가 먼저)</text>
+  <line x1="500" y1="128" x2="632" y2="128" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="566" y="123" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">보내기</text>
+  <text x="404" y="166" font-size="12" style="fill:var(--ink-soft,#5c4334)">연결이 열린 채로 있다. 주고받는 규칙은 STOMP</text>
+
+  <!-- 아래: 끊겼을 때 -->
+  <text x="16" y="218" font-weight="700">끊겼을 때 (시간 →)</text>
+  <line x1="24" y1="256" x2="740" y2="256" style="stroke:var(--ink-mute,#8a7262)" stroke-width="1.3" marker-end="url(#ah)"/>
+
+  <!-- 연결됨 -->
+  <rect x="24" y="246" width="100" height="20" rx="4" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="74" y="240" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">연결됨</text>
+  <!-- 끊김 -->
+  <circle cx="134" cy="256" r="9" style="fill:var(--chip-rose-bg,#f2d9d9);stroke:var(--chip-rose-fg,#7d3a3f)"/>
+  <path d="M 130 252 L 138 260 M 138 252 L 130 260" style="stroke:var(--chip-rose-fg,#7d3a3f)" stroke-width="1.8"/>
+  <text x="134" y="240" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">끊김</text>
+
+  <!-- 다시 연결하는 중: 기다림이 두 배씩 -->
+  <rect x="146" y="246" width="316" height="20" rx="4" style="fill:var(--chip-butter-bg,#f3e6be)"/>
+  <text x="304" y="240" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-butter-fg,#6b5410)">다시 연결하는 중 (대화 창 위 띠로 알림)</text>
+  <g style="fill:var(--chip-butter-fg,#6b5410)">
+    <rect x="152" y="251" width="8" height="10" rx="2"/>
+    <rect x="166" y="251" width="16" height="10" rx="2"/>
+    <rect x="188" y="251" width="32" height="10" rx="2"/>
+    <rect x="226" y="251" width="64" height="10" rx="2"/>
+    <rect x="296" y="251" width="128" height="10" rx="2"/>
+  </g>
+  <text x="440" y="262" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-butter-fg,#6b5410)">…</text>
+  <text x="152" y="288" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">막대 = 다시 시도 전 기다림의 상한. 실패할 때마다 두 배</text>
+  <text x="152" y="306" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">1번째 0.5초 · 2번째 1초 · 3번째 2초 … 최대 30초</text>
+  <text x="152" y="324" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">실제 기다림은 그 안에서 무작위 (지터: 한꺼번에 몰리지 않게)</text>
+
+  <!-- 다시 붙음 -->
+  <circle cx="474" cy="256" r="9" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)"/>
+  <text x="474" y="240" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">다시 붙음</text>
+  <line x1="474" y1="266" x2="474" y2="286" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.4"/>
+  <line x1="474" y1="286" x2="490" y2="286" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.4" marker-end="url(#ah)"/>
+  <g>
+    <rect x="494" y="274" width="246" height="26" rx="6" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="508" cy="287" r="9" style="fill:var(--cta,#c8643a)"/>
+    <text x="508" y="291" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">1</text>
+    <text x="524" y="291" font-size="12">듣던 방을 다시 구독</text>
+    <rect x="494" y="306" width="246" height="26" rx="6" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="508" cy="319" r="9" style="fill:var(--cta,#c8643a)"/>
+    <text x="508" y="323" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">2</text>
+    <text x="524" y="323" font-size="12">방마다 마지막 번호(seq) 이후를 받음</text>
+    <rect x="494" y="338" width="246" height="26" rx="6" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="508" cy="351" r="9" style="fill:var(--cta,#c8643a)"/>
+    <text x="508" y="355" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
+    <text x="524" y="355" font-size="12">쥐고 있던 메시지를 보냄</text>
+  </g>
+
+  <!-- 규칙 -->
+  <line x1="16" y1="384" x2="744" y2="384" style="stroke:var(--box-line,#e3cbb5)" stroke-width="1"/>
+  <g font-size="12">
+    <text x="16" y="408"><tspan font-weight="700">끊긴 동안 쓴 메시지</tspan><tspan style="fill:var(--ink-soft,#5c4334)">  “보내는 중”으로 60초까지 쥐고 있다가, 붙으면 보냄</tspan></text>
+    <text x="16" y="428"><tspan font-weight="700">보낸 뒤 10초 안에 확인이 없으면</tspan><tspan style="fill:var(--ink-soft,#5c4334)">  “실패 · 다시 보내기”</tspan></text>
+    <text x="16" y="448"><tspan font-weight="700">같은 메시지가 두 번 오면</tspan><tspan style="fill:var(--ink-soft,#5c4334)">  보낼 때 붙인 고유 번호(clientId)로 하나만 남김</tspan></text>
+    <text x="16" y="468"><tspan font-weight="700">탭을 10분 넘게 숨기면</tspan><tspan style="fill:var(--ink-soft,#5c4334)">  일부러 끊고, 다시 보이면 바로 연결 + 놓친 것 받기</tspan></text>
+  </g>
+</svg>

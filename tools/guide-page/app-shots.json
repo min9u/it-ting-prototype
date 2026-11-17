@@ -1,0 +1,11 @@
+{ "serve": "../../app/dist", "spa": true, "gpu": "on",
+  "jobs": [
+    { "url": "{base}/board?api=off", "out": "out/shots/board-normal.png", "width": 1440, "height": 900, "wait": 2500 },
+    { "url": "{base}/board?api=slow", "out": "out/shots/board-slow.png", "width": 1440, "height": 900, "wait": 700 },
+    { "url": "{base}/board?api=empty", "out": "out/shots/board-empty.png", "width": 1440, "height": 900, "wait": 2500 },
+    { "url": "{base}/board?api=fail", "out": "out/shots/board-fail.png", "width": 1440, "height": 900, "wait": 7000 },
+    { "url": "{base}/chat/r-yerin?api=off&rt=down", "out": "out/shots/chat-down.png", "width": 1440, "height": 900, "wait": 4000 },
+    { "url": "{base}/meetups/m6?api=writefail", "out": "out/shots/m6-0-before.png", "width": 1440, "height": 900, "wait": 3000 },
+    { "out": "out/shots/m6-1-optimistic.png", "width": 1440, "height": 900, "eval": "(async()=>{document.querySelector('button[aria-label=\"찜하기\"]').click(); await new Promise(r=>setTimeout(r,60))})()", "probe": "document.querySelector('button[aria-label=\"찜하기\"]').getAttribute('aria-pressed')" },
+    { "out": "out/shots/m6-2-reverted.png", "width": 1440, "height": 900, "wait": 1300, "probe": "document.querySelector('button[aria-label=\"찜하기\"]').getAttribute('aria-pressed')" }
+  ] }

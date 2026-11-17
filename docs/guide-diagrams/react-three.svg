@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 412" width="760" height="412" role="img" aria-label="React 세계와 three.js 세계는 SceneCanvas.tsx 하나를 경계로 만난다. React는 들어올 때 mount, 그다음은 SceneHandle 손잡이 메서드로만 말하고, 떠날 때 dispose로 GPU 자원과 WebGL 컨텍스트를 돌려준다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+    <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--cta,#c8643a)"/></marker>
+  </defs>
+  <rect width="760" height="412" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 머리 -->
+  <rect x="16" y="16" width="220" height="26" rx="13" style="fill:var(--chip-clay-bg,#f1dccb)"/>
+  <text x="126" y="34" text-anchor="middle" font-weight="700" style="fill:var(--chip-clay-fg,#7e3b22)">React 세계 (선언형)</text>
+  <rect x="262" y="16" width="236" height="26" rx="13" style="fill:var(--accent-soft,#f6dccb)"/>
+  <text x="380" y="34" text-anchor="middle" font-weight="700" style="fill:var(--accent,#9a4a2c)">경계: three/SceneCanvas.tsx</text>
+  <rect x="524" y="16" width="220" height="26" rx="13" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="634" y="34" text-anchor="middle" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">three.js 세계 (명령형)</text>
+
+  <!-- React -->
+  <rect x="16" y="52" width="220" height="212" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="30" y="76" font-weight="700">상태 → 화면을 적어 두면</text>
+  <text x="30" y="94" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">React가 알아서 다시 그림</text>
+  <rect x="28" y="108" width="196" height="84" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="128" font-weight="700">예: MyBurrow</text>
+  <text x="40" y="148" font-size="11.5" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace">panelOpen <tspan font-family="'Noto Sans KR','Malgun Gothic',sans-serif" style="fill:var(--ink-soft,#5c4334)">(상태)</tspan></text>
+  <text x="40" y="168" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">→ <tspan font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--ink,#3e2a1f)">focusX</tspan> 0.403 또는 0.5</text>
+  <text x="40" y="184" font-size="11" style="fill:var(--ink-mute,#8a7262)">(패널이 열리면 방이 왼쪽으로)</text>
+  <text x="30" y="222" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">3D 안은 모름.</text>
+  <text x="30" y="240" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">div 하나만 관리함</text>
+
+  <!-- 경계 띠 -->
+  <rect x="248" y="52" width="264" height="212" rx="12" style="fill:none;stroke:var(--cta,#c8643a)" stroke-dasharray="5 4"/>
+  <text x="380" y="70" text-anchor="middle" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">div 하나 + useEffect</text>
+
+  <text x="380" y="90" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">들어올 때: <tspan font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace">mount(el, focusX)</tspan></text>
+  <line x1="238" y1="98" x2="520" y2="98" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <text x="380" y="132" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)">그다음은 손잡이(SceneHandle)로만</text>
+  <line x1="238" y1="140" x2="520" y2="140" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="380" y="157" text-anchor="middle" font-size="11.5" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" style="fill:var(--ink-soft,#5c4334)">setFocusX · react · setWorn</text>
+
+  <text x="380" y="186" text-anchor="middle" font-size="12" style="fill:var(--ink-soft,#5c4334)"><tspan font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace">loaded</tspan>: 모델 받고 첫 그림 끝 (땅굴)</text>
+  <line x1="520" y1="194" x2="238" y2="194" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <text x="380" y="232" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--cta,#c8643a)">떠날 때 · 방 주인이 바뀔 때: <tspan font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace">dispose()</tspan></text>
+  <line x1="238" y1="240" x2="520" y2="240" style="stroke:var(--cta,#c8643a)" stroke-width="1.8" marker-end="url(#ahc)"/>
+
+  <!-- three -->
+  <rect x="524" y="52" width="220" height="212" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="538" y="76" font-weight="700">만들고 · 바꾸고 · 지우기를</text>
+  <text x="538" y="94" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">코드가 직접 함</text>
+  <g font-size="12">
+    <rect x="536" y="106" width="196" height="30" rx="7" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="548" y="125">렌더러 · 캔버스 (WebGL)</text>
+    <rect x="536" y="142" width="196" height="30" rx="7" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="548" y="161">장면 · 카메라 · glb 모델</text>
+    <rect x="536" y="178" width="196" height="30" rx="7" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="548" y="197">그리기 루프 (rAF, 매 프레임)</text>
+    <rect x="536" y="214" width="196" height="38" rx="7" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <text x="548" y="230">두더지 위치 같은 3D 상태</text>
+    <text x="548" y="246" font-size="11" style="fill:var(--ink-mute,#8a7262)">React state가 아니라 여기에</text>
+  </g>
+
+  <!-- dispose -->
+  <rect x="16" y="282" width="728" height="114" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="30" y="305" font-weight="700">dispose()가 치우는 것</text>
+  <text x="182" y="305" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">roomScene.ts · engine.ts destroyRenderer</text>
+  <g font-size="12">
+    <rect x="28" y="316" width="300" height="32" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="46" cy="332" r="10" style="fill:var(--cta,#c8643a)"/>
+    <text x="46" y="336.5" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">1</text>
+    <text x="62" y="336">이 장면이 만든 지오메트리 · 재질 · 텍스처</text>
+    <line x1="330" y1="332" x2="346" y2="332" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="348" y="316" width="232" height="32" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="366" cy="332" r="10" style="fill:var(--cta,#c8643a)"/>
+    <text x="366" y="336.5" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">2</text>
+    <text x="382" y="336" font-family="'Nanum Gothic Coding','D2Coding',Consolas,monospace" font-size="11.5">dispose + forceContextLoss</text>
+    <line x1="582" y1="332" x2="598" y2="332" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+    <rect x="600" y="316" width="132" height="32" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+    <circle cx="618" cy="332" r="10" style="fill:var(--cta,#c8643a)"/>
+    <text x="618" y="336.5" text-anchor="middle" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
+    <text x="634" y="336">캔버스 떼어 냄</text>
+  </g>
+  <text x="30" y="372" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">glb 원본은 캐시에 남겨 다음 장면이 다시 씀. WebGL 컨텍스트는 브라우저당 보통 16개라 바로 반납</text>
+  <text x="30" y="388" font-size="11" style="fill:var(--ink-mute,#8a7262)">(안 돌려주면 화면을 오갈수록 쌓여 가장 오래된 3D가 검게 변함)</text>
+</svg>
