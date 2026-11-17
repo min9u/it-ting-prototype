@@ -30,6 +30,7 @@
   - 저장소가 비공개이고 gh 로그인이 없어 GitHub Pages 대신 아티팩트로 올림
   - 갱신: `cd app && npm run build:share` (# 라우팅·상대 경로, `.env.share`, 끝에 `scripts/share-page.mjs`가 `dist-share/share-page.html`과 `files.json`을 만듦) → Artifact publish(같은 url, root=dist-share, 바뀐 assets만 보내고 옛 해시 파일은 null)
   - 공유 빌드는 첫 화면이 시작 화면(`#/start`, 2026-11-11부터. 팀원이 랜딩 → 가입 → 온보딩을 체험). 로그인·회원가입은 프로토타입이라 입력 없이 통과
+  - **시험판 링크 (2026-11-17, 팀 링크와 별도)**: https://claude.ai/artifact/NH6JiBu6qKJmr1SNRR1fJ9 — 사용자가 "예전 프로토타입에 반영하지 말고 새 링크로" 요청. 같은 공유 빌드를 `dist-share/share-page-next.html`(제목 "디굴디굴 시험판", share-page.html 을 복사해 제목만 바꿈)로 게시. 갱신은 같은 방식 + 이 url
   - Pretendard는 CDN 대신 npm `pretendard`로 번들 (아티팩트는 외부 CSS 차단)
   - **공개 공유(링크가 있는 모든 사용자) 검토**: svg·avif data URL이 있으면 거절됨 (2026-11-11 시험으로 확인). CSS에 svg data URL 쓰지 말 것, avif 확인 코드는 vite.config.ts `stripAvifProbe`가 뺌. glb(data:model/gltf-binary)와 woff2는 통과
   - 아티팩트는 `.glb` 파일을 못 올림 → 공유 빌드에서만 glb를 data URL로 JS에 넣음(`vite.config.ts`의 `assetsInlineLimit`), `three/glb.ts`가 fetch 없이 직접 풀어서 parse. Draco는 안 씀(해독기 wasm을 올려야 해서) → 텍스처 WebP + 메시 양자화
@@ -161,6 +162,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-16 [테스트 · 스모크 · CI · 번들 크기](docs/testing-ci.md): `app/`에서 `npm test`(vitest 단위 테스트 `src/tests/`, 명세 번호를 이름에, 순수 함수·JSON 위주), `npm run smoke`(dist를 헤드리스 크롬 CDP로 열어 화면 94개의 예외·콘솔 에러·빈 화면 + 스크린샷 `shots/smoke/`, `--gpu=off|none|swiftshader`), `npm run bundle-report`(청크별 gzip · 첫 화면 JS 380KB · 예산 360KB 초과 경고), CI `.github/workflows/ci.yml`(Node 24.18 고정 `app/.nvmrc`). 명세 ↔ 디자인 확인 목록 81줄은 [docs/spec-design-gaps.md](docs/spec-design-gaps.md)
 - 2026-11-17 [렌더링 실험 3: 가속 끈 PC 에서도 불편 없이, 화질 좋게](docs/rendering-experiments-3.md): 기기 단계 gpu/strong/weak(실제 그리기 시간, `lib/deviceTier.ts`, 실험실·`?tier=`), 예열 다시 짜기(`three/warm.ts`, 컴파일 기다리기 루프 하나), 선명한 배경 띠 굽기(`three/sharpBake.ts`, **캔버스와 같은 sRGB 렌더 타깃 + MSAA** → 땅굴 배경 GPU 대비 PSNR 36.9 → 51.6dB), 구운 배경 IndexedDB(다시 오면 0.5~1초에 선명한 그림), GPU 로 찍은 정지 그림 6장(`three/stills.ts`, 3D 경계·WebGL 없음·랜딩 로딩). 랜딩 첫 화면 멈춤 0.55 → 0.22초(2코어 0.99 → 0.44). 2코어 탐색 점프 끊김·카메라 이동 20fps 는 조금만 나아져 남음. 숫자 `explore/gpu/results/round3.json`
 
+- 2026-11-17 [백엔드·디자인 전에 미리 한 일 정리](docs/prep-work-2026-11-17.md): 11-16 17:32 요청("미리 할 수 있는 일 목록 + 다 하기 + 가속 꺼진 PC 화질 + 새 링크")의 최종 정리. API·데이터 계층 / 실시간·안정성 / 테스트·CI·명세 확인 목록 / 그래픽 2·3차, 백엔드에 넘길 Q1~Q5 · 기획에 넘길 G-53·G-04·G-60·G-32·G-06. 11-16 18:30 PC 절전 → 밤 Windows 업데이트 재시작으로 작업이 끊겼다가 11-17 이어서 끝냄(작업 중에는 절전 막기 · 단계마다 커밋). 11-16 21:12 다른 PC에서 올린 땅굴 다양성 실험도 합침. 새 시험판 https://claude.ai/artifact/NH6JiBu6qKJmr1SNRR1fJ9
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
