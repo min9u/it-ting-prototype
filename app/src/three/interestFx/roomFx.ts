@@ -100,14 +100,15 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const rarest = rarestOf(o.interests)
   const lead = leadOf(o.interests)
   const ems: Em[] = []
-  let itemsRef: RoomFxItem[] | null = null
-  let boxAge = 99
+  let measured = false
+  let lastMeasure = -1e9
   const box = new THREE.Box3()
   /** 관심사 가구 → 이펙트 자리 (위 가운데·크기). 1초마다 다시 잼 (갈아 끼우기·모양 바꾸기) */
   const measure = () => {
     const items = o.items()
-    if (items !== itemsRef || items.length !== ems.length) {
-      itemsRef = items
+    // items() 는 부를 때마다 새 배열이라 가구 묶음(g)·행이 같은지로 비교 (같으면 입자 쌓인 값을 그대로 둠)
+    const same = items.length === ems.length && items.every((it, i) => ems[i].item.g === it.g && ems[i].item.rowId === it.rowId)
+    if (!same) {
       ems.length = 0
       for (const it of items) {
         const pet = it.type === 'pet'
@@ -133,7 +134,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       e.top.set(e.center.x, box.max.y, e.center.z)
       e.half = Math.max(.08, Math.min(.9, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2))
     }
-    boxAge = 0
+    lastMeasure = performance.now(); measured = true
   }
 
   /* ---------- 화면 투영 ---------- */
@@ -313,8 +314,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     W = w; H = h; lastT = t
     if (o.intro()) { introEnd = -1; return }
     if (introEnd < 0) introEnd = t
-    boxAge += dt
-    if (boxAge > 1 || !itemsRef) measure()
+    if (!measured || performance.now() - lastMeasure > 1000) measure()
     const fade = still ? 1 : Math.min(1, (t - introEnd) / .6)
     const s = overlay.mode.dpr
     // 화면 값
@@ -600,7 +600,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   return {
     hover(g, action) {
       if (!g || !fxOn('r_card') || o.intro()) { showCard(null, null); return false }
-      if (!itemsRef) measure()
+      if (!measured) measure()
       const e = ems.find((x) => x.item.g === g)
       if (!e) { showCard(null, null); return false }
       showCard(e, action)
