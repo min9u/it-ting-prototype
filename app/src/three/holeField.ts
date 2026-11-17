@@ -848,7 +848,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
    */
   const glSlide: GlSlide | null = slide ? createGlSlide({ yRef: slideY }) : null
   const wantGl = () => { const m = testParam('slidemode'); return m ? m === 'gl' : true }
-  /** 약한 PC 는 빈 곳 메우기를 늘 0.33배로 (2코어에서 위쪽 먼 구멍 클릭 점프의 카메라 이동이 28.8 → 17.5fps 로 떨어져서) */
+  /** 약한 PC 는 빈 곳 메우기를 늘 낮은 배율(0.22배 = 예전 약한 PC 의 이동 중 배율)로 (2코어에서 위쪽 먼 구멍 클릭 점프가 28.8 → 17.5fps 로 떨어져서) */
   let fillLow = q.tier === 'weak'
   /** 이번 이동에 쓰는 방법 */
   let slideKind: 'gl' | 'css' = 'css'
@@ -867,7 +867,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const slideHide = () => { slide?.hide(); exitGl() }
   /** 약한 PC(띠 밀기)면 띠 캔버스를 쉬는 틈에 미리 만들어 둠 (첫 점프에서 384개를 만드느라 멈추지 않게) */
   function prebuildSoon(ms: number) { if (slide && !wantGl()) setTimeout(() => { if (!disposed && !anim) slide.prebuild() }, ms) }
-  /** gl 로 옮기는 중 빈 곳 메우기 (캔버스가 1배라 배율을 낮춤: 0.55배, 빈 곳이 크면 0.33배) */
+  /** gl 로 옮기는 중 빈 곳 메우기 (캔버스가 1배라 배율을 낮춤: 0.55배, 빈 곳이 크거나 약한 PC 면 0.22배) */
   let glFill: Backdrop | null = null, glFillLow: Backdrop | null = null
   const freezeP = testParam('movefreeze')
   const moveFreeze = freezeP != null ? +freezeP.replace('_', '.') : null
@@ -1014,7 +1014,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const gs = glSlide!
     const gp = gs.gaps(camera)
     if (gp.boxes.length) {
-      const fb = fillLow || gp.frac > FILL_LOW_FRAC ? (glFillLow ??= createBackdrop(renderer, { scale: .33 })) : (glFill ??= createBackdrop(renderer, { scale: .55 }))
+      const fb = fillLow || gp.frac > FILL_LOW_FRAC ? (glFillLow ??= createBackdrop(renderer, { scale: .22 })) : (glFill ??= createBackdrop(renderer, { scale: .55 }))
       fb.capture(scene, camera, undefined, gp.boxes.map((b) => ({ x0: b.x0 / W, y0: b.y0 / H, x1: b.x1 / W, y1: b.y1 / H })))
       renderer.setScissorTest(true)
       for (const b of gp.boxes) { renderer.setScissor(b.x0, H - b.y1, b.x1 - b.x0, b.y1 - b.y0); fb.blit() }
