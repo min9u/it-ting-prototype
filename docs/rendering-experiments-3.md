@@ -384,3 +384,8 @@ SHOTS=<폴더> node explore/gpu/round3-quality.mjs && python explore/gpu/round3-
 node explore/gpu/round3-summary.mjs tables          # results/round3.json + 이 문서의 표
 BASE="http://localhost:5341/#" node explore/gpu/make-stills.mjs   # 빌드용 정지 그림 다시 찍기 (GPU)
 ```
+
+## 합친 뒤 고친 것 (2026-11-17)
+- 최종 main 스모크(가속 끔)에서 `sharpBake` 가 결과 캔버스의 2D 컨텍스트를 못 얻어 예외가 남. 스모크가 WebGL 확인용으로 모든 canvas 에 `getContext('webgl2')` 를 불러, 아직 굽기 전인 2D 캔버스에 WebGL 컨텍스트를 만든 탓 ([testing-ci.md](testing-ci.md) 2장 결과)
+- 앱 쪽 방어: 2D 컨텍스트를 못 얻으면 그 그림을 버리고 굽기를 그만둠(`SharpBaker.broken`). 땅굴(`roomScene`)과 탐색 들판(`holeField`)은 broken 이면 다시 굽지 않고 선명한 배경 없이 원래대로 그림
+- 고친 뒤 스모크 96개 화면: 가속 켬 · 끔 · WebGL 없음 모두 OK

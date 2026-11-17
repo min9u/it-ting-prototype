@@ -52,9 +52,11 @@ const NOT_FOUND_TEXT = '없는 주소예요'
 /** 기다린 뒤에도 남아 있으면 "로딩이 안 끝남" 경고 (components/RoomView.tsx · screens/burrow/ExploreBurrow.tsx) */
 const LOADING_TEXT = ['땅굴 파는 중', '들판으로 나가는 중']
 /** 일부러 "없음" 화면을 보는 주소 (ScreenIndex 의 00 공통 21 항목) */
-const EXPECT_GONE = [/^\/no-such-page/, /^\/gone\//, /^\/meetups\/nope/, /^\/board\/p2[78]$/, /^\/admin(\?as=user)?$/] // /admin: 역할이 없으면 없는 주소처럼 (F11 1)
+const EXPECT_GONE = [/^\/no-such-page/, /^\/gone\//, /^\/meetups\/nope/, /^\/board\/p2[78]$/, /^\/admin(\?as=user)?$/, /^\/dev\/crash$/] // /admin: 역할이 없으면 없는 주소처럼 (F11 1). /dev/crash: 개발 서버 전용 라우트라 빌드에서는 없는 주소
 /** 무시할 콘솔 · 네트워크 메시지 (알려진 소음) */
-const IGNORE = [/favicon\.ico/, /GPU stall due to ReadPixels/, /Automatic fallback to software WebGL has been deprecated/]
+const IGNORE = [/favicon\.ico/, /GPU stall due to ReadPixels/, /Automatic fallback to software WebGL has been deprecated/,
+  // --gpu=none 은 WebGL 이 없는지 보는 검사라 three.js 의 "컨텍스트를 못 만듦" 에러는 예상한 것 (대신 정지 그림이 나오는지는 스크린샷으로)
+  ...(GPU === 'none' ? [/WebGL context could not be created|Error creating WebGL context/] : [])]
 
 /* ---------- 화면 목록 ---------- */
 /** :param 에 넣을 예시 값 (목 데이터에 있는 것) */
@@ -219,6 +221,12 @@ async function visit(cdp, base, origin, screen, idx) {
   // 3D 화면은 모델을 받은 뒤에도 셰이더 · 첫 그리기가 남아 있어 조금 더 (그 사이 나는 예외도 잡게)
   const has3d = await cdp.send('Runtime.evaluate', { expression: "!!document.querySelector('canvas')", returnByValue: true }).then((r) => r.result.value).catch(() => false)
   await sleep(has3d ? SETTLE_3D : 300)
+  // 로딩 표시("땅굴 파는 중" 등)가 남아 있으면 조금 더 기다림: 가속 끈 크롬은 네트워크가 조용해진 뒤에도 3D 준비(예열·굽기)가 이어짐 (2026-11-17)
+  while (has3d && Date.now() - t0 < WAIT + SETTLE_3D) {
+    const still = await cdp.send('Runtime.evaluate', { expression: `${JSON.stringify(LOADING_TEXT)}.some((t) => (document.body.innerText || '').includes(t))`, returnByValue: true }).then((r) => r.result.value).catch(() => false)
+    if (!still) break
+    await sleep(250)
+  }
   rec.ms = Date.now() - t0
   off()
   const probe = await cdp.send('Runtime.evaluate', {
@@ -228,7 +236,9 @@ async function visit(cdp, base, origin, screen, idx) {
       const text = (document.body.innerText || '').trim()
       const media = document.querySelectorAll('#root canvas, #root img, #root svg').length
       const canvas = [...document.querySelectorAll('canvas')]
-      const gl = canvas.some((c) => { try { return !!(c.getContext('webgl2') || c.getContext('webgl')) } catch { return false } })
+      // three.js 렌더러 캔버스(data-engine)만 봄: 컨텍스트가 없는 캔버스에 getContext 를 부르면 새 컨텍스트가 생겨 버림
+      // (저사양 '선명한 배경' 2D 캔버스가 굽기 전에 WebGL 캔버스가 되어 앱이 2D 컨텍스트를 못 얻던 일, 2026-11-17)
+      const gl = canvas.filter((c) => c.hasAttribute('data-engine')).some((c) => { try { return !!(c.getContext('webgl2') || c.getContext('webgl')) } catch { return false } })
       return { kids: root ? root.childElementCount : -1, textLen: text.length, media, text: text.slice(0, 4000), canvases: canvas.length, gl }
     })()`,
   })

@@ -55,6 +55,11 @@ export interface SharpBaker {
   readonly lastMs: number
   /** 결과 2D 캔버스 (처음 start 때 만듦) */
   readonly canvas: HTMLCanvasElement | null
+  /**
+   * 결과 캔버스의 2D 컨텍스트를 얻지 못해 굽기를 그만둠 (가속 끈 크롬에서 페이지를 떠나는 도중 등, 2026-11-17 스모크에서 발견).
+   * 이후 start 는 아무것도 안 함 → 부르는 쪽은 선명한 배경 없이 원래대로 WebGL 캔버스에 전부 그림
+   */
+  readonly broken: boolean
   /** 예열용: 굽는 렌더 타깃과 같은 종류의 작은 렌더 타깃 (셰이더 종류가 같음, warm.ts extra) */
   warmTarget(): THREE.WebGLRenderTarget
 }
@@ -70,6 +75,7 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
   let pending: { pbo: WebGLBuffer; sync: WebGLSync; w: number; h: number; t0: number } | null = null
   let lastMs = 0
   let canvas: HTMLCanvasElement | null = null
+  let broken = false
   const strips = Math.max(1, Math.round(o.strips))
   const linear = !!o.linear
   let warmRt: THREE.WebGLRenderTarget | null = null
@@ -170,7 +176,9 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     for (let y = 0; y < pd.h; y++) img.data.set(data.subarray((pd.h - 1 - y) * row, (pd.h - y) * row), y * row)
     const cv = canvas ??= out()
     if (cv.width !== pd.w || cv.height !== pd.h) { cv.width = pd.w; cv.height = pd.h }
-    cv.getContext('2d')!.putImageData(img, 0, 0)
+    const ctx = cv.getContext('2d')
+    if (!ctx) { broken = true; return false } // 2D 컨텍스트를 못 얻음 → 이 그림은 버리고 굽기를 그만둠 (broken)
+    ctx.putImageData(img, 0, 0)
     lastMs = performance.now() - t0
     return true
   }
@@ -190,6 +198,7 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     },
     start(scene, camera, w, h) {
       dropPending()
+      if (broken) return
       ensure(w, h)
       canvas ??= out()
       job = { scene, camera, w, h, i: 0, t0: performance.now() }
@@ -210,6 +219,7 @@ export function createSharpBaker(renderer: THREE.WebGLRenderer, o: BakeOptions, 
     },
     get lastMs() { return lastMs },
     get canvas() { return canvas },
+    get broken() { return broken },
     warmTarget() {
       return (warmRt ??= linear ? new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, depthBuffer: true }) : displayTarget(2, 2, 0, true))
     },

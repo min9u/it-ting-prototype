@@ -759,7 +759,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       }
       return true
     }
-    if (st === 'idle' && sharpField && !sharpOk && quiet && mole) {
+    if (st === 'idle' && sharpField && !sharpOk && quiet && mole && !baker.broken) {
       const saved = holes.has(curSeat) ? peekCachedStill(seatKey(curSeat)) : null
       if (saved) { showSharp(saved); sharpOk = true; noteCapture('sharpSaved', performance.now()); return true }
       bakeSeat = holes.has(curSeat) ? curSeat : null

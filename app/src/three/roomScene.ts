@@ -1043,7 +1043,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     const bd = backdrop!
     if (bd.isDirty()) { bd.capture(scene, camera); full = true }
     if (stepBake()) full = true
-    else if (sharp && !sharpOk && !baker?.busy() && mole && settle >= .35) { captureSharp(); full = true }
+    else if (sharp && !sharpOk && !baker?.busy() && !baker?.broken && mole && settle >= .35) { captureSharp(); full = true }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
     if (mailboxDirty) mailboxRect(cur)
