@@ -1,16 +1,21 @@
 import * as THREE from 'three'
 import { graphicsTier } from '../lib/graphicsTier'
 import { getLab, type LabState } from '../lib/lowLab'
+import { gpuWasSlow, lowTier, noteGpuSlow, noteRenderCost, wantsRenderCost } from '../lib/deviceTier'
 
 /*
  * 품질 묶음 (docs/gpu-fallback-research.md "결정" 2번).
  * - high: GPU. 원래 품질 그대로 (해상도 기기 배율 최대 2, 안티앨리어싱, 그림자, 후처리, fps 제한 없음, 계속 그림)
  * - low: 그래픽 가속이 꺼져 CPU로 그리는 PC(WARP·SwiftShader). 해상도 0.55배를 CSS로 늘림, 안티앨리어싱·그림자·후처리 끔,
  *   fps 제한 없음(2026-11-13부터, 실험실 B로 켤 수 있음), 가만히 1초 지나면 그리기를 멈춤 (메인 스레드가 놀아서 버튼·스크롤이 정상)
- * - 'gpu'로 감지돼도 처음 2초 평균 프레임 시간이 50ms를 넘으면 low로 내리고, 이 탭에서는 계속 low (startLoop)
+ * - 'gpu'로 감지돼도 처음 2초 평균 프레임 시간이 50ms를 넘으면 low로 내리고, 이 탭에서는 계속 low (startLoop). 3일 동안 기억 (lib/deviceTier.ts)
+ * - low 안에서 단계 strong / weak (lib/deviceTier.ts, docs/rendering-experiments-3.md 2번): 실제 그리기 시간으로 정하고 기억.
+ *   weak 는 선명한 배경 굽기를 더 잘게 나누고(bakeStrips) 안티앨리어싱을 끄고, 카메라 이동 중 해상도·찻방 쉬는 fps 를 낮춤
  */
 export interface Quality {
   level: 'high' | 'low'
+  /** 기기 단계 (lib/deviceTier.ts). high 면 'gpu' */
+  tier: 'gpu' | 'strong' | 'weak'
   /** renderer.setPixelRatio 값 (CSS 픽셀당 그리는 픽셀 수) */
   pixelRatio: number
   antialias: boolean
@@ -29,13 +34,31 @@ export interface Quality {
   /** I 가끔 숨쉬기: 쉬는 중 이 간격(초)마다 breatheFor 초 동안 깨움 (0 = 안 함) */
   breatheEvery: number
   breatheFor: number
+  /** 선명한 배경 굽기 (three/sharpBake.ts): 몇 프레임에 띠로 나눠 그릴지, MSAA 샘플 수 (0 = 안티앨리어싱 없음) */
+  bakeStrips: number
+  bakeSamples: number
+  /** 탐색 들판 점프 카메라 이동 중 배경 해상도 (캔버스 대비, holeField R) */
+  panScale: number
+  /** 찻방 숨쉬기·두리번만 할 때 fps (TeaRoomCanvas) */
+  idleFps: number
 }
 
-const HIGH = (): Quality => ({ level: 'high', pixelRatio: Math.min(window.devicePixelRatio || 1, 2), antialias: true, shadows: true, post: true, maxFps: 0, idleStop: false, idleAfter: 1, lab: null, breatheEvery: 0, breatheFor: 0 })
+const HIGH = (): Quality => ({ level: 'high', tier: 'gpu', pixelRatio: Math.min(window.devicePixelRatio || 1, 2), antialias: true, shadows: true, post: true, maxFps: 0, idleStop: false, idleAfter: 1, lab: null, breatheEvery: 0, breatheFor: 0, bakeStrips: 1, bakeSamples: 4, panScale: 0, idleFps: 0 })
+/*
+ * 저사양 단계별 값 (docs/rendering-experiments-3.md 2번 표)
+ * | 항목                       | strong (16스레드급) | weak (2코어급) |
+ * | 선명한 배경 굽기 띠 수      | 2                   | 6              |
+ * | 선명한 배경 안티앨리어싱    | MSAA 4×             | 없음           |
+ * | 탐색 들판 카메라 이동 해상도 | 0.33배 (0.6)        | 0.22배 (0.4)   |
+ * | 찻방 쉬는 동안 fps          | 15                  | 10             |
+ */
 const LOW = (): Quality => {
   const lab = getLab()
+  const tier = lowTier()
+  const weak = tier === 'weak'
   return {
-    level: 'low', pixelRatio: 0.55, antialias: false, shadows: false, post: false,
+    level: 'low', tier, pixelRatio: 0.55, antialias: false, shadows: false, post: false,
+    bakeStrips: weak ? 6 : 2, bakeSamples: weak ? 0 : 4, panScale: weak ? 0.4 : 0.6, idleFps: weak ? 10 : 15,
     // fps 제한 없음 (2026-11-13: 실제 SSAFY PC(WARP 16스레드)는 제한 없이 걸을 때 60fps·멈춤 없음, docs/rendering-experiments.md).
     // B 스톱모션을 켜면 lab.fps 로 제한 (더 약한 PC용)
     maxFps: lab.B ? lab.fps : 0,
@@ -51,13 +74,34 @@ const AUTO_AVG_MS = 50, AUTO_SKIP_MS = 500, AUTO_WINDOW_MS = 2000
 
 /** 장면마다 새 객체를 받음 (자동으로 내릴 때 그 장면의 객체를 low 값으로 덮어씀) */
 export function quality(): Quality {
-  const q = graphicsTier() === 'software' || downgraded ? LOW() : HIGH()
+  const q = graphicsTier() === 'software' || downgraded || gpuWasSlow() ? LOW() : HIGH()
   const f = testParam('maxfps')
   if (f !== null) q.maxFps = +f
   // 측정용: ?pr=0_4 처럼 해상도 배율 덮어쓰기 (점은 _ 로, docs/rendering-experiments-2.md)
   const pr = testParam('pr')
   if (pr !== null) q.pixelRatio = +pr.replace('_', '.')
   return q
+}
+
+/**
+ * 기기 단계 정하기용 (lib/deviceTier.ts): 지금까지 건 GPU 일이 끝날 때까지 시간을 재서 알림.
+ * t0 = 그 일을 걸기 시작한 시각. 펜스를 넣고 2~4ms 마다 확인 (메인 스레드는 기다리지 않음). 이 탭에서 몇 번까지만
+ */
+export function timeGpuWork(renderer: THREE.WebGLRenderer, t0: number, kind: string, mp: number) {
+  if (!wantsRenderCost()) return
+  const gl = renderer.getContext() as WebGL2RenderingContext
+  if (typeof gl.fenceSync !== 'function') return
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+  if (!sync) return
+  gl.flush()
+  const poll = () => {
+    if (gl.isContextLost()) return
+    const st = gl.clientWaitSync(sync, 0, 0)
+    if (st === gl.TIMEOUT_EXPIRED) { setTimeout(poll, 2); return }
+    gl.deleteSync(sync)
+    if (st !== gl.WAIT_FAILED) noteRenderCost(kind, performance.now() - t0, mp)
+  }
+  setTimeout(poll, 2)
 }
 
 /** 측정용 주소 손잡이 (?maxfps=0 → fps 제한 없음, ?partial=0 → 땅굴 부분 그리기 끔) */
@@ -81,6 +125,11 @@ export interface SceneHandle {
   setFrozen?(on: boolean): void
   /** 모델을 다 받고 첫 그림을 그린 뒤 풀림 (땅굴 장면만. 못 불러와도 풀림) */
   loaded?: Promise<void>
+  /**
+   * 3D 가 준비되기 전에 이 브라우저에서 예전에 구운 같은 구도의 정지 그림을 보여 주기 시작했으면 true 로 풀림 (땅굴, three/stills.ts).
+   * 그러면 로딩 애니메이션 대신 장면을 바로 보이게 해도 됨 (그림 → 3D 가 자연스럽게 이어짐)
+   */
+  still?: Promise<boolean>
   /**
    * 집주인 두더지 머리 위 화면 위치 알림 (남의 땅굴만). 장면 컨테이너 기준 px, null = 숨김
    * (집주인이 안 보임·입장 연출 중·집주인 리액션 말풍선이 떠 있음). 바뀔 때만 부름, 등록하면 지금 값을 바로 한 번 부름
@@ -197,6 +246,7 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     probeFrom = -1
     if (avg > AUTO_AVG_MS) {
       downgraded = true
+      noteGpuSlow()
       Object.assign(q, LOW())
       console.info(`[3D] 프레임이 느려서(평균 ${avg.toFixed(0)}ms) 저사양 모드로 바꿔요`)
       cb.downgrade(q)

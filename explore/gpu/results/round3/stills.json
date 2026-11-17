@@ -1,0 +1,56 @@
+[
+ {
+  "name": "room",
+  "width": 2048,
+  "height": 1536,
+  "alpha": true,
+  "bytes": 143308,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "랜딩 방 (관심사 6개, 연출 없음) = 내 땅굴·온보딩 미리 보기 대신"
+ },
+ {
+  "name": "visit",
+  "width": 2032,
+  "height": 1524,
+  "alpha": true,
+  "bytes": 120928,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "남의 땅굴 (집주인 + 나)"
+ },
+ {
+  "name": "field",
+  "width": 1920,
+  "height": 1016,
+  "alpha": false,
+  "bytes": 42262,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "탐색 들판 (서울-2층, 내 자리)"
+ },
+ {
+  "name": "landing",
+  "width": 1920,
+  "height": 1088,
+  "alpha": false,
+  "bytes": 115674,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "랜딩·둘러보기 밭"
+ },
+ {
+  "name": "tea-duo",
+  "width": 624,
+  "height": 858,
+  "alpha": true,
+  "bytes": 9762,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "찻방 1:1 두더지 (투명 배경)"
+ },
+ {
+  "name": "tea-group",
+  "width": 624,
+  "height": 858,
+  "alpha": true,
+  "bytes": 14272,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "note": "찻방 모임 두더지 5마리 (투명 배경)"
+ }
+]

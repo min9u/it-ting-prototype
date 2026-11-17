@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import SceneCanvas from './SceneCanvas'
 import { mountHoleField, type HoleFieldEvents, type HoleFieldHandle } from './holeField'
+import { stillFor } from './stills'
 
 /**
  * 탐색 들판 3D (ExploreBurrow 가 React.lazy 로 불러옴).
@@ -40,6 +41,7 @@ export default function HoleFieldCanvas({ fieldKey, occupied, zones, mySeat, sta
       className={className}
       label={label}
       onReady={(h) => onReady?.(h as HoleFieldHandle)}
+      fallback={stillFor('field')}
     />
   )
 }

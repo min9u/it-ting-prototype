@@ -15,6 +15,9 @@ import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type HostScreen, type SceneHandle } from './engine'
 import { createBackdrop, toDynamicLayer } from './staticBackdrop'
+import { createSharpBaker, type SharpBaker } from './sharpBake'
+import { getCachedStill, peekCachedStill, putCachedStill } from './stills'
+import { waitGpu, warmScene } from './warm'
 import { ROOM_FRAME } from './roomFrame'
 import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
 import { applyChoice, type FurnChoice } from '../data/myBurrow'
@@ -150,7 +153,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * layer 0 은 렌더 타깃에 한 번 그려 두고, 매 프레임은 붙인 뒤 layer 1 만 그림 → 방 전체 정점 처리가 매 프레임에서 빠짐.
    * 가구가 착지하면 layer 0 으로 옮기고 배경을 다시 찍음. 카메라·줌·크기가 바뀌어도 다시 찍음
    */
-  const backdrop = q.level === 'low' && q.lab?.A ? createBackdrop(renderer) : null
+  const backdrop = q.level === 'low' && q.lab?.A ? createBackdrop(renderer, { kind: 'room' }) : null
   /*
    * S 방은 선명하게 (2026-11-12 사용자 요청 "두더지 화질은 낮아져도 괜찮은데 방은 GPU 켰을 때처럼"):
    * 방(layer 0)이 멈춰 있으면 고해상도(기기 배율 × 1.5 슈퍼샘플)로 한 번 그려서 WebGL 캔버스 뒤 2D 캔버스에 깔아 둠.
@@ -158,6 +161,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
    * 카메라·패널 이동·가구 낙하·먼지 중에는 예전처럼 전부 저해상도로 그리고, 끝나고 0.35초 조용하면 다시 찍음.
    * 천장 구멍·두더지는 움직이는 층이라 선명한 방 위에 저해상도로 그림
    * Worker(D)에는 DOM 이 없어서 안 씀. 시험용 ?sharp=0 으로 끔
+   * 2026-11-16 3차 (docs/rendering-experiments-3.md): 굽기를 sharpBake.ts 로 (1.5배 슈퍼샘플을 그 자리에서 읽던 것 →
+   * 1배 + MSAA 를 렌더 타깃에 띠로 나눠 굽고 비동기로 읽음. 메인 스레드가 그림을 기다리지 않음). 시험용 ?rstrips= ?rmsaa= ?rbake=0(예전 방식)
    */
   const sharp = !!backdrop && !opts.canvas && (q.lab?.S ?? true) && testParam('sharp') !== '0'
   let sharpCv: HTMLCanvasElement | null = null
@@ -168,20 +173,38 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let settle = 0
   /** 고른 가구 (선명한 방 캐시 키에 넣음) */
   let furnKey = Object.entries(opts.furniture ?? {}).sort().join(',')
-  const sharpOff = () => { settle = 0; if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
+  const useBaker = testParam('rbake') !== '0'
+  let baker: SharpBaker | null = null
+  /** 굽고 있는 그림의 캐시 키 */
+  let bakeKey = ''
+  const sharpOff = () => { settle = 0; baker?.cancel(); if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
   /** 방(layer 0)을 고해상도로 그려 2D 캔버스에 옮김. 끝나면 원래 해상도로 */
   const sharpKeyOf = (out: number) => {
     camera.updateMatrixWorld()
     const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
     return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
   }
-  const captureSharp = () => {
+  const ensureSharpCv = () => {
     if (!sharpCv) {
       sharpCv = document.createElement('canvas')
       sharpCv.setAttribute('aria-hidden', 'true')
       sharpCv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none'
       container.insertBefore(sharpCv, renderer.domElement)
     }
+    return sharpCv
+  }
+  /** 그림 한 장을 2D 캔버스에 깔고 보이게 */
+  const showSharp = (img: CanvasImageSource & { width: number; height: number }) => {
+    const cv = ensureSharpCv()
+    cv.width = img.width; cv.height = img.height
+    const ctx = cv.getContext('2d')!
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    ctx.drawImage(img, 0, 0)
+    cv.style.visibility = 'visible'
+  }
+  const captureSharp = () => {
+    ensureSharpCv()
+    if (!sharpCv) return
     const out = Math.min(window.devicePixelRatio || 1, 2)
     // 같은 탭에서 같은 방·같은 구도로 다시 들어오면 (탐색하기 갔다 돌아오기 등) 찍어 둔 그림을 그대로 씀 (docs/rendering-experiments.md 4번)
     const key = sharpCache ? sharpKeyOf(out) : ''
@@ -191,6 +214,18 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       sharpCv.getContext('2d')!.drawImage(hit, 0, 0)
       sharpCv.style.visibility = 'visible'
       sharpOk = true
+      return
+    }
+    // 이 브라우저에서 예전에 구운 같은 그림 (IndexedDB, 새로고침·다음 방문. 3차): 다시 굽지 않음
+    const saved = sharpCache ? peekCachedStill(key) : null
+    if (saved) { showSharp(saved); sharpOk = true; return }
+    if (useBaker) {
+      // 굽기 시작 (다 되면 stepBake 가 보이게 하고 캐시에 넣음)
+      const cv = sharpCv
+      baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips) }, () => cv)
+      bakeKey = key
+      baker.start(scene, camera, Math.max(1, Math.round(W * out)), Math.max(1, Math.round(H * out)))
+      baker.step()
       return
     }
     // 슈퍼샘플 1.5배, 다만 한 번 그리는 픽셀이 400만을 넘지 않게 (CPU 렌더러에서 한 번에 0.5초 안쪽)
@@ -215,6 +250,22 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     }
     sharpCv.style.visibility = 'visible'
     sharpOk = true
+  }
+  /** 굽기 한 걸음 (매 프레임). 이번에 다 됐으면 true */
+  const stepBake = (): boolean => {
+    if (!baker || baker.step() !== 'done' || !sharpCv) return false
+    sharpCv.style.visibility = 'visible'
+    sharpOk = true
+    const w = window as unknown as { __captures?: [string, number][] }
+    ;(w.__captures ??= []).push(['roomBake', Math.round(baker.lastMs)]) // 측정용: 굽기 시작 → 2D 캔버스
+    if (sharpCache && bakeKey) {
+      const copy = document.createElement('canvas'); copy.width = sharpCv.width; copy.height = sharpCv.height
+      copy.getContext('2d')!.drawImage(sharpCv, 0, 0)
+      SHARP_CACHE.delete(bakeKey); SHARP_CACHE.set(bakeKey, copy)
+      while (SHARP_CACHE.size > 3) SHARP_CACHE.delete(SHARP_CACHE.keys().next().value!)
+      putCachedStill(bakeKey, copy) // 다음 방문에도 (쉴 때 webp 로)
+    }
+    return true
   }
   const scene = new THREE.Scene()
   // 배경은 투명 (페이지 흙색이 보임. 스펙 배경 0x805B38 대신 Figma 화면색을 따름)
@@ -502,15 +553,32 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     // 배경(A)은 선형 렌더 타깃에 그려서 셰이더 종류가 캔버스와 다름 → 두 가지 다. 텍스처도 한 장씩 나눠 올림 (긴 작업 하나 → 짧은 작업 여럿)
     if (precompile) {
       warming = true // 예열이 끝날 때까지 루프는 그리지 않음 (안 그러면 첫 프레임이 예열보다 먼저 그려서 소용없음)
-      if (backdrop) await backdrop.precompile(scene, camera)
-      await renderer.compileAsync(scene, camera).catch(() => {})
-      const texs = new Set<THREE.Texture>()
-      scene.traverse((o) => {
-        const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
-        for (const mm of m ? (Array.isArray(m) ? m : [m]) : []) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
-      })
-      for (const t of texs) { if (disposed) return; renderer.initTexture(t); await new Promise((r) => setTimeout(r, 0)) }
-      await warmDraws()
+      const makeBaker = () => {
+        if (!sharp || !useBaker || opts.canvas) return
+        const cv = sharpCv ?? document.createElement('canvas')
+        baker ??= createSharpBaker(renderer, { samples: +(testParam('rmsaa') ?? q.bakeSamples), strips: +(testParam('rstrips') ?? q.bakeStrips) }, () => sharpCv ?? cv)
+      }
+      if (testParam('rwarm') === '0') {
+        // 예전 방식 (2차까지): 장면 전체를 두 군데 다 컴파일 + 텍스처 + 25ms 묶음 그리기
+        if (backdrop) await backdrop.precompile(scene, camera)
+        await renderer.compileAsync(scene, camera).catch(() => {})
+        const texs = new Set<THREE.Texture>()
+        scene.traverse((o) => {
+          const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+          for (const mm of m ? (Array.isArray(m) ? m : [m]) : []) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
+        })
+        for (const t of texs) { if (disposed) return; renderer.initTexture(t); await new Promise((r) => setTimeout(r, 0)) }
+        makeBaker(); baker?.warm(scene, camera)
+        await warmDraws()
+      } else {
+        // 3차 (warm.ts): 층마다 실제로 그려지는 곳만 컴파일·그리기, 하나 그릴 때마다 GPU 가 끝날 때까지 비동기로 기다림.
+        // 셰이더가 다 준비된 뒤에 S 굽기용 렌더 타깃·톤매핑 셰이더 (작은 크기로 한 번, sharpBake.ts)
+        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, dead: () => disposed })
+        if (disposed) return
+        makeBaker()
+        if (baker) { baker.warm(scene, camera); await waitGpu(renderer) }
+        backdrop?.invalidate(); fullNext = true
+      }
       warming = false
     }
     if (disposed) return
@@ -827,7 +895,32 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
 
   let W = 1, H = 1
   let focusTarget = opts.focusX ?? 0.5, focus = focusTarget
+  // 화질 비교용 같은 장면 스크린샷 (?qshot=1, explore/gpu/cdp-quality.mjs): 두더지 자세 고정 + 두더지 화면 사각형을 window.__moleRect 로
+  const qshot = testParam('qshot') === '1'
+  let qposed = false
+  const reportMoles = () => {
+    const box = new THREE.Box3(), b = new THREE.Box3(), v = new THREE.Vector3()
+    for (const a of [mole, host]) if (a) box.union(b.setFromObject(a.object))
+    if (box.isEmpty()) return
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (let i = 0; i < 8; i++) {
+      v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera)
+      const x = (v.x * .5 + .5) * W, y = (1 - (v.y * .5 + .5)) * H
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y)
+    }
+    const c = container.getBoundingClientRect()
+    ;(window as unknown as { __moleRect?: unknown }).__moleRect = { x0: Math.round(c.left + x0), y0: Math.round(c.top + y0), x1: Math.round(c.left + x1), y1: Math.round(c.top + y1), scene: { x0: Math.round(c.left), y0: Math.round(c.top), x1: Math.round(c.right), y1: Math.round(c.bottom) } }
+  }
+  // 빌드용 정지 그림 찍기 (?stillshot=1, explore/gpu/make-stills.mjs): 4:3 구도 상자를 캔버스 안에 위 0 으로 다 들어오게 하고 상자 위치를 알림
+  const stillShot = testParam('stillshot') === '1'
   const applyFrame = () => {
+    if (stillShot) {
+      const bh = H, bw = bh * 4 / 3, left = focus * W - bw / 2
+      frameCamera(camera, W, H, { left, top: 0, w: bw, h: bh })
+      const r = container.getBoundingClientRect()
+      ;(window as unknown as { __stillBox?: unknown }).__stillBox = { x: r.left + left, y: r.top, w: bw, h: bh }
+      return
+    }
     if (W / H < 1) {
       // 세로 화면: 가로를 꽉 채움 (스펙: 가로 화각 유지 → 돔 양옆이 잘리지 않게)
       const bw = W * 1.02, bh = bw * 3 / 4
@@ -894,7 +987,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const drawBackdrop = (full: boolean) => {
     const bd = backdrop!
     if (bd.isDirty()) { bd.capture(scene, camera); full = true }
-    if (sharp && !sharpOk && mole && settle >= .35) { captureSharp(); full = true }
+    if (stepBake()) full = true
+    else if (sharp && !sharpOk && !baker?.busy() && mole && settle >= .35) { captureSharp(); full = true }
     const cur: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     for (const a of [mole, host]) if (a && a.object.visible) actorRect(a, cur)
     if (mailboxDirty) mailboxRect(cur)
@@ -977,8 +1071,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       mailboxDirty = !!mailbox && mailbox.update(dt, t)
       stepDust(dt)
       stepLook(dt)
-      host?.update(dt)
-      mole?.update(dt)
+      if (qshot) { if (!qposed) { qposed = true; host?.update(0); mole?.update(0) } reportMoles() } // 측정용: 두더지 자세 고정
+      else { host?.update(dt); mole?.update(dt) }
       for (const [a, sh] of shadows) {
         sh.visible = a.object.visible
         sh.position.set(a.object.position.x, .012, a.object.position.z)
@@ -994,6 +1088,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (host && !host.isResting()) return true
       if (holeT >= 0 || seqT >= 0 || dusts.some((d) => d.t >= 0)) return true
       if (mailbox?.busy()) return true
+      if (baker?.busy()) return true
       if (camMoving || focus !== focusTarget) return true
       if (Math.abs(camera.position.distanceTo(controls.target) - zoomGoal) > 1e-3) return true
       return bubbles.some((b) => b.who && clock < b.until + .3)
@@ -1006,8 +1101,24 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     },
   }, q)
 
+  /*
+   * 들어오자마자: 이 브라우저에서 예전에 구운 같은 구도의 방 그림이 있으면(IndexedDB) 3D 가 준비되기 전부터 보여 줌 (docs/rendering-experiments-3.md 5번).
+   * RoomView 는 still 이 true 면 로딩 애니메이션 대신 장면을 바로 보이게 함. 3D 가 준비되면 같은 그림을 선명한 방(S)으로 그대로 씀
+   */
+  let still: Promise<boolean> = Promise.resolve(false)
+  if (sharp && sharpCache) {
+    const key0 = sharpKeyOf(Math.min(window.devicePixelRatio || 1, 2))
+    still = getCachedStill(key0).then((bmp) => {
+      if (!bmp || disposed || sharpOk) return false
+      showSharp(bmp)
+      ;(window as unknown as { __stillAt?: number }).__stillAt = performance.now() // 측정용: 예전에 구운 그림이 보인 시각
+      return true
+    })
+  }
+
   return {
     loaded,
+    still,
     resize: () => loop.resize(),
     setFocusX(x) {
       focusTarget = x
@@ -1063,7 +1174,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)
       for (const sh of shadows.values()) { sh.geometry.dispose(); (sh.material as THREE.Material).dispose() }
-      backdrop?.dispose(); sharpCv?.remove()
+      baker?.dispose(); backdrop?.dispose(); sharpCv?.remove()
       destroyRenderer(renderer)
     },
   }

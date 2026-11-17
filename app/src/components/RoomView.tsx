@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'rea
 import type { RoomSceneHandle } from '../three/roomScene'
 import type { HostScreen } from '../three/engine'
 import { ROOM_FRAME } from '../three/roomFrame'
-import roomCutout from '../assets/room-v2.webp'
+import { stillFor } from '../three/stills'
 import type { FurnChoice } from '../data/myBurrow'
 import styles from './RoomView.module.css'
 
@@ -61,11 +61,17 @@ interface Props {
   highlight?: string | null
   /** 안 보이는 동안 그리기 멈춤 (랜딩에서 투명하게 숨긴 층, docs/rendering-experiments-2.md) */
   paused?: boolean
+  /**
+   * 3D 가 준비되는 동안 로딩 애니메이션 대신 빌드에 넣은 정지 그림(three/stills.ts 'room')을 보여 줌. 그 그림과 같은 방일 때만
+   * (랜딩: 같은 관심사 6개·연출 없음). 다른 방이면 가구가 바뀌어 보여서 쓰지 않음 (docs/rendering-experiments-3.md 5번)
+   */
+  loadingStill?: boolean
 }
 
 /**
  * 3D 땅굴 (src/three/roomScene.ts).
- * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 디자이너 확인 렌더(핸드오프 v2 room_glb_check.png, 같은 카메라) 자리표시를 같은 자리에 보여 준다.
+ * 3D가 준비될 때까지(또는 WebGL을 못 쓰면) 같은 구도의 고해상도 정지 그림(three/stills.ts, GPU 로 미리 찍은 방, 2026-11-16 3차.
+ * 예전엔 디자이너 확인 렌더 1200px)을 같은 자리에 보여 준다. 이 브라우저에서 예전에 구운 같은 방 그림이 있으면(저사양, IndexedDB) 그걸 먼저.
  * 구도는 roomScene 과 같음 (three/roomFrame.ts ROOM_FRAME): 4:3 그림, 가로 가운데 = focusX.
  */
 /**
@@ -102,9 +108,12 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  // 3D 장면이 예전에 구운 같은 구도의 그림을 이미 깔았음 (SceneHandle.still) → 로딩 애니메이션 없이 장면을 바로 보임
+  const [stillUp, setStillUp] = useState(false)
+  const fallbackStill = stillFor('room', { host: !!hostName })
   // loader: 3D 를 못 만드는 환경(WebGL 없음)이면 8초 뒤 자리표시 그림으로
   const [gaveUp, setGaveUp] = useState(false)
   const handle = useRef<RoomSceneHandle | null>(null)
@@ -132,6 +141,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const latestLoaded = useRef(onLoaded)
   latestLoaded.current = onLoaded
   const shown = loader ? loaded : ready
+  const canvasOn = loaded || stillUp
   // 집주인 머리 위 자리: 마지막 위치를 기억해 두고, 3D 가 보일 때만 켬
   const anchor = useRef<HTMLDivElement>(null)
   const hostAt = useRef<HostScreen | null>(null)
@@ -147,10 +157,11 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
     if (on) a.dataset.on = ''; else delete a.dataset.on
   }
   useEffect(placeHost, [shown]) // eslint-disable-line react-hooks/exhaustive-deps
-  const placeholder = loader ? gaveUp && !ready : !ready
+  // loadingStill 이면 그림을 3D 아래에 계속 둠 (3D 가 0.6초에 걸쳐 나타나는 동안 비지 않게. 방 바깥은 둘 다 투명)
+  const placeholder = loader ? (gaveUp && !ready) || loadingStill : !ready
   return (
     <div className={styles.scene} data-owner={ownerId}>
-      {loader && !loaded && !gaveUp && (
+      {loader && !canvasOn && !gaveUp && !loadingStill && (
         <div className={styles.loader} style={{ left: `${focusX * 100}%` }} role="status">
           <span className={styles.loaderArt} aria-hidden>
             <LoaderMole />
@@ -161,7 +172,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
       )}
       {placeholder && (
         <div className={styles.stage} style={{ left: `${focusX * 100}%`, top: `${ROOM_FRAME.top * 100}%`, height: `${ROOM_FRAME.h * 100}%` }}>
-          <img src={roomCutout} alt={label ?? '땅굴 방 모습'} className={styles.room} draggable={false} />
+          <img src={fallbackStill.src} alt={label ?? fallbackStill.alt} className={styles.room} draggable={false} />
         </div>
       )}
       <Suspense fallback={null}>
@@ -177,7 +188,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           furniture={furnRef.current}
           onMailbox={() => onMailboxRef.current?.()}
           focusX={focusX}
-          className={loader ? `${styles.canvas} ${loaded ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
+          className={loader ? `${styles.canvas} ${canvasOn ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}
           label={label ?? '땅굴 방 모습'}
           paused={paused}
           overlay={hostBubble != null && (
@@ -189,6 +200,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
             if (furnRef.current) (h as RoomSceneHandle).setFurniture?.(furnRef.current)
             ;(h as RoomSceneHandle).setHighlight?.(hlRef.current)
             hostAt.current = null; placeHost()
+            h.still?.then((ok) => { if (ok && handle.current === h) setStillUp(true) })
             h.onHostScreen?.((p) => { if (handle.current !== h) return; hostAt.current = p; placeHost() })
             ;(h.loaded ?? Promise.resolve()).then(() => { if (handle.current !== h) return; setLoaded(true); latestLoaded.current?.() })
           }}

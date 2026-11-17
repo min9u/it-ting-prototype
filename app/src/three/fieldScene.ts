@@ -14,7 +14,8 @@ import { getMyWorn } from '../data/moleItems'
 import { gradientEnv, FIELD_ENV } from './lighting'
 import { fieldGradePass } from './post'
 import { blobShadow } from './roomLook'
-import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, quality, startLoop, type SceneHandle } from './engine'
+import { approach, createRenderer, destroyRenderer, disposeObject, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
+import { waitGpu, warmScene } from './warm'
 import { createBackdrop, toDynamicLayer, type Backdrop } from './staticBackdrop'
 import { bakeMoleSprites, type MoleSprites } from './moleSprites'
 
@@ -106,7 +107,26 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   const useBackdrop = () => q.level === 'low' && !!q.lab?.A
   const scissorOk = useBackdrop()
   const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q, preserve: scissorOk })
+  // 기기 단계 측정(kind)은 하지 않음: 옛 밭은 장면이 무거워 그리기 시간이 들쭉날쭉 (docs/rendering-experiments-3.md 2번)
   let backdrop: Backdrop | null = useBackdrop() ? createBackdrop(renderer) : null
+  /*
+   * 예열 (docs/rendering-experiments-3.md 1번 c, 랜딩 첫 화면 0.65초 멈춤): 예전엔 마운트하자마자 첫 프레임을 그려서
+   * 그 자리에서 셰이더를 컴파일했음. 이제는 밭을 다 만든 뒤 warmScene(셰이더 미리 컴파일 + 물체마다 1×1 그리기를 나눠서)이 끝날 때까지
+   * 그리지 않고 캔버스를 투명하게 둠 (그동안 FieldView 가 같은 구도의 정지 그림을 보여 줌) → 다 되면 0.35초에 걸쳐 나타남.
+   * 두더지는 나중에 불러오므로 따로 예열하고 나서 보이게. GPU 에서도 같음. 시험용 ?compile=0 으로 끔
+   */
+  const precompile = testParam('compile') !== '0'
+  /** 진행 중인 예열 수 (밭 + 두더지). 0 이 될 때까지 그리지 않음 */
+  let warmJobs = precompile ? 1 : 0
+  if (warmJobs) { renderer.domElement.style.opacity = '0'; renderer.domElement.style.transition = 'opacity .35s ease-out' }
+  let fieldWarm: Promise<void> = Promise.resolve()
+  /** 예열 하나가 끝남. 다 끝났으면 그리기 시작 + 캔버스 나타남 */
+  const endWarm = () => {
+    if (--warmJobs > 0 || disposed) return
+    fullNext = true; backdrop?.invalidate()
+    renderer.domElement.style.opacity = '1'
+    loop.redraw(); loop.wake()
+  }
   /*
    * E 2D 두더지 (시험판, moleSprites.ts): 두더지를 그림으로 한 번 찍어 두고, 밭은 바뀔 때만 3D로 그리고
    * 매 프레임은 위에 얹은 2D 캔버스에 두더지 그림만 붙임 (3D 그리기 0). 가림(꽃 뒤로 지나가기)은 없어짐.
@@ -335,6 +355,8 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
   let curHole: Hole = holeById(opts.startHole ?? MY_HOLE) ?? holes[0]
   const pending: { enter?: { id: string | null; done: () => void } } = {}
 
+  /** 멀리 있는 굴의 표지판 (예열 때 굴과 같이) */
+  const burrowExtras: THREE.Object3D[] = []
   const placeBurrows = (props: GLTF) => {
     const src = props.scene.getObjectByName('burrow')
     if (!src) { console.warn('[3D] ground_props 에 burrow 가 없어요'); return }
@@ -364,7 +386,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
         sp.scale.setScalar(S * 1.25)
         sp.position.set(h.c.x - 1.9 * S, groundHeight(h.c.x, h.c.z), h.c.z + .9 * S)
         sp.rotation.y = .35
-        scene.add(sp)
+        scene.add(sp); burrowExtras.push(sp)
         sp.updateMatrixWorld(true)
         colliders.push({ x: sp.position.x, z: sp.position.z, r: .1 * S * 1.25 })
         const mats: THREE.Material[] = []
@@ -376,8 +398,10 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     backdrop?.invalidate()
   }
 
-  Promise.all([loadMoleGltf(), loadAccessories(), loadGlb(groundPropsUrl).catch((err) => { console.warn('[3D] 굴 모델을 못 불러왔어요', err); return null })]).then(([moleG, acc, props]) => {
+  Promise.all([loadMoleGltf(), loadAccessories(), loadGlb(groundPropsUrl).catch((err) => { console.warn('[3D] 굴 모델을 못 불러왔어요', err); return null })]).then(async ([moleG, acc, props]) => {
     if (disposed) return
+    // 굴·두더지 예열이 끝날 때까지 그리지 않음 (밭 예열과 겹치면 둘 다 끝난 뒤 한 번에 나타남)
+    if (precompile) warmJobs++
     // 동작 확인 (사용자 요청: 굴 나오기·들어가기가 안 보이면 이름 목록부터)
     const names = moleG.animations.map((a) => a.name)
     const need = ['mole_burrow_exit', 'mole_burrow_enter', 'mole_walk', 'mole_turn', 'mole_idle', 'mole_look_around', 'mole_ground_scratch']
@@ -387,6 +411,9 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     S = moleH / Math.max(box.max.y - box.min.y, 1e-3)
     moleR = .32 * S
     if (props) placeBurrows(props)
+    // 예열 전에는 굴·표지판을 숨김 (밭 예열이 아직 돌고 있으면 그 1×1 그리기에 섞여 처음 보는 셰이더를 그 자리에서 기다리게 됨)
+    const newRoots = [...holes.map((h) => h.group).filter((g): g is THREE.Object3D => !!g), ...burrowExtras]
+    if (precompile) newRoots.forEach((g) => { g.visible = false })
     const start = frontOf(curHole)
     const exitAnim = !!opts.startHole
     mole = createMoleActor(moleG, {
@@ -397,6 +424,21 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     })
     scene.add(mole.object)
     toDynamicLayer(mole.object)
+    // 예열: 밭 예열이 끝난 뒤 두더지·굴만 따로 (그동안 두더지는 숨김 → 보통 프레임이 처음 보는 셰이더를 그리지 않게)
+    if (precompile) {
+      mole.object.visible = false
+      await fieldWarm
+      if (disposed || !mole) return
+      const roots = [mole.object, ...newRoots]
+      // 굴은 이미 장면에 들어가서 보통 프레임이 처음 그리면 멈춤 → 예열하는 동안 프레임을 쉼 (warmJobs, 캔버스는 지난 그림 그대로).
+      // 지난 그림을 남기지 않는 렌더러(GPU·A 끔)가 이미 보이고 있으면 1×1 그리기만 해도 지워진 화면이 보이므로 컴파일만
+      const shown = renderer.domElement.style.opacity === '1'
+      await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, all: post ? post.composer.readBuffer : null, roots, draw: scissorOk || !shown, dead: () => disposed })
+      if (disposed || !mole) return
+      mole.object.visible = true
+      newRoots.forEach((g) => { g.visible = true })
+      endWarm()
+    }
     moleBlob.scale.set(moleH * .95, 1, moleH * .95); moleBlob.visible = true
     if (exitAnim && props) {
       busyMove = true
@@ -422,7 +464,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
     }
     // 불러오는 동안 눌린 것
     if (pending.enter) { const e = pending.enter; pending.enter = undefined; enterHole(e.id, e.done) }
-  }).catch((err) => console.warn('[3D] 두더지를 못 불러왔어요', err))
+  }).catch((err) => { console.warn('[3D] 두더지를 못 불러왔어요', err); if (precompile && warmJobs > 0) endWarm() })
   const unbindKeys = bindDriveKeys((x, z) => { if (busyMove) return; mole?.drive(x, z); loop.wake() }, { arrows: false })   // WASD로 조종 (←/→는 이웃 땅굴 넘기기)
 
   // 앞쪽 손으로 놓은 것들 (원본 위치). 큰 덤불·큰 돌은 콜라이더
@@ -689,6 +731,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
 
   const camMoving = () => !!camAnim || Math.abs(zl - zlTarget) > 1e-4
   const frame = (dt: number) => {
+    if (warmJobs > 0) return
     let full = fullNext || dt === 0
     fullNext = false
     if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); full = true }
@@ -736,6 +779,16 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       if (useBackdrop() && !backdrop) backdrop = createBackdrop(renderer)
     },
   }, q)
+  if (precompile) {
+    // 밭 예열 (위 설명). 배경 한 번 그리기(A) 렌더 타깃과 캔버스 두 군데 (셰이더가 다름)
+    const w0 = performance.now()
+    // GPU(후처리)는 장면을 후처리 렌더 타깃에 그리므로 그쪽 셰이더로. 후처리 패스(N8AO·색보정) 셰이더는 캔버스가 숨어 있는 동안 한 번 그려서 준비
+    fieldWarm = warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, all: post ? post.composer.readBuffer : null, dead: () => disposed }).then(async () => {
+      if (post && !disposed) { post.composer.render(0); await waitGpu(renderer) }
+      ;(window as unknown as { __fieldWarmMs?: number }).__fieldWarmMs = Math.round(performance.now() - w0) // 측정용
+      endWarm()
+    })
+  }
 
   /* ---------- 굴 이동 ---------- */
   const nearestHole = () => {

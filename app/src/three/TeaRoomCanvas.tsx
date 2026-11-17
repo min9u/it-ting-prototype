@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { createRenderer, destroyRenderer, quality, startLoop, testParam } from './engine'
 import { createMoleActor, loadMoleGltf, type MoleActor } from './moleActor'
 import { loadAccessories } from './moleDress'
+import { warmScene } from './warm'
 
 /*
  * 채팅 찻방의 3D 두더지 (Figma 02 F6 "찻방"). 방 그림은 2D(TeaRoom.tsx)이고, 그 위에 투명 캔버스로 두더지만 그림.
@@ -43,7 +44,8 @@ function mountTea(el: HTMLElement, seats: TeaSeat[], onReady: () => void): Handl
   const key = new THREE.DirectionalLight(0xFFDDB3, 2.4); key.position.set(-0.4, 1, 1.2); scene.add(key)
 
   let W = 1, H = 1, dead = false
-  const teaFps = q.level === 'low' ? +(testParam('teafps') ?? '15') : 0
+  // 기기 단계 strong 15fps, weak 10fps (engine.ts idleFps, docs/rendering-experiments-3.md)
+  const teaFps = q.level === 'low' ? +(testParam('teafps') ?? String(q.idleFps)) : 0
   let livelyUntil = 0 // 인사 동작이 끝날 때까지는 fps 제한 없음
   const actors = new Map<string, { actor: MoleActor; group: THREE.Group; seat: TeaSeat }>()
   const place = () => {
@@ -53,7 +55,7 @@ function mountTea(el: HTMLElement, seats: TeaSeat[], onReady: () => void): Handl
     })
   }
 
-  Promise.all([loadMoleGltf(), loadAccessories().catch(() => undefined)]).then(([g, acc]) => {
+  Promise.all([loadMoleGltf(), loadAccessories().catch(() => undefined)]).then(async ([g, acc]) => {
     if (dead) return
     for (const seat of seats) {
       const actor = createMoleActor(g, { scale: 1, start: new THREE.Vector3(), yaw: seat.yaw, drop: false, lookEvery: [5, 12], acc, worn: seat.worn, simple: q.level === 'low' && !!q.lab?.F })
@@ -64,6 +66,14 @@ function mountTea(el: HTMLElement, seats: TeaSeat[], onReady: () => void): Handl
       actors.set(seat.id, { actor, group, seat })
     }
     place()
+    // 예열 (warm.ts, 3차): 두더지 셰이더·텍스처·첫 그리기를 나눠서 → 첫 프레임 멈춤(0.2초 남짓)을 짧은 작업 여럿으로. 그동안 두더지는 숨김
+    if (testParam('compile') !== '0') {
+      const groups = [...actors.values()].map((a) => a.group)
+      groups.forEach((gr) => { gr.visible = false })
+      await warmScene(renderer, scene, camera, { roots: groups, dead: () => dead })
+      if (dead) return
+      groups.forEach((gr) => { gr.visible = true })
+    }
     loop.ready()
     onReady()
   }).catch((e) => console.warn('[3D] 찻방 두더지를 못 불러왔어요', e))

@@ -6,6 +6,9 @@ import { loadAccessories } from './moleDress'
 import { gradientEnv, FIELD_ENV } from './lighting'
 import { blobShadow } from './roomLook'
 import { createBackdrop, toDynamicLayer, type Backdrop } from './staticBackdrop'
+import { createSharpBaker, type SharpBaker } from './sharpBake'
+import { waitGpu, warmScene } from './warm'
+import { getCachedStill, peekCachedStill, putCachedStill, stillKey } from './stills'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
 import groundUrl from '../assets/models/field/explore_ground_150.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
@@ -34,6 +37,7 @@ import flowersUrl from '../assets/models/field/flowers.glb?url'
  *     카메라가 움직이는 0.4초(점프 이동)·패널 이동 중에만 전체를 그리고, 멈추면 다시 찍음
  *   P 두더지 둘레 사각형만 다시 그림 (지난 그림을 남겨 둠, 땅굴·옛 밭과 같은 방식)
  *   예열: 셰이더 미리 컴파일 + 물체마다 1×1 그리기를 나눠서 → 들어올 때 첫 프레임 0.5초 멈춤을 짧은 작업 여럿으로 (땅굴과 같은 방식)
+ *   S 배경 선명: 1배 배경을 렌더 타깃에 띠로 나눠 여러 프레임에 굽고(MSAA) 비동기로 읽어 뒤 2D 캔버스에 (sharpBake.ts, docs/rendering-experiments-3.md)
  */
 
 type Item = [node: number, x: number, y: number, z: number, ry: number, sx: number, sy: number, sz: number]
@@ -96,7 +100,10 @@ export interface HoleFieldHandle extends SceneHandle {
 }
 
 const CELL = 12 // 컬링 칸 크기 (구역 36m = 3칸)
-/** S 선명한 배경을 끄는 기준 (ms, 두 번 넘으면). 16스레드 WARP 는 약 60~120ms, CPU 2코어는 300ms 넘음 (docs/rendering-experiments-2.md) */
+/**
+ * S 선명한 배경을 끄는 기준 (ms, 두 번 넘으면). 한 번에 굽는 경우(?fstrips=1)만: 16스레드 WARP 는 약 60~120ms, CPU 2코어는 300ms 넘음 (docs/rendering-experiments-2.md).
+ * 띠로 나눠 구우면(기본) 한 프레임 일이 작아서 끄지 않음 (docs/rendering-experiments-3.md)
+ */
 const SHARP_SLOW_MS = 200
 const CAM_DIST = 12, CAM_PITCH = THREE.MathUtils.degToRad(45), FOV = 32.3
 const ANCHOR_Y = 0.075 // 구멍 바닥 = 두더지 발
@@ -138,19 +145,20 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const useA = () => q.level === 'low' && !!q.lab?.A && testParam('fa') !== '0'
   const scissorOk = useA() && (q.lab?.P ?? true) && testParam('partial') !== '0'
   /*
-   * S 배경은 선명하게 (아래 captureSharp, 기본 켬 2026-11-16 docs/rendering-experiments-2.md): WebGL 캔버스를 투명하게 두고
-   * 뒤 2D 캔버스에 1배(기기 배율) 배경, 두더지·링만 0.55배. 실험실 S 를 따름. 시험용 ?fsharp=0 끔,
-   * ?fss= 배경 배율(기본 1, 0 이면 땅굴처럼 1.5배 슈퍼샘플), ?fsasync=0 이면 그림을 그 자리에서 읽어 옴(메인 스레드가 기다림)
+   * S 배경은 선명하게 (아래 baker, 기본 켬 2026-11-16 docs/rendering-experiments-2.md): WebGL 캔버스를 투명하게 두고
+   * 뒤 2D 캔버스에 1배(기기 배율) 배경, 두더지·링만 0.55배. 실험실 S 를 따름. 시험용 ?fsharp=0 끔.
+   * 2026-11-16 3차: 굽기는 sharpBake.ts (렌더 타깃에 띠로 나눠, MSAA, 비동기 읽기). 띠 수·MSAA 는 기기 단계(q.bakeStrips·bakeSamples),
+   * 시험용 ?fstrips=1 (한 번에) ?fmsaa=0
    */
   let sharpField = useA() && (q.lab?.S ?? true) && testParam('fsharp') !== '0'
-  const sharpSS = +(testParam('fss') ?? '1').replace('_', '.')
-  const sharpAsync = testParam('fsasync') !== '0'
+  const bakeStrips = +(testParam('fstrips') ?? q.bakeStrips)
+  const bakeSamples = +(testParam('fmsaa') ?? q.bakeSamples)
   const renderer = createRenderer(container, { alpha: sharpField, exposure: 1.0, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: scissorOk })
   // 배경 렌더 타깃 배율 (?bdscale=2 → 캔버스의 2배로 그려 붙일 때 2×2 평균 = 안티앨리어싱)
   const bdScale = +(testParam('bdscale') ?? '1').replace('_', '.')
-  let backdrop: Backdrop | null = useA() ? createBackdrop(renderer, { scale: bdScale }) : null
-  // R 카메라가 움직이는 동안 낮은 해상도 배경 (캔버스 대비 배율, 0 = 끔, 기본 0.6 → 0.33배). 시험용 ?panscale=0_6
-  const panScale = +(testParam('panscale') ?? '0_6').replace('_', '.')
+  let backdrop: Backdrop | null = useA() ? createBackdrop(renderer, { scale: bdScale, kind: 'hole' }) : null
+  // R 카메라가 움직이는 동안 낮은 해상도 배경 (캔버스 대비 배율, 0 = 끔, 기본 기기 단계 strong 0.6 → 0.33배, weak 0.4 → 0.22배). 시험용 ?panscale=0_6
+  const panScale = +(testParam('panscale') ?? String(q.panScale)).replace('_', '.')
   let panBd: Backdrop | null = null
   // 예열 (아래 warm). 기본 켬. 시험용 ?compile=0 으로 끔
   const precompile = testParam('compile') !== '0'
@@ -435,6 +443,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     const dur = mole.hop('down')
     anim = { from, to, t: 0, phase: 'down', dur, camFrom: target.clone(), camTo: clampTarget(holeVec(to)) }
     const h = holes.get(to)!
+    if (baker) void getCachedStill(seatKey(to)) // 도착할 자리의 구운 배경을 미리 읽어 둠
     targetRing.position.set(h.x, .06, h.z); targetRing.visible = true
     // 이동이 시작되면 마우스 표시는 지움 (도착하면 그 구멍이 서 있는 자리가 됨)
     hoverSeat = null; hoverRing.visible = false
@@ -548,6 +557,24 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   async function warm() {
     warming = true
     const w0 = performance.now()
+    // 3차 (warm.ts): 층마다 실제로 그려지는 곳만 컴파일·그리기, 하나 그릴 때마다 GPU 가 끝날 때까지 비동기로 기다림.
+    // 셰이더가 다 준비된 뒤 S 굽기용 렌더 타깃·톤매핑 셰이더. 시험용 ?hwarm=0 예전 방식(아래)
+    if (testParam('hwarm') !== '0') {
+      // 지난 그림을 남기지 않는 캔버스(GPU)는 1×1 그리기만 해도 지워진 화면이 보이므로 예열하는 동안 숨김
+      const hide = !scissorOk
+      if (hide) renderer.domElement.style.visibility = 'hidden'
+      try {
+        await warmScene(renderer, scene, camera, { split: backdrop ? backdrop.target() : null, dead: () => disposed })
+        if (disposed) return
+        if (baker) { baker.warm(scene, camera); await waitGpu(renderer) }
+      } finally {
+        backdrop?.invalidate(); sharpOff(); fullNext = true
+        warming = false
+        if (hide) { renderer.domElement.style.visibility = ''; loop.redraw() }
+        ;(window as unknown as { __warmMs?: number }).__warmMs = Math.round(performance.now() - w0) // 측정용
+      }
+      return
+    }
     try {
       if (backdrop) await backdrop.precompile(scene, camera)
       await renderer.compileAsync(scene, camera).catch(() => {})
@@ -557,6 +584,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
         for (const mm of m ? (Array.isArray(m) ? m : [m]) : []) for (const v of Object.values(mm)) if ((v as THREE.Texture)?.isTexture) texs.add(v as THREE.Texture)
       })
       for (const t of texs) { if (disposed) return; renderer.initTexture(t); await new Promise((r) => setTimeout(r, 0)) }
+      // S 굽기용 톤매핑 셰이더·MSAA 렌더 타깃 (작은 크기로 한 번)
+      if (baker) { baker.warm(scene, camera); await new Promise((r) => setTimeout(r, 0)) }
       // 같은 셰이더·같은 정점 형식이면 첫 그리기 한 번으로 충분 → 그 묶음마다 하나씩만 (인스턴스 칸이 130개 넘어서)
       const meshes: THREE.Object3D[] = [], seen = new Set<string>()
       scene.traverse((o) => {
@@ -578,8 +607,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       try {
         while (i < meshes.length) {
           if (disposed) return
-          const t0 = performance.now()
-          while (i < meshes.length && performance.now() - t0 < 25) {
+          // 하나 그리고 GPU 프로세스가 끝낼 때까지 비동기로 기다림 (warm.ts waitGpu, 3차: 25ms 씩 묶으면 다음 묶음의 동기 호출이 앞 묶음의 셰이더 만들기를 기다려 멈췄음)
+          {
             const m = meshes[i++]; m.visible = true
             camera.layers.enableAll()
             renderer.autoClear = false
@@ -592,7 +621,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
             }
             m.visible = false
           }
-          await new Promise((r) => setTimeout(r, 0))
+          await waitGpu(renderer)
         }
       } finally {
         for (const m of all) m.visible = true
@@ -665,116 +694,79 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (scissor) renderer.setScissorTest(false)
   }
 
-  /* ---------- S 배경은 선명하게 (기본, 땅굴 S 와 같은 방식) ---------- */
+  /* ---------- S 배경은 선명하게 (기본, 땅굴 S 와 같은 방식, 굽기는 sharpBake.ts) ---------- */
   let sharpCv: HTMLCanvasElement | null = null
   let sharpOk = false
+  const makeSharpCv = () => {
+    if (sharpCv) return sharpCv
+    sharpCv = document.createElement('canvas')
+    sharpCv.setAttribute('aria-hidden', 'true')
+    sharpCv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;visibility:hidden'
+    container.insertBefore(sharpCv, renderer.domElement)
+    return sharpCv
+  }
+  const baker: SharpBaker | null = sharpField ? createSharpBaker(renderer, { samples: bakeSamples, strips: bakeStrips }, makeSharpCv) : null
+  /** 카메라가 움직임: 선명한 그림을 내리고 굽던 것은 버림 */
+  const sharpOff = () => { baker?.cancel(); if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
   /*
-   * 비동기로 읽어 오는 중 (기본, ?fsasync=0 끔). 고해상도 그림을 GPU 버퍼(PBO)로 복사만 걸어 두고(fence), 다 되면 다음 프레임들에서 꺼내
-   * 2D 캔버스에 넣음 → 그림을 다 그릴 때까지 메인 스레드가 기다리지 않음. 그동안은 낮은 해상도 배경.
-   * (createImageBitmap(WebGL 캔버스) 도 시험했지만 부르는 순간 그림을 기다려서 멈춤이 같았음)
-   * 카메라가 움직이면(sharpOff) 걸어 둔 읽기는 버림
+   * 구운 배경 기억 (IndexedDB, three/stills.ts, docs/rendering-experiments-3.md 3·5번): 자리마다 키(구역 수·배정된 자리·내 자리·서 있는 자리·크기·구도)로 저장.
+   * 같은 자리에 다시 오면(점프로 돌아오기·새로고침·다음 방문) 다시 굽지 않고, 들어올 때는 3D 가 준비되기 전부터 그 그림을 보여 줌.
+   * 점프를 시작하면 도착할 자리 그림을 미리 읽어 둠. 시험용 ?stillcache=0 으로 끔
    */
-  let sharpPending: { pbo: WebGLBuffer; sync: WebGLSync; w: number; h: number; cw: number; ch: number; t0: number } | null = null
-  const dropPending = () => {
-    if (!sharpPending) return
-    const gl = renderer.getContext() as WebGL2RenderingContext
-    gl.deleteSync(sharpPending.sync); gl.deleteBuffer(sharpPending.pbo)
-    sharpPending = null
-  }
-  const sharpOff = () => { dropPending(); if (sharpOk) { sharpOk = false; if (sharpCv) sharpCv.style.visibility = 'hidden' } }
-  /** 비동기 읽기가 끝났으면 2D 캔버스로 옮김 (매 프레임 확인). 옮겼으면 true */
-  const pollSharp = (): boolean => {
-    const pd = sharpPending
-    if (!pd || !sharpCv) return false
-    const gl = renderer.getContext() as WebGL2RenderingContext
-    const st = gl.clientWaitSync(pd.sync, 0, 0)
-    if (st !== gl.ALREADY_SIGNALED && st !== gl.CONDITION_SATISFIED) return false
-    noteCapture('sharpWait', pd.t0) // 걸어 둔 뒤 그림이 다 그려지기까지 (그동안 3D 캔버스가 밀림)
-    const t0 = performance.now()
-    const data = new Uint8Array(pd.w * pd.h * 4)
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pd.pbo)
-    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, data)
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
-    dropPending()
-    // GL 은 아래가 0 → 위아래 뒤집어 ImageData 로
-    const img = new ImageData(pd.w, pd.h), row = pd.w * 4
-    for (let y = 0; y < pd.h; y++) img.data.set(data.subarray((pd.h - 1 - y) * row, (pd.h - y) * row), y * row)
-    const cv = sharpCv
-    cv.width = pd.cw; cv.height = pd.ch
+  let occHash = 0
+  for (const n of opts.occupied) occHash = (occHash * 31 + n) | 0
+  const seatKey = (seat: number) => stillKey('hole', [opts.zones, occHash, opts.mySeat, seat], W, H, focus)
+  /** 그림 한 장을 선명한 배경으로 */
+  const showSharp = (img: CanvasImageSource & { width: number; height: number }) => {
+    const cv = makeSharpCv()
+    if (cv.width !== img.width || cv.height !== img.height) { cv.width = img.width; cv.height = img.height }
     const ctx = cv.getContext('2d')!
-    if (pd.w === pd.cw && pd.h === pd.ch) ctx.putImageData(img, 0, 0)
-    else {
-      const tmp = document.createElement('canvas'); tmp.width = pd.w; tmp.height = pd.h
-      tmp.getContext('2d')!.putImageData(img, 0, 0)
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
-      ctx.drawImage(tmp, 0, 0, pd.cw, pd.ch)
-    }
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    ctx.drawImage(img, 0, 0)
     cv.style.visibility = 'visible'
-    sharpOk = true
-    noteCapture('sharpPut', t0)
-    return true
   }
-  /** 배경(layer 0)을 고해상도로 그려 2D 캔버스에 옮김. 끝나면 원래 해상도 (그리기 버퍼를 다시 잡으므로 다음 프레임은 전체) */
-  const captureSharp = () => {
-    if (!sharpCv) {
-      sharpCv = document.createElement('canvas')
-      sharpCv.setAttribute('aria-hidden', 'true')
-      sharpCv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none'
-      container.insertBefore(sharpCv, renderer.domElement)
-    }
-    const t0 = performance.now()
-    const out = Math.min(window.devicePixelRatio || 1, 2)
-    // 슈퍼샘플: 기본은 땅굴과 같이 1.5배, 한 번에 그리는 픽셀이 400만을 넘지 않게. ?fss=1 처럼 고정 가능
-    const ss = sharpSS > 0 ? sharpSS * out : Math.max(out, Math.min(out * 1.5, Math.sqrt(4e6 / (W * H))))
-    const prevPR = renderer.getPixelRatio()
-    renderer.setPixelRatio(ss)
-    renderer.setScissorTest(false); renderer.autoClear = true
-    const mask = camera.layers.mask
-    camera.layers.set(0)
-    renderer.render(scene, camera)
-    camera.layers.mask = mask
-    const cw = Math.round(W * out), ch = Math.round(H * out), cv = sharpCv
-    const put = (src: CanvasImageSource) => {
-      cv.width = cw; cv.height = ch
-      const ctx = cv.getContext('2d')!
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
-      ctx.drawImage(src, 0, 0, cw, ch)
-      cv.style.visibility = 'visible'
+  /** 굽기 한 걸음 (매 프레임). 이번에 다 됐으면 true (다음 그리기는 전체) */
+  const stepSharp = (quiet: boolean): boolean => {
+    if (!baker) return false
+    const st = baker.step()
+    if (st === 'done') {
+      sharpCv!.style.visibility = 'visible'
       sharpOk = true
+      noteCapture('sharpWait', performance.now() - baker.lastMs) // 굽기 시작 → 2D 캔버스 (그동안 3D 는 띠마다 조금씩)
+      if (bakeSeat != null) {
+        const copy = document.createElement('canvas'); copy.width = sharpCv!.width; copy.height = sharpCv!.height
+        copy.getContext('2d')!.drawImage(sharpCv!, 0, 0)
+        putCachedStill(seatKey(bakeSeat), copy)
+      }
+      return true
     }
-    // 비동기(기본): 읽기를 걸어 두고 바로 돌아감 (pollSharp 가 나중에 옮김)
-    const gl = renderer.getContext() as WebGL2RenderingContext
-    if (sharpAsync && typeof gl.fenceSync === 'function') {
-      const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight
-      const pbo = gl.createBuffer()!
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
-      gl.bufferData(gl.PIXEL_PACK_BUFFER, w * h * 4, gl.STREAM_READ)
-      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, 0)
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
-      const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!
-      gl.flush()
-      sharpPending = { pbo, sync, w, h, cw, ch, t0 }
-      renderer.setPixelRatio(prevPR)
+    if (st === 'idle' && sharpField && !sharpOk && quiet && mole) {
+      const saved = holes.has(curSeat) ? peekCachedStill(seatKey(curSeat)) : null
+      if (saved) { showSharp(saved); sharpOk = true; noteCapture('sharpSaved', performance.now()); return true }
+      bakeSeat = holes.has(curSeat) ? curSeat : null
+      const out = Math.min(window.devicePixelRatio || 1, 2)
+      const t0 = performance.now()
+      baker.start(scene, camera, Math.max(1, Math.round(W * out)), Math.max(1, Math.round(H * out)))
+      baker.step() // 첫 띠는 바로
       noteCapture('sharp', t0)
-      return
     }
-    put(renderer.domElement)
-    renderer.setPixelRatio(prevPR)
-    noteCapture('sharp', t0)
+    return false
   }
   /** 측정용: 배경을 다시 찍는 데 든 시간 (메인 스레드, ms) */
   const noteCapture = (kind: string, t0: number) => {
     const ms = performance.now() - t0
     const w = window as unknown as { __captures?: [string, number][] }
     ;(w.__captures ??= []).push([kind, Math.round(ms)])
-    // 느린 PC 는 S 를 끔: 선명한 배경이 준비되기까지 SHARP_SLOW_MS 를 넘은 적이 두 번이면 이 장면에서는 0.55배 배경만 (A_R).
-    // 비동기면 걸어 둔 뒤 그림이 다 그려지기까지(sharpWait, 그동안 3D 가 밀림), 아니면 메인 스레드가 막힌 시간(sharp)
-    if (kind === (sharpAsync ? 'sharpWait' : 'sharp') && ms > SHARP_SLOW_MS && ++sharpStrikes >= 2 && sharpField) {
+    // 느린 PC 는 S 를 끔 (한 번에 굽는 경우만): 선명한 배경이 준비되기까지 SHARP_SLOW_MS 를 넘은 적이 두 번이면 이 장면에서는 0.55배 배경만 (A_R).
+    // 띠로 나눠 구우면 한 프레임 일이 작아서 3D 가 크게 밀리지 않음
+    if (kind === 'sharpWait' && bakeStrips <= 1 && ms > SHARP_SLOW_MS && ++sharpStrikes >= 2 && sharpField) {
       sharpField = false
       console.info(`[3D] 선명한 배경을 찍는 데 ${Math.round(ms)}ms 걸려서 이 PC 에서는 끔`)
     }
   }
   let sharpStrikes = 0
+  /** 굽고 있는 그림의 자리 */
+  let bakeSeat: number | null = null
 
   /** 조용해진 시각 (카메라·점프가 끝난 뒤). 이때부터 interimFor 초가 지나면 bd(·S)를 다시 찍음 */
   let lowActive = false
@@ -786,8 +778,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (lowActive && panBd && quietT < .12) { drawWith(panBd, full, false); return }
     if (lowActive) { lowActive = false; full = true }
     if (bd.isDirty()) { const t0 = performance.now(); bd.capture(scene, camera); noteCapture('bd', t0); full = true }
-    if (sharpPending && pollSharp()) full = true
-    else if (sharpField && !sharpOk && !sharpPending && quiet && mole) { captureSharp(); full = true } // 다 불러온 뒤에만 (빈 장면을 찍지 않게)
+    if (stepSharp(quiet && !bd.isDirty())) full = true // 다 불러온 뒤에만 (빈 장면을 찍지 않게)
     drawWith(bd, full, sharpOk)
   }
   const drawMoving = () => {
@@ -823,7 +814,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const loop = startLoop(container, {
     resize(w, h) { W = w; H = h; renderer.setSize(w, h, false); applyFrame(); lastAnchor = ''; backdrop?.invalidate(); sharpOff(); lowActive = false; fullNext = true },
     frame(dt) {
-      if (warming) return
+      // 예열 중, 그리고 S 일 때는 다 불러오기 전에도 그리지 않음 (캔버스가 투명 → 아래 정지 그림이 보임)
+      if (warming || (sharpField && !mole)) return
       const full = fullNext || dt === 0
       fullNext = false
       // 카메라 구도가 바뀌는 프레임(패널 이동·점프 카메라)은 따로 (drawMoving), 멈추면 A 배경을 다시 찍음
@@ -840,7 +832,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (anim || focus !== focusTarget) emitHover()
       if (qshot) reportMole()
     },
-    busy: () => spin || !!anim || focus !== focusTarget || (!!mole && !mole.isResting()) || (!!backdrop && (lowActive || (sharpField && !sharpOk && !!mole))),
+    busy: () => spin || !!anim || focus !== focusTarget || (!!mole && !mole.isResting()) || (!!backdrop && (lowActive || (sharpField && !sharpOk && !!mole) || !!baker?.busy())),
     downgrade(nq) {
       renderer.setPixelRatio(nq.pixelRatio)
       sun.castShadow = false; renderer.shadowMap.enabled = false
@@ -848,6 +840,13 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (useA() && !backdrop) backdrop = createBackdrop(renderer, { scale: bdScale })
     },
   }, q)
+
+  // 들어오자마자: 처음 서는 자리의 구운 배경이 있으면 3D 가 준비되기 전부터 보여 줌 (그동안 3D 캔버스는 투명)
+  if (baker) {
+    void getCachedStill(seatKey(opts.startSeat)).then((bmp) => {
+      if (bmp && !disposed && !sharpOk && !mole) { showSharp(bmp); (window as unknown as { __stillAt?: number }).__stillAt = performance.now() } // 측정용 표시
+    })
+  }
 
   return {
     loaded: loaded.then(() => undefined),
@@ -874,7 +873,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       ringGeo.dispose()
       own.forEach((x) => x.dispose())
       ;(hoverRing.material as THREE.Material).dispose(); (targetRing.material as THREE.Material).dispose()
-      dropPending()
+      baker?.dispose(); sharpCv?.remove()
       backdrop?.dispose(); panBd?.dispose()
       envTex?.dispose()
       sun.shadow.dispose()

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import type { SceneHandle } from './engine'
 import { quality } from './engine'
 import { labVersion, subscribeLab } from '../lib/lowLab'
+import { stillStyle, type Still } from './stills'
 
 /**
  * three.js 장면을 담는 div. mount 함수가 이 안에 캔버스를 만들어 붙이고, 언마운트 때 모두 정리한다.
@@ -10,7 +11,7 @@ import { labVersion, subscribeLab } from '../lib/lowLab'
  * - G 3D 창 작게: 저사양일 때 장면 div 를 화면 가운데 액자로 줄임 (그릴 픽셀이 약 절반)
  * - H 가볍게 보기: 저사양일 때 버튼으로 3D 그리기를 멈춤
  */
-export default function SceneCanvas({ mount, deps, focusX, className, label, onReady, overlay, paused = false }: {
+export default function SceneCanvas({ mount, deps, focusX, className, label, onReady, overlay, paused = false, fallback }: {
   mount: (el: HTMLElement, focusX: number) => SceneHandle
   /** 이 값이 바뀌면 장면을 새로 만든다 (예: 방 주인 id) */
   deps: string
@@ -25,6 +26,8 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   overlay?: ReactNode
   /** 화면에 안 보이는 동안(예: 랜딩에서 투명하게 숨긴 층) 그리기를 멈춤. docs/rendering-experiments-2.md */
   paused?: boolean
+  /** 장면을 못 만들 때(WebGL 없음 등) 대신 보여 줄 정지 그림 (three/stills.ts stillFor). docs/rendering-experiments-3.md 4번 */
+  fallback?: Still
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const handle = useRef<SceneHandle | null>(null)
@@ -34,6 +37,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   const q = quality()
   const lab = q.level === 'low' ? q.lab : null
   const [frozen, setFrozen] = useState(false)
+  const [failed, setFailed] = useState(false)
   const pausedRef = useRef(paused)
   pausedRef.current = paused
   const small = !!lab?.G
@@ -48,10 +52,12 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
     try {
       h = latest.current.mount(el, latest.current.focusX)
     } catch (err) {
-      // WebGL을 못 쓰는 환경: 자리표시 이미지를 그대로 둔다
+      // WebGL을 못 쓰는 환경: 자리표시 이미지를 그대로 둔다 (fallback 이 있으면 그 정지 그림)
       console.warn('[3D] 장면을 만들지 못했어요', err)
+      setFailed(true)
       return
     }
+    setFailed(false)
     handle.current = h
     setFrozen(false)
     if (pausedRef.current) h.setFrozen?.(true)
@@ -77,6 +83,7 @@ export default function SceneCanvas({ mount, deps, focusX, className, label, onR
   return (
     <>
     <div ref={ref} className={className} style={style} role="img" aria-label={label}>
+      {failed && fallback && <img src={fallback.src} alt="" draggable={false} style={stillStyle(fallback, sceneFx)} />}
       {lab?.H && (
         <button
           type="button"

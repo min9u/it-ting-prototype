@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { timeGpuWork } from './engine'
 
 /*
  * A "배경은 한 번, 두더지만 매 프레임" (docs/gpu-lowspec-ideas.md, 탐색하기 저사양).
@@ -27,8 +28,11 @@ export interface Backdrop {
   dispose(): void
 }
 
-/** scale: 렌더 타깃 크기 = 캔버스 그리기 버퍼 × scale (1보다 작으면 낮은 해상도로 그려 붙일 때 늘림. 탐색 들판 점프 카메라 이동용) */
-export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: number } = {}): Backdrop {
+/**
+ * scale: 렌더 타깃 크기 = 캔버스 그리기 버퍼 × scale (1보다 작으면 낮은 해상도로 그려 붙일 때 늘림. 탐색 들판 점프 카메라 이동용)
+ * kind: 장면 종류. 주면 배경을 그릴 때마다(이 탭에서 몇 번까지) GPU 가 끝낼 때까지 시간을 재서 기기 단계를 정함 (lib/deviceTier.ts)
+ */
+export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: number; kind?: string } = {}): Backdrop {
   const scale = o.scale ?? 1
   const size = new THREE.Vector2()
   let rt: THREE.WebGLRenderTarget | null = null
@@ -77,6 +81,7 @@ export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: numbe
       const layers = camera.layers.mask
       if (mask === undefined) camera.layers.set(0); else camera.layers.mask = mask
       const prevTarget = renderer.getRenderTarget(), prevClear = renderer.autoClear
+      const t0 = performance.now()
       renderer.setRenderTarget(target)
       renderer.autoClear = true
       renderer.render(scene, camera)
@@ -84,6 +89,7 @@ export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: numbe
       renderer.autoClear = prevClear
       camera.layers.mask = layers
       dirty = false
+      if (o.kind) timeGpuWork(renderer, t0, o.kind, target.width * target.height / 1e6)
     },
     blit() {
       if (!rt) return

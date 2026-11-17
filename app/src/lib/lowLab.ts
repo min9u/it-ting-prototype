@@ -8,6 +8,8 @@
 export interface LabState {
   /** 모드 강제: auto = 감지대로, low = 저사양 강제, high = 고사양 강제 */
   force: 'auto' | 'low' | 'high'
+  /** 저사양 안의 단계 (lib/deviceTier.ts): auto = 실제 그리기 시간으로 정한 것, strong/weak = 강제 */
+  tier: 'auto' | 'strong' | 'weak'
   /** A 배경 한 번 + 움직이는 것만 (탐색하기·땅굴) */
   A: boolean
   /** B 스톱모션: 일부러 낮은 fps */
@@ -36,7 +38,7 @@ export interface LabState {
   N: boolean
 }
 
-export const LAB_DEFAULT: LabState = { force: 'auto', A: true, B: false, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
+export const LAB_DEFAULT: LabState = { force: 'auto', tier: 'auto', A: true, B: false, fps: 10, C: true, I: true, G: false, H: false, F: false, D: false, E: false, P: true, S: true, N: true }
 
 // 2026-11-13 v2: 기본값에서 B(스톱모션 10fps)를 끔. 예전에 저장된 선택(B 켜짐)이 남지 않게 키를 바꿈
 const KEY = 'digul.lowlab.v2'

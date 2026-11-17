@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { detectGraphics } from '../lib/graphicsTier'
+import { forgetTier, tierInfo } from '../lib/deviceTier'
 import { getLab, labShown, labVersion, resetLab, setLab, setLabShown, subscribeLab, type LabState } from '../lib/lowLab'
 import { router } from '../App'
 
@@ -10,7 +11,7 @@ import { router } from '../App'
  * - 3D 화면(땅굴·탐색하기·온보딩 미리 보기)에서만 오른쪽 아래 🧪 버튼
  */
 
-type BoolKey = Exclude<keyof LabState, 'force' | 'fps'>
+type BoolKey = Exclude<keyof LabState, 'force' | 'fps' | 'tier'>
 const ITEMS: { k: BoolKey; name: string; where: string; tip: string }[] = [
   { k: 'A', name: 'A 배경 한 번 + 두더지만', where: '탐색하기·땅굴', tip: '움직이지 않는 것은 한 번만 그리고 두더지(떨어지는 가구)만 다시 그림' },
   { k: 'B', name: 'B 스톱모션', where: '모두', tip: '일부러 fps를 낮춤 (점토 인형극 느낌)' },
@@ -88,6 +89,24 @@ export default function LowLab() {
           <option value="high">고사양 강제</option>
         </select>
       </label>
+      <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+        단계
+        <select value={lab.tier} onChange={(e) => setLab({ tier: e.target.value as LabState['tier'] })} style={{ flex: 1 }}>
+          <option value="auto">자동 (그리기 시간으로)</option>
+          <option value="strong">강한 PC (16스레드급)</option>
+          <option value="weak">약한 PC (2코어급)</option>
+        </select>
+      </label>
+      {(() => {
+        const t = tierInfo()
+        return (
+          <div style={{ fontSize: 11.5, color: '#7a5f4e', marginBottom: 8 }}>
+            저사양 단계: <b>{t.low === 'weak' ? '약한 PC' : '강한 PC'}</b>
+            {t.stored?.score != null && <> · 잰 값 {t.stored.score}ms/MP</>}
+            {t.stored && <button type="button" onClick={() => { forgetTier(); setLab({}) }} style={{ marginLeft: 6, border: '1px solid #c9ad93', borderRadius: 6, padding: '1px 6px', background: '#fff', cursor: 'pointer', fontSize: 11 }}>기억 지우기</button>}
+          </div>
+        )
+      })()}
       {!lowOn && <div style={{ fontSize: 12, background: '#f3e2cc', padding: '6px 8px', borderRadius: 8, marginBottom: 8 }}>아래 선택은 저사양일 때만 적용돼요. GPU PC에서 보려면 "저사양 강제".</div>}
       {ITEMS.map((it) => (
         <label key={it.k} style={{ display: 'flex', gap: 8, padding: '5px 0', borderTop: '1px solid #eadccb', cursor: 'pointer', opacity: lowOn ? 1 : .55 }}>
