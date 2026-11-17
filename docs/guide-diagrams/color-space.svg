@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 462" width="760" height="462" role="img" aria-label="같은 반투명 그림자도 sRGB 값끼리 섞으면 진하게, 선형 값끼리 섞으면 옅게 나온다. 선명한 배경을 선형 렌더 타깃에서 굽자 가구 밑 그림자가 사라졌고, 캔버스와 같은 sRGB 렌더 타깃으로 바꾸자 돌아왔다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+  </defs>
+  <rect width="760" height="462" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <text x="16" y="32" font-size="12" style="fill:var(--ink-soft,#5c4334)">예 (계산값): 나무 바닥색 #e0b48c 위에 검은 그림자 판을 30% 겹침. 견본 색은 다크 모드에서도 그대로</text>
+
+  <!-- 왼쪽 견본: sRGB 에서 섞음 -->
+  <rect x="16" y="44" width="360" height="124" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="28" y="66" font-size="12.5" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">sRGB 값끼리 섞음 = 캔버스 · GPU 화면</text>
+  <rect x="28" y="76" width="168" height="80" rx="6" fill="#e0b48c" style="stroke:var(--box-line,#e3cbb5)"/>
+  <ellipse cx="112" cy="134" rx="60" ry="14" fill="#9d7e62"/>
+  <rect x="96" y="96" width="32" height="34" rx="3" fill="#d27a52"/>
+  <ellipse cx="112" cy="96" rx="20" ry="7" fill="#e89a72"/>
+  <text x="210" y="100" font-size="12">그림자 자리 #9d7e62</text>
+  <text x="210" y="120" font-size="12" style="fill:var(--ink-soft,#5c4334)">바탕보다 30% 어두움</text>
+  <text x="210" y="140" font-size="12" style="fill:var(--ink-soft,#5c4334)">→ 그림자가 잘 보임</text>
+
+  <!-- 오른쪽 견본: 선형에서 섞음 -->
+  <rect x="388" y="44" width="356" height="124" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="400" y="66" font-size="12.5" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">선형 값끼리 섞음 = 고치기 전 굽기</text>
+  <rect x="400" y="76" width="168" height="80" rx="6" fill="#e0b48c" style="stroke:var(--box-line,#e3cbb5)"/>
+  <ellipse cx="484" cy="134" rx="60" ry="14" fill="#bf9977"/>
+  <rect x="468" y="96" width="32" height="34" rx="3" fill="#d27a52"/>
+  <ellipse cx="484" cy="96" rx="20" ry="7" fill="#e89a72"/>
+  <text x="582" y="100" font-size="12">그림자 자리 #bf9977</text>
+  <text x="582" y="120" font-size="12" style="fill:var(--ink-soft,#5c4334)">바탕보다 약 15% 어두움</text>
+  <text x="582" y="140" font-size="12" style="fill:var(--ink-soft,#5c4334)">→ 거의 안 보임</text>
+
+  <!-- 세 길 -->
+  <text x="16" y="200" font-size="12" style="fill:var(--ink-soft,#5c4334)">같은 장면을 그리는 세 길 (왼쪽 → 오른쪽 순서로 처리)</text>
+
+  <!-- 1 캔버스 -->
+  <text x="16" y="230" font-weight="700">캔버스</text>
+  <text x="16" y="247" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">GPU 화면 · 기준</text>
+  <rect x="150" y="214" width="170" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="235" y="231" text-anchor="middle" font-size="12">재질 셰이더 안에서</text>
+  <text x="235" y="247" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">톤매핑 · sRGB로</text>
+  <line x1="322" y1="234" x2="338" y2="234" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="340" y="214" width="150" height="40" rx="8" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="415" y="239" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">sRGB 값끼리 섞기</text>
+  <line x1="492" y1="234" x2="508" y2="234" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="510" y="214" width="100" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="560" y="239" text-anchor="middle" font-size="12">화면</text>
+
+  <!-- 2 고치기 전 -->
+  <text x="16" y="296" font-weight="700">고치기 전 굽기</text>
+  <text x="16" y="313" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">11-16</text>
+  <rect x="150" y="280" width="170" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="235" y="297" text-anchor="middle" font-size="12">선형 렌더 타깃</text>
+  <text x="235" y="313" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">HalfFloat, 숨은 도화지</text>
+  <line x1="322" y1="300" x2="338" y2="300" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="340" y="280" width="150" height="40" rx="8" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="415" y="305" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-rose-fg,#7d3a3f)">선형 값끼리 섞기</text>
+  <line x1="492" y1="300" x2="508" y2="300" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="510" y="280" width="118" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="569" y="297" text-anchor="middle" font-size="12">마지막에 한 번</text>
+  <text x="569" y="313" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">톤매핑 · sRGB</text>
+  <line x1="630" y1="300" x2="646" y2="300" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="648" y="280" width="96" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="696" y="305" text-anchor="middle" font-size="12">2D 캔버스</text>
+
+  <!-- 3 고친 뒤 -->
+  <text x="16" y="362" font-weight="700">고친 뒤 굽기</text>
+  <text x="16" y="379" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">11-17 · 커밋 2f88064</text>
+  <rect x="150" y="346" width="170" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="235" y="363" text-anchor="middle" font-size="12">캔버스처럼 다룬 렌더 타깃</text>
+  <text x="235" y="379" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">sRGB · RGBA8</text>
+  <line x1="322" y1="366" x2="338" y2="366" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="340" y="346" width="150" height="40" rx="8" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="415" y="371" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--chip-mint-fg,#2e5e4c)">sRGB 값끼리 섞기</text>
+  <line x1="492" y1="366" x2="508" y2="366" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="510" y="346" width="100" height="40" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="560" y="371" text-anchor="middle" font-size="12">2D 캔버스</text>
+
+  <!-- 결과 -->
+  <rect x="16" y="404" width="300" height="32" rx="8" style="fill:var(--chip-rose-bg,#f2d9d9)"/>
+  <text x="166" y="425" text-anchor="middle" font-size="12.5" style="fill:var(--chip-rose-fg,#7d3a3f)">고치기 전: 가구 밑 그림자 판이 거의 사라짐</text>
+  <rect x="326" y="404" width="418" height="32" rx="8" style="fill:var(--chip-mint-bg,#d5e8df)"/>
+  <text x="535" y="425" text-anchor="middle" font-size="12.5" style="fill:var(--chip-mint-fg,#2e5e4c)">고친 뒤: 배경 PSNR 35.3 → 51.6dB · 가장자리 SSIM 0.950 → 0.998</text>
+  <text x="380" y="454" text-anchor="middle" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">PSNR · SSIM: 내 땅굴 배경이 GPU 화면과 얼마나 같은지 (높을수록 · 1에 가까울수록 같음)</text>
+</svg>

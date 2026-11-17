@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="화면은 훅만 부르고, 영역 파일의 스위치(VITE_API_MODE)가 목 서버 또는 실제 서버로 보낸다. 응답 DTO는 훅 안에서 mappers.ts가 앱 모양으로 바꾼다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-soft,#5c4334)"/></marker>
+    <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--cta,#c8643a)"/></marker>
+  </defs>
+  <rect width="760" height="300" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
+
+  <!-- 위 줄: 화면 ↔ 훅 ↔ 스위치 -->
+  <rect x="16" y="20" width="100" height="60" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="28" y="44" font-weight="700">화면</text>
+  <text x="28" y="62" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">MeetupDetail</text>
+  <line x1="118" y1="50" x2="154" y2="50" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="136" y="43" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">부름</text>
+  <text x="136" y="66" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">상태</text>
+
+  <rect x="156" y="20" width="192" height="60" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="168" y="40" font-size="12.5" font-weight="700">훅 · api/queries.tsx</text>
+  <text x="168" y="57" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">받은 DTO를 api/mappers.ts로</text>
+  <text x="168" y="72" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">앱 모양으로 바꿔 화면에</text>
+  <line x1="350" y1="50" x2="386" y2="50" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="368" y="43" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">요청</text>
+  <text x="368" y="66" text-anchor="middle" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">DTO</text>
+
+  <rect x="388" y="20" width="208" height="60" rx="8" style="fill:var(--accent-soft,#f6dccb);stroke:var(--accent,#9a4a2c)"/>
+  <text x="400" y="40" font-size="12.5" font-weight="700" style="fill:var(--accent,#9a4a2c)">api/&lt;영역&gt;.ts 맨 아래</text>
+  <text x="400" y="57" font-size="11.5">API_MODE === 'real'</text>
+  <text x="400" y="72" font-size="11.5">  ? real : mock</text>
+
+  <line x1="622" y1="50" x2="598" y2="50" style="stroke:var(--ink-mute,#8a7262)" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#ah)"/>
+  <rect x="624" y="20" width="120" height="60" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 3"/>
+  <text x="634" y="40" font-size="12" font-weight="700">VITE_API_MODE</text>
+  <text x="634" y="57" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">빌드할 때 정함</text>
+  <text x="634" y="72" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">mock이 기본</text>
+
+  <!-- 갈래 -->
+  <polyline points="430,80 430,96 188,96 188,113" style="fill:none;stroke:var(--cta,#c8643a)" stroke-width="1.8" marker-end="url(#ahc)"/>
+  <text x="300" y="91" text-anchor="middle" font-size="11.5" style="fill:var(--cta,#c8643a)">mock</text>
+  <line x1="560" y1="80" x2="560" y2="113" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="568" y="101" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">real</text>
+
+  <!-- mock 갈래 -->
+  <rect x="16" y="114" width="344" height="122" rx="12" style="fill:none;stroke:var(--cta,#c8643a)" stroke-width="1.4"/>
+  <text x="28" y="134" font-size="12" font-weight="700" style="fill:var(--cta,#c8643a)">mock · 지금 (기본, 공유 빌드도)</text>
+  <rect x="28" y="144" width="184" height="78" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="40" y="164" font-size="12.5" font-weight="700">api/mock/server.ts</text>
+  <text x="40" y="182" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">요청마다 0.15~0.4초 기다림</text>
+  <text x="40" y="198" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">?api=slow · fail · empty …</text>
+  <text x="40" y="214" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">로 느림 · 실패를 흉내</text>
+  <line x1="212" y1="183" x2="232" y2="183" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <rect x="234" y="144" width="114" height="78" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="244" y="164" font-size="12.5" font-weight="700">data/*Store.ts</text>
+  <text x="244" y="182" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">메모리 저장소</text>
+  <text x="244" y="198" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">(가짜 DB)</text>
+
+  <!-- real 갈래 -->
+  <rect x="388" y="114" width="356" height="122" rx="12" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-width="1.2"/>
+  <text x="400" y="134" font-size="12" font-weight="700" style="fill:var(--ink-soft,#5c4334)">real · 백엔드를 붙인 뒤</text>
+  <rect x="400" y="144" width="130" height="78" rx="8" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="410" y="164" font-size="12.5" font-weight="700">api/client.ts</text>
+  <text x="410" y="182" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">10초 타임아웃 · 쿠키</text>
+  <text x="410" y="198" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">401 → 리프레시 한 번</text>
+  <text x="410" y="214" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">GET만 재시도 2번</text>
+  <line x1="530" y1="183" x2="544" y2="183" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <rect x="546" y="144" width="110" height="78" rx="8" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <g style="fill:var(--chip-sky-fg,#2f5868)">
+    <text x="556" y="164" font-size="12.5" font-weight="700">/api (같은 출처)</text>
+    <text x="556" y="182" font-size="11.5">개발: Vite 프록시</text>
+    <text x="556" y="198" font-size="11.5">배포: Nginx</text>
+  </g>
+  <line x1="656" y1="183" x2="672" y2="183" style="stroke:var(--ink-soft,#5c4334)" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <rect x="674" y="144" width="60" height="78" rx="8" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <g style="fill:var(--chip-sky-fg,#2f5868)">
+    <text x="704" y="170" text-anchor="middle" font-size="12.5" font-weight="700">Spring</text>
+    <text x="704" y="186" text-anchor="middle" font-size="12.5" font-weight="700">Boot</text>
+    <text x="704" y="204" text-anchor="middle" font-size="11.5">(가정)</text>
+  </g>
+
+  <!-- 알아 둘 것 -->
+  <rect x="16" y="248" width="728" height="40" rx="8" style="fill:none;stroke:var(--ink-mute,#8a7262)" stroke-dasharray="4 4"/>
+  <text x="28" y="264" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">영역 하나만 먼저 붙이려면 그 api/&lt;영역&gt;.ts 의 스위치만 real 로. 화면 코드는 그대로</text>
+  <text x="28" y="280" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">개발 서버 프록시: DEV_PROXY_TARGET=http://localhost:8080 이면 /api · /ws 를 백엔드로 넘김 (vite.config.ts)</text>
+</svg>
