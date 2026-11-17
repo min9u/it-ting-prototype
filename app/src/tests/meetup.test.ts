@@ -20,7 +20,7 @@ beforeEach(async () => {
 function mk(over: Partial<Store.MeetupX> = {}): Store.MeetupX {
   return {
     id: 't1', title: '시험 모임', interest: '독서', date: '2026-11-10', start: '오후 2:00', end: '오후 4:00', area: '역삼', place: '역삼',
-    mode: '오프라인', capacity: 6, memberIds: [], hostId: 'kim', intro: '', closesAt: '', askMsg: true, tags: [], likes: 0, seq: 1, ...over,
+    mode: '오프라인', capacity: 6, memberIds: [], hostId: 'kim', intro: '', askMsg: true, tags: [], likes: 0, seq: 1, ...over,
   }
 }
 function st(over: Partial<Store.MeetupX> = {}, members: string[] = [], my?: Store.Mine) {

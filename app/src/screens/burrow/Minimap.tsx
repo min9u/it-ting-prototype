@@ -312,14 +312,8 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
   const [filter, setFilter] = useState<Filter>('all')
   const [hover, setHover] = useState<number | null>(null)
   const svg = useRef<SVGSVGElement>(null)
-  // 팝업이 열려 있는 동안 키가 뒤의 탐색 화면(디자인 A 방향키 이동·Enter 입장)으로 가지 않게: window 캡처 단계에서 막음.
-  // Esc(팝업 닫기)와 Tab(초점 이동)은 그대로. 기본 동작(버튼 Enter 등)은 막지 않음
-  useEffect(() => {
-    if (!open) return
-    const stop = (e: KeyboardEvent) => { if (e.key !== 'Escape' && e.key !== 'Tab') e.stopPropagation() }
-    window.addEventListener('keydown', stop, true)
-    return () => window.removeEventListener('keydown', stop, true)
-  }, [open])
+  // 팝업이 열려 있는 동안 뒤의 탐색 화면(방향키 이동·Enter 입장)이 키를 받지 않는 것은 각 단축키가 lib/a11y.ts shortcutAllowed 로
+  // aria-modal 팝업을 확인해서 처리함 (2026-11-16). 예전에는 여기서 window 캡처 단계로 키를 막았는데, 그러면 팝업 안 React 키 처리도 같이 막혀서 뺌
   const others = field.residents.filter((r) => !r.mine)
   const test: Record<Filter, (r: Resident) => boolean> = {
     all: () => true,

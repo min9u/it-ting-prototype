@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { createRenderer, destroyRenderer, quality, startLoop } from './engine'
+import { createRenderer, destroyRenderer, quality, startLoop, testParam } from './engine'
 import { createMoleActor, loadMoleGltf, type MoleActor } from './moleActor'
 import { loadAccessories } from './moleDress'
 
@@ -9,6 +9,8 @@ import { loadAccessories } from './moleDress'
  * - 직교 카메라를 캔버스 픽셀 단위로 맞춰서, 자리(seat)의 x·y 비율이 HTML 이름표와 정확히 같은 곳에 옴
  * - 두더지마다 각자 꾸민 액세서리. 가만히 숨쉬다 가끔 두리번, 메시지를 보내면 그 두더지가 손 인사(greet)
  * - 저사양이면 engine 품질대로 (해상도 낮춤 · 쉬면 그리기 멈춤)
+ * - 저사양에서 숨쉬기·두리번만 할 때는 낮은 fps (docs/rendering-experiments-2.md: 모임 5마리는 서로 번갈아 두리번해서
+ *   쉬지 못하고 계속 그림 → CPU 4코어 넘게 씀). 인사(메시지 보냄)할 때는 제한 없이. 시험용 ?teafps=0 으로 끔
  */
 export interface TeaSeat {
   id: string
@@ -41,6 +43,8 @@ function mountTea(el: HTMLElement, seats: TeaSeat[], onReady: () => void): Handl
   const key = new THREE.DirectionalLight(0xFFDDB3, 2.4); key.position.set(-0.4, 1, 1.2); scene.add(key)
 
   let W = 1, H = 1, dead = false
+  const teaFps = q.level === 'low' ? +(testParam('teafps') ?? '15') : 0
+  let livelyUntil = 0 // 인사 동작이 끝날 때까지는 fps 제한 없음
   const actors = new Map<string, { actor: MoleActor; group: THREE.Group; seat: TeaSeat }>()
   const place = () => {
     actors.forEach(({ group, seat }) => {
@@ -77,11 +81,12 @@ function mountTea(el: HTMLElement, seats: TeaSeat[], onReady: () => void): Handl
       renderer.render(scene, camera)
     },
     busy: () => [...actors.values()].some(({ actor }) => !actor.isResting()),
+    maxFps: () => (teaFps && performance.now() > livelyUntil && ![...actors.values()].some(({ actor }) => actor.isGreeting()) ? teaFps : 0),
     downgrade(nq) { renderer.setPixelRatio(nq.pixelRatio) },
   }, q)
 
   return {
-    greet(id) { const a = actors.get(id); if (a) { a.actor.greet(0); loop.wake() } },
+    greet(id) { const a = actors.get(id); if (a) { a.actor.greet(0); livelyUntil = performance.now() + 600; loop.wake() } },
     dispose() {
       dead = true
       loop.stop()

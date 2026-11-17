@@ -15,6 +15,7 @@
 import { useSyncExternalStore } from 'react'
 import { ME_ID, MEETUPS, TODAY, USERS, categoryOf, toneOf } from './mock'
 import type { Meetup, Tone } from './types'
+import { seoulParts, wallToMs, ymdDiff, ymdMs } from '../lib/time'
 
 /* ===== 타입 ===== */
 export const CAMPUSES = ['서울', '대전', '구미', '광주', '부울경'] as const
@@ -69,48 +70,36 @@ interface State {
   draft: Draft | null
 }
 
-/* ===== 시간 ===== */
+/* ===== 시간 (Asia/Seoul 기준, lib/time.ts) ===== */
 const HOUR = 3_600_000
-/** 목 데이터의 지금 = TODAY 정오 */
-export const NOW = (() => { const [y, m, d] = TODAY.split('-').map(Number); return new Date(y, m - 1, d, 12, 0).getTime() })()
+/** 목 데이터의 지금 = TODAY 정오 (서울) */
+export const NOW = ymdMs(TODAY, 12)
+/** '오후 2:00' → 14 (모임 시각은 만들기 양식의 값 그대로 들고 있음. 서버와는 ISO 로 주고받음 → api/mappers) */
 export function parseHour(t: string) {
   const m = /(오전|오후)\s*(\d+):(\d+)/.exec(t)
   if (!m) return 0
   return (+m[2] % 12) + (m[1] === '오후' ? 12 : 0) + +m[3] / 60
 }
 export function startMs(m: Meetup) {
-  const [y, mo, d] = m.date.split('-').map(Number)
-  return new Date(y, mo - 1, d).getTime() + parseHour(m.start) * HOUR
+  return ymdMs(m.date) + parseHour(m.start) * HOUR
 }
-export function isoMs(iso: string) {
-  const [d, t = '00:00'] = iso.split('T')
-  const [y, mo, dd] = d.split('-').map(Number)
-  const [h, mi] = t.split(':').map(Number)
-  return new Date(y, mo - 1, dd, h, mi).getTime()
-}
+/** 모집 마감 'YYYY-MM-DDTHH:mm'(입력 칸, 서울) 또는 ISO(오프셋) → ms */
+export const isoMs = (iso: string) => wallToMs(iso)
 /** '오후 2:00' → '오후 2시', '오후 12:10' → '오후 12시 10분' */
 export function hourLabel(t: string) {
   return t.replace(/(\d+):00/, '$1시').replace(/(\d+):(\d\d)/, '$1시 $2분')
 }
 /** '2026-11-08T10:00' → '11월 8일 오전 10시' */
 export function deadlineLabel(iso: string) {
-  const [d, t = '00:00'] = iso.split('T')
-  const [, mo, dd] = d.split('-').map(Number)
-  const [h, mi] = t.split(':').map(Number)
-  const ap = h < 12 ? '오전' : '오후'
-  const hh = h % 12 === 0 ? 12 : h % 12
-  return `${mo}월 ${dd}일 ${ap} ${hh}시${mi ? ` ${mi}분` : ''}`
+  const p = seoulParts(wallToMs(iso))
+  const ap = p.h < 12 ? '오전' : '오후'
+  const hh = p.h % 12 === 0 ? 12 : p.h % 12
+  return `${p.m}월 ${p.d}일 ${ap} ${hh}시${p.mi ? ` ${p.mi}분` : ''}`
 }
+export const daysLeft = (ymd: string) => ymdDiff(TODAY, ymd)
 export function ddayOf(ymd: string) {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const [ty, tm, td] = TODAY.split('-').map(Number)
-  const n = Math.round((new Date(y, m - 1, d).getTime() - new Date(ty, tm - 1, td).getTime()) / 86_400_000)
+  const n = daysLeft(ymd)
   return n === 0 ? 'D-DAY' : n > 0 ? `D-${n}` : `D+${-n}`
-}
-export const daysLeft = (ymd: string) => {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const [ty, tm, td] = TODAY.split('-').map(Number)
-  return Math.round((new Date(y, m - 1, d).getTime() - new Date(ty, tm - 1, td).getTime()) / 86_400_000)
 }
 
 /* ===== 처음 데이터 ===== */
@@ -131,14 +120,14 @@ const EXTRA: Record<string, Partial<MeetupX>> = {
 const base: Meetup[] = [
   ...MEETUPS,
   // 이 저장소에만 있는 모임: 지난 모임 · 취소된 모임 · 찜한 모임 예시 (채팅 목 데이터에는 없음)
-  { id: 'x1', title: '망원 필름 산책', interest: '필름카메라', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', closesAt: '', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
-  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: '레트로게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', closesAt: '', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
-  { id: 'x3', title: '한강 야간 러닝', interest: '러닝', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', closesAt: '', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
-  { id: 'x4', title: '레트로 게임 같이 해요', interest: '레트로게임', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', closesAt: '', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
-  { id: 'p1', title: '10월 독서 모임', interest: '독서', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', closesAt: '', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
-  { id: 'p2', title: '가을 사진 산책', interest: '사진산책', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', closesAt: '', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
-  { id: 'p3', title: '수채화 첫걸음', interest: '수채화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', closesAt: '', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
-  { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', closesAt: '', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
+  { id: 'x1', title: '망원 필름 산책', interest: '필름카메라', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
+  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: '레트로게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
+  { id: 'x3', title: '한강 야간 러닝', interest: '러닝', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
+  { id: 'x4', title: '레트로 게임 같이 해요', interest: '레트로게임', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
+  { id: 'p1', title: '10월 독서 모임', interest: '독서', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
+  { id: 'p2', title: '가을 사진 산책', interest: '사진산책', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
+  { id: 'p3', title: '수채화 첫걸음', interest: '수채화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
+  { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
 ]
 const EXTRA2: Record<string, Partial<MeetupX>> = {
   x1: { campus: '서울', likes: 14, deadline: '2026-11-13T21:00' },
@@ -190,6 +179,8 @@ function emit() { state = { ...state }; subs.forEach((f) => f()) }
 function subscribe(f: () => void) { subs.add(f); return () => { subs.delete(f) } }
 export function useMeetups() { return useSyncExternalStore(subscribe, () => state) }
 export const getMeetupState = () => state
+/** 서버 응답 하나(모임 상세)로 같은 모양을 만들어 아래 계산 함수(recruitOf·myOf…)에 넘길 때 (api/mappers) */
+export type MeetupState = State
 
 /* ===== 계산 ===== */
 export const findMeetup = (id: string, s = state) => s.list.find((m) => m.id === id)
@@ -310,7 +301,7 @@ export function createMeetup(d: Draft): string {
     placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
     campus: d.mode === '오프라인' ? d.campus : undefined,
     platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
-    capacity: d.cap, memberIds: [ME_ID], hostId: ME_ID, closesAt: '', sign: d.title.trim().slice(0, 8),
+    capacity: d.cap, memberIds: [ME_ID], hostId: ME_ID, sign: d.title.trim().slice(0, 8),
     prep: d.prep.trim() || undefined, askMsg: d.askMsg, deadline: d.deadline || undefined, likes: 0,
     seq: Math.max(...state.list.map((x) => x.seq)) + 1,
   }

@@ -1,0 +1,17 @@
+{
+ "name": "q-A_noenv",
+ "ref": "q-gpu",
+ "psnr": 23.13,
+ "ssim": 0.977,
+ "psnrBg": 23.15,
+ "ssimBg": 0.9791,
+ "psnrMole": 22.58,
+ "ssimMole": 0.8995,
+ "ssimEdge": 0.888,
+ "shot": "explore/gpu/results/quality/q-A_noenv.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-A_noenv-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-A_noenv-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-A_noenv-hole.png"
+ }
+}

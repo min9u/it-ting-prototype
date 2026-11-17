@@ -1,0 +1,20 @@
+{
+  "name": "q-gpu",
+  "mode": "gpu",
+  "url": "http://localhost:5301/#/burrow/explore?qshot=1",
+  "mole": {
+    "x0": 683,
+    "y0": 371,
+    "x1": 832,
+    "y1": 563,
+    "scene": {
+      "x0": 0,
+      "y0": 64,
+      "x1": 1904,
+      "y1": 985
+    }
+  },
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "dpr": 1,
+  "captures": null
+}

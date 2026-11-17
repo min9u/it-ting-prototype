@@ -1,4 +1,7 @@
-import { Link, useNavigate, useParams, useRouteError } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { Link, isRouteErrorResponse, useNavigate, useParams, useRouteError } from 'react-router-dom'
+import { isChunkLoadError, reloadOnce } from '../lib/chunkReload'
+import { ENV } from '../lib/env'
 import mound from '../assets/mole-mound.png'
 import styles from './NotFound.module.css'
 
@@ -48,9 +51,29 @@ export function GoneRoute() {
   return <NotFound what={what && what in GONE_TEXT ? (what as GoneWhat) : 'page'} />
 }
 
-/** 라우터 errorElement: 화면이 그리다 깨지면 같은 안내 + 다시 시도 */
-export function RouteError() {
+/**
+ * 라우터 errorElement: 화면이 그리다 깨지면 같은 안내 + 다시 시도 (App.tsx 에서 화면 묶음마다 둠)
+ * - inline: 헤더(GNB)·설정 메뉴 같은 바깥 틀은 두고 안쪽만 바꿈
+ * - 재배포 뒤 옛 파일을 못 받은 것(청크 404)이면 한 번만 새로고침 (lib/chunkReload.ts). 이미 했으면 안내 화면
+ * - 라우터가 던진 404 응답이면 "없는 주소예요"
+ */
+export function RouteError({ inline }: { inline?: boolean }) {
   const err = useRouteError()
+  const chunk = isChunkLoadError(err)
+  const reloading = useRef(false)
+  useEffect(() => {
+    if (chunk && !reloading.current) reloading.current = reloadOnce('route chunk')
+  }, [chunk])
   if (err) console.error(err)
-  return <NotFound error />
+  if (isRouteErrorResponse(err) && err.status === 404) return <NotFound inline={inline} />
+  return (
+    <>
+      <NotFound error inline={inline} />
+      {ENV.dev && err != null && (
+        <pre style={{ margin: '0 auto 24px', maxWidth: 720, padding: 12, borderRadius: 8, background: '#2b1d14', color: '#f6e7d8', fontSize: 12, whiteSpace: 'pre-wrap' }}>
+          {String((err as Error)?.stack ?? (err as Error)?.message ?? err)}
+        </pre>
+      )}
+    </>
+  )
 }

@@ -54,6 +54,9 @@ export function quality(): Quality {
   const q = graphicsTier() === 'software' || downgraded ? LOW() : HIGH()
   const f = testParam('maxfps')
   if (f !== null) q.maxFps = +f
+  // 측정용: ?pr=0_4 처럼 해상도 배율 덮어쓰기 (점은 _ 로, docs/rendering-experiments-2.md)
+  const pr = testParam('pr')
+  if (pr !== null) q.pixelRatio = +pr.replace('_', '.')
   return q
 }
 
@@ -159,6 +162,8 @@ export interface LoopCallbacks {
   busy?(): boolean
   /** 자동으로 low 로 내려갔을 때 (q 는 이미 low 값). 해상도·후처리·그림자를 바로 바꿀 것 */
   downgrade?(q: Quality): void
+  /** 지금 최대 fps (0 = 제한 없음). q.maxFps 와 둘 다 있으면 낮은 쪽. 예: 찻방은 저사양에서 숨쉬기·두리번만 할 때 낮춤 */
+  maxFps?(): number
 }
 
 /**
@@ -202,7 +207,9 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     if (!running) return
     raf = requestAnimationFrame(tick)
     probe(now)
-    if (q.maxFps && now - last < 1000 / q.maxFps - 4) return // fps 제한 (rAF 간격 흔들림 4ms 여유)
+    const cap = cb.maxFps?.() || 0
+    const fps = cap && q.maxFps ? Math.min(cap, q.maxFps) : cap || q.maxFps
+    if (fps && now - last < 1000 / fps - 4) return // fps 제한 (rAF 간격 흔들림 4ms 여유)
     // rAF 의 now(프레임 시작 시각)는 play() 때 잰 performance.now() 보다 이를 수 있음 → 음수 dt 막기.
     // (음수가 들어가면 가구 낙하 타이머가 0 → 음수로 가서 다시 안 돌고, 가구가 숨은 채로 남았음. 2026-11-12 온보딩 → 내 땅굴)
     const dt = Math.min(Math.max(0, (now - last) / 1000), 0.1)
@@ -266,7 +273,7 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
     },
     isFrozen: () => frozen,
     /** 장면이 다 불러와졌을 때. 이때부터 자동 내리기용 프레임 시간을 잼 */
-    ready() { probeFrom = performance.now(); probePrev = 0; probeSum = 0; probeN = 0; cb.frame(0, t); wake() },
+    ready() { probeFrom = performance.now(); probePrev = 0; probeSum = 0; probeN = 0; cb.frame(0, t); markSceneReady(); wake() },
     stop() {
       alive = false
       pause()
@@ -282,7 +289,13 @@ export function startLoop(container: HTMLElement, cb: LoopCallbacks, q: Quality)
 }
 
 /** 측정용: 장면을 실제로 그린 횟수 (explore/gpu/cdp-move.mjs 가 읽음) */
-function countFrame() { const w = window as unknown as { __sceneFrames?: number }; w.__sceneFrames = (w.__sceneFrames ?? 0) + 1 }
+function countFrame() {
+  const w = window as unknown as { __sceneFrames?: number; __sceneT?: number[] }
+  w.__sceneFrames = (w.__sceneFrames ?? 0) + 1
+  w.__sceneT?.push(performance.now()) // 측정 도구가 배열을 만들어 둔 경우만 (cdp-scene.mjs)
+}
+/** 측정용: 장면이 다 차려져 첫 그림을 그린 시각 (explore/gpu/cdp-scene.mjs 가 읽음. 화면 전환 시간 재기) */
+function markSceneReady() { (window as unknown as { __sceneReadyAt?: number }).__sceneReadyAt = performance.now() }
 
 /** focusX를 CSS transition(.45s)처럼 부드럽게 따라가게 */
 export function approach(cur: number, target: number, dt: number, tau = 0.12) {

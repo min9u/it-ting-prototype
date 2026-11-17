@@ -1,0 +1,17 @@
+{
+ "name": "q-P1AA",
+ "ref": "q-gpu",
+ "psnr": 39.96,
+ "ssim": 0.9939,
+ "psnrBg": 41.61,
+ "ssimBg": 0.9947,
+ "psnrMole": 29.03,
+ "ssimMole": 0.964,
+ "ssimEdge": 0.9637,
+ "shot": "explore/gpu/results/quality/q-P1AA.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-P1AA-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-P1AA-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-P1AA-hole.png"
+ }
+}

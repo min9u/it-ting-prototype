@@ -1,0 +1,17 @@
+{
+ "name": "q-base",
+ "ref": "q-gpu",
+ "psnr": 31.97,
+ "ssim": 0.969,
+ "psnrBg": 32.58,
+ "ssimBg": 0.9715,
+ "psnrMole": 24.36,
+ "ssimMole": 0.879,
+ "ssimEdge": 0.8297,
+ "shot": "explore/gpu/results/quality/q-base.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-base-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-base-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-base-hole.png"
+ }
+}

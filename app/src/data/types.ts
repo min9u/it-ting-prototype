@@ -40,36 +40,12 @@ export interface GuestbookEntry {
   id: string
   authorId: string
   text: string
-  /** ISO 문자열 */
+  /** ISO 8601 + 오프셋 ("2026-11-16T17:40:05+09:00"). 표시는 lib/time.ts */
   createdAt: string
 }
 
 /** 커뮤니티 글 카테고리 (Figma 02 F8: 모임 홍보 · 모임 후기 · 자유) */
 export type PostCategory = '모임 홍보' | '모임 후기' | '자유'
-
-export interface Comment {
-  id: string
-  authorId: string
-  text: string
-  createdAt: string
-  likes: number
-  isAuthor?: boolean
-  replies?: Comment[]
-}
-
-export interface Post {
-  id: string
-  category: PostCategory
-  interest: string
-  title: string
-  body: string[]
-  authorId: string
-  createdAt: string
-  views: number
-  likes: number
-  comments: Comment[]
-  hasPhoto?: boolean
-}
 
 export type MyMeetupStatus = '참여 확정' | '신청 대기' | '내가 주최' | '찜'
 
@@ -77,8 +53,9 @@ export interface Meetup {
   id: string
   title: string
   interest: string
-  /** YYYY-MM-DD */
+  /** 달력 날짜 YYYY-MM-DD (Asia/Seoul) */
   date: string
+  /** 시작·끝 시각: 만들기 양식 값 그대로 ('오후 2:00', 끝은 '다음 날 오전 11:00' 도 있음). 서버와는 ISO 8601(starts_at·ends_at)로 주고받음 → api/mappers */
   start: string
   end: string
   area: string
@@ -88,7 +65,6 @@ export interface Meetup {
   memberIds: string[]
   hostId: string
   intro: string
-  closesAt: string
   myStatus?: MyMeetupStatus
   past?: boolean
   /** 주최자가 취소한 모임 (2026-11-12 모임 상세 – 취소된 모임) */
@@ -97,6 +73,5 @@ export interface Meetup {
   sign?: string
   /** 내가 신청할 때 남긴 말 (신청 대기 모임 팝업) */
   myNote?: string
-  myNoteAgo?: string
 }
 

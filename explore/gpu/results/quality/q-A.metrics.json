@@ -1,0 +1,17 @@
+{
+ "name": "q-A",
+ "ref": "q-gpu",
+ "psnr": 37.08,
+ "ssim": 0.9872,
+ "psnrBg": 37.79,
+ "ssimBg": 0.9881,
+ "psnrMole": 29.02,
+ "ssimMole": 0.9535,
+ "ssimEdge": 0.924,
+ "shot": "explore/gpu/results/quality/q-A.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-A-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-A-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-A-hole.png"
+ }
+}

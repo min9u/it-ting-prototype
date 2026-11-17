@@ -1,0 +1,17 @@
+{
+ "name": "q-S1",
+ "ref": "q-gpu",
+ "psnr": 38.18,
+ "ssim": 0.9919,
+ "psnrBg": 39.29,
+ "ssimBg": 0.993,
+ "psnrMole": 28.59,
+ "ssimMole": 0.9521,
+ "ssimEdge": 0.9521,
+ "shot": "explore/gpu/results/quality/q-S1.png",
+ "crops": {
+  "mole": "explore/gpu/results/quality/crops/q-S1-mole.png",
+  "crop": "explore/gpu/results/quality/crops/q-S1-crop.png",
+  "hole": "explore/gpu/results/quality/crops/q-S1-hole.png"
+ }
+}

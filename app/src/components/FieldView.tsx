@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { FieldHandle, FieldSceneOptions } from '../three/fieldScene'
 import styles from './RoomView.module.css'
+import SceneBoundary from './SceneBoundary'
 
 const FieldCanvas = lazy(() => import('../three/FieldCanvas'))
 
@@ -9,19 +10,23 @@ const FieldCanvas = lazy(() => import('../three/FieldCanvas'))
  * 땅을 누르면 두더지가 그 자리로 걸어간다. 3D 준비 전에는 하늘·풀빛 그라데이션.
  * options·onReady: 탐색하기의 굴 이동(굴 나오기·들어가기)과 줌 (docs/field-move.md)
  */
-export default function FieldView({ focusX = 0.5, children, label, options, onReady }: {
+export default function FieldView({ focusX = 0.5, children, label, options, onReady, paused }: {
   /** 장면 가운데가 놓일 가로 위치 (0–1) */
   focusX?: number
   children?: ReactNode
   label?: string
   options?: Omit<FieldSceneOptions, 'focusX'>
   onReady?: (handle: FieldHandle) => void
+  /** 안 보이는 동안 그리기 멈춤 (랜딩에서 투명하게 숨긴 층) */
+  paused?: boolean
 }) {
   return (
     <div className={`${styles.scene} ${styles.field}`}>
-      <Suspense fallback={null}>
-        <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} />
-      </Suspense>
+      <SceneBoundary>
+        <Suspense fallback={null}>
+          <FieldCanvas focusX={focusX} className={styles.canvas} label={label ?? '두더지가 사는 밭'} options={options} onReady={onReady} paused={paused} />
+        </Suspense>
+      </SceneBoundary>
       {children}
     </div>
   )

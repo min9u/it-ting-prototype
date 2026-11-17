@@ -1,0 +1,64 @@
+{
+  "summary": {
+    "name": "cost-noflow",
+    "mode": "hwoff",
+    "url": "http://localhost:5301/#/burrow/explore?spin=1&fhide=flowers_tufts",
+    "scenario": "idle",
+    "aff": null,
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 1938,
+      "longTaskMs": 1029,
+      "longTaskMax": 787,
+      "worstFreezeMs": 800,
+      "heapMB": 28,
+      "mb": 2.4,
+      "cpuGpuSec": 32.01,
+      "cpuRendererSec": 2.25
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 29.5,
+      "sceneFps": 29.7,
+      "worstGap": 50,
+      "sceneWorstGap": 53,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 21,
+      "cpuGpu": 1097,
+      "drawsPerFrame": 105,
+      "ktrisPerFrame": 64
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 1938,
+        "longTaskMs": 1029,
+        "longTaskMax": 787,
+        "worstFreezeMs": 800,
+        "heapMB": 28,
+        "mb": 2.4,
+        "cpuGpuSec": 32.01,
+        "cpuRendererSec": 2.25
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 29.5,
+        "sceneFps": 29.7,
+        "worstGap": 50,
+        "sceneWorstGap": 53,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 21,
+        "cpuGpu": 1097,
+        "drawsPerFrame": 105,
+        "ktrisPerFrame": 64
+      }
+    }
+  ]
+}

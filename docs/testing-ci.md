@@ -9,7 +9,7 @@
 ## 결론
 - **단위 테스트 166개(통과 163 · 할 일 3)**, 9초. 명세 번호를 테스트 이름에 적었다 (예: "M7 마감 일시가 지나면 처리 안 된 신청은 자동 미승인")
 - **스모크 94개 화면 모두 예외 · 빈 화면 없음** (가속 켬). 가속 끔 결과는 아래
-- **첫 화면 JS 340KB(gzip)** 로 크다. 라우트가 모두 정적 import 라 모든 화면 코드 + 가구 카탈로그 JSON + 작은 그림 23장(data URL)이 첫 화면에 실린다. 줄일 후보 6개는 아래 "번들 크기"
+- **첫 화면 JS 380KB(gzip)** 로 크다 (11-16 작업 때 340KB → 11-17 main 을 합친 뒤 API 계층 · react-query · 실시간 계층이 들어와 +40KB, 예산 360KB 를 넘어 CI 에서 경고). 라우트가 모두 정적 import 라 모든 화면 코드 + 가구 카탈로그 JSON + 작은 그림 23장(data URL)이 첫 화면에 실린다. 줄일 후보 6개는 아래 "번들 크기"
 - CI(`.github/workflows/ci.yml`)는 로컬에서 같은 명령을 차례로 돌려 확인했다 (GitHub 에서는 아직 안 돌려 봄)
 
 ## 한눈에
@@ -96,11 +96,11 @@ GitHub Actions, `ubuntu-24.04`, 모든 단계를 **`app/` 에서** (`defaults.ru
 
 예산(gzip, 더 커지지 않게 막는 선 — 지금 값 + 5~10%): 첫 화면 JS 360KB · 지연 청크 하나 300KB · CSS 70KB · 공유 빌드 glb 내장 청크 하나 2000KB. 줄이면 같이 낮출 것.
 
-### 지금 크기 (2026-11-16, `npm run build`)
+### 지금 크기 (`npm run build`. 표는 2026-11-16 기준, 첫 화면 JS 만 2026-11-17 main 합친 뒤 값)
 
 | 구분 | 파일 | 원본 | gzip |
 |---|---|---|---|
-| **첫 화면 JS** | `index-*.js` + `interests-*.js` | 985KB | **340KB** |
+| **첫 화면 JS** | `index-*.js` (11-16 에는 `interests-*.js` 와 두 파일, 11-17 에는 한 파일) | 1104KB (11-16 985KB) | **380KB** (11-16 340KB) |
 | 지연 JS (34개) | 아래 | 2.45MB | 721KB |
 | CSS (4개) | `index-*.css` 271KB 가 대부분 (Pretendard @font-face 92개 48KB 포함) | 285KB | 62KB |
 | 그 밖 (157개) | glb 15개 약 9MB, Pretendard woff2 92개, 그림 · wasm | 12.2MB | — |
@@ -113,7 +113,7 @@ GitHub Actions, `ubuntu-24.04`, 모든 단계를 **`app/` 에서** (`defaults.ru
 | `FieldCanvas-*.js` | 173KB | 89KB | 예전 밭(시작 화면 · 둘러보기) + N8AO · postprocessing |
 | `fieldLayout150-*.js` | 129KB | 37KB | 탐색 들판 배치 (탐색에 들어갈 때만) |
 
-공유 빌드(`npm run build:share`, glb 를 JS 에 data URL 로): 첫 화면 JS 같음(340KB). glb 내장 청크가 큼 — `roomScene` 3.6MB(gzip 1.7MB), `moleActor` 2.9MB(1.3MB, three + 두더지 · 액세서리), 관심사 가구 11개 0.4~1.2MB. 아티팩트 한 파일 16MB 제한에는 여유.
+공유 빌드(`npm run build:share`, glb 를 JS 에 data URL 로): 첫 화면 JS 는 일반 빌드와 같음. glb 내장 청크가 큼 — `roomScene` 3.6MB(gzip 1.7MB), `moleActor` 2.9MB(1.3MB, three + 두더지 · 액세서리), 관심사 가구 11개 0.4~1.2MB. 아티팩트 한 파일 16MB 제한에는 여유.
 
 ### 첫 화면 JS 안에 든 것
 - 모든 화면 코드: `App.tsx` 가 화면을 전부 정적 import (dev-deploy-risks F3 에도 있음)
@@ -136,5 +136,5 @@ GitHub Actions, `ubuntu-24.04`, 모든 단계를 **`app/` 에서** (`defaults.ru
 ## 다음 단계
 - GitHub 에서 CI 첫 실행 확인 (러너 SwiftShader 로 스모크 시간 · 3D 화면), 느리면 스모크 범위 줄이기
 - 날짜 통일 · REST 전환 작업이 들어오면 `it.todo` 1번과 시간 표기 테스트 기대값을 새 규칙으로, `data/` 저장소 테스트는 API 목(mock) 응답을 넣는 방식으로 옮기기
-- 번들 줄일 후보 1~3 (첫 화면 340 → 200KB 목표), 줄인 만큼 예산 낮추기
+- 번들 줄일 후보 1~3 (첫 화면 380 → 200KB 목표), 줄인 만큼 예산 낮추기
 - 스모크에 상호작용 몇 개 더하기 (온보딩 끝까지 · 모임 신청 · 채팅 보내기): 지금은 "열리는지"만 봄
