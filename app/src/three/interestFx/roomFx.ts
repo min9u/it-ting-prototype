@@ -105,6 +105,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const box = new THREE.Box3()
   /** 관심사 가구 → 이펙트 자리 (위 가운데·크기). 1초마다 다시 잼 (갈아 끼우기·모양 바꾸기) */
   const measure = () => {
+    const m0 = performance.now()
     const items = o.items()
     // items() 는 부를 때마다 새 배열이라 가구 묶음(g)·행이 같은지로 비교 (같으면 입자 쌓인 값을 그대로 둠)
     const same = items.length === ems.length && items.every((it, i) => ems[i].item.g === it.g && ems[i].item.rowId === it.rowId)
@@ -135,8 +136,11 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       e.half = Math.max(.08, Math.min(.9, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2))
     }
     lastMeasure = performance.now(); measured = true
+    cost('measure', lastMeasure - m0)
   }
 
+  /** 측정용: 이펙트 일의 가장 긴 시간 (ms) → window.__fxCost */
+  const cost = (k: string, ms: number) => { const w = window as unknown as { __fxCost?: Record<string, number> }; const c = (w.__fxCost ??= {}); c[k] = Math.max(c[k] ?? 0, Math.round(ms * 10) / 10) }
   /* ---------- 화면 투영 ---------- */
   const v = new THREE.Vector3()
   const S = { x: 0, y: 0, ok: false }
@@ -312,7 +316,12 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   let quiet = false
   let introEnd = -1
   let lastT = 0
-  const draw = ({ ctx, W: w, H: h, dt, t, calm }: OverlayFrame) => {
+  const draw = (f: OverlayFrame) => {
+    const d0 = performance.now()
+    drawFrame(f)
+    cost('roomDraw', performance.now() - d0)
+  }
+  const drawFrame = ({ ctx, W: w, H: h, dt, t, calm }: OverlayFrame) => {
     W = w; H = h; lastT = t
     quiet = still || calm
     if (o.intro()) { introEnd = -1; return }
