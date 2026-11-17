@@ -49,6 +49,8 @@ export interface Slide {
  * 6m 점프 중간(3m)에 1080px 화면이면 행마다 약 0.25px → 96 띠(약 10행)면 ±1.3px
  */
 const NS = 96
+/** 띠를 아래로 겹치는 행 수 (기기 픽셀). 아래 build() 설명 */
+const OVERLAP = 3
 /** punch 를 띠 가장자리에서 이만큼(CSS px) 안쪽으로: 메운 3D 가 띠 가장자리를 살짝 덮어 틈(바탕색)이 안 보이게 */
 const INSET = 1.5
 
@@ -65,7 +67,8 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
     return { box, strips: [], cam: null, shown: false, mats: [] }
   }
   const slots: [SlotS, SlotS] = [mkSlot(), mkSlot()]
-  let curTop: 0 | 1 = 0
+  /** 지금 위에 있는 칸. 만들 때 0, 1 순서로 넣어서 처음엔 1 이 위 */
+  let curTop: 0 | 1 = 1
 
   const build = (s: SlotS) => {
     s.strips.forEach((st) => st.cv.remove())
@@ -74,8 +77,9 @@ export function createSlide(container: HTMLElement, before: HTMLElement, o: { yR
     for (let i = 0; i < ns; i++) {
       const r0 = Math.round(i * Hd / ns), r1 = Math.round((i + 1) * Hd / ns)
       if (r1 <= r0) continue
-      // 아래로 1행 겹치게 (띠 사이 틈 방지)
-      const rows = Math.min(Hd, r1 + 1) - r0
+      // 아래로 OVERLAP 행 겹치게: 합성기가 띠 위아래 끝 한 줄을 반투명하게(가장자리 안티앨리어싱) 그려서, 1행만 겹치면
+      // 그 틈으로 아래 칸(먼 자리에서 찍은 그림)이 가로 줄무늬로 비쳤음 (2026-11-17 이동 도중 화질 비교에서 발견)
+      const rows = Math.min(Hd, r1 + OVERLAP) - r0
       const cv = document.createElement('canvas')
       cv.width = Wd; cv.height = rows
       cv.style.cssText = `position:absolute;left:0;top:0;width:${W}px;height:${rows / dpr}px;transform-origin:0 0;display:block;will-change:transform`

@@ -3,6 +3,9 @@
 # move-quality.mjs 가 찍은 <장면>-<변형>.png 를 장면마다 GPU(<장면>-gpu) 대비 PSNR·SSIM 으로:
 #  - 배경 = 장면 사각형에서 두더지 사각형(+24px)을 뺀 곳 (이동 중엔 두더지가 땅속이라 장면 전체)
 #  - 가장자리 = 배경 중 기준 그림 밝기 기울기 상위 10% (흐림·계단이 드러나는 곳)
+#  - 맞춘 SSIM = 32px 칸마다 ±5px 안에서 가장 잘 맞는 위치의 SSIM 평균. 이동 도중 그림은 바닥 평면 가정 때문에 높은 물체가
+#    몇 px 어긋나는데(시차), PSNR·SSIM 은 그 어긋남을 흐림보다 크게 벌줌 → 어긋남을 빼고 "모양·선명함"만 보는 값
+#  - 선명도 = 배경 밝기 기울기 평균 / 기준(GPU)의 값 (1 = GPU 와 같은 선명함, 흐리면 작아짐)
 # 결과: explore/gpu/results/move.json 의 quality, 그림 results/move/<장면>-<변형>.webp (같은 순간 기준/개선/GPU), 확대 results/move/crop-*.webp
 import json, os, sys
 import numpy as np
@@ -38,6 +41,33 @@ def ssim_map(a, b):
     sbb = gaussian_filter(yb * yb, 1.5) - mu_b ** 2
     sab = gaussian_filter(ya * yb, 1.5) - mu_a * mu_b
     return ((2 * mu_a * mu_b + C1) * (2 * sab + C2)) / ((mu_a ** 2 + mu_b ** 2 + C1) * (saa + sbb + C2))
+
+
+def aligned_ssim(a, b, mask, r=5, blk=32):
+    ya, yb = (a @ [0.299, 0.587, 0.114]).astype(np.float32), (b @ [0.299, 0.587, 0.114]).astype(np.float32)
+    C1, C2 = (0.01 * 255) ** 2, (0.03 * 255) ** 2
+    g = lambda x: gaussian_filter(x, 1.5)
+    mu_a, mu_b = g(ya), g(yb)
+    saa, sbb = g(ya * ya) - mu_a ** 2, g(yb * yb) - mu_b ** 2
+    H, W = ya.shape
+    hb, wb = (H - 2 * r) // blk, (W - 2 * r) // blk
+    best = np.full((hb, wb), -1.0)
+    A = (slice(r, r + hb * blk), slice(r, r + wb * blk))
+    sl = lambda x, dy, dx: x[r + dy:r + dy + hb * blk, r + dx:r + dx + wb * blk]
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ybs = np.roll(np.roll(yb, -dy, 0), -dx, 1)
+            sab = g(ya * ybs)[A] - mu_a[A] * sl(mu_b, dy, dx)
+            mb, sb = sl(mu_b, dy, dx), sl(sbb, dy, dx)
+            m = ((2 * mu_a[A] * mb + C1) * (2 * sab + C2)) / ((mu_a[A] ** 2 + mb ** 2 + C1) * (saa[A] + sb + C2))
+            best = np.maximum(best, m.reshape(hb, blk, wb, blk).mean((1, 3)))
+    mk = mask[A].reshape(hb, blk, wb, blk).all((1, 3))
+    return round(float(best[mk].mean()), 4)
+
+
+def sharp(im, mask):
+    y = im @ [0.299, 0.587, 0.114]
+    return float(np.hypot(np.gradient(y, axis=0), np.gradient(y, axis=1))[mask].mean())
 
 
 CASES = ['r25', 'r5', 'r75', 'rstop', 'u25', 'u5', 'u75', 'ustop']
@@ -80,6 +110,7 @@ for c in CASES:
         sm = ssim_map(ref, im)
         r = {
             'psnr': psnr(ref, im, bg), 'ssim': round(float(sm[bg].mean()), 4), 'edgeSsim': round(float(sm[edge].mean()), 4),
+            'alignedSsim': aligned_ssim(ref, im, bg), 'sharpness': round(sharp(im, bg) / sharp(ref, bg), 3),
             'slideFrames': (meta.get('slide') or {}).get('n'), 'shot': f'{REL}/{c}-{v}.webp',
         }
         out[c][v] = r
@@ -87,7 +118,7 @@ for c in CASES:
         pil.save(os.path.join(IMG, f'{c}-{v}.webp'), 'WEBP', quality=80, method=5)
         if bbox:
             crops.append(pil.crop(bbox))
-        print(f"{c:6s} {v:5s} 배경 PSNR {r['psnr']:6.2f}dB SSIM {r['ssim']:.4f} 가장자리 {r['edgeSsim']:.4f}  띠 프레임 {r['slideFrames']}")
+        print(f"{c:6s} {v:5s} 배경 PSNR {r['psnr']:6.2f}dB SSIM {r['ssim']:.4f} 가장자리 {r['edgeSsim']:.4f} 맞춘 SSIM {r['alignedSsim']:.4f} 선명도 {r['sharpness']:.3f}  띠 프레임 {r['slideFrames']}")
     # 확대 비교: GPU | 기준(old) | 개선(new) 가로로 (2배)
     if bbox and len(crops) >= 3:
         cw, ch = 400, 225
