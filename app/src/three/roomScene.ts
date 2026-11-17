@@ -24,6 +24,7 @@ import { applyChoice, type FurnChoice } from '../data/myBurrow'
 import { interestCatOf, subOf } from '../data/interests'
 import { createStyler, type Styler } from './roomStyle'
 import type { RoomStyle } from '../data/roomStyle'
+import { createRoomFx, type RoomFx } from './interestFx/roomFx'
 
 /*
  * 땅굴 방 장면 — 3D 핸드오프 v2 (design/digul_3d_handoff_v2, docs/room_spec.md) + v3 (design/digul_3d_handoff_v3)
@@ -61,6 +62,8 @@ export interface RoomSceneOptions {
   furniture?: FurnChoice
   /** 가구 칠하기·무늬·마감·모양 (data/roomStyle.ts, 2026-11-16 실험). 없으면 디자이너 원래 모습 */
   style?: RoomStyle
+  /** 관심사 이펙트 (three/interestFx/roomFx.ts, docs/interest-effects.md). 있으면 켬. viewer = 남의 땅굴에서 내 관심사 */
+  fx?: { viewer?: string[] }
 }
 
 /** 땅굴 장면 손잡이: 공통 + 우체통 상태 바꾸기 + 고른 가구 바꾸기 */
@@ -429,6 +432,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let mailboxNew = !!opts.mailbox
   /** 우체통이 이번(또는 지난) 프레임에 바뀜 → 부분 그리기 사각형에 넣음 */
   let mailboxDirty = false
+  /** 관심사 이펙트 (3D 위 2D 겹 캔버스라 배경 굽기·부분 그리기와 상관없음) */
+  let fx: RoomFx | null = null
 
   /**
    * 슬롯 묶음(g) 안에 가구 모델(src) 또는 블록을 넣음. 처음 만들 때와 꾸미기 가구 탭에서 갈아 끼울 때 같이 씀
@@ -588,6 +593,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
+    if (opts.fx && !opts.canvas) {
+      fx = createRoomFx({
+        container, after: renderer.domElement, camera, ownerId: opts.ownerId, interests: opts.interests ?? [], viewer: opts.fx.viewer,
+        hole: new THREE.Box3().setFromObject(holeS).getCenter(new THREE.Vector3()),
+        items: () => drops.map((d) => ({ g: d.g, sub: d.it.sub, category: d.it.category, rowId: d.it.row.id, type: d.it.row.type })),
+        intro: () => holeT >= 0 || seqT >= 0,
+      })
+    }
     fullNext = true
     sharpOff()
     // 가구가 처음부터 제자리면 방은 이미 다 됨 → 첫 프레임에 바로 선명하게 (두더지가 떨어지는 도중에 멈칫하지 않게)
@@ -930,7 +943,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     // 루프가 쉬는 중(저사양)이면 다시 그리지 않고 이름표만 바로 갱신
     if (!loop.isRunning()) showHint()
   }
-  const onLeave = () => { moveQueued = null; hint.style.opacity = '0'; el.style.cursor = 'pointer'; if (mailbox?.setHover(false)) loop.wake() }
+  const onLeave = () => { moveQueued = null; hint.style.opacity = '0'; el.style.cursor = 'pointer'; fx?.hover(null, null); if (mailbox?.setHover(false)) loop.wake() }
   el.addEventListener('pointerdown', onDown); el.addEventListener('pointerup', onUp)
   el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave)
   el.style.cursor = 'pointer'
@@ -942,9 +955,11 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     const pk = pick(e), rect = el.getBoundingClientRect()
     const label = pk.onHost ? opts.hostName ?? null : pk.onMailbox ? '방명록 보기' : actionOf(pk.g)
     if (mailbox?.setHover(pk.onMailbox)) loop.wake()
+    // 관심사 카드를 띄웠으면 이름표는 숨김 (카드에 "누르면 · 동작"이 들어감)
+    const card = !!fx?.hover(pk.onHost || pk.onMailbox || pickCb ? null : pk.g, label)
     el.style.cursor = 'pointer'
     hint.textContent = label ?? ''
-    hint.style.opacity = label ? '1' : '0'
+    hint.style.opacity = label && !card ? '1' : '0'
     hint.style.left = `${e.clientX - rect.left}px`; hint.style.top = `${e.clientY - rect.top}px`
   }
 
@@ -1239,7 +1254,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       loop.stop()
       controls.dispose()
       unbindKeys()
-      mole?.dispose(); host?.dispose(); mailbox?.dispose()
+      mole?.dispose(); host?.dispose(); mailbox?.dispose(); fx?.dispose()
       holeMixer?.stopAllAction()
       for (const d of dusts) d.mixer.stopAllAction()
       // 이 장면에서 만든 블록·먼지 재질만 해제 (glb 것은 캐시가 다시 씀)

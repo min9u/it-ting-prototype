@@ -9,7 +9,7 @@ import type { FurnChoice } from '../data/myBurrow'
 const useWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
 
 /** 땅굴 방 3D (RoomView 가 React.lazy 로 불러옴 → three.js 는 별도 청크) */
-export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, mailbox, onMailbox, focusX, className, label, onReady, overlay, furniture, paused }: {
+export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, mailbox, onMailbox, focusX, className, label, onReady, overlay, furniture, paused, fx }: {
   /** 처음 고른 가구 (그 뒤 바뀌는 건 handle.setFurniture) */
   furniture?: FurnChoice
   ownerId: string
@@ -35,12 +35,14 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
   overlay?: ReactNode
   /** 안 보이는 동안 그리기 멈춤 (SceneCanvas paused) */
   paused?: boolean
+  /** 관심사 이펙트 (roomScene fx, docs/interest-effects.md) */
+  fx?: { viewer?: string[] }
 }) {
   return (
     <SceneCanvas
       deps={`${ownerId}|${hostName ?? ''}|${(interests ?? []).join(',')}|${wallpaper ?? ''}|${still ? 1 : 0}`}
-      mount={(el, fx) => {
-        const o = { ownerId, interests, wallpaper, hostName, hostWorn, worn, still, mailbox, onMailbox, focusX: fx, furniture }
+      mount={(el, fx0) => {
+        const o = { ownerId, interests, wallpaper, hostName, hostWorn, worn, still, mailbox, onMailbox, focusX: fx0, furniture, fx }
         return useWorker() ? mountRoomWorker(el, o, () => mountRoomScene(el, o)) : mountRoomScene(el, o)
       }}
       focusX={focusX}

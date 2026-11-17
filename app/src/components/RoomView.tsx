@@ -68,6 +68,8 @@ interface Props {
    * (랜딩: 같은 관심사 6개·연출 없음). 다른 방이면 가구가 바뀌어 보여서 쓰지 않음 (docs/rendering-experiments-3.md 5번)
    */
   loadingStill?: boolean
+  /** 관심사 이펙트를 켬 (내 땅굴·남의 땅굴만. 시작 화면·온보딩 미리 보기는 안 씀). viewer = 남의 땅굴에서 내 관심사 (docs/interest-effects.md) */
+  fx?: { viewer?: string[] }
 }
 
 /**
@@ -110,7 +112,7 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false, fx }: Props) {
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // 3D 장면이 예전에 구운 같은 구도의 그림을 이미 깔았음 (SceneHandle.still) → 로딩 애니메이션 없이 장면을 바로 보임
@@ -193,6 +195,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           worn={worn}
           mailbox={mailboxRef.current}
           furniture={furnRef.current}
+          fx={fx}
           onMailbox={() => onMailboxRef.current?.()}
           focusX={focusX}
           className={loader ? `${styles.canvas} ${canvasOn ? styles.canvasIn : styles.canvasHidden}` : styles.canvas}

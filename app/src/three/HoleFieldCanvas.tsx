@@ -2,12 +2,13 @@ import { useRef } from 'react'
 import SceneCanvas from './SceneCanvas'
 import { mountHoleField, type HoleFieldEvents, type HoleFieldHandle } from './holeField'
 import { stillFor } from './stills'
+import type { HoleFx } from '../data/interestFx'
 
 /**
  * 탐색 들판 3D (ExploreBurrow 가 React.lazy 로 불러옴).
  * deps(들판 id)가 바뀌면 장면을 새로 만든다. 이벤트는 ref 로 늘 최신 함수를 부름
  */
-export default function HoleFieldCanvas({ fieldKey, occupied, zones, mySeat, startSeat, worn, focusX, events, onReady, className, label }: {
+export default function HoleFieldCanvas({ fieldKey, occupied, zones, mySeat, startSeat, worn, focusX, events, onReady, className, label, fx }: {
   fieldKey: string
   occupied: number[]
   zones: number
@@ -19,11 +20,13 @@ export default function HoleFieldCanvas({ fieldKey, occupied, zones, mySeat, sta
   onReady?: (h: HoleFieldHandle) => void
   className?: string
   label?: string
+  /** 관심사 이펙트 자리 정보 (holeField fx) */
+  fx?: HoleFx[]
 }) {
   const ev = useRef(events)
   ev.current = events
-  const init = useRef({ occupied, zones, mySeat, startSeat, worn })
-  init.current = { occupied, zones, mySeat, startSeat, worn }
+  const init = useRef({ occupied, zones, mySeat, startSeat, worn, fx })
+  init.current = { occupied, zones, mySeat, startSeat, worn, fx }
   return (
     <SceneCanvas
       deps={fieldKey}

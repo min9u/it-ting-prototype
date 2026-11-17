@@ -9,8 +9,8 @@
  *   단 30일 동안은 비워 둠 (아는 자리에 바로 낯선 사람이 들어오지 않게) → docs/explore-field-v3-9.md "판단한 것"
  * - 서버가 없어서 사람·자리는 여기서 시드로 만듦 (같은 들판은 언제나 같은 결과)
  */
-import { ME_ID, USERS } from './mock'
-import { INTEREST_SUBS, getMyInterests } from './interests'
+import { CATEGORIES, ME_ID, USERS } from './mock'
+import { getMyInterests } from './interests'
 import type { QnA, User } from './types'
 
 export interface FieldUser extends User {
@@ -62,6 +62,13 @@ function rng(seed: string) {
   return () => { a ^= a << 13; a >>>= 0; a ^= a >> 17; a ^= a << 5; a >>>= 0; return a / 4294967296 }
 }
 const pick = <T,>(r: () => number, arr: T[]) => arr[Math.floor(r() * arr.length)]
+/**
+ * 관심사는 고른 사람 수(목 인원수)에 비례해 뽑음 (2026-11-17, docs/interest-effects.md). 예전엔 65개를 똑같은 확률로 뽑아서
+ * 운석수집(30명)·아마추어무선(45명) 같은 드문 취미가 고양이(3,300명)만큼 흔했고, 들판의 "드문 관심사 반짝"이 절반의 구멍에 떴음
+ */
+const POP = CATEGORIES.flatMap((c) => c.tags.map((t) => ({ name: t.name, w: t.count })))
+const POP_SUM = POP.reduce((n, p) => n + p.w, 0)
+const pickPopular = (r: () => number) => { let x = r() * POP_SUM; for (const p of POP) { x -= p.w; if (x < 0) return p.name } return POP[POP.length - 1].name }
 
 const NAMES = ['도토리', '보리', '콩떡', '말랑', '누룽지', '호떡', '감자', '모찌', '나무늘보', '솜사탕', '고구마', '두부', '찹쌀', '밤톨', '깨비', '단호박',
   '수수', '오디', '라임', '버터', '쿠키', '젤리', '산들', '구름', '별똥', '새싹', '이슬', '바람', '파도', '노을', '해솔', '다래', '자두', '살구', '앵두',
@@ -123,7 +130,7 @@ function makeUser(f: Floor, seat: number): FieldUser {
   const r = rng(`${f.id}#${seat}`)
   const n = 3 + Math.floor(r() * 6)
   const interests: string[] = []
-  while (interests.length < n) { const s = pick(r, INTEREST_SUBS).name_ko; if (!interests.includes(s)) interests.push(s) }
+  while (interests.length < n) { const s = pickPopular(r); if (!interests.includes(s)) interests.push(s) }
   const qs = [...QUESTIONS].sort(() => r() - .5).slice(0, 3)
   const qna: QnA[] = qs.map((q, i) => ({ q: `Q${i + 1}. ${q}`, a: pick(r, ANSWERS[q]) }))
   const nick = pick(r, NAMES)

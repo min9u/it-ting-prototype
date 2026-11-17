@@ -11,6 +11,8 @@ import { waitGpu, warmScene } from './warm'
 import { getCachedStill, peekCachedStill, putCachedStill, stillKey } from './stills'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type SceneHandle } from './engine'
 import { onLowTierChange } from '../lib/deviceTier'
+import { createFieldFx, type FieldFx } from './interestFx/fieldFx'
+import type { HoleFx } from '../data/interestFx'
 import groundUrl from '../assets/models/field/explore_ground_150.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
 import haloUrl from '../assets/models/field/hole_mine_halo.glb?url'
@@ -89,6 +91,8 @@ export interface HoleFieldOptions {
   startSeat: number
   worn: string[]
   events: HoleFieldEvents
+  /** 관심사 이펙트 (three/interestFx/fieldFx.ts, docs/interest-effects.md): 자리마다 대표 관심사·겹침·드문 정도·접속 */
+  fx?: HoleFx[]
 }
 
 export interface HoleFieldHandle extends SceneHandle {
@@ -230,6 +234,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const own: { dispose(): void }[] = []
   let mole: MoleActor | null = null
   let moleBlob: THREE.Mesh | null = null
+  /** 관심사 이펙트 (3D 위 2D 겹 캔버스. 배경 굽기·이동 경로와 상관없음) */
+  let fieldFx: FieldFx | null = null
   const holes = new Map<number, HoleInfo>() // 구멍이 있는 자리만
   let camRects: Zone['camRect'][] = []
   let curSeat = opts.startSeat
@@ -267,6 +273,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     await Promise.all(Object.entries(GLB).map(async ([k, url]) => { glbs[k] = await loadGlb(url) }))
     if (disposed) return
     build(layout, { ground, hole, halo, pad, glbs })
+    if (opts.fx) fieldFx = createFieldFx({ container, after: renderer.domElement, camera, holes, seats: opts.fx, here: () => ({ seat: anim ? anim.to : curSeat, moving: !!anim }) })
     // 두더지
     const start = holes.has(curSeat) ? holeVec(curSeat, ANCHOR_Y) : new THREE.Vector3(1.9, 0, -3.4) // 구멍이 하나도 없으면 사다리 옆 흙 위
     mole = createMoleActor(moleG, {
@@ -883,7 +890,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     dispose() {
       disposed = true
       loop.stop()
-      mole?.dispose()
+      mole?.dispose(); fieldFx?.dispose()
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointerup', onUp)
       el.removeEventListener('pointermove', onMoveP)

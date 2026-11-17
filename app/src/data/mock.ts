@@ -72,7 +72,8 @@ export const USERS: Record<string, User> = {
   yerin: {
     id: 'yerin', nickname: '예린', affiliation: 'SSAFY 서울 2반', online: true,
     intro: '안녕하세요. 저는 먹는 것을 좋아하는 개발자입니다. 제 방에 놀러오세요~~',
-    interests: ['캠핑', '베이킹', '수채화', '레트로게임', '고양이'],
+    // 다도(190명)는 드문 관심사 이펙트를 보여 주려고 2026-11-17 추가 (docs/interest-effects.md)
+    interests: ['캠핑', '베이킹', '수채화', '레트로게임', '고양이', '다도'],
     worn: ['hat_chef', 'glasses_round', 'scarf_knit', 'prop_cup'],
     qna: [
       { q: 'Q1. 쉬는 날에는 주로 무엇을 하나요?', a: '낮잠 자고 오후 늦게 일어납니다... 그리고 뒹굴 뒹굴' },

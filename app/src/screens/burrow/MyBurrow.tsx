@@ -20,10 +20,13 @@ import { liveGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
 import MyInfoEdit, { INTRO_MAX, type EditDraft } from './MyInfoEdit'
 import DecorPanel, { type DecorTab } from './DecorPanel'
+import FxPanel from '../../components/FxPanel'
 import s from './Burrow.module.css'
 import m from './MyBurrow.module.css'
 
 type Mode = 'info' | 'edit' | 'decor'
+/** 관심사 이펙트: 내 땅굴 (나와 같은 관심사는 없음). 같은 객체를 써서 장면을 다시 만들지 않게 */
+const MY_FX = {}
 
 /**
  * 땅굴 메인 – 내 땅굴 (02 F4 "스켈레톤 기능 명세" 기준으로 다시 맞춤, 2026-11-16. docs/spec-f3-f4.md)
@@ -95,7 +98,7 @@ export default function MyBurrow() {
     <main className={s.page}>
       <RoomView ownerId={ME_ID} interests={interests} wallpaper={wallpaper} worn={mode === 'decor' ? wornDraft : worn} focusX={focusX} label="내 땅굴"
         furniture={mode === 'decor' ? furnDraft : furn} highlight={highlight}
-        mailbox={hasNewGb} onMailbox={() => setAllOpen(true)}>
+        mailbox={hasNewGb} onMailbox={() => setAllOpen(true)} fx={MY_FX}>
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 · 바뀐 모습이 바로 보여요</span>
         ) : (
@@ -112,6 +115,8 @@ export default function MyBurrow() {
           </div>
         )}
         {mode !== 'decor' && <RoomModeToggle style={{ left: `${(showPanel ? 0.408 : 0.515) * 100}%` }} />}
+        {/* 관심사 이펙트 켜고 끄기 (docs/interest-effects.md). 정보 패널 왼쪽 아래 */}
+        <FxPanel area="room" style={{ right: showPanel ? 388 : 33 }} />
       </RoomView>
 
       {mode === 'edit' && (

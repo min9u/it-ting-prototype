@@ -12,6 +12,8 @@ import type { HoleFieldHandle } from '../../three/holeField'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
 import Minimap from './Minimap'
 import SceneBoundary from '../../components/SceneBoundary'
+import FxPanel from '../../components/FxPanel'
+import { holeFxOf, type HoleFx } from '../../data/interestFx'
 import { stillFor, stillStyle } from '../../three/stills'
 import { isActivatable, shortcutAllowed } from '../../lib/a11y'
 import rv from '../../components/RoomView.module.css'
@@ -40,6 +42,11 @@ export default function ExploreBurrow() {
   const bySeat = useMemo(() => new Map(field.residents.map((r) => [r.seat, r])), [field])
   const occupied = useMemo(() => field.residents.map((r) => r.seat), [field])
   const others = field.residents.filter((r) => !r.mine).length
+  // 관심사 이펙트: 자리마다 대표 관심사·겹치는 관심사·드문 관심사·접속 (docs/interest-effects.md)
+  const fxSeats = useMemo(() => {
+    const mineInt = me().interests
+    return field.residents.map((r) => holeFxOf(r.seat, r.user, !!r.mine, mineInt)).filter((x): x is HoleFx => !!x)
+  }, [field])
   const seatParam = Number(params.get('seat'))
   const startSeat = bySeat.has(seatParam) ? seatParam : field.mySeat ?? field.residents[0]?.seat ?? 0
 
@@ -151,6 +158,7 @@ export default function ExploreBurrow() {
             focusX={focusX}
             events={events}
             onReady={(h) => { handle.current = h; h.loaded?.then(() => setReady(true)) }}
+            fx={fxSeats}
             className={rv.canvas}
             label={`${floorLabel(floor)} 들판. 두더지가 구멍 위에 서 있어요`}
           />
@@ -214,6 +222,8 @@ export default function ExploreBurrow() {
           <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 옆 구멍으로 · 구멍을 누르면 바로 이동 · <kbd>Enter</kbd> 땅굴에 들어가기
         </p>
         <RoomModeToggle style={{ left: `${focusX * 100}%` }} />
+        {/* 관심사 이펙트 켜고 끄기 (docs/interest-effects.md). 정보 패널 왼쪽 아래 */}
+        <FxPanel area="field" style={{ right: panelOpen ? 388 : 33 }} />
         {!ready && !failed3d && <span className={x.loading} style={{ left: `${focusX * 100}%` }} role="status">들판으로 나가는 중…</span>}
       </div>
 
