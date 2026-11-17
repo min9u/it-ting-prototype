@@ -7,6 +7,8 @@ import { FieldArt } from './explore-designs/FieldArt'
 import { FIELD_BOUNDS, LADDER, MAP_COLORS, buildVillage, camFootprint, camTarget, layoutNow, loadLayout, type Layout, type Village } from './explore-designs/fieldGeo'
 import { matchScore, sharedWith } from './explore-designs/match'
 import m from './Minimap.module.css'
+import { fxOn, fxVersion, subscribeFx } from '../../lib/fxLab'
+import { fxColor, leadOf } from '../../data/interestFx'
 
 /*
  * 미니맵 (전체 마을 지도). 2026-11-16, docs/explore-designs.md
@@ -92,6 +94,8 @@ export default function Minimap({
   const [big, setBig] = useState(() => { if (params.get('map') !== 'big' || onExpand || bigOpenedOnce) return false; bigOpenedOnce = true; return true })
   const toggle = (on: boolean) => { setOpen(on); try { localStorage.setItem(STORE, on ? 'open' : 'closed') } catch { /* 저장소 없음 */ } }
   const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
+  useSyncExternalStore(subscribeFx, fxVersion)
+  const fxMap = fxOn('f_minimap')
   const myInterests = useMemo(() => me().interests, [])
   const bySeat = useMemo(() => new Map(field.residents.map((r) => [r.seat, r])), [field])
 
@@ -247,6 +251,7 @@ export default function Minimap({
         <span><i className={m.lgOn} />접속 중</span>
         <span><b className={m.star}>★</b>단골</span>
         {view.kind !== 'none' && <span><ViewIcon />보이는 곳</span>}
+        {fxMap && <span><i className={m.lgFx} />색 = 대표 관심사</span>}
       </div>
       <VillageModal open={big} onClose={() => setBig(false)} field={field} floor={floor} v={v} bySeat={bySeat} regulars={regulars} myInterests={myInterests}
         mole={view.kind === 'external' ? cur.current.mole : posOf(seat)}
@@ -264,6 +269,9 @@ function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels }:
   /** 이름표를 붙일 자리 */
   labels?: (r: Resident) => string | null
 }) {
+  // 관심사 이펙트 "미니맵 관심사 색" (docs/interest-effects.md F12): 땅굴 링을 대표 관심사(맨 앞) 카테고리 색으로
+  useSyncExternalStore(subscribeFx, fxVersion)
+  const fxMap = fxOn('f_minimap')
   return (
     <g>
       {v.holes.map((h) => {
@@ -276,7 +284,7 @@ function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels }:
         return (
           <g key={h.seat} transform={`translate(${h.x} ${h.z})`} opacity={faded ? 0.32 : 1}>
             {(selected === h.seat || hoverSeat === h.seat) && <circle r={R + 0.9 * scale} fill="none" stroke="#fff" strokeWidth={0.45 * scale} />}
-            <circle r={R} fill={h.ring} stroke={mine ? '#fff' : 'rgba(90,55,30,.55)'} strokeWidth={(mine ? 0.42 : 0.22) * scale} />
+            <circle r={R} fill={fxMap && !mine ? fxColor(leadOf(r.user.interests)?.cat) : h.ring} stroke={mine ? '#fff' : 'rgba(90,55,30,.55)'} strokeWidth={(mine ? 0.42 : 0.22) * scale} />
             <circle r={R * 0.45} fill={MAP_COLORS.holeIn} />
             {mine && <path transform={`translate(0 ${-R - 1.5 * scale}) scale(${0.42 * scale})`} d="M-3 1 L0 -2 L3 1 V4 H-3 Z" fill="#c8643a" stroke="#fff" strokeWidth={0.8} strokeLinejoin="round" />}
             {!mine && r.user.online && <circle cx={R * 0.8} cy={-R * 0.8} r={0.48 * scale} fill="#5fbf3a" stroke="#fff" strokeWidth={0.18 * scale} />}

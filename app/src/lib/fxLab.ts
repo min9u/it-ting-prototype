@@ -9,7 +9,7 @@
 export type FxArea = 'room' | 'field'
 export type FxId =
   | 'r_particles' | 'r_card' | 'r_shared' | 'r_rare' | 'r_beam'
-  | 'f_bubble' | 'f_smoke' | 'f_shared' | 'f_rare' | 'f_expand' | 'f_online' | 'f_edge'
+  | 'f_bubble' | 'f_smoke' | 'f_shared' | 'f_rare' | 'f_expand' | 'f_online' | 'f_edge' | 'f_minimap'
 
 export interface FxDef {
   id: FxId
@@ -36,6 +36,7 @@ export const FX_DEFS: FxDef[] = [
   { id: 'f_shared', area: 'field', name: '겹치는 관심사 고리', desc: '나와 겹치는 관심사가 있는 구멍에 고리가 맥박치듯 퍼짐 (겹칠수록 여러 겹) + ♥ 개수', aims: [1, 2], rec: true },
   { id: 'f_rare', area: 'field', name: '드문 관심사 반짝', desc: '드문 관심사를 가진 땅굴 위에 금빛 별 (아주 드물면 무지개)', aims: [3], rec: true },
   { id: 'f_online', area: 'field', name: '접속 중이면 활발', desc: '접속 중인 땅굴은 말풍선이 통통 튀고 초록 점 · 연기가 더 많이', aims: [2], rec: true },
+  { id: 'f_minimap', area: 'field', name: '미니맵 관심사 색', desc: '미니맵의 땅굴 점을 대표 관심사 색으로 → 마을 전체에서 어디에 어떤 취미가 모였는지 한눈에', aims: [3], rec: true },
   { id: 'f_smoke', area: 'field', name: '관심사 연기', desc: '구멍에서 대표 관심사 색 연기가 피어오름 (가까운 몇 개만 움직이고 먼 곳은 멈춘 연기)', aims: [3], rec: false },
 ]
 

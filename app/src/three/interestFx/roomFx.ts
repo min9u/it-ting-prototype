@@ -308,10 +308,13 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   /* ---------- 그리기 ---------- */
   /** 움직임 없는 단계 (아주 느린 PC·움직임 줄이기, overlay.ts) — 겹 캔버스를 만든 뒤 정함 */
   let still = false
+  /** 이번 프레임은 멈춘 모습 (still 단계 또는 가속 꺼짐에서 쉬는 중, overlay calm) */
+  let quiet = false
   let introEnd = -1
   let lastT = 0
-  const draw = ({ ctx, W: w, H: h, dt, t }: OverlayFrame) => {
+  const draw = ({ ctx, W: w, H: h, dt, t, calm }: OverlayFrame) => {
     W = w; H = h; lastT = t
+    quiet = still || calm
     if (o.intro()) { introEnd = -1; return }
     if (introEnd < 0) introEnd = t
     if (!measured || performance.now() - lastMeasure > 1000) measure()
@@ -364,7 +367,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill()
     ctx.restore()
     // 떠다니는 먼지 (움직일 때만)
-    if (still) return
+    if (quiet) return
     const n = overlay.mode.level === 'full' ? 16 : 7
     const dot = glow(lighten(col, .6), 16, .2)
     for (let i = 0; i < n; i++) {
@@ -386,7 +389,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const drawShareGlow = (ctx: CanvasRenderingContext2D, e: Em, t: number) => {
     const c = proj(e.center.x, e.center.y, e.center.z), cx = c.x, cy = c.y
     const r = Math.max(34, e.half * e.ppm * 1.7)
-    const k = still ? .8 : .5 + .5 * Math.sin(t * 3 + e.center.x)
+    const k = quiet ? .8 : .5 + .5 * Math.sin(t * 3 + e.center.x)
     const base = ctx.globalAlpha
     // 밝은 벽 위라 screen 으로 섞으면 거의 안 보임 → 따뜻한 산호색을 그대로 얇게 (숨 쉬듯)
     ctx.save()
@@ -394,10 +397,10 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     ctx.drawImage(glow('#FF8A6A', 64, .2), cx - r, cy - r * .8, r * 2, r * 1.6)
     ctx.restore()
     // 둘레를 도는 작은 하트 셋 (움직임 없는 단계는 둘, 제자리)
-    const n = still ? 2 : 3
+    const n = quiet ? 2 : 3
     const g = glyph('heart', SPRITE, SHARE, overlay.mode.dpr)
     for (let i = 0; i < n; i++) {
-      const a = (still ? .8 : t * 1.3) + i * Math.PI * 2 / n
+      const a = (quiet ? .8 : t * 1.3) + i * Math.PI * 2 / n
       const z = 9 + 2 * Math.sin(t * 4 + i)
       ctx.globalAlpha = (.75 + .25 * Math.sin(a)) * base
       ctx.drawImage(g, cx + Math.cos(a) * r * .85 - z / 2, cy + Math.sin(a) * r * .38 - z / 2, z, z)
@@ -425,11 +428,11 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     const cx = e.center.x, cz = e.center.z
     const R = e.half + .16
     for (let i = 0; i < 6; i++) {
-      const a = (still ? 0 : t * .7) + i * Math.PI / 3
-      const yy = e.center.y + (i % 2 ? .12 : -.05) + (still ? 0 : Math.sin(t * 1.6 + i) * .05)
+      const a = (quiet ? 0 : t * .7) + i * Math.PI / 3
+      const yy = e.center.y + (i % 2 ? .12 : -.05) + (quiet ? 0 : Math.sin(t * 1.6 + i) * .05)
       const p = proj(cx + Math.cos(a) * R, yy, cz + Math.sin(a) * R * .7)
-      const tw = still ? .8 : .45 + .55 * Math.max(0, Math.sin(t * 3.4 + i * 1.9))
-      const col = legend ? RAINBOW[(i * 2 + Math.floor(t * 4)) % 12] : i % 3 ? GOLD : '#FFF1B8'
+      const tw = quiet ? .8 : .45 + .55 * Math.max(0, Math.sin(t * 3.4 + i * 1.9))
+      const col = legend ? RAINBOW[(i * 2 + (quiet ? 0 : Math.floor(t * 4))) % 12] : i % 3 ? GOLD : '#FFF1B8'
       const sz = (9 + (i % 3) * 3) * tw
       if (sz < 1) continue
       const gl = glyph('star4', SPRITE, col, s)
@@ -459,7 +462,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     const lite = overlay.mode.level === 'lite'
     const cap = overlay.mode.maxParticles
     for (const e of ems) {
-      if (!e.on) continue
+      if (!e.on || quiet) continue // 쉬는 중엔 새 입자 없음 (남은 것은 아래에서 마저 움직이고 사라짐)
       if (e.kind === 'pet') {
         e.acc += dt
         if (e.acc > PET_STEP && ps.length < cap) { e.acc = 0; pawStep(e) }
@@ -479,7 +482,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       }
     }
     // 나와 같은 관심사: 하트
-    if (fxOn('r_shared') && o.viewer && !lite) {
+    if (fxOn('r_shared') && o.viewer && !lite && !quiet) {
       for (const e of ems) {
         if (!e.shared || !e.on) continue
         e.heartAcc += dt * HEART_RATE
@@ -592,8 +595,8 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     void t
   }
 
-  const overlay = createOverlay(o.container, o.after, camera, draw, () =>
-    !o.intro() && (fxOn('r_particles') || fxOn('r_rare') || (fxOn('r_shared') && !!o.viewer) || fxOn('r_beam') || ps.length > 0))
+  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) =>
+    !o.intro() && (ps.length > 0 || (!calm && (fxOn('r_particles') || fxOn('r_rare') || (fxOn('r_shared') && !!o.viewer) || fxOn('r_beam')))))
   still = overlay.mode.level === 'still'
   const unsub = subscribeFx(() => { overlay.invalidate(); if (!fxOn('r_card')) showCard(null, null) })
 

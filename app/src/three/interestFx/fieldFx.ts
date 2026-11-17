@@ -66,6 +66,8 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     return P
   }
   let still = false
+  /** 이번 프레임은 멈춘 모습 (still 단계 또는 가속 꺼짐에서 쉬는 중, overlay calm) */
+  let quiet = false
 
   /** 화면 안 안전한 곳 (정보 패널에 가린 오른쪽·아래 조작 줄을 뺌). 카메라 view offset 으로 장면 가운데(focusX)를 알아냄 */
   const safe = { x0: 0, x1: 0, y0: 0, y1: 0, cx: 0, cy: 0 }
@@ -87,8 +89,9 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }
   const inSafe = (x: number, y: number) => x >= safe.x0 && x <= safe.x1 && y >= safe.y0 && y <= safe.y1
 
-  const draw = ({ ctx, W: w, H: h, dt, t }: OverlayFrame) => {
+  const draw = ({ ctx, W: w, H: h, dt, t, calm }: OverlayFrame) => {
     W = w; H = h
+    quiet = still || calm
     measureSafe()
     const s = overlay.mode.dpr
     const here = o.here()
@@ -121,7 +124,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
       const near = fxOn('f_expand') && st.dist > .1 && st.dist < EXPAND_R
       st.expand += ((near ? 1 : 0) - st.expand) * Math.min(1, still ? 1 : dt * 7)
       const lively = fxOn('f_online') && st.info.online
-      const bob = lively && st.active ? Math.abs(Math.sin(t * 3.2 + st.phase)) * -5 : 0
+      const bob = lively && st.active && !quiet ? Math.abs(Math.sin(t * 3.2 + st.phase)) * -5 : 0
       let x = st.bx, y = st.by + bob
       if (st.pin) {
         // 이정표: 알약·말풍선 높이만큼 안쪽으로 들인 자리 + 바깥쪽 화살표 + 이름
@@ -224,13 +227,13 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   const sparkle = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, t: number, s: number) => {
     const legend = st.info.rarity === 'legend'
     const r = st.expand > .04 ? pillHalf(st) + 6 : 24
-    const n = still ? 2 : 4
+    const n = quiet ? 2 : 4
     for (let i = 0; i < n; i++) {
-      const a = (still ? .6 : t * .9 + st.phase) + i * (Math.PI * 2 / n)
-      const tw = still ? .85 : .35 + .65 * Math.max(0, Math.sin(t * 3.3 + i * 2.1 + st.phase))
+      const a = (quiet ? .6 : t * .9 + st.phase) + i * (Math.PI * 2 / n)
+      const tw = quiet ? .85 : .35 + .65 * Math.max(0, Math.sin(t * 3.3 + i * 2.1 + st.phase))
       const sz = (8 + (i % 2) * 5) * tw
       if (sz < 1.5) continue
-      const col = legend ? RAINBOW[(i * 3 + Math.floor(t * 5)) % 12] : i % 2 ? GOLD : '#FFF1B8'
+      const col = legend ? RAINBOW[(i * 3 + (quiet ? 0 : Math.floor(t * 5))) % 12] : i % 2 ? GOLD : '#FFF1B8'
       const g = glyph('star4', 24, col, s)
       ctx.drawImage(g, x + Math.cos(a) * r - sz / 2, y - 24 + Math.sin(a) * r * .6 - sz / 2, sz, sz)
     }
@@ -243,7 +246,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     const waves = Math.min(3, st.info.shared)
     ctx.save()
     ctx.strokeStyle = SHARE
-    if (still || !st.active) {
+    if (quiet || !st.active) {
       ctx.globalAlpha = .75; ctx.lineWidth = 3
       ctx.beginPath(); ctx.ellipse(st.sx, st.sy, rx * 1.08, ry * 1.08, 0, 0, Math.PI * 2); ctx.stroke()
     } else {
@@ -258,9 +261,9 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     ctx.restore()
   }
   const smoke = (ctx: CanvasRenderingContext2D, vis: Seat[], dt: number, t: number) => {
-    // 멈춘 연기: 움직이지 않는 구멍 (또는 still 단계)
+    // 멈춘 연기: 움직이지 않는 구멍 (still 단계·쉬는 중이면 모두)
     for (const st of vis) {
-      if (st.active) continue
+      if (st.active && !quiet) continue
       const sp = glow(lighten(st.color, .25), 48, .3)
       for (let i = 0; i < 3; i++) {
         const yy = .35 + i * .45, p = proj(st.x + Math.sin(i * 1.7 + st.phase) * .12, yy, st.z)
@@ -273,7 +276,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     if (still) return
     const cap = overlay.mode.level === 'full' ? 140 : 40
     for (const st of vis) {
-      if (!st.active) continue
+      if (!st.active || quiet) continue // 쉬는 중엔 새 연기 없음
       const rate = fxOn('f_online') && st.info.online ? 2.4 : 1.2
       st.smokeAcc += dt * rate
       while (st.smokeAcc >= 1) {
@@ -299,7 +302,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }
 
   const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || fxOn('f_edge')
-  const overlay = createOverlay(o.container, o.after, camera, draw, () => anyOn() && (seats.some((x) => x.expand > .01 && x.expand < .99) || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || puffs.length > 0))
+  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) => anyOn() && (puffs.length > 0 || seats.some((x) => x.expand > .01 && x.expand < .99) || (!calm && (fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke')))))
   still = overlay.mode.level === 'still'
   // 서 있는 자리가 바뀌면(점프) 다시 그림 (still 단계에서도 펼침·숨김이 바뀌므로)
   let lastSeat = -1

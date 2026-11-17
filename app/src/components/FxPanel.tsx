@@ -22,7 +22,7 @@ const PRESETS: { id: FxPreset; name: string }[] = [
 function modeNote(reduce: boolean): string {
   if (reduce) return '움직임 줄이기 설정이 켜져 있어 움직임 없이 아이콘만 보여요'
   if (graphicsTier() !== 'software') return 'GPU로 그리는 중 · 모든 이펙트가 움직여요'
-  return lowTier() === 'weak' ? '아주 느린 PC로 감지됨 · 움직임 없이 아이콘만 보여요' : '그래픽 가속이 꺼짐 · 가까운 것만 20fps로 움직여요'
+  return lowTier() === 'weak' ? '아주 느린 PC로 감지됨 · 움직임 없이 아이콘만 보여요' : '그래픽 가속이 꺼짐 · 가까운 것만 20fps로, 8초 동안 가만히 있으면 쉬어요'
 }
 
 export default function FxPanel({ area, style }: { area: FxArea; style?: CSSProperties }) {

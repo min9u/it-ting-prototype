@@ -14,7 +14,9 @@ import { prefersReducedMotion } from '../../lib/a11y'
  *
  * 기기 단계별 (lib/deviceTier.ts, engine quality):
  * - full (GPU): 매 rAF, 기기 배율 최대 1.5, 입자 최대 160, 들판 움직이는 구멍 12개
- * - lite (가속 꺼짐 · 16스레드급): 20fps, 배율 1, 입자 최대 48, 움직이는 구멍 5개, 땅굴 선반 소품은 입자 없음
+ * - lite (가속 꺼짐 · 16스레드급): 20fps, 배율 1, 입자 최대 48, 움직이는 구멍 5개, 땅굴 선반 소품은 입자 없음.
+ *   마우스·키·카메라가 8초 동안 가만히 있으면 쉼(calm): 새 입자를 안 만들고 남은 것이 사라지면 멈춘 그림 하나로 그치고 다시 그리지 않음
+ *   (2026-11-17 측정: 쉬지 않으면 겹 캔버스를 20fps 로 합성하느라 WARP 의 GPU 프로세스 CPU 가 가만히 있어도 크게 늘었음. 3D 루프의 idleStop 과 같은 생각)
  * - still (가속 꺼짐 · 2코어급, 또는 움직임 줄이기): 움직임 없이 아이콘·고리만. 카메라가 바뀌거나 켜고 끌 때만 다시 그림
  */
 export interface FxMode {
@@ -28,6 +30,8 @@ export interface FxMode {
   reduce: boolean
   /** 패널에 보일 설명 */
   label: string
+  /** 이 초 동안 입력·카메라 변화가 없으면 쉼 (0 = 안 쉼) */
+  restAfter: number
 }
 
 export function fxMode(): FxMode {
@@ -35,12 +39,16 @@ export function fxMode(): FxMode {
   const reduce = prefersReducedMotion()
   const forced = (() => { try { return (location.search + location.hash).match(/[?&]fxmode=(full|lite|still)\b/)?.[1] ?? null } catch { return null } })()
   const level: FxMode['level'] = (forced as FxMode['level'] | null) ?? (reduce ? 'still' : q.level === 'high' ? 'full' : q.tier === 'weak' ? 'still' : 'lite')
-  if (level === 'full') return { level, fps: 0, dpr: Math.min(window.devicePixelRatio || 1, 1.5), maxParticles: 160, active: 12, reduce, label: 'GPU · 모든 이펙트가 움직여요' }
-  if (level === 'lite') return { level, fps: 20, dpr: 1, maxParticles: 48, active: 5, reduce, label: '그래픽 가속 꺼짐 · 가까운 것만 20fps로 움직여요' }
-  return { level, fps: 6, dpr: 1, maxParticles: 0, active: 0, reduce, label: reduce ? '움직임 줄이기 설정 · 움직임 없이 아이콘만 보여요' : '아주 느린 PC · 움직임 없이 아이콘만 보여요' }
+  if (level === 'full') return { level, fps: 0, dpr: Math.min(window.devicePixelRatio || 1, 1.5), maxParticles: 160, active: 12, reduce, label: 'GPU · 모든 이펙트가 움직여요', restAfter: 0 }
+  if (level === 'lite') return { level, fps: 20, dpr: 1, maxParticles: 48, active: 5, reduce, label: '그래픽 가속 꺼짐 · 가까운 것만 20fps로, 가만히 있으면 쉬어요', restAfter: 8 }
+  return { level, fps: 6, dpr: 1, maxParticles: 0, active: 0, reduce, label: reduce ? '움직임 줄이기 설정 · 움직임 없이 아이콘만 보여요' : '아주 느린 PC · 움직임 없이 아이콘만 보여요', restAfter: 0 }
 }
 
-export interface OverlayFrame { ctx: CanvasRenderingContext2D; W: number; H: number; dt: number; t: number }
+export interface OverlayFrame {
+  ctx: CanvasRenderingContext2D; W: number; H: number; dt: number; t: number
+  /** 쉬는 중 (lite 에서 한동안 가만히 있음): 새 입자를 만들지 말고 맥박·통통은 멈춘 모습으로 */
+  calm: boolean
+}
 
 export interface Overlay {
   readonly mode: FxMode
@@ -53,7 +61,7 @@ export interface Overlay {
  * after(WebGL 캔버스) 바로 뒤에 겹 캔버스를 붙이고 루프를 돌림.
  * draw 는 CSS 픽셀 좌표로 그림 (배율은 여기서 맞춤). animating() 이 거짓이고 카메라가 그대로면 다시 그리지 않음
  */
-export function createOverlay(container: HTMLElement, after: Element, camera: THREE.Camera, draw: (f: OverlayFrame) => void, animating: () => boolean): Overlay {
+export function createOverlay(container: HTMLElement, after: Element, camera: THREE.Camera, draw: (f: OverlayFrame) => void, animating: (calm: boolean) => boolean): Overlay {
   const mode = fxMode()
   const cv = document.createElement('canvas')
   cv.setAttribute('aria-hidden', 'true')
@@ -84,6 +92,17 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     return ch
   }
   const w = window as unknown as { __fxFrames?: number }
+  // 쉬기 (mode.restAfter): 장면 위 입력·키·카메라 변화·켜고 끄기에 깨어남
+  let awakeUntil = performance.now() + mode.restAfter * 1000
+  const wake = () => { awakeUntil = performance.now() + mode.restAfter * 1000 }
+  const onInput = () => wake()
+  if (mode.restAfter) {
+    container.addEventListener('pointermove', onInput, { passive: true })
+    container.addEventListener('pointerdown', onInput, { passive: true })
+    container.addEventListener('wheel', onInput, { passive: true })
+    window.addEventListener('keydown', onInput)
+  }
+  let wasAnim = false
   const tick = (now: number) => {
     if (!alive) return
     raf = requestAnimationFrame(tick)
@@ -92,24 +111,33 @@ export function createOverlay(container: HTMLElement, after: Element, camera: TH
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
     last = now
     const moved = camChanged()
-    const anim = mode.level !== 'still' && animating()
-    if (!anim && !moved && !dirty) return
+    if (moved) wake()
+    const calm = mode.level === 'still' || (mode.restAfter > 0 && now > awakeUntil)
+    const anim = mode.level !== 'still' && animating(calm)
+    // 움직이다 멈추는 순간 한 번 더 그려서 마지막 그림이 멈춘 모습이 되게
+    const settle = wasAnim && !anim
+    wasAnim = anim
+    if (!anim && !moved && !dirty && !settle) return
     dirty = false
     t += dt
     if (!W || !H) return
     ctx.setTransform(mode.dpr, 0, 0, mode.dpr, 0, 0)
     ctx.clearRect(0, 0, W, H)
-    draw({ ctx, W, H, dt: mode.level === 'still' ? 0 : dt, t })
+    draw({ ctx, W, H, dt: mode.level === 'still' ? 0 : dt, t, calm })
     w.__fxFrames = (w.__fxFrames ?? 0) + 1 // 측정용
   }
   raf = requestAnimationFrame(tick)
   return {
     mode,
-    invalidate() { dirty = true },
+    invalidate() { dirty = true; wake() },
     dispose() {
       alive = false
       cancelAnimationFrame(raf)
       ro.disconnect()
+      container.removeEventListener('pointermove', onInput)
+      container.removeEventListener('pointerdown', onInput)
+      container.removeEventListener('wheel', onInput)
+      window.removeEventListener('keydown', onInput)
       cv.width = cv.height = 0
       cv.remove()
     },

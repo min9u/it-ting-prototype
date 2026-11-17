@@ -46,6 +46,7 @@
 .lgMole { background: #6b4a3a; box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(62, 42, 31, .25); }
 .lgMine { background: #f2a3a1; box-shadow: inset 0 0 0 3px #f2a3a1, inset 0 0 0 5px #4a2e1e; }
 .lgOn { width: 8px; height: 8px; background: #5fbf3a; }
+.lgFx { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; background: conic-gradient(#9C6FD6 0 25%, #5FAE45 0 50%, #E8902B 0 75%, #3E8EDE 0); } /* 관심사 이펙트 미니맵 색 (docs/interest-effects.md) */
 .lgHole { background: #bcd494; box-shadow: inset 0 0 0 3px #bcd494, inset 0 0 0 5px #4a2e1e; }
 .lgPad { width: 8px; height: 8px; background: #f6d6aa; box-shadow: 0 0 0 1px #d9925a; }
 .lgLadder { background: #6b3a1e; box-shadow: 0 0 0 1.5px #fbf4ec; }
