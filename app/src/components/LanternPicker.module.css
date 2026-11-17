@@ -1,0 +1,30 @@
+/* 🏮 관심사 등불 고르기 (LanternPicker.tsx). 탐색 왼쪽 위 버튼 줄(.leftTools) 안 */
+.wrap { position: relative; display: flex; align-items: center; gap: 6px; }
+.n { font-family: var(--font-body); font-size: 11px; font-weight: 700; opacity: .75; }
+.off {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--surface); color: var(--ink-500); font-size: 12px;
+  box-shadow: 0 2px 6px rgba(60, 35, 20, .2);
+}
+.off:hover { color: var(--ink-900); }
+.card {
+  position: absolute; left: 0; top: calc(100% + 8px); z-index: 8;
+  width: min(300px, calc(100vw - 32px)); padding: 12px 12px 10px; border-radius: 14px;
+  background: var(--surface); color: var(--ink-900);
+  box-shadow: 0 10px 30px rgba(60, 35, 20, .28), 0 2px 0 rgba(116, 74, 50, .12);
+  animation: lpIn .18s var(--ease-out);
+}
+@keyframes lpIn { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+.lead { margin: 0 0 8px; font-size: 12px; color: var(--ink-500); }
+.h { margin: 8px 0 5px; font-size: 12px; font-weight: 700; color: var(--ink-700); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip, .chipRare, .chipOn {
+  display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: var(--surface-item); color: var(--ink-700);
+}
+.chip small, .chipRare small, .chipOn small { font-size: 10.5px; font-weight: 700; opacity: .7; }
+.chipRare { background: #fff1c9; color: #6b4a0e; }
+.chip:hover:not(:disabled), .chipRare:hover { background: #f3dcc4; }
+.chip:disabled { opacity: .45; cursor: default; }
+.chipOn { background: #f06a3a; color: #fff; }
+.clear { display: block; margin: 10px 0 0 auto; font-size: 12px; }

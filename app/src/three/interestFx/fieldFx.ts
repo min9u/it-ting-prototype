@@ -1,18 +1,23 @@
 import * as THREE from 'three'
-import { fxOn, subscribeFx } from '../../lib/fxLab'
-import { catOfSub, fxColor, type HoleFx } from '../../data/interestFx'
+import { fxOn, getLantern, subscribeFx } from '../../lib/fxLab'
+import { catName, catOfSub, fxColor, subName, zoneLabel, zoneNamesOf, type HoleFx, type ZoneName } from '../../data/interestFx'
 import { createOverlay, type OverlayFrame } from './overlay'
-import { badge, bubble, glow, glyph, lighten } from './icons'
+import { badge, bubble, glow, glyph, lighten, sticker, stickerSize, tag } from './icons'
 
 /*
  * 탐색 들판 관심사 이펙트 (docs/interest-effects.md). holeField 는 만들기·정리만 부름 (배경 굽기·이동 경로 코드는 건드리지 않음)
  *
  * f_bubble 대표 관심사 말풍선: 구멍 위 대표 관심사(맨 앞) 아이콘 말풍선. 서 있는 구멍은 안내판이 있어서 숨김
- * f_expand 가까이 가면 펼쳐짐: 두더지 옆 구멍(약 6.6m 안)은 관심사 3개 알약으로 (겹치는 것 ♥ → 드문 것 ✦ → 고른 순서) + "+N"
+ * f_expand 가까이 가면 펼쳐짐: 두더지 옆 구멍(약 6.6m 안)은 관심사 3개 알약으로 (겹치는 것 ♥ → 드문 것 ✦ → 고른 순서) + "+N".
+ *   2차: 첫 관심사는 이름까지 ("♥ 캠핑") → 아이콘만으로는 무슨 관심사인지 몰랐음
  * f_shared 겹치는 관심사 고리: 겹치는 관심사가 있으면 구멍 둘레에 고리가 퍼짐 (겹치는 수만큼 최대 3겹) + ♥N 배지
- * f_rare 드문 관심사 반짝: 250명 미만 관심사가 있으면 금빛 별, 100명 미만이면 무지개 별
+ * f_rare 드문 관심사 반짝: 250명 미만 관심사가 있으면 금빛 별, 100명 미만이면 무지개 별 (기준 data/rarity.ts)
  * f_online 접속 중이면 활발: 말풍선이 통통 튀고 초록 점, 연기가 두 배
  * f_smoke 관심사 연기: 대표 관심사 색 연기. 가까운 몇 구멍만 피어오르고 나머지는 멈춘 연기
+ * f_lantern 관심사 등불 (2차): 고른 관심사(lib/fxLab getLantern)를 가진 땅굴만 등불·이름표, 나머지 말풍선은 흐리게.
+ *   화면 밖이면 거리와 상관없이 가까운 4곳을 가장자리 이정표로
+ * f_radar 잘 맞는 이웃 신호 (2차): 이 들판에서 잘 맞는 정도(겹치는 관심사마다 1 + 1000/인원)가 가장 큰 이웃 쪽 가장자리에서 4초마다 신호 + 이름
+ * f_zones 동네 이름표 (2차): 두더지가 다른 구역(25자리)에 들어서면 위에 "음악 동네 · 25집 중 9집" 띠 (DOM). 미니맵에도 이름(Minimap.tsx)
  * 움직이는 구멍 수는 단계별 상한 (overlay.ts: GPU 12 · 가속 꺼짐 5 · 아주 느린 PC 0)
  */
 
@@ -28,8 +33,12 @@ export interface FieldFxOptions {
 export interface FieldFx { dispose(): void }
 
 const EXPAND_R = 6.6, EDGE_R = 10.5, ICON_GAP = 27
-const SHARE = '#FF8A5B', GOLD = '#F5C452'
+const SHARE = '#FF8A5B', GOLD = '#F5C452', LAMP = '#FFC24A'
 const RAINBOW = Array.from({ length: 12 }, (_, i) => `#${new THREE.Color().setHSL(i / 12, .85, .66).getHexString()}`)
+const FONT_NAME = "700 11.5px Pretendard, 'Pretendard Variable', system-ui, sans-serif"
+/** 잘 맞는 이웃 신호 간격 (초) */
+const PING_EVERY = 4
+const now = () => performance.now() / 1000
 
 interface Seat {
   info: HoleFx
@@ -38,10 +47,16 @@ interface Seat {
   expand: number
   smokeAcc: number
   phase: number
+  /** 펼친 알약 첫 관심사 이름 폭 (px, 한 번만 잼) */
+  nameW: number
   // 이번 프레임
   sx: number; sy: number; bx: number; by: number; dist: number; vis: boolean; active: boolean
   /** 화면 밖이라 가장자리 이정표로 보임 */
   pin: boolean
+  /** 등불: 고른 관심사를 가짐 / 흐리게 */
+  lit: boolean; dim: boolean
+  /** 이번 프레임에 그린 자리 (신호를 이정표 위에 겹쳐 그리려고) */
+  px: number; py: number
 }
 interface Puff { s: Seat; x: number; y: number; z: number; age: number; life: number; size: number; drift: number; color: string }
 
@@ -52,10 +67,16 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     const h = o.holes.get(info.seat)
     if (!h) continue
     seats.push({
-      info, x: h.x, z: h.z, color: fxColor(info.cat), expand: 0, smokeAcc: Math.random(), phase: Math.random() * 6,
-      sx: 0, sy: 0, bx: 0, by: 0, dist: 0, vis: false, active: false, pin: false,
+      info, x: h.x, z: h.z, color: fxColor(info.cat), expand: 0, smokeAcc: Math.random(), phase: Math.random() * 6, nameW: -1,
+      sx: 0, sy: 0, bx: 0, by: 0, dist: 0, vis: false, active: false, pin: false, lit: false, dim: false, px: 0, py: 0,
     })
   }
+  // 잘 맞는 이웃: 들판 전체에서 하나 (내 땅굴 빼고, 점수 0 이면 없음)
+  const best = seats.filter((st) => !st.info.mine && st.info.score > 0).sort((a, b) => b.info.score - a.info.score)[0] ?? null
+  // 동네 이름표: 구역마다 (data/interestFx zoneNamesOf)
+  const zones: ZoneName[] = zoneNamesOf(o.seats.map((x) => ({ seat: x.seat, user: { interests: x.subs } })))
+  const zoneOf = (seat: number) => zones.find((z) => z.zone === Math.ceil(seat / 25)) ?? null
+
   const puffs: Puff[] = []
   const v = new THREE.Vector3()
   let W = 1, H = 1
@@ -87,15 +108,98 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     if (dy > 0) k = Math.min(k, (safe.y1 - safe.cy) / dy); else if (dy < 0) k = Math.min(k, (safe.y0 - safe.cy) / dy)
     return { x: safe.cx + dx * k, y: safe.cy + dy * k, ang: Math.atan2(dy, dx) }
   }
-  const inSafe = (x: number, y: number) => x >= safe.x0 && x <= safe.x1 && y >= safe.y0 && y <= safe.y1
+  /** 왼쪽 위 버튼 줄·미니맵 (data-fx-avoid) 자리. 0.5초마다 다시 잼 (2차: 이정표가 그 밑에 숨었음) */
+  const avoid: { x0: number; y0: number; x1: number; y1: number }[] = []
+  let avoidAt = -1
+  const measureAvoid = () => {
+    const t = performance.now()
+    if (t - avoidAt < 500) return
+    avoidAt = t
+    avoid.length = 0
+    const cr = o.container.getBoundingClientRect()
+    ;(o.container.closest('main') ?? o.container.parentElement)?.querySelectorAll<HTMLElement>('[data-fx-avoid]').forEach((el) => {
+      const r = el.getBoundingClientRect()
+      if (r.width && r.height) avoid.push({ x0: r.left - cr.left - 6, y0: r.top - cr.top - 6, x1: r.right - cr.left + 6, y1: r.bottom - cr.top + 6 })
+    })
+  }
+  /** 상자 (x0..x1, y0..y1) 가 비켜야 할 자리와 겹치면 그 오른쪽으로 옮긴 가운데 x */
+  const dodge = (x: number, half: number, y0: number, y1: number) => {
+    for (let k = 0; k < 3; k++) {
+      const hit = avoid.find((a) => x - half < a.x1 && x + half > a.x0 && y0 < a.y1 && y1 > a.y0)
+      if (!hit) break
+      x = hit.x1 + half + 4
+    }
+    return x
+  }
+  const inSafe = (x: number, y: number) => x >= safe.x0 && x <= safe.x1 && y >= safe.y0 && y <= safe.y1 && !avoid.some((a) => x > a.x0 && x < a.x1 && y > a.y0 - 20 && y < a.y1 + 40)
+  /** 이정표끼리 겹치면 가장자리를 따라 비켜 놓음 (같은 방향 이웃이 둘이면 겹쳐 보였음, 2차) */
+  const pinTaken: { x: number; y: number; w: number }[] = []
+  /** 이정표 하나의 세로 칸 (등불을 켜면 위에 등이 달려서 더 김) */
+  let pinGap = 62
+  const unpile = (x: number, y: number, half: number) => {
+    for (let k = 0; k < 6; k++) {
+      const hit = pinTaken.find((p) => Math.abs(p.x - x) < p.w + half + 6 && Math.abs(p.y - y) < pinGap - 4)
+      if (!hit) break
+      // 위·아래 가장자리면 옆으로, 왼쪽·오른쪽 가장자리면 아래로
+      const onSide = x <= safe.x0 + half + 2 || x >= safe.x1 - half - 2
+      if (onSide) y = Math.min(safe.y1, hit.y + pinGap); else x = Math.min(safe.x1 - half, Math.max(safe.x0 + half, hit.x + (x >= hit.x ? 1 : -1) * (hit.w + half + 8)))
+    }
+    pinTaken.push({ x, y, w: half })
+    return { x, y }
+  }
+
+  /* ---------- 동네 이름표 (DOM 띠) ---------- */
+  const banner = document.createElement('div')
+  banner.setAttribute('role', 'status')
+  Object.assign(banner.style, {
+    position: 'absolute', top: '58px', left: '50%', transform: 'translate(-50%, -6px)', zIndex: '4', pointerEvents: 'none',
+    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px 6px 6px', borderRadius: '999px',
+    background: 'rgba(62,42,31,.86)', color: '#fff8ee', font: "400 15px/1 'Do Hyeon', Pretendard, sans-serif",
+    boxShadow: '0 6px 16px rgba(60,35,20,.25)', opacity: '0', transition: 'opacity .35s, transform .35s', whiteSpace: 'nowrap',
+  } satisfies Partial<CSSStyleDeclaration>)
+  o.container.append(banner)
+  let bannerZone = -1, bannerTimer = 0, bannerOn = false
+  const showBanner = (z: ZoneName) => {
+    banner.replaceChildren()
+    const b = badge(z.cat, 22, fxColor(z.cat), Math.min(window.devicePixelRatio || 1, 2))
+    const ic = document.createElement('canvas')
+    ic.width = b.width; ic.height = b.height
+    Object.assign(ic.style, { width: '26px', height: '26px' })
+    ic.getContext('2d')!.drawImage(b, 0, 0)
+    const small = document.createElement('small')
+    Object.assign(small.style, { font: '600 12px/1 Pretendard, system-ui, sans-serif', color: '#f3dcc8' })
+    small.textContent = `${z.total}집 중 ${z.n}집`
+    small.title = `이 동네 ${z.total}집 중 ${z.n}집이 ${catName(z.cat)} 관심사를 가졌어요`
+    banner.append(ic, document.createTextNode(zoneLabel(z)), small)
+    banner.style.left = `${safe.cx || W / 2}px`
+    banner.style.opacity = '1'; banner.style.transform = 'translate(-50%, 0)'
+    bannerOn = true
+    clearTimeout(bannerTimer)
+    bannerTimer = window.setTimeout(() => { banner.style.opacity = '0'; banner.style.transform = 'translate(-50%, -6px)'; bannerOn = false; overlay.invalidate() }, 3400)
+    overlay.invalidate()
+  }
+  const checkZone = (seat: number, moving: boolean) => {
+    if (!fxOn('f_zones') || moving) return
+    const z = zoneOf(seat)
+    const k = z ? z.zone : 0
+    if (k === bannerZone) return
+    bannerZone = k
+    if (z) showBanner(z)
+  }
 
   const draw = ({ ctx, W: w, H: h, dt, t, calm }: OverlayFrame) => {
     W = w; H = h
     quiet = still || calm
     measureSafe()
+    measureAvoid()
+    measureNames()
+    // 동네 이름표 띠가 떠 있는 동안 위쪽 이정표는 띠 아래로
+    if (bannerOn) safe.y0 = 112
     const s = overlay.mode.dpr
     const here = o.here()
     const cur = o.holes.get(here.seat)
+    const lan = fxOn('f_lantern') ? getLantern() : null
+    pinGap = lan ? 92 : 62
     const vis: Seat[] = [], shown: Seat[] = []
     for (const st of seats) {
       const g = proj(st.x, .08, st.z)
@@ -103,48 +207,78 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
       st.vis = g.ok && g.x > -120 && g.x < W + 120 && g.y > -60 && g.y < H + 160
       const b = proj(st.x, .95, st.z)
       st.bx = b.x; st.by = b.y
+      const front = b.ok
+      if (!front && cur) {
+        // 카메라 뒤(남쪽 아래)라 투영이 뒤집힘 → 서 있는 구멍에서 그쪽으로 3m 간 점의 화면 방향으로 멀리 (가장자리 이정표 방향만 맞으면 됨)
+        const dx = st.x - cur.x, dz = st.z - cur.z, l = Math.hypot(dx, dz) || 1
+        const q = proj(cur.x + dx / l * 3, .95, cur.z + dz / l * 3), qx = q.x, qy = q.y
+        const c = proj(cur.x, .95, cur.z)
+        st.bx = c.x + (qx - c.x) * 60; st.by = c.y + (qy - c.y) * 60
+      }
       st.dist = cur ? Math.hypot(st.x - cur.x, st.z - cur.z) : 99
       st.active = false
+      st.lit = !!lan && !st.info.mine && st.info.subs.includes(lan)
+      st.dim = !!lan && !st.lit
       const standing = st.info.seat === here.seat && !here.moving
-      // 화면 밖 옆 구멍(약 10m 안)은 가장자리 이정표로
-      st.pin = !standing && fxOn('f_edge') && b.ok && !inSafe(st.bx, st.by) && st.dist > .1 && st.dist < EDGE_R
+      // 화면 밖 옆 구멍(약 10m 안)은 가장자리 이정표로. 등불을 켰으면 등불 땅굴만 (거리 상관없이, 아래에서 가까운 4곳)
+      const off = (front || !!cur) && !inSafe(st.bx, st.by) && st.dist > .1
+      st.pin = !standing && off && (lan ? false : fxOn('f_edge') && st.dist < EDGE_R)
       if (st.vis) vis.push(st)
+    }
+    if (lan) seats.filter((st) => st.lit && st.info.seat !== here.seat && !inSafe(st.bx, st.by)).sort((a, b) => a.dist - b.dist).slice(0, 4).forEach((st) => { st.pin = true })
+    for (const st of seats) {
+      const standing = st.info.seat === here.seat && !here.moving
       if (!standing && (st.pin || (st.vis && inSafe(st.bx, st.by + 20)))) shown.push(st)
     }
     // 움직이는 구멍: 두더지에 가까운 순 N개 (화면 안 + 이정표)
     if (!still) [...shown].sort((a, b) => a.dist - b.dist).slice(0, overlay.mode.active).forEach((st) => { st.active = true })
-    // 1) 바닥 고리 (겹치는 관심사)
-    if (fxOn('f_shared')) for (const st of vis) if (st.info.shared && !st.info.mine) ring(ctx, st, t)
+    // 1) 바닥: 등불 웅덩이 · 겹치는 관심사 고리
+    if (lan) for (const st of vis) if (st.lit && st.info.seat !== here.seat) lampPool(ctx, st, t)
+    // 고리는 "잘 맞는" 쪽만 (data/interestFx closeSeatsOf, 2차). ♥N 배지는 하나라도 겹치면 그대로
+    if (fxOn('f_shared')) for (const st of vis) if (st.info.close && !st.info.mine && !st.dim && st.info.seat !== here.seat) ring(ctx, st, t)
     // 2) 연기
     if (fxOn('f_smoke')) smoke(ctx, vis, dt, t)
     else puffs.length = 0
     // 3) 말풍선·펼친 알약 (먼 것 먼저 → 가까운 것이 위, 이정표는 맨 위)
     shown.sort((a, b) => (a.pin ? 1 : 0) - (b.pin ? 1 : 0) || a.by - b.by)
+    pinTaken.length = 0
     for (const st of shown) {
-      const near = fxOn('f_expand') && st.dist > .1 && st.dist < EXPAND_R
+      const near = fxOn('f_expand') && st.dist > .1 && st.dist < EXPAND_R && !st.dim
       st.expand += ((near ? 1 : 0) - st.expand) * Math.min(1, still ? 1 : dt * 7)
-      const lively = fxOn('f_online') && st.info.online
+      const lively = fxOn('f_online') && st.info.online && !st.dim
       const bob = lively && st.active && !quiet ? Math.abs(Math.sin(t * 3.2 + st.phase)) * -5 : 0
       let x = st.bx, y = st.by + bob
+      ctx.globalAlpha = st.dim ? .32 : 1
       if (st.pin) {
         // 이정표: 알약·말풍선 높이만큼 안쪽으로 들인 자리 + 바깥쪽 화살표 + 이름
         const pt = pinTo(st.bx, st.by)
-        x = Math.min(safe.x1 - pillHalf(st), Math.max(safe.x0 + pillHalf(st), pt.x))
-        y = Math.min(safe.y1, Math.max(safe.y0 + 46, pt.y)) + bob
+        const half = pillHalf(st)
+        x = Math.min(safe.x1 - half, Math.max(safe.x0 + half, pt.x))
+        y = Math.min(safe.y1, Math.max(safe.y0 + 46, pt.y));
+        ({ x, y } = unpile(x, y, half))
+        x = dodge(x, half + 14, y - 62, y + 22)
+        y += bob
         signpost(ctx, st, x, y, pt.ang)
       }
+      st.px = x; st.py = y
+      if (st.lit) lantern(ctx, st, x, y, t, s, lan!)
       const pill = st.expand > .04
       if (pill) drawPill(ctx, st, x, y, s)
-      else if (fxOn('f_bubble') || st.pin) drawBubble(ctx, st, x, y, s)
-      else continue
+      else if (fxOn('f_bubble') || st.pin || st.lit) drawBubble(ctx, st, x, y, s)
+      else { ctx.globalAlpha = 1; continue }
       if (lively) {
         const dx = pill ? pillHalf(st) - 4 : 11, dy = pill ? -38 : -32
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x + dx, y + dy, 5, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = '#5FBF3A'; ctx.beginPath(); ctx.arc(x + dx, y + dy, 3.4, 0, Math.PI * 2); ctx.fill()
       }
-      if (fxOn('f_shared') && st.info.shared && !st.info.mine) heartBadge(ctx, st, x, y, s)
-      if (fxOn('f_rare') && st.info.rarity) sparkle(ctx, st, x, y, t, s)
+      if (fxOn('f_shared') && st.info.shared && !st.info.mine && !st.dim) heartBadge(ctx, st, x, y, s)
+      if (fxOn('f_rare') && st.info.rarity && !st.dim) sparkle(ctx, st, x, y, t, s)
+      ctx.globalAlpha = 1
     }
+    ctx.globalAlpha = 1
+    // 4) 잘 맞는 이웃 신호
+    if (fxOn('f_radar') && best && !lan && best.info.seat !== here.seat) radar(ctx, best, shown.includes(best), t, s)
+    checkZone(here.seat, here.moving)
   }
 
   /** 이정표: 바깥쪽을 가리키는 작은 화살표 + 이름표 (말풍선 아래) */
@@ -169,10 +303,29 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     ctx.fillText(name, x, y + 10.5)
   }
 
-  /** 펼친 알약 반폭 (아이콘 개수에 따라) */
+  /** 펼친 알약의 첫 관심사 이름 ("♥ 캠핑" / "✦ 다도") */
+  const firstLabel = (st: Seat) => {
+    const id = st.info.icons[0]
+    if (!id) return ''
+    const mark = st.info.sharedIds.includes(id) && fxOn('f_shared') ? '♥ ' : id === st.info.rareId && fxOn('f_rare') ? '✦ ' : ''
+    return `${mark}${subName(id)}`
+  }
+  /** 이름 폭은 처음 한 번 (이 모듈이 만든 캔버스로 잼). 켜고 끄기에 따라 ♥·✦ 표시가 바뀌면 다시 */
+  const meter = document.createElement('canvas').getContext('2d')!
+  let nameKey = ''
+  const measureNames = () => {
+    const k = `${fxOn('f_shared')}|${fxOn('f_rare')}`
+    if (k === nameKey) return
+    nameKey = k
+    meter.font = FONT_NAME
+    for (const st of seats) st.nameW = Math.ceil(meter.measureText(firstLabel(st)).width)
+  }
+  const measureName = (_ctx: CanvasRenderingContext2D, st: Seat) => { measureNames(); return st.nameW }
+  /** 펼친 알약 반폭 (아이콘 개수 + 첫 이름에 따라) */
   const pillHalf = (st: Seat) => {
     const n = st.info.icons.length + (st.info.more ? .8 : 0)
-    const full = (n * ICON_GAP + 10) / 2
+    const nameW = st.nameW > 0 ? st.nameW + 6 : 46
+    const full = (n * ICON_GAP + 10 + nameW) / 2
     return 19 + (full - 19) * st.expand
   }
   const drawBubble = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, s: number) => {
@@ -182,8 +335,10 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
   }
   const drawPill = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, s: number) => {
     const k = st.expand
+    measureName(ctx, st)
     const half = pillHalf(st), hh = 18
     const cy = y - 24
+    const a0 = ctx.globalAlpha
     ctx.save()
     ctx.shadowColor = 'rgba(60,35,20,.28)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1.5
     ctx.fillStyle = '#fbf8f4'
@@ -192,37 +347,51 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     ctx.restore()
     ctx.lineWidth = 2; ctx.strokeStyle = st.color
     ctx.beginPath(); ctx.roundRect(x - half + 1, cy - hh + 1, half * 2 - 2, hh * 2 - 2, hh - 1); ctx.stroke()
-    // 아이콘: 펼치는 동안 가운데에서 양옆으로
-    const icons = st.info.icons, n = icons.length + (st.info.more ? .8 : 0)
-    ctx.globalAlpha = Math.min(1, k * 1.4)
+    // 내용: [아이콘 이름] [아이콘] [아이콘] [+N] 를 왼쪽부터. 펼치는 동안 가운데에서 나타남
+    const icons = st.info.icons
+    ctx.globalAlpha = a0 * Math.min(1, k * 1.4)
+    let cx = x - half + 6
+    const step = (w: number) => { const c = cx + w / 2; cx += w; return x + (c - x) * k }
     for (let i = 0; i < icons.length; i++) {
       const id = icons[i], cat = catOfSub(id) ?? st.info.cat
-      const ox = (i - (n - 1) / 2) * ICON_GAP * k
+      const ix = step(ICON_GAP)
       const b = badge(cat, 23, fxColor(cat), s)
       const bw = b.width / s
-      ctx.drawImage(b, x + ox - bw / 2, cy - bw / 2, bw, bw)
+      ctx.drawImage(b, ix - bw / 2, cy - bw / 2, bw, bw)
       // 표시: 겹치는 것 ♥ · 드문 것 ✦
       const mark = st.info.sharedIds.includes(id) && fxOn('f_shared') ? 'heart' : id === st.info.rareId && fxOn('f_rare') ? 'star4' : null
       if (mark) {
         const g = glyph(mark, 16, mark === 'heart' ? SHARE : GOLD, s)
-        ctx.drawImage(g, x + ox + 5, cy - 18, 11, 11)
+        ctx.drawImage(g, ix + 5, cy - 18, 11, 11)
+      }
+      if (i === 0) {
+        // 첫 관심사 이름 (2차)
+        const nw = st.nameW + 6
+        const tx = step(nw) - nw / 2 + 1
+        ctx.font = FONT_NAME; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+        ctx.fillStyle = st.info.sharedIds.includes(id) && fxOn('f_shared') ? '#b23a2e' : '#3e2a1f'
+        ctx.fillText(firstLabel(st), tx, cy + .5)
       }
     }
     if (st.info.more) {
+      const mx = step(ICON_GAP * .8)
       ctx.fillStyle = '#6e5444'; ctx.font = "700 10px Pretendard, system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      ctx.fillText(`+${st.info.more}`, x + ((n - 1) / 2) * ICON_GAP * k - 3, cy + .5)
+      ctx.fillText(`+${st.info.more}`, mx - 2, cy + .5)
     }
-    ctx.globalAlpha = 1
+    ctx.globalAlpha = a0
   }
   const heartBadge = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, s: number) => {
-    const left = st.expand > .04 ? x - pillHalf(st) + 2 : x - 16
-    const top = st.expand > .04 ? y - 46 : y - 36
+    // 2차: 조금 크게 (♥1 이 작아서 안 읽혔음)
+    const left = st.expand > .04 ? x - pillHalf(st) + 2 : x - 17
+    const top = st.expand > .04 ? y - 47 : y - 38
     const n = st.info.shared
+    const w = n > 9 ? 38 : 32
     ctx.fillStyle = SHARE
-    ctx.beginPath(); ctx.roundRect(left - 14, top - 8, n > 9 ? 34 : 28, 16, 8); ctx.fill()
-    ctx.drawImage(glyph('heart', 16, '#ffffff', s), left - 11, top - 5, 10, 10)
-    ctx.fillStyle = '#ffffff'; ctx.font = '700 10px Pretendard, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-    ctx.fillText(String(n), left + 1, top + .5)
+    ctx.beginPath(); ctx.roundRect(left - 15, top - 10, w, 20, 10); ctx.fill()
+    ctx.strokeStyle = '#fffaf2'; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.drawImage(glyph('heart', 16, '#ffffff', s), left - 11, top - 6, 12, 12)
+    ctx.fillStyle = '#ffffff'; ctx.font = '800 12px Pretendard, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillText(String(n), left + 3, top + .5)
   }
   const sparkle = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, t: number, s: number) => {
     const legend = st.info.rarity === 'legend'
@@ -238,11 +407,13 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
       ctx.drawImage(g, x + Math.cos(a) * r - sz / 2, y - 24 + Math.sin(a) * r * .6 - sz / 2, sz, sz)
     }
   }
+  const ellipseOf = (st: Seat, r0: number) => ({
+    rx: Math.abs(proj(st.x + r0, .06, st.z).x - st.sx),
+    ry: Math.abs(proj(st.x, .06, st.z + r0).y - proj(st.x, .06, st.z - r0).y) / 2,
+  })
   const ring = (ctx: CanvasRenderingContext2D, st: Seat, t: number) => {
     // 바닥 원을 화면 타원으로 (카메라가 좌우로 돌지 않아 가로·세로 반지름만 재면 됨)
-    const r0 = 1.25
-    const rx = Math.abs(proj(st.x + r0, .06, st.z).x - st.sx)
-    const ry = Math.abs(proj(st.x, .06, st.z + r0).y - proj(st.x, .06, st.z - r0).y) / 2
+    const { rx, ry } = ellipseOf(st, 1.25)
     const waves = Math.min(3, st.info.shared)
     ctx.save()
     ctx.strokeStyle = SHARE
@@ -260,10 +431,96 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     }
     ctx.restore()
   }
+  /** 등불: 구멍 둘레 따뜻한 빛 웅덩이 */
+  const lampPool = (ctx: CanvasRenderingContext2D, st: Seat, t: number) => {
+    const { rx, ry } = ellipseOf(st, 1.9)
+    const k = quiet ? 1 : .85 + .15 * Math.sin(t * 2.2 + st.phase)
+    ctx.save()
+    ctx.globalAlpha = .55 * k
+    ctx.translate(st.sx, st.sy); ctx.scale(1, ry / Math.max(1, rx))
+    ctx.drawImage(glow(LAMP, 64, .25), -rx, -rx, rx * 2, rx * 2)
+    ctx.restore()
+  }
+  /** 등불: 말풍선 위 흔들리는 등 + 고른 관심사 이름표 */
+  const lantern = (ctx: CanvasRenderingContext2D, st: Seat, x: number, y: number, t: number, s: number, lan: string) => {
+    const sw = quiet ? 0 : Math.sin(t * 2 + st.phase) * .12
+    const top = y - (st.expand > .04 ? 48 : 44)
+    ctx.save()
+    ctx.globalAlpha = .7
+    ctx.drawImage(glow(LAMP, 64, .3), x - 30, top - 52, 60, 60)
+    ctx.globalAlpha = 1
+    ctx.translate(x, top - 6); ctx.rotate(sw)
+    ctx.strokeStyle = 'rgba(62,42,31,.7)'; ctx.lineWidth = 1.4
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -8); ctx.stroke()
+    const g = sticker('lantern', 22, '#F06A3A', s), z = stickerSize(22, 22)
+    ctx.drawImage(g, -z / 2, -8 - z, z, z)
+    ctx.restore()
+    if (st.pin) return // 이정표는 이름이 이미 있음
+    const cat = catOfSub(lan) ?? st.info.cat
+    const cv = tag({ text: `${st.info.name}`, cat, catColor: fxColor(cat), s, h: 20, bg: '#3e2a1f', fg: '#fff8ee' })
+    const w = cv.width / s, h = cv.height / s
+    ctx.drawImage(cv, x - w / 2, y + 2, w, h)
+  }
+  /** 잘 맞는 이웃 신호: 화면 안이면 금빛 점선 고리, 밖이면 가장자리에서 4초마다 퍼지는 물결 + 이름 */
+  const radar = (ctx: CanvasRenderingContext2D, st: Seat, onScreen: boolean, t: number, s: number) => {
+    const rt = now()
+    const ph = (rt % PING_EVERY) / PING_EVERY // 0..1
+    let x: number, y: number, ang: number
+    if (onScreen) { x = st.px; y = st.py - 24; ang = -Math.PI / 2 }
+    else {
+      const pt = pinTo(st.bx, st.by)
+      x = Math.min(safe.x1 - 26, Math.max(safe.x0 + 26, pt.x)); y = Math.min(safe.y1 - 10, Math.max(safe.y0 + 30, pt.y)); ang = pt.ang
+      x = dodge(x, 30, y - 30, y + 30)
+    }
+    ctx.save()
+    if (onScreen) {
+      // 말풍선 둘레 금빛 점선 고리 (돌아감)
+      const r = (st.expand > .04 ? pillHalf(st) : 19) + 9
+      ctx.strokeStyle = GOLD; ctx.lineWidth = 2.6; ctx.setLineDash([5, 4]); ctx.lineDashOffset = quiet ? 0 : -t * 14
+      ctx.beginPath(); ctx.ellipse(x, y, r, 25, 0, 0, Math.PI * 2); ctx.stroke()
+    } else {
+      // 가장자리 물결 세 겹 (바깥쪽을 향한 반원)
+      const waves = quiet ? [.35] : [ph, (ph + .33) % 1, (ph + .66) % 1]
+      for (const u of waves) {
+        ctx.globalAlpha = (1 - u) * .9
+        ctx.strokeStyle = SHARE; ctx.lineWidth = 3.2 - u * 1.8
+        ctx.beginPath(); ctx.arc(x, y, 10 + u * 34, ang - 1.1, ang + 1.1); ctx.stroke()
+      }
+      ctx.globalAlpha = 1
+      ctx.fillStyle = SHARE
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill()
+      ctx.strokeStyle = '#fffaf2'; ctx.lineWidth = 2; ctx.stroke()
+    }
+    ctx.restore()
+    // 이름표: 신호가 퍼지는 앞쪽 2.4초 동안 (움직임 없는 단계·쉬는 중엔 늘)
+    const show = quiet || ph < .6
+    if (!show) return
+    const a = quiet ? 1 : Math.min(1, ph / .08, (0.6 - ph) / .1)
+    const cv = tag({ text: `잘 맞는 이웃 · ${st.info.name} ♥${st.info.shared}`, icon: 'heart', iconColor: '#ffffff', bg: SHARE, fg: '#ffffff', s, h: 22 })
+    const w = cv.width / s, h = cv.height / s
+    // 화면 안쪽으로 비켜서 (가장자리 물결·다른 이정표와 안 겹치게)
+    let lx = 0, ly = 0
+    for (let k = 0; k < 4; k++) {
+      const d = onScreen ? 0 : 46 + k * 40
+      lx = x - Math.cos(ang) * d - w / 2; ly = y - Math.sin(ang) * d - h / 2 + (onScreen ? -44 - k * 28 : 0)
+      lx = Math.min(safe.x1 - w, Math.max(safe.x0, lx)); ly = Math.min(safe.y1 - h, Math.max(safe.y0, ly))
+      lx = dodge(lx + w / 2, w / 2, ly, ly + h) - w / 2
+      const cx = lx + w / 2, cy = ly + h / 2
+      if (!pinTaken.some((p) => Math.abs(p.x - cx) < p.w + w / 2 + 4 && cy > p.y - 62 && cy < p.y + 30)) break
+    }
+    if (!onScreen) {
+      // 이름표 → 신호 점 점선 (이름표가 가장자리에서 떨어져 있어도 어느 쪽인지 보이게)
+      ctx.save(); ctx.globalAlpha = a * .8; ctx.strokeStyle = SHARE; ctx.lineWidth = 2; ctx.setLineDash([2, 4]); ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(lx + w / 2, ly + h / 2); ctx.lineTo(x, y); ctx.stroke(); ctx.restore()
+    }
+    ctx.globalAlpha = a
+    ctx.drawImage(cv, lx, ly, w, h)
+    ctx.globalAlpha = 1
+  }
   const smoke = (ctx: CanvasRenderingContext2D, vis: Seat[], dt: number, t: number) => {
     // 멈춘 연기: 움직이지 않는 구멍 (still 단계·쉬는 중이면 모두)
     for (const st of vis) {
-      if (st.active && !quiet) continue
+      if ((st.active && !quiet) || st.dim) continue
       const sp = glow(lighten(st.color, .25), 48, .3)
       for (let i = 0; i < 3; i++) {
         const yy = .35 + i * .45, p = proj(st.x + Math.sin(i * 1.7 + st.phase) * .12, yy, st.z)
@@ -276,7 +533,7 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     if (still) return
     const cap = overlay.mode.level === 'full' ? 140 : 40
     for (const st of vis) {
-      if (!st.active || quiet) continue // 쉬는 중엔 새 연기 없음
+      if (!st.active || quiet || st.dim) continue // 쉬는 중엔 새 연기 없음
       const rate = fxOn('f_online') && st.info.online ? 2.4 : 1.2
       st.smokeAcc += dt * rate
       while (st.smokeAcc >= 1) {
@@ -301,9 +558,10 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     void t
   }
 
-  const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || fxOn('f_edge')
+  const anyOn = () => fxOn('f_bubble') || fxOn('f_expand') || fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || fxOn('f_edge') || fxOn('f_lantern') || fxOn('f_radar') || fxOn('f_zones')
   // 가속 꺼짐(lite)은 점프하는 1.3초 동안 움직임을 멈춤 (그리는 건 카메라가 멈춘 순간 한 번뿐). 4차 측정: 모두 켜면 점프 fps 가 58 → 53 이었음
-  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) => !(overlay.mode.level === 'lite' && o.here().moving) && anyOn() && (puffs.length > 0 || seats.some((x) => x.expand > .01 && x.expand < .99) || (!calm && (fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke')))))
+  const overlay = createOverlay(o.container, o.after, camera, draw, (calm) => !(overlay.mode.level === 'lite' && o.here().moving) && anyOn() && (puffs.length > 0 || seats.some((x) => x.expand > .01 && x.expand < .99)
+    || (!calm && (fxOn('f_shared') || fxOn('f_rare') || fxOn('f_online') || fxOn('f_smoke') || (fxOn('f_radar') && !!best) || (fxOn('f_lantern') && !!getLantern())))))
   still = overlay.mode.level === 'still'
   // 서 있는 자리가 바뀌면(점프) 다시 그림 (still 단계에서도 펼침·숨김이 바뀌므로)
   let lastSeat = -1
@@ -314,9 +572,11 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     // 가속 꺼짐: 점프하는 동안(약 1.3초)은 겹 캔버스를 합성에서도 빼 둠 (화면 가득한 투명 층 하나를 매 프레임 섞는 일이 WARP 에서 점프 fps 를 깎았음)
     if (overlay.mode.level === 'lite') overlay.setHidden(h.moving)
     overlay.invalidate()
+    // 동네 이름표는 겹 캔버스가 쉬어도 (still 단계·쉬는 중) 자리가 바뀌면 바로
+    checkZone(h.seat, h.moving)
   }, 100)
-  const unsub = subscribeFx(() => overlay.invalidate())
+  const unsub = subscribeFx(() => { overlay.invalidate(); if (!fxOn('f_zones')) { banner.style.opacity = '0'; bannerZone = -1 } })
   return {
-    dispose() { unsub(); clearInterval(poll); overlay.dispose(); puffs.length = 0 },
+    dispose() { unsub(); clearInterval(poll); clearTimeout(bannerTimer); overlay.dispose(); banner.remove(); puffs.length = 0 },
   }
 }

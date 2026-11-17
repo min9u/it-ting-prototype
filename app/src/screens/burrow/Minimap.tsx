@@ -7,8 +7,9 @@ import { FieldArt } from './explore-designs/FieldArt'
 import { FIELD_BOUNDS, LADDER, MAP_COLORS, buildVillage, camFootprint, camTarget, layoutNow, loadLayout, type Layout, type Village } from './explore-designs/fieldGeo'
 import { matchScore, sharedWith } from './explore-designs/match'
 import m from './Minimap.module.css'
-import { fxOn, fxVersion, subscribeFx } from '../../lib/fxLab'
-import { fxColor, leadOf } from '../../data/interestFx'
+import { fxOn, fxVersion, getLantern, subscribeFx } from '../../lib/fxLab'
+import { closeSeatsOf, fxColor, leadOf, subName, zoneLabel, zoneNamesOf, type ZoneName } from '../../data/interestFx'
+import { toSubIds } from '../../data/interests'
 
 /*
  * 미니맵 (전체 마을 지도). 2026-11-16, docs/explore-designs.md
@@ -98,6 +99,11 @@ export default function Minimap({
   const fxMap = fxOn('f_minimap')
   const myInterests = useMemo(() => me().interests, [])
   const bySeat = useMemo(() => new Map(field.residents.map((r) => [r.seat, r])), [field])
+  // 관심사 이펙트 "동네 이름표" (f_zones): 구역마다 유난히 많이 모인 관심사
+  const zoneNames = useMemo(() => zoneNamesOf(field.residents), [field])
+  // 미니맵 ♥ (f_mapheart): 이 들판에서 나와 잘 맞는 쪽 자리만 (data/interestFx closeSeatsOf)
+  const close = useMemo(() => closeSeatsOf(field.residents, myInterests), [field, myInterests])
+  const lan = getLantern()
 
   const root = useRef<HTMLDivElement>(null)
   const svg = useRef<SVGSVGElement>(null)
@@ -222,7 +228,7 @@ export default function Minimap({
   // 지도 한 칸(px/m)이 클수록 구멍 표시를 조금 작게 (구역 1~2개일 때 너무 굵지 않게)
   const holeScale = Math.min(1.5, Math.max(1.05, 4.6 / fr.k))
   return (
-    <div ref={root} className={`${m.box} ${className ?? ''}`} style={style} role="region" aria-label={`미니맵: ${label}`} data-portrait={fr.pw < 205 ? '' : undefined}>
+    <div ref={root} className={`${m.box} ${className ?? ''}`} style={style} data-fx-avoid="" role="region" aria-label={`미니맵: ${label}`} data-portrait={fr.pw < 205 ? '' : undefined}>
       <div className={m.head}>
         <strong className="display">{label}</strong>
         <span className={m.count}>땅굴 {residents.length}</span>
@@ -233,7 +239,8 @@ export default function Minimap({
         <svg ref={svg} className={m.map} viewBox={fr.vb} width={fr.pw} height={fr.ph} onPointerMove={onMove} onPointerLeave={() => setHover(null)} onClick={onClick} aria-hidden>
           <rect x={fr.x} y={fr.y} width={fr.w} height={fr.h} fill={MAP_COLORS.grass} />
           {v && <FieldArt v={v} detail="mini" />}
-          {v && <Holes v={v} bySeat={bySeat} regulars={regulars} scale={holeScale} selected={selected} hoverSeat={hover?.seat ?? null} />}
+          {v && fxOn('f_zones') && <ZoneLabels v={v} names={zoneNames} size={Math.max(2.1, 10 / fr.k)} />}
+          {v && <Holes v={v} bySeat={bySeat} regulars={regulars} scale={holeScale} selected={selected} hoverSeat={hover?.seat ?? null} close={close} />}
           <polygon ref={viewP} className={m.view} points="" style={{ display: 'none' }} />
           <g ref={moleG} className={m.mole}><MoleMark pulseKey={seat} /></g>
         </svg>
@@ -252,8 +259,10 @@ export default function Minimap({
         <span><b className={m.star}>★</b>단골</span>
         {view.kind !== 'none' && <span><ViewIcon />보이는 곳</span>}
         {fxMap && <span><i className={m.lgFx} />색 = 대표 관심사</span>}
+        {fxOn('f_mapheart') && <span><b className={m.lgHeart}>♥</b>잘 맞는 이웃</span>}
+        {lan && <span><i className={m.lgLamp} />등불 = {subName(lan)}</span>}
       </div>
-      <VillageModal open={big} onClose={() => setBig(false)} field={field} floor={floor} v={v} bySeat={bySeat} regulars={regulars} myInterests={myInterests}
+      <VillageModal open={big} onClose={() => setBig(false)} field={field} floor={floor} v={v} bySeat={bySeat} regulars={regulars} myInterests={myInterests} zoneNames={zoneNames} close={close}
         mole={view.kind === 'external' ? cur.current.mole : posOf(seat)}
         viewPts={view.kind === 'camera' ? footprint(posOf(seat)) : view.kind === 'external' ? cur.current.view : null} selected={selected}
         onGo={(n) => { setBig(false); onGo?.(n) }} onLadder={onLadder ? () => { setBig(false); onLadder() } : undefined} />
@@ -262,8 +271,10 @@ export default function Minimap({
 }
 
 /* ---------- 구멍 (작은 지도 · 큰 지도 같이) ---------- */
-function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels }: {
+function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels, close }: {
   v: Village; bySeat: Map<number, Resident>; regulars: string[]; scale: number; selected?: number | null; hoverSeat: number | null
+  /** 나와 잘 맞는 자리 (미니맵 ♥, f_mapheart) */
+  close?: Set<number>
   /** 흐리게 할 자리 (필터에 안 맞음) */
   dim?: (r: Resident) => boolean
   /** 이름표를 붙일 자리 */
@@ -272,23 +283,31 @@ function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels }:
   // 관심사 이펙트 "미니맵 관심사 색" (docs/interest-effects.md F12): 땅굴 링을 대표 관심사(맨 앞) 카테고리 색으로
   useSyncExternalStore(subscribeFx, fxVersion)
   const fxMap = fxOn('f_minimap')
+  // 2차: 나와 겹치는 땅굴에 ♥ (f_mapheart) · 관심사 등불을 켜면 그 관심사 땅굴만 노란 빛, 나머지는 흐리게 (f_lantern)
+  const fxHeart = fxOn('f_mapheart')
+  const lan = getLantern()
   return (
     <g>
       {v.holes.map((h) => {
         const r = bySeat.get(h.seat)
         if (!r) return null
         const mine = !!r.mine
-        const faded = dim?.(r)
+        const subs = toSubIds(r.user.interests)
+        const lit = !!lan && !mine && subs.includes(lan)
+        const faded = dim?.(r) || (!!lan && !mine && !lit)
         const R = (mine ? 1.45 : 1.1) * scale
         const lab = labels?.(r)
+        const heart = fxHeart && !mine && !!close?.has(h.seat)
         return (
           <g key={h.seat} transform={`translate(${h.x} ${h.z})`} opacity={faded ? 0.32 : 1}>
+            {lit && <><circle r={R + 2.2 * scale} fill="#FFC24A" opacity={0.55} /><circle r={R + 1.1 * scale} fill="none" stroke="#F06A3A" strokeWidth={0.5 * scale} /></>}
             {(selected === h.seat || hoverSeat === h.seat) && <circle r={R + 0.9 * scale} fill="none" stroke="#fff" strokeWidth={0.45 * scale} />}
             <circle r={R} fill={fxMap && !mine ? fxColor(leadOf(r.user.interests)?.cat) : h.ring} stroke={mine ? '#fff' : 'rgba(90,55,30,.55)'} strokeWidth={(mine ? 0.42 : 0.22) * scale} />
             <circle r={R * 0.45} fill={MAP_COLORS.holeIn} />
             {mine && <path transform={`translate(0 ${-R - 1.5 * scale}) scale(${0.42 * scale})`} d="M-3 1 L0 -2 L3 1 V4 H-3 Z" fill="#c8643a" stroke="#fff" strokeWidth={0.8} strokeLinejoin="round" />}
             {!mine && r.user.online && <circle cx={R * 0.8} cy={-R * 0.8} r={0.48 * scale} fill="#5fbf3a" stroke="#fff" strokeWidth={0.18 * scale} />}
             {!mine && regulars.includes(r.user.id) && <path transform={`translate(${-R * 0.85} ${-R * 0.85}) scale(${0.36 * scale})`} d={STAR} fill="#f6c443" stroke="#8a5a1a" strokeWidth={0.5} />}
+            {heart && <path transform={`translate(${R * 0.95} ${R * 0.7}) scale(${0.42 * scale})`} d={HEART} fill="#FF8A5B" stroke="#fff" strokeWidth={0.7} strokeLinejoin="round" />}
             {lab && <text y={R + 2 * scale} textAnchor="middle" fontSize={1.35 * scale} className={m.holeLabel}>{lab}</text>}
           </g>
         )
@@ -297,6 +316,29 @@ function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels }:
   )
 }
 const STAR = 'M0 -3 L.9 -.9 L3 -.9 L1.3 .5 L1.9 2.7 L0 1.4 L-1.9 2.7 L-1.3 .5 L-3 -.9 L-.9 -.9 Z'
+const HEART = 'M0 2.6 C-3.4 .4 -2.8 -2.8 0 -1 C2.8 -2.8 3.4 .4 0 2.6 Z'
+
+/** 동네 이름표 (관심사 이펙트 f_zones): 켜진 구역 위쪽 가장자리에 "음악 동네" (구역 카테고리 색 글자 + 흰 바탕) */
+function ZoneLabels({ v, names, size }: { v: Village; names: ZoneName[]; size: number }) {
+  return (
+    <g pointerEvents="none">
+      {v.zonesOn.map((z) => {
+        const n = names.find((x) => x.zone === z.zone)
+        if (!n) return null
+        const south = Math.max(z.bounds.z[0], z.bounds.z[1]) > -1
+        const x = (z.bounds.x[0] + z.bounds.x[1]) / 2, y = south ? Math.max(z.bounds.z[0], z.bounds.z[1]) + size * 1.15 : Math.min(z.bounds.z[0], z.bounds.z[1]) - size * 1.15
+        const text = zoneLabel(n)
+        const w = text.length * size * 0.95 + size * 1.2
+        return (
+          <g key={z.zone} transform={`translate(${x} ${y})`}>
+            <rect x={-w / 2} y={-size * 0.85} width={w} height={size * 1.7} rx={size * 0.85} fill="rgba(255,250,242,.92)" stroke={fxColor(n.cat)} strokeWidth={size * 0.12} />
+            <text textAnchor="middle" dominantBaseline="central" fontSize={size} fontWeight={700} fill={fxColor(n.cat)} className={m.zoneLabel}>{text}</text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
 
 /** 내 두더지 표시. 둘레 물결은 자리가 바뀔 때마다 세 번만 (계속 움직이면 저사양 PC 에서 미니맵을 계속 다시 그림) */
 function MoleMark({ pulseKey }: { pulseKey?: number }) {
@@ -313,8 +355,8 @@ function MoleMark({ pulseKey }: { pulseKey?: number }) {
 /* ---------- 크게 보기: 전체 마을 지도 팝업 ---------- */
 type Filter = 'all' | 'regular' | 'shared' | 'online'
 
-function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInterests, mole, viewPts, selected, onGo, onLadder }: {
-  open: boolean; onClose: () => void; field: FieldData; floor: Floor; v: Village | null; bySeat: Map<number, Resident>; regulars: string[]; myInterests: string[]
+function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInterests, zoneNames, close, mole, viewPts, selected, onGo, onLadder }: {
+  open: boolean; onClose: () => void; field: FieldData; floor: Floor; v: Village | null; bySeat: Map<number, Resident>; regulars: string[]; myInterests: string[]; zoneNames: ZoneName[]; close: Set<number>
   mole: [number, number]; viewPts: [number, number][] | null; selected?: number | null; onGo: (seat: number) => void; onLadder?: () => void
 }) {
   const [filter, setFilter] = useState<Filter>('all')
@@ -362,8 +404,9 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
             <svg ref={svg} viewBox={viewBox} onClick={pick} onMouseMove={move} onMouseLeave={() => setHover(null)} role="img" aria-label={`${floorLabel(floor)} 마을 전체 지도`}>
               <rect x={VB.x} y={VB.y} width={VB.w} height={VB.h} fill={MAP_COLORS.grass} />
               {v && <FieldArt v={v} detail="big" />}
+              {v && fxOn('f_zones') && <ZoneLabels v={v} names={zoneNames} size={2.2} />}
               {v && (
-                <Holes v={v} bySeat={bySeat} regulars={regulars} scale={1.22} selected={selected} hoverSeat={hover}
+                <Holes v={v} bySeat={bySeat} regulars={regulars} scale={1.22} selected={selected} hoverSeat={hover} close={close}
                   dim={filter === 'all' ? undefined : (r) => !r.mine && !test[filter](r)}
                   labels={(r) => (r.mine ? '내 땅굴' : filter !== 'all' && test[filter](r) ? r.user.nickname : null)} />
               )}

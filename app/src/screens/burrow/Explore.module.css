@@ -8,6 +8,8 @@
   position: absolute; top: 48px; left: 35px; z-index: 5;
   display: flex; flex-direction: column; align-items: flex-start; gap: 13px;
 }
+/* 관심사 등불 고르기 카드가 열리면 미니맵(z 5, DOM 에서 뒤)보다 위로 (components/LanternPicker.tsx) */
+.leftTools:has([data-lantern-open]) { z-index: 9; }
 .redDot { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); display: inline-block; }
 .caret { font-size: 11px; margin-left: -4px; }
 

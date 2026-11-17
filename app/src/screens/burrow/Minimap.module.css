@@ -100,3 +100,7 @@
 .bigLegend dt { width: 14px; display: grid; place-items: center; }
 .bigLegend dd { margin: 0; }
 .bigLegend .star { margin: 0; }
+/* 관심사 이펙트 2차 (docs/interest-effects.md): 미니맵 ♥ · 등불 범례 · 동네 이름 */
+.lgHeart { color: #FF8A5B; font-size: 11px; line-height: 1; }
+.lgLamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; background: #FFC24A; box-shadow: 0 0 0 2px rgba(255, 194, 74, .35); }
+.zoneLabel { font-family: var(--font-body); paint-order: stroke; }

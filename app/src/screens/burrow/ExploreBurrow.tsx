@@ -13,7 +13,8 @@ import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals
 import Minimap from './Minimap'
 import SceneBoundary from '../../components/SceneBoundary'
 import FxPanel from '../../components/FxPanel'
-import { holeFxOf, type HoleFx } from '../../data/interestFx'
+import LanternPicker from '../../components/LanternPicker'
+import { closeSeatsOf, holeFxOf, type HoleFx } from '../../data/interestFx'
 import { stillFor, stillStyle } from '../../three/stills'
 import { isActivatable, shortcutAllowed } from '../../lib/a11y'
 import rv from '../../components/RoomView.module.css'
@@ -45,7 +46,8 @@ export default function ExploreBurrow() {
   // 관심사 이펙트: 자리마다 대표 관심사·겹치는 관심사·드문 관심사·접속 (docs/interest-effects.md)
   const fxSeats = useMemo(() => {
     const mineInt = me().interests
-    return field.residents.map((r) => holeFxOf(r.seat, r.user, !!r.mine, mineInt)).filter((x): x is HoleFx => !!x)
+    const close = closeSeatsOf(field.residents, mineInt)
+    return field.residents.map((r) => holeFxOf(r.seat, r.user, !!r.mine, mineInt)).filter((x): x is HoleFx => !!x).map((h) => ({ ...h, close: close.has(h.seat) }))
   }, [field])
   const seatParam = Number(params.get('seat'))
   const startSeat = bySeat.has(seatParam) ? seatParam : field.mySeat ?? field.residents[0]?.seat ?? 0
@@ -191,7 +193,8 @@ export default function ExploreBurrow() {
           </span>
         )}
 
-        <div className={x.leftTools}>
+        {/* data-fx-avoid: 관심사 이펙트 이정표가 이 버튼 줄·미니맵 밑에 숨지 않게 비켜 감 (three/interestFx/fieldFx.ts) */}
+        <div className={x.leftTools} data-fx-avoid="">
           <SceneButton tone="paper" onClick={() => setModal('regulars')}>단골 땅굴</SceneButton>
           <SceneButton tone="paper" onClick={() => setModal('recommend')}>
             오늘의 추천 친구 {!recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
@@ -199,6 +202,8 @@ export default function ExploreBurrow() {
           <SceneButton tone="paper" onClick={() => setModal('floor')} aria-label={`지금 들판 ${floorLabel(floor)}. 캠퍼스-층 고르기`}>
             {floorLabel(floor)} <span aria-hidden className={x.caret}>▾</span>
           </SceneButton>
+          {/* 관심사 등불 (관심사 이펙트 f_lantern, docs/interest-effects.md 2차): 켜 둔 때만 보임 */}
+          <LanternPicker residents={field.residents} myInterests={mine.interests} />
         </div>
 
         {others === 0 && ready && (

@@ -105,6 +105,8 @@ export interface HoleFx {
   score: number
   /** 이 사람의 세부 관심사 id 전부 (관심사 등불) */
   subs: string[]
+  /** 이 들판에서 나와 잘 맞는 쪽 (closeSeatsOf, 겹치는 관심사 고리·미니맵 ♥). holeFxOf 는 false, 들판 단위로 채움 */
+  close: boolean
 }
 
 export function holeFxOf(seat: number, user: { interests: string[]; online?: boolean; nickname?: string }, mine: boolean, myInterests: string[]): HoleFx | null {
@@ -122,8 +124,25 @@ export function holeFxOf(seat: number, user: { interests: string[]; online?: boo
   return {
     seat, name: mine ? '내 땅굴' : user.nickname ?? '', cat: lead.cat, icons, more: Math.max(0, ids.length - icons.length), shared: sharedIds.length, sharedIds,
     rarity, rareId: rarity ? rare!.id : null, online: !!user.online, mine,
-    score: sharedIds.reduce((s, id) => s + 1 + 1000 / (COUNT.get(id) ?? 1000), 0), subs: ids,
+    score: matchScoreOf(sharedIds), subs: ids, close: false,
   }
+}
+
+/** 잘 맞는 정도: 겹치는 관심사마다 1 + 1000/인원 (탐색 시안 match.ts matchScore 와 같은 식, 드문 것일수록 무거움) */
+export const matchScoreOf = (sharedIds: string[]) => sharedIds.reduce((s, id) => s + 1 + 1000 / (COUNT.get(id) ?? 1000), 0)
+
+/**
+ * 들판에서 "나와 잘 맞는" 자리 (2차). 예전에는 겹치는 관심사가 1개만 있어도 고리·♥ 를 띄웠는데,
+ * 인기 관심사(캠핑 2,600명 등)를 고른 사람은 들판 거의 모두와 1개쯤 겹쳐서 고리·♥ 가 모든 구멍에 떠 정보가 없었음.
+ * → 잘 맞는 정도(matchScoreOf)가 이 들판에서 위쪽 1/4 (최소 3곳)인 자리만. 같은 점수는 같이 들어감
+ */
+export const CLOSE_TOP = 0.25
+export function closeSeatsOf(residents: { seat: number; user: { interests: string[] }; mine?: boolean }[], myInterests: string[]): Set<number> {
+  const scored = residents.filter((r) => !r.mine).map((r) => ({ seat: r.seat, score: matchScoreOf(sharedSubs(r.user.interests, myInterests)) })).filter((x) => x.score > 0)
+  scored.sort((a, b) => b.score - a.score)
+  const k = Math.min(scored.length, Math.max(3, Math.ceil((residents.length - 1) * CLOSE_TOP)))
+  const cut = k ? scored[k - 1].score : Infinity
+  return new Set(scored.filter((x) => x.score >= cut).map((x) => x.seat))
 }
 
 /* ---------- 2차 (2026-11-17 저녁) ---------- */
