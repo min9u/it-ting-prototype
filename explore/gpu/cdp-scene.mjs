@@ -3,6 +3,9 @@
 // 환경변수: REPS=3(반복, 중앙값) AFF=3(CPU 코어 제한, 16진 마스크) LAB='{"A":false}'(저사양 실험실) WINDOW=1(창 있는 크롬, 화면 밖)
 //          SHOT=1(단계별 스크린샷) OUT=결과 폴더(기본 results/scene) PROFILE=1(첫 진입 CPU 프로필, 첫 반복만)
 //          PRELOAD=ms (3차, 두 번째 방문): 같은 프로필로 한 번 먼저 열고 다 차려진 뒤 ms 기다렸다가(선명한 배경 굽기·IndexedDB 저장·기기 단계 기억) 빈 페이지로 갔다가 다시 엶
+//          TRACE=1 (2026-11-17, docs/explore-move-quality.md): explore 의 점프 단계 동안 Chrome 추적을 켜서 화면 합성기가 실제로 내보낸 프레임
+//                  (Display::DrawAndSwap)을 카메라 이동 구간(holeField 가 __panT 에 남기는 프레임에 performance.mark)마다 셈 → compFps.
+//                  띠 밀기(M)는 메인 스레드 프레임은 가볍고 합성기가 일을 하므로 rAF 만으로는 부드러움을 다 못 봄
 //
 // 단계마다 잼: 페이지 rAF fps(버튼·스크롤이 얼마나 부드러운지), 장면 fps(WebGL 그리기 묶음 수), 긴 작업 합·최대, rAF 최악 간격,
 //            장면 최악 간격(그리기 묶음 사이), 프로세스별 CPU 사용률(렌더러 = 페이지 메인 스레드 포함, GPU = WARP 가 그리는 곳)
@@ -25,6 +28,7 @@ const REPS = +(process.env.REPS || 3)
 // (로더는 캐시가 있으면 한 번도 안 그려질 수 있어서 DOM 대신 앱이 남기는 표시를 씀)
 const READY = `(()=>(window.__sceneReadyAt||0)>(window.__navAt||0))()`
 const INJECT = `window.__f=[];window.__lt=[];window.__draws=[];window.__sceneT=[];window.__panT=[];window.__ready=null;window.__navAt=0;window.__readyFn=()=>(window.__sceneReadyAt||0)>(window.__navAt||0);
+window.__panT.push=function(t){try{performance.mark('pan')}catch(e){};return Array.prototype.push.call(this,t)};
 (function loop(t){window.__f.push(t);if(window.__ready===null&&window.__readyFn){try{if(window.__readyFn())window.__ready=performance.now()}catch(e){}}requestAnimationFrame(loop)})(0);
 const _gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(...a){const c=_gc.apply(this,a);if(c&&/webgl/.test(a[0])&&!c.__w){c.__w=1;for(const fn of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){const o=c[fn];if(!o)continue;const ci=fn.startsWith('drawElements')?1:2,ii=fn==='drawElementsInstanced'?4:fn==='drawArraysInstanced'?3:-1;c[fn]=function(...b){const n=performance.now();if(!window.__lastDraw||n-window.__lastDraw>4)window.__draws.push(n);window.__lastDraw=n;window.__nDraw=(window.__nDraw||0)+1;window.__nTri=(window.__nTri||0)+b[ci]*(ii>0?b[ii]:1)/3;return o.apply(this,b)}}}return c};
 try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push([e.startTime,e.duration]))).observe({type:'longtask',buffered:true})}catch(e){}
@@ -131,6 +135,13 @@ async function run(rep) {
   } else if (scenario === 'explore') {
     res.idle = await phase('idle', 6000)
     const seats = [await seatNow()]
+    const evs = []
+    let traceDone = null
+    if (process.env.TRACE) {
+      B.on((m) => { if (m.method === 'Tracing.dataCollected') evs.push(...m.params.value) })
+      traceDone = new Promise((r) => B.on((m) => { if (m.method === 'Tracing.tracingComplete') r() }))
+      await B.send('Tracing.start', { traceConfig: { includedCategories: ['viz', 'blink.user_timing'] }, transferMode: 'ReportEvents' })
+    }
     res.hop = await phase('hop', 0, async () => {
       // 오른쪽 ↔ 왼쪽 (없으면 위·아래) 4번, 한 번에 0.42 + 0.4 + 0.5 초
       const tries = [['ArrowRight', 39], ['ArrowLeft', 37], ['ArrowRight', 39], ['ArrowLeft', 37]]
@@ -142,6 +153,21 @@ async function run(rep) {
       }
     })
     res.hop.seats = seats
+    if (traceDone) {
+      await B.send('Tracing.end'); await traceDone
+      // 카메라 이동 구간 = 'pan' 표시 묶음(250ms 넘게 떨어지면 다음 구간). 구간 [처음, 끝 + 17ms] 안의 합성 프레임 수 / 0.4초
+      const marks = evs.filter((e) => e.name === 'pan' && /user_timing/.test(e.cat)).map((e) => e.ts).sort((a, b) => a - b)
+      const draws = evs.filter((e) => e.name === 'Display::DrawAndSwap' && (e.ph === 'X' || e.ph === 'B')).map((e) => e.ts).sort((a, b) => a - b)
+      const pans = []
+      for (const t of marks) { const last = pans.at(-1); if (last && t - last.at(-1) < 250000) last.push(t); else pans.push([t]) }
+      const per = pans.map((p) => { const d = draws.filter((t) => t >= p[0] && t <= p.at(-1) + 17000); const g = d.slice(1).map((t, i) => (t - d[i]) / 1000); return { n: d.length, worst: Math.round(Math.max(0, ...g)) } })
+      if (per.length) {
+        res.hop.compFps = +(per.reduce((a, x) => a + x.n, 0) / per.length / 0.4).toFixed(1)
+        res.hop.compWorstGap = Math.max(...per.map((x) => x.worst))
+        res.hop.compPans = per
+      }
+      res.hop.compAllFps = +(draws.length / res.hop.sec).toFixed(1)
+    }
     res.idle2 = await phase('idle2', 6000)
     // 구멍 클릭: 마우스를 화면 가운데 둘레로 움직여 이름표가 뜨는 곳(다른 구멍)을 찾고 누름
     const found = await (async () => {

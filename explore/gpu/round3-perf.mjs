@@ -7,7 +7,8 @@
 // 측정 전에 CPU 사용률을 확인함 (25% 넘으면 15초씩 기다림, 최대 3분)
 import { execFileSync } from 'node:child_process'; import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
-const OUT = path.join(here, 'results', 'round3', 'scene')
+// PERF_OUT: 결과 폴더 바꾸기 (이동 중 화질 작업은 results/move/scene, docs/explore-move-quality.md)
+const OUT = process.env.PERF_OUT || path.join(here, 'results', 'round3', 'scene')
 fs.mkdirSync(OUT, { recursive: true })
 const BASE = process.env.BASE || 'http://localhost:5342/#'
 const NEW = process.env.NEW || 'http://localhost:5341/#'
@@ -48,6 +49,10 @@ const PLAN = {
     ['nav', [['new', NEW, ''], ['fin', FIN, '']], 't16'],
   ],
   // 후보별 (손잡이로 하나씩 되돌림). 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
+  // 2026-11-17 이동 중에도 선명(M): main(BASE) ↔ 이 브랜치(NEW). TRACE=1 로 화면 합성 프레임까지 (docs/explore-move-quality.md)
+  move: [['explore', [['base', BASE, ''], ['new', NEW, '']]]],
+  // 같은 빌드에서 M 끔(?fslide=0) ↔ 켬
+  moveab: [['explore', [['off', NEW, 'fslide=0'], ['new', NEW, '']]]],
   cand: [
     // 예열은 main 의 mid(11-16 예열: 물체마다 compileAsync·펜스, 결과 파일 이름을 new → mid 로 바꿔 둠)·base 와 비교
     ['explore', [['bake1', NEW, 'fstrips=1&fmsaa=0'], ['def', NEW, '']], 'c2'],

@@ -825,6 +825,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
    * - 카메라 이동(cam 0.4초): 떠날 자리·도착할 자리 그림을 띠로 밀기(moveSlide.ts). 빈 곳만 3D 로 메우고, 움직이는 층(layer 1)은 3D 로
    * - 도착(k = 1): nextCv ↔ sharpCv, bdNext ↔ bd 를 바꿔 끼움 → 그 프레임부터 멈춰 있을 때와 같은 선명한 배경 (다시 굽지 않음)
    * - 미리 못 구운 경우(첫 굽기 전에 점프 등)는 예전 길(이동 중 0.33배)로. 그래도 도착 그림이 준비되면 그때 바꿔 끼움
+   * - 패널 열기·닫기(focusX, 화면 가로 밀기)도 같은 방식: 지금 그림을 밀고, 새 구도를 미리 구워 준비되면 바꿔 끼움 (focusTr).
+   *   새로 드러나는 옆 띠만 그동안 3D(0.55배)로 메움
    */
   const slideY = +(testParam('slidey') ?? '0_06').replace('_', '.')
   const slideNs = testParam('slidens')
@@ -856,7 +858,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     prep = { cam, key, img: false, baking: false, depth: false, loaded: false, save: false, t0: performance.now() }
     loop.wake()
   }
-  function cancelPrep() { if (prep?.baking) baker?.cancel(); prep = null }
+  function cancelPrep() { if (prep?.baking) baker?.cancel(); prep = null; focusTr = null }
+  /** 패널 이동(focusX)을 띠 밀기로 하는 중이면 그 목표 focusX */
+  let focusTr: number | null = null
   /** 한 프레임에 한 가지 (그리기 전에 부름) */
   const prepStep = () => {
     const p = prep!
@@ -914,7 +918,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 도착 자리 그림·깊이를 지금 배경으로 바꿔 끼움 */
   function finishPrep() {
     if (prep) savePrep(prep)
-    prep = null
+    prep = null; focusTr = null
     const old = sharpCv
     sharpCv = nextCv; nextCv = old
     if (old) old.style.visibility = 'hidden'
@@ -1014,13 +1018,23 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (warming || (sharpField && !mole)) return
       // M: 도착 자리 준비 (한 프레임에 한 가지). 이미 도착했거나 서 있는데 준비가 끝나면 그때 바꿔 끼움
       if (prep && !(prep.img && prep.depth && prep.loaded)) prepStep()
-      if (prepReady() && (!anim || anim.phase === 'up')) finishPrep()
+      if (prepReady() && (!anim || anim.phase === 'up') && (focusTr == null || focus === focusTarget)) finishPrep()
       const full = fullNext || dt === 0
       fullNext = false
       // 카메라 구도가 바뀌는 프레임(패널 이동·점프 카메라)은 따로 (drawMoving), 멈추면 A 배경을 다시 찍음
       let camMoved = false
       // M: 점프 중에 패널이 열리고 닫혀 구도가 바뀌면 미리 구운 도착 그림은 맞지 않음 → 버리고 예전 길로
-      if (focus !== focusTarget && prep) { cancelPrep(); slide?.hide(); slide?.drop(); if (anim) anim.slide = false }
+      if (focus !== focusTarget && prep && anim) { cancelPrep(); slide?.hide(); slide?.drop(); anim.slide = false }
+      // M: 패널 이동 시작 → 지금 그림을 띠에 넣고 새 구도를 미리 굽기. 도중에 목표가 또 바뀌면 버리고 예전 길로
+      if (focus !== focusTarget && !anim && slide && focusTr !== focusTarget) {
+        if (focusTr == null && sharpOk && sharpCv && !prep && mole) {
+          slide.load(0, sharpCv, camera.clone())
+          const dc = camera.clone()
+          frameCamera(dc, W, H, { left: focusTarget * W - W / 2, top: 0, w: W, h: H })
+          startPrep(dc, holes.has(curSeat) ? seatKey(curSeat, focusTarget) : null)
+          if (prep) focusTr = focusTarget
+        } else if (focusTr != null) { cancelPrep(); slide.hide(); slide.drop() }
+      }
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); lastAnchor = ''; camMoved = true }
       if (stepAnim(dt)) camMoved = true
       if (!qshot) mole?.update(dt)
@@ -1028,6 +1042,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (camMoved && anim) (window as unknown as { __panT?: number[] }).__panT?.push(performance.now()) // 측정용 (cdp-scene.mjs 가 배열을 만들어 둔 경우만)
       if (!backdrop) renderer.render(scene, camera)
       else if (camMoved && anim?.slide) drawSlide(anim.k ?? 0)
+      else if (focusTr != null && !anim) drawSlide(slide!.has(1) ? 1 : 0) // 패널 이동 중·새 구도 굽기를 기다리는 중
       else if (camMoved) drawMoving()
       else drawStatic(full, dt)
       emitAnchor()
