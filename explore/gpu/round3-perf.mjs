@@ -33,14 +33,12 @@ const PLAN = {
   revisit: ['room', 'explore'].map((k) => [k, [['base', BASE, ''], ['new', NEW, '']]]),
   // 약한 단계 강제 (2코어 첫 방문이 strong 으로 시작하므로 따로)
   weak: ['room', 'explore'].map((k) => [k, [['strong', NEW, 'tier=strong'], ['weak', NEW, 'tier=weak']]]),
-  // 후보별 (손잡이로 하나씩 되돌림)
+  // 후보별 (손잡이로 하나씩 되돌림). 예열은 16스레드(cand t16), 굽기는 2코어(cand c2)에서 봄. 랜딩·찻방 예열은 main 의 기준(예열 없음)과 비교
   cand: [
-    ['explore', [['old-warm', NEW, 'hwarm=0'], ['def', NEW, '']]],
-    ['explore', [['bake1', NEW, 'fstrips=1&fmsaa=0'], ['def', NEW, '']]],
-    ['room', [['old-warm', NEW, 'rwarm=0'], ['def', NEW, '']]],
-    ['room', [['old-bake', NEW, 'rbake=0'], ['def', NEW, '']]],
-    ['landing', [['nowarm', NEW, 'compile=0'], ['def', NEW, '']]],
-    ['tea', [['nowarm', NEW, 'compile=0'], ['def', NEW, '']]],
+    ['explore', [['old-warm', NEW, 'hwarm=0'], ['def', NEW, '']], 't16'],
+    ['room', [['old-warm', NEW, 'rwarm=0'], ['def', NEW, '']], 't16'],
+    ['explore', [['bake1', NEW, 'fstrips=1&fmsaa=0'], ['def', NEW, '']], 'c2'],
+    ['room', [['old-bake', NEW, 'rbake=0'], ['def', NEW, '']], 'c2'],
   ],
 }
 
@@ -59,7 +57,8 @@ async function waitCalm() {
 
 const log = path.join(OUT, `_log-${set}.txt`)
 for (const cfg of cfgs) {
-  for (const [screen, pair] of PLAN[set]) {
+  for (const [screen, pair, only] of PLAN[set]) {
+    if (only && only !== cfg) continue
     const [p, scenario] = SCREENS[screen]
     for (let i = 0; i < REPS; i++) {
       for (const [label, host, extra] of pair) {
