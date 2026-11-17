@@ -25,6 +25,7 @@ import s from './Burrow.module.css'
 import { CHAT_REQUEST_MAX, GUESTBOOK_MAX } from '../../lib/validation'
 import FxPanel from '../../components/FxPanel'
 import { getMyInterests } from '../../data/interests'
+import { talkMoodOf } from '../../data/interestFx'
 
 // 방명록 50자 · 대화 요청 인사 50자 (lib/validation.ts. 방명록은 예전 100자 → 02 명세 최신 · ERD guestbook_entry.content VARCHAR(50) 에 맞춤)
 const GB_MAX = GUESTBOOK_MAX
@@ -86,8 +87,8 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const [posted, setPosted] = useState(params.get('mailbox') === '1')
 
   const shared = owner.interests.filter((i) => me.interests.includes(i))
-  // 관심사 이펙트: 나와 같은 관심사 가구가 빛남 (docs/interest-effects.md)
-  const [fx] = useState(() => ({ viewer: getMyInterests(me.interests) }))
+  // 관심사 이펙트: 나와 같은 관심사 가구가 빛남 · 집주인 대화 의향(목 데이터) 반딧불 (docs/interest-effects.md)
+  const [fx] = useState(() => ({ viewer: getMyInterests(me.interests), talk: talkMoodOf(owner.id) }))
 
   /** 방명록 남기기: 목록 맨 위에 먼저 넣고 실패하면 빼고 입력값을 되돌림 */
   const submitGb = () => {

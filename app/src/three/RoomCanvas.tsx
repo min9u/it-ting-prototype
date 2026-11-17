@@ -36,7 +36,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
   /** 안 보이는 동안 그리기 멈춤 (SceneCanvas paused) */
   paused?: boolean
   /** 관심사 이펙트 (roomScene fx, docs/interest-effects.md) */
-  fx?: { viewer?: string[] }
+  fx?: { viewer?: string[]; talk?: 'open' | 'slow' | null }
 }) {
   return (
     <SceneCanvas

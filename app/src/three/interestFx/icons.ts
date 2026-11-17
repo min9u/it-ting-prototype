@@ -110,6 +110,20 @@ const GLYPHS: Record<string, Draw> = {
     poly(c, [[-0.4, -0.1], [-0.2, -0.34], [0.2, -0.34], [0.4, -0.1], [0, 0.4]])
     cut(c, () => { c.lineWidth = 0.05; c.beginPath(); c.moveTo(-0.4, -0.1); c.lineTo(0.4, -0.1); c.moveTo(-0.1, -0.34); c.lineTo(0, 0.4); c.lineTo(0.1, -0.34); c.stroke() })
   },
+  // 2차 (2026-11-17 저녁): 반딧불 옆 달(방명록부터 천천히) · 알아챔 느낌표 · 관심사 등불
+  moon(c) {
+    circle(c, 0, 0, 0.42)
+    cut(c, () => circle(c, 0.2, -0.12, 0.36))
+  },
+  bang(c) {
+    rrect(c, -0.11, -0.46, 0.22, 0.6, 0.1); circle(c, 0, 0.36, 0.12)
+  },
+  lantern(c) {
+    rrect(c, -0.1, -0.5, 0.2, 0.1, 0.03); rrect(c, -0.26, -0.42, 0.52, 0.08, 0.03)
+    ellipse(c, 0, 0.02, 0.36, 0.38)
+    rrect(c, -0.26, 0.36, 0.52, 0.08, 0.03)
+    cut(c, () => { c.lineWidth = 0.045; for (const x of [-0.13, 0.13]) { c.beginPath(); c.ellipse(x * 0.6, 0.02, Math.abs(x) + 0.04, 0.34, 0, 0, Math.PI * 2); c.stroke() } })
+  },
 }
 
 const cache = new Map<string, HTMLCanvasElement>()
@@ -171,6 +185,71 @@ export function bubble(cat: string, px: number, color: string, s = 1): { cv: HTM
     cache.set(key, cv)
   }
   return { cv, tip: cv.height - pad }
+}
+
+/**
+ * 스티커 글리프 (2차): 흰 테두리 + 아래 옅은 그림자. 밝은 흙벽·어두운 가구 어느 쪽 위에서도 입자 모양이 읽히게.
+ * 그림 크기 = (px + 2·STICKER_PAD) · s, 글리프는 가운데 px·s. 그릴 때 sizeOf 로 맞춤
+ */
+export const STICKER_PAD = 3
+export function sticker(name: string, px: number, color: string, s = 1): HTMLCanvasElement {
+  const key = `k|${name}|${px}|${color}|${s}`
+  let cv = cache.get(key)
+  if (cv) return cv
+  const pad = STICKER_PAD * s
+  const g = glyph(name, px, color, s), w = glyph(name, px, '#fffaf2', s)
+  cv = canvas(g.width + pad * 2, g.height + pad * 2)
+  const c = cv.getContext('2d')!
+  const o = 1.35 * s
+  c.shadowColor = 'rgba(60,35,20,.42)'; c.shadowBlur = 2.2 * s; c.shadowOffsetY = 0.9 * s
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; c.drawImage(w, pad + Math.cos(a) * o, pad + Math.sin(a) * o) }
+  c.shadowColor = 'transparent'
+  c.drawImage(g, pad, pad)
+  cache.set(key, cv)
+  return cv
+}
+/** 스티커를 글리프 크기 z 로 그릴 때 실제 그림 크기 */
+export const stickerSize = (z: number, px: number) => z * (px + 2 + STICKER_PAD * 2) / (px + 2)
+
+/**
+ * 이름표 알약 (2차): [카테고리 배지] 글자. 땅굴 입장 이름표·요약 줄 불 켜기·인사 퐁·들판 등불에 같이 씀.
+ * 그림은 (글자·색·배율)마다 한 번만 그림. h = CSS 높이
+ */
+export interface TagOpts { text: string; bg?: string; fg?: string; cat?: string; catColor?: string; icon?: string; iconColor?: string; s?: number; h?: number; bold?: boolean; border?: string }
+export function tag(o: TagOpts): HTMLCanvasElement {
+  const s = o.s ?? 1, h = (o.h ?? 22) * s
+  const key = `t|${o.text}|${o.bg}|${o.fg}|${o.cat}|${o.catColor}|${o.icon}|${o.iconColor}|${s}|${o.h}|${o.border}`
+  let cv = cache.get(key)
+  if (cv) return cv
+  const font = `${o.bold === false ? 600 : 700} ${Math.round(h * 0.52)}px Pretendard, 'Pretendard Variable', system-ui, sans-serif`
+  const m = document.createElement('canvas').getContext('2d')!
+  m.font = font
+  const tw = Math.ceil(m.measureText(o.text).width)
+  const hasIcon = !!(o.cat || o.icon)
+  const iw = hasIcon ? h - 4 * s : 0
+  const padL = hasIcon ? 3 * s : h * 0.42, gap = hasIcon ? 5 * s : 0, padR = h * 0.42
+  const w = padL + iw + gap + tw + padR
+  const sh = 3 * s
+  cv = canvas(w + sh * 2, h + sh * 2 + s)
+  const c = cv.getContext('2d')!
+  c.shadowColor = 'rgba(60,35,20,.3)'; c.shadowBlur = 3.5 * s; c.shadowOffsetY = 1 * s
+  c.fillStyle = o.bg ?? '#fbf8f4'
+  c.beginPath(); c.roundRect(sh, sh, w, h, h / 2); c.fill()
+  c.shadowColor = 'transparent'
+  if (o.border) { c.lineWidth = 1.6 * s; c.strokeStyle = o.border; c.beginPath(); c.roundRect(sh + 0.8 * s, sh + 0.8 * s, w - 1.6 * s, h - 1.6 * s, h / 2 - 0.8 * s); c.stroke() }
+  let x = sh + padL
+  if (o.cat) {
+    const b = badge(o.cat, Math.round((iw - 2 * s) / s), o.catColor ?? '#C8643A', s)
+    c.drawImage(b, x + iw / 2 - b.width / 2, sh + h / 2 - b.height / 2)
+  } else if (o.icon) {
+    const g = glyph(o.icon, Math.round(iw / s * 0.78), o.iconColor ?? '#ffffff', s)
+    c.drawImage(g, x + iw / 2 - g.width / 2, sh + h / 2 - g.height / 2)
+  }
+  x += iw + gap
+  c.font = font; c.fillStyle = o.fg ?? '#3e2a1f'; c.textBaseline = 'middle'
+  c.fillText(o.text, x, sh + h / 2 + 0.5 * s)
+  cache.set(key, cv)
+  return cv
 }
 
 /** 부드러운 빛 덩어리 (가운데 color, 바깥 투명). 연기·후광·불티에 씀 */

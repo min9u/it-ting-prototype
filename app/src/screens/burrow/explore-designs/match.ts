@@ -4,12 +4,13 @@
  */
 import { CATEGORIES, categoryOf } from '../../../data/mock'
 import type { User } from '../../../data/types'
+import { RARITY } from '../../../data/rarity'
 
 const COUNT = new Map(CATEGORIES.flatMap((c) => c.tags.map((t) => [t.name, t.count] as const)))
 /** 그 관심사를 고른 사람 수 (모르면 크게) */
 export const peopleOf = (tag: string) => COUNT.get(tag) ?? 9999
-/** 이 수보다 적게 고른 관심사 = 드문 취미 */
-export const RARE_MAX = 400
+/** 이 수보다 적게 고른 관심사 = 드문 취미 (data/rarity.ts 한 곳. 예전 400명 → 관심사 이펙트와 같은 250명) */
+export const RARE_MAX = RARITY.rare
 export const isRare = (tag: string) => peopleOf(tag) < RARE_MAX
 
 /** 나와 겹치는 관심사 (드문 것부터) */

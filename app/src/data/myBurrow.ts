@@ -82,9 +82,7 @@ export const MIN_PICK = 3
  * 분야 팝업 "통하는 취향": 고른 사람이 5명 이하인 관심사 (02 F3 분야 팝업 3번, 제안).
  * 목 인원수(data/mock TAG_COUNTS)는 전국 규모 숫자라 1/100 로 줄여 SSAFY 규모로 봄 → 판단한 것 (docs/spec-f3-f4.md)
  */
-export const RARE_MAX = 5
-export const ssafyCount = (count: number) => Math.max(1, Math.round(count / 100))
-export const isRare = (count: number) => ssafyCount(count) <= RARE_MAX
+export { ONBOARDING_MAX_PEOPLE as RARE_MAX, ssafyCount, isOnboardingRare as isRare } from './rarity' // 기준은 data/rarity.ts 한 곳
 
 /* ---------- 땅굴 무드 ---------- */
 export const MOOD_NAMES: Record<string, string> = {

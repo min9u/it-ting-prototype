@@ -69,7 +69,7 @@ interface Props {
    */
   loadingStill?: boolean
   /** 관심사 이펙트를 켬 (내 땅굴·남의 땅굴만. 시작 화면·온보딩 미리 보기는 안 씀). viewer = 남의 땅굴에서 내 관심사 (docs/interest-effects.md) */
-  fx?: { viewer?: string[] }
+  fx?: { viewer?: string[]; talk?: 'open' | 'slow' | null }
 }
 
 /**

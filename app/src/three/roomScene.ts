@@ -62,8 +62,8 @@ export interface RoomSceneOptions {
   furniture?: FurnChoice
   /** 가구 칠하기·무늬·마감·모양 (data/roomStyle.ts, 2026-11-16 실험). 없으면 디자이너 원래 모습 */
   style?: RoomStyle
-  /** 관심사 이펙트 (three/interestFx/roomFx.ts, docs/interest-effects.md). 있으면 켬. viewer = 남의 땅굴에서 내 관심사 */
-  fx?: { viewer?: string[] }
+  /** 관심사 이펙트 (three/interestFx/roomFx.ts, docs/interest-effects.md). 있으면 켬. viewer = 남의 땅굴에서 내 관심사, talk = 집주인 대화 의향(목) */
+  fx?: { viewer?: string[]; talk?: 'open' | 'slow' | null }
 }
 
 /** 땅굴 장면 손잡이: 공통 + 우체통 상태 바꾸기 + 고른 가구 바꾸기 */
@@ -600,6 +600,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         hole: new THREE.Vector3(0, Math.min(3.3, new THREE.Box3().setFromObject(holeS).max.y || 3.2), 0),
         items: () => drops.map((d) => ({ g: d.g, sub: d.it.sub, category: d.it.category, rowId: d.it.row.id, type: d.it.row.type })),
         intro: () => holeT >= 0 || seqT >= 0,
+        // 2차: 두더지 뒤 이펙트 가리기 · 알아챔 · 인사 · 반딧불
+        actors: () => ({ me: mole?.object ?? null, host: host?.object ?? null }),
+        talk: opts.hostName ? opts.fx.talk ?? null : null,
       })
     }
     fullNext = true
@@ -931,6 +934,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     const { g, onHost, onMailbox } = pick(e)
     if (onHost) return
     if (g?.userData.topic) showTip(g.userData.topic as string, e)
+    if (g) fx?.poke(g) // 관심사 이펙트: 누르면 그 관심사 입자가 한 움큼 (r_poke)
     // 우체통: 방명록 전체 보기 (두더지는 움직이지 않음)
     if (onMailbox) { opts.onMailbox?.(); return }
     if (g && mole.interact(g)) return
@@ -1240,7 +1244,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         const started = clock
         const watch = () => {
           if (disposed || clock - started > 20) return
-          if (me.isGreeting()) { say(0, me, emoji); say(1, hs, emoji, .25); return }
+          if (me.isGreeting()) { say(0, me, emoji); say(1, hs, emoji, .25); fx?.greet(); return }
           requestAnimationFrame(watch)
         }
         requestAnimationFrame(watch)
