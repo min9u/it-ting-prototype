@@ -73,6 +73,12 @@ const DB = 'digul-stills', STORE = 'stills', MAX_KEEP = 8
 const mem = new Map<string, ImageBitmap>()
 let dbP: Promise<IDBDatabase | null> | null = null
 const off = () => { try { return /[?&]stillcache=0\b/.test(location.search + location.hash) } catch { return false } }
+/**
+ * 빌드 표시: 이 모듈이 든 청크 파일 이름(빌드마다 내용 해시가 붙음). 저장 키 앞에 붙여서, 다시 배포하면(모델·색이 바뀌었을 수 있음)
+ * 예전 빌드가 구운 그림을 쓰지 않음 (오래된 것은 trim 이 지움). 개발 서버에서는 파일 경로라 늘 같음
+ */
+const BUILD = (() => { try { return new URL(import.meta.url).pathname.split('/').pop() ?? '' } catch { return '' } })()
+const dbKey = (key: string) => `${BUILD}#${key}`
 
 function openDb(): Promise<IDBDatabase | null> {
   return (dbP ??= new Promise((resolve) => {
@@ -102,7 +108,7 @@ export async function getCachedStill(key: string): Promise<ImageBitmap | null> {
   if (off()) return null
   const hit = mem.get(key)
   if (hit) return hit
-  const row = await tx<Row | undefined>('readonly', (s) => s.get(key) as IDBRequest<Row | undefined>)
+  const row = await tx<Row | undefined>('readonly', (s) => s.get(dbKey(key)) as IDBRequest<Row | undefined>)
   if (!row?.blob) return null
   try {
     const bmp = await createImageBitmap(row.blob)
@@ -120,7 +126,7 @@ export function putCachedStill(key: string, canvas: HTMLCanvasElement) {
   const w = canvas.width, h = canvas.height
   const run = () => canvas.toBlob((blob) => {
     if (!blob) return
-    void tx('readwrite', (s) => s.put({ blob, at: Date.now(), w, h } satisfies Row, key)).then(() => trim())
+    void tx('readwrite', (s) => s.put({ blob, at: Date.now(), w, h } satisfies Row, dbKey(key))).then(() => trim())
   }, 'image/webp', 0.92)
   const idle = (window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number }).requestIdleCallback
   if (idle) idle(run, { timeout: 3000 }); else setTimeout(run, 500)
@@ -131,7 +137,7 @@ async function trim() {
   if (!keys || keys.length <= MAX_KEEP) return
   const rows = await Promise.all(keys.map(async (k) => [k, (await tx<Row | undefined>('readonly', (s) => s.get(k) as IDBRequest<Row | undefined>))?.at ?? 0] as const))
   rows.sort((a, b) => a[1] - b[1])
-  for (const [k] of rows.slice(0, rows.length - MAX_KEEP)) { mem.delete(String(k)); await tx('readwrite', (s) => s.delete(k)) }
+  for (const [k] of rows.slice(0, rows.length - MAX_KEEP)) { const sk = String(k); mem.delete(sk.slice(sk.indexOf('#') + 1)); await tx('readwrite', (s) => s.delete(k)) }
 }
 
 /**
