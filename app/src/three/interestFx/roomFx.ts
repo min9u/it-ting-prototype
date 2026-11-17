@@ -607,6 +607,14 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const overlay = createOverlay(o.container, o.after, camera, draw, (calm) =>
     !o.intro() && (ps.length > 0 || (!calm && (fxOn('r_particles') || fxOn('r_rare') || (fxOn('r_shared') && !!o.viewer) || fxOn('r_beam')))))
   still = overlay.mode.level === 'still'
+  // 입장 연출이 끝나는 순간 다시 그림 (움직임 없는 단계는 카메라가 그대로면 스스로 다시 그리지 않아서, 연출 중에 비워 둔 그림이 그대로 남았음)
+  let introWas = o.intro()
+  const introPoll = window.setInterval(() => {
+    const now = o.intro()
+    if (introWas && !now) overlay.invalidate()
+    introWas = now
+    if (!now) clearInterval(introPoll)
+  }, 150)
   const unsub = subscribeFx(() => { overlay.invalidate(); if (!fxOn('r_card')) showCard(null, null) })
 
   return {
@@ -621,6 +629,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     },
     dispose() {
       unsub()
+      clearInterval(introPoll)
       overlay.dispose()
       card.remove()
       ps.length = 0
