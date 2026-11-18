@@ -2,7 +2,7 @@
 
 관심사가 서로 다른 사람들의 땅굴이 실제로 얼마나 다르게 보이는지, 같은 구도로 찍어서 숫자와 그림으로 보여 주는 페이지.
 
-- 게시: https://claude.ai/artifact/7WKmPmpkapceCdXreAszCn (2026-11-18 version 1 = 1차 "지금 상태", 같은 날 2차 = 다양성 작업 전 · 후. 비공개로 시작, 공유는 페이지 Share 메뉴). 다시 올릴 때는 `file_path` = `out/room-diversity.html`, `root` = `out`, `files` = `out/files.json` 의 경로마다 `{"경로": "경로"}`, 다른 세션이면 위 주소를 `url` 로 (먼저 read). 2차는 사진 경로가 `img/before/…` · `img/after/…` 로 바뀌어서 옛 `img/rooms/…` 같은 경로는 `null` 로 지워도 됨
+- 게시: https://claude.ai/artifact/7WKmPmpkapceCdXreAszCn (2026-11-18 version 1 = 1차 "지금 상태", 같은 날 version 2 = 2차 다양성 작업 전 · 후, version 3 = 1차 옛 사진 경로(img/rooms 등 112개) null 로 지움. 비공개로 시작, 공유는 페이지 Share 메뉴). 다시 올릴 때는 `file_path` = `out/room-diversity.html`, `root` = `out`, `files` = `out/files.json` 의 경로마다 `{"경로": "경로"}`, 다른 세션이면 위 주소를 `url` 로 (먼저 read). 2차는 사진 경로가 `img/before/…` · `img/after/…` 로 바뀌어서 옛 `img/rooms/…` 같은 경로는 `null` 로 지워도 됨
 - 1차 (2026-11-18): "지금 탐색화면에서 다른 사용자들의 땅굴을 들어가보면 다양성이 적은 것 같아 … 비교할 수 있게 아티팩트를 만들어줘" → [docs/room-diversity-2026-11-18.md](../../docs/room-diversity-2026-11-18.md)
 - 2차 (2026-11-18): "벽지 문제를 고친다음, 땅굴 다양성을 늘리는 작업을 진행해" → [docs/room-diversity-2-2026-11-18.md](../../docs/room-diversity-2-2026-11-18.md). 같은 26명을 다시 찍어 **전 · 후**를 한 페이지에
 
