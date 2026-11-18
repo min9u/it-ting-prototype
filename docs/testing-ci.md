@@ -42,7 +42,7 @@
 
 할 일(`it.todo`, 지금 구현과 명세가 달라서 통과시킬 수 없는 것):
 1. 시간 표기 00 공통 8 을 한 곳으로 — 지금 네 곳(`lib/format timeAgo`, `lib/store noticeTime`, `data/chat ago`, `data/boardStore ago`)이 서로 다름: "방금" / "방금 전", 1시간 안을 "N분 전" / "방금", "어제" 있음 / 없음. 날짜 통일 작업이 합치면 기대값을 그 규칙으로
-2. 남의 땅굴 벽지도 대표 관심사 규칙으로 — 방문자 뷰가 벽지를 안 넘겨 `roomScene` 이 예전 가중치 규칙(`wallpaperForPicks`)을 씀. 내가 보는 내 방과 남이 보는 내 방 벽지가 다를 수 있음 (spec-design-gaps G-31)
+2. ~~남의 땅굴 벽지도 대표 관심사 규칙으로~~ → 2026-11-18 고침: 방 모습을 `data/roomLook.ts roomLookOf` 한 곳에서 정함, 시험 `room-look.test.ts` ([room-diversity-2-2026-11-18.md](room-diversity-2-2026-11-18.md))
 3. 가입 캠퍼스-층 목록(`data/auth.ts` 서울 2·10·12·13층 …)과 들판 목록(`data/field.ts` 서울 2·3·12층 …)을 하나로 — 서울-10층으로 가입하면 들판이 없음 (G-10)
 
 테스트로 찾은 데이터 문제 (테스트는 허용 오차를 두고 통과):

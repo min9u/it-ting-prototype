@@ -5,13 +5,14 @@ import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../compon
 import Modal from '../../components/Modal'
 import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
-import { CATEGORIES, toneOf } from '../../data/mock'
+import { CATEGORIES, ME_ID, toneOf } from '../../data/mock'
 import { MAX_PICK, setMyInterests, subOf } from '../../data/interests'
-import { setMyWallpaper, tileUrl, wallpaperOf } from '../../data/wallpapers'
+import { tileUrl, wallpaperOf } from '../../data/wallpapers'
 import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, recommendedQuestions } from '../../data/questions'
 import {
-  MIN_PICK, MOOD_NAMES, NICK_MAX, defaultFurniture, interestFurnitureCount, isRare, leadCategory, moodWallpaper, nickTaken, setMyFurnChoice, setMyProfile,
+  MIN_PICK, MOOD_NAMES, NICK_MAX, defaultFurniture, interestFurnitureCount, isRare, leadCategory, nickTaken, resetMyRoom, setMyProfile,
 } from '../../data/myBurrow'
+import { NO_SAVED_ROOM, roomLookOf } from '../../data/roomLook'
 import type { Category } from '../../data/types'
 import QuestionList from './QuestionList'
 import s from './Onboarding.module.css'
@@ -95,7 +96,8 @@ export default function Onboarding() {
             onRepick={() => { setRepick(true); go('interests') }}
             onConfirm={() => {
               setMyProfile({ nickname: nick, intro: '', qna: qids.map((id) => ({ qid: id, a: (answers[id] ?? '').trim() })) })
-              setMyWorn(worn); setMyInterests(picks); setMyWallpaper(moodWallpaper(picks)); setMyFurnChoice({})
+              // 새로 시작: 꾸민 것(가구 선택 · 직접 고른 벽지)을 비움 → 방 모습은 관심사로 계산 (data/roomLook.ts)
+              setMyWorn(worn); setMyInterests(picks); resetMyRoom()
             }} />
         )}
       </main>
@@ -374,7 +376,8 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
   const lead = leadCategory(picks) ?? 'pet_plant'
   const leadCat = CATEGORIES.find((c) => c.id === lead)
   const inLead = picks.filter((t) => subOf(t)?.category === lead)
-  const wall = wallpaperOf(moodWallpaper(picks))
+  // 내 땅굴·남이 보는 내 땅굴과 같은 계산 (온보딩이라 꾸민 것은 없음)
+  const wall = wallpaperOf(roomLookOf(ME_ID, picks, NO_SAVED_ROOM).wallpaper)
   const rows = useMemo(() => picks.map((t) => ({ tag: t, row: defaultFurniture(subOf(t)?.id ?? '') })).filter((x) => x.row), [picks])
   const [t, setT] = useState(0)
   const gap = Math.min(0.45, 6 / Math.max(1, rows.length))
@@ -454,13 +457,15 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
  * 5 관심사 확정 → 온보딩을 마치고 내 땅굴 / 6 관심사는 나중에 내 정보에서 바꿀 수 있다는 안내
  */
 function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: string; worn: string[]; picks: string[]; qna: { q: string; a: string }[]; onRepick: () => void; onConfirm: () => void }) {
-  const wallpaper = useMemo(() => moodWallpaper(picks), [picks])
+  // 내 땅굴과 같은 방 모습 (data/roomLook.ts, 온보딩이라 꾸민 것은 없음)
+  const look = useMemo(() => roomLookOf(ME_ID, picks, NO_SAVED_ROOM), [picks])
   const total = interestFurnitureCount(picks)
-  // 미리보기에 들어오면 바로 내 관심사·꾸미기·벽지로 기록: "관심사 확정" 대신 위 로고 등으로 나가도 같은 방이 나오게 (예전 동작 유지)
-  useEffect(() => { setMyInterests(picks); setMyWorn(worn); setMyWallpaper(wallpaper) }, [picks, worn, wallpaper])
+  // 미리보기에 들어오면 바로 내 관심사·꾸미기로 기록: "관심사 확정" 대신 위 로고 등으로 나가도 같은 방이 나오게 (예전 동작 유지).
+  // 벽지는 관심사로 계산되므로 따로 저장하지 않음
+  useEffect(() => { setMyInterests(picks); setMyWorn(worn) }, [picks, worn])
   return (
     <div className={s.previewStage}>
-      <RoomView ownerId="me" interests={picks} wallpaper={wallpaper} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
+      <RoomView ownerId={ME_ID} interests={picks} wallpaper={look.wallpaper} style={look.style} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
         <span className={s.roomBadge}>관심사 가구 {total}개</span>
       </RoomView>
       <aside className={s.previewSide}>

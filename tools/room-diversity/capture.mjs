@@ -138,19 +138,24 @@ const PASSES = [
   { dir: 'raw-wall01', extra: '&nomole=1&wallpaper=wallpaper_01_default' },
 ]
 
-if (!args.check || args.all) {
+// 찍은 묶음 (2026-11-18 2단계 전·후 비교): out/<set>/raw… . 전 = out/before (11-18 1차 비교 때 찍은 그림, 같은 PC · 같은 앱 코드),
+// 후 = out/after (기본). --look=designer 면 🎨 땅굴 색 다양하게를 끄고(디자이너 원래 색) 찍음 (lib/roomLookLab.ts)
+const SET = String(args.set ?? 'after')
+const LOOK = args.look ? `&look=${args.look}` : ''
+meta.set = SET; meta.look = args.look ?? 'auto'
+if ((!args.check && !args.me) || args.all) {
   for (const pass of PASSES) {
     if (args.pass && args.pass !== pass.dir) continue
     for (const j of jobs) {
       if (only && !j.key.includes(only)) continue
       const t0 = Date.now()
-      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=0`, path.join(OUT, pass.dir, `${j.key}.png`))
+      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=${args.fx ?? 0}${LOOK}`, path.join(OUT, SET, pass.dir, `${j.key}.png`))
       const rec = { key: j.key, group: j.group, kind: j.persona?.kind ?? (j.me ? '내 땅굴' : j.group === 'z' ? '기준' : '들판 이웃'), seat: j.seat ?? null, ...r }
-      fs.writeFileSync(path.join(OUT, pass.dir, `${j.key}.json`), JSON.stringify(rec, null, 2))
+      fs.writeFileSync(path.join(OUT, SET, pass.dir, `${j.key}.json`), JSON.stringify(rec, null, 2))
       meta.items.push(j.key)
-      console.log(`${pass.dir}/${j.key}  ${r.lab?.owner?.nickname ?? '?'}  관심사 ${r.lab?.owner?.interests?.length ?? '?'} · 놓인 것 ${r.lab?.summary?.items?.length ?? '?'}  (${((Date.now() - t0) / 1000).toFixed(1)}초)${r.logs.filter((l) => !/HydrateFallback/.test(l)).length ? `  로그: ${r.logs.slice(0, 3).join(' | ')}` : ''}`)
+      console.log(`${SET}/${pass.dir}/${j.key}  ${r.lab?.owner?.nickname ?? '?'}  관심사 ${r.lab?.owner?.interests?.length ?? '?'} · 놓인 것 ${r.lab?.summary?.items?.length ?? '?'} · ${r.lab?.summary?.look?.style?.theme ?? '디자이너 색'}  (${((Date.now() - t0) / 1000).toFixed(1)}초)${r.logs.filter((l) => !/HydrateFallback/.test(l)).length ? `  로그: ${r.logs.slice(0, 3).join(' | ')}` : ''}`)
     }
-    if (!only) fs.writeFileSync(path.join(OUT, pass.dir, '_capture.json'), JSON.stringify(meta, null, 2))
+    if (!only) fs.writeFileSync(path.join(OUT, SET, pass.dir, '_capture.json'), JSON.stringify(meta, null, 2))
   }
 }
 
@@ -165,6 +170,29 @@ if (args.check) {
   })
   fs.writeFileSync(path.join(dir, 'check.json'), JSON.stringify({ renderer, lab, real }, null, 2))
   console.log(`확인용: ${path.relative(ROOT, dir)} (lab ${lab.logs.length} · visit ${real.logs.length} 로그)`)
+}
+
+if (args.me) {
+  // 1단계 확인 (2026-11-18, docs/room-diversity-2-2026-11-18.md): "나"를 내 땅굴(/burrow)과 남이 보는 내 땅굴(/lab/rooms?user=me = 방문자 뷰와 같은
+  // 땅굴 API 길)로 찍어서 같은 방인지. 두더지는 숨기고(nomole), 내 땅굴의 입장 연출은 "움직임 줄이기"로 끔(= 다 차려진 방), 캔버스만 남김
+  // → check.py 로 비교. --me=decor 면 꾸미기 값(가구 선택 · 직접 고른 벽지)을 넣어 두고 찍음
+  const dir = path.join(OUT, 'check-me')
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+  await send('Page.navigate', { url: `${base}/screens` }); await sleep(600)
+  // 우체통: 내 땅굴은 "새 방명록" 이면 깃발이 올라가서(방 모습과 상관없는 상태) 읽음으로 맞춰 둠
+  await ev(`sessionStorage.setItem('digul.guestbookRead','1')`)
+  if (args.me === 'decor') {
+    // 내 관심사 소설(sf_books)의 가구를 두 번째 후보로, 벽지는 07 숲 · 색 테마는 오락실로 저장해 둠 (sessionStorage, data/myBurrow)
+    await ev(`sessionStorage.setItem('digul.myFurnitureBySub', JSON.stringify({novel:'book_stack'}));sessionStorage.setItem('digul.myRoom.v1', JSON.stringify({wallpaperId:'wallpaper_07_forest',themeId:'cat_game'}))`)
+  }
+  const tag = args.me === 'decor' ? '-decor' : ''
+  const mine = await shoot(`${base}/burrow?panel=closed&nomole=1&qshot=1&fx=0`, path.join(dir, `my${tag}.png`), { hideUi: true })
+  mine.look = await ev('window.__roomLook ?? null')
+  const seen = await shoot(`${base}/lab/rooms?user=me&nomole=1&bare=1&qshot=1&fx=0`, path.join(dir, `visit${tag}.png`), { hideUi: true })
+  seen.look = await ev('window.__roomLook ?? null')
+  fs.writeFileSync(path.join(dir, `check${tag}.json`), JSON.stringify({ renderer, mine, seen }, null, 2))
+  console.log(`나: 내 땅굴 벽지 ${mine.look?.wallpaper} · 남이 보는 내 땅굴 벽지 ${seen.look?.wallpaper} · 가구 ${JSON.stringify(mine.look?.furniture)} / ${JSON.stringify(seen.look?.furniture)}`)
+  console.log(`  → ${path.relative(ROOT, dir)} (python -I tools/room-diversity/check.py out/check-me/my${tag}.png out/check-me/visit${tag}.png)`)
 }
 
 try { await send('Browser.close') } catch { /* */ }

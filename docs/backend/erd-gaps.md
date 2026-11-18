@@ -19,7 +19,7 @@
 | Q5 🔴 | **ID 를 JSON 에서 문자열로**, **날짜는 오프셋 붙은 ISO 8601** 로 줄 수 있는지 | api-draft 1.4 · 1.5 (Long → 문자열 직렬화, `OffsetDateTime`/`Instant`) |
 | Q6 🟠 | 대화 요청 카드의 **"땅굴에 다녀갔어요" 맥락**과 땅굴 **방문 기록**이 없음 | `chat_request.context VARCHAR(20)` (BURROW_VISIT · SAME_MEETUP · OTHER). 방문 기록 테이블은 만들지 않고 요청을 보낸 곳만 기록 |
 | Q7 🟠 | **1:1 대화방 중복**을 막을 키가 없음 (같은 두 사람 방이 둘 생길 수 있음) | `chat_room.direct_key VARCHAR(41) UQ` = "작은id:큰id" (DIRECT 일 때만) |
-| Q8 🟠 | **방 꾸미기 저장**: 가구는 `member_interest.furniture` 로 되지만 벽지·무드·앞으로의 배치는 없음 | 지금은 "무드 = 대표 관심사(sort_order 0)의 대분류" 로 계산 → 칼럼 불필요. 대비로 `burrow.room_layout JSON` + `schema_version` (위험 B10) |
+| Q8 🟠 | **방 꾸미기 저장**: 가구는 `member_interest.furniture` 로 되지만 벽지·무드·앞으로의 배치는 없음 | 지금은 "무드 = 대표 관심사(sort_order 0)의 대분류" 로 계산 → 칼럼 불필요. 대비로 `burrow.room_layout JSON` + `schema_version` (위험 B10). 2026-11-18: 꾸미기 색 탭이 생겨 `themeId` 하나가 늘어남 (api-draft 2.3 "땅굴 응답의 room", room-diversity-2-2026-11-18.md) |
 | Q9 🟠 | **추천 설정**: 화면은 관심사 여러 개 고르기 · 질문 하나 · "같은 질문 먼저" · 같은 캠퍼스/기수/층 **세 개 따로** | `recommend_setting_interest(member_id, interest_id)` + `same_campus`·`same_generation`·`same_floor` BOOLEAN 셋 (`use_affiliation` 하나로는 부족) |
 | Q10 🟠 | 이메일 인증 코드·비밀번호 재설정 토큰을 어디에 두는지 (테이블 없음) | Redis(TTL 5분·30분) 가정. DB 라면 `auth_token(type, email, token_hash, expires_at, used_at)` |
 | Q11 🟢 | **캠퍼스-층 목록**이 화면마다 다름 (회원가입: 서울 2·10·12·13층…, 탐색: 서울 2·3·12층…) | `campus`·`campus_floor` 를 서버가 내려주고 프론트 상수 두 개를 지움 (`GET /campus-floors`) |

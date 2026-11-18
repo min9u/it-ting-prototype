@@ -6,7 +6,6 @@
  * 타일 그림은 assets/wallpapers/ 에 512·1024 WebP (01 은 단색이라 안 넣음)
  */
 import raw from './wallpapers.json'
-import { CATEGORIES } from './mock'
 import { interestCatOf } from './interests'
 
 export interface Wallpaper {
@@ -40,31 +39,9 @@ export function wallpaperForCategory(cat: string | undefined): string {
   return (kit && (m[kit] ?? (kit === 'tea_coffee' ? m.tea : undefined))) ?? DEFAULT_WALLPAPER
 }
 
-/**
- * 가장 큰 취향 카테고리 (온보딩 "땅굴 무드"와 같은 계산: 카테고리마다 Σ(1 + 1000/그 관심사 인원), 드문 취미가 무거움)
- * picks 는 관심사 화면 이름
+/*
+ * 예전에 여기 있던 것 (2026-11-18 지움, docs/room-diversity-2-2026-11-18.md 1단계)
+ * - topCategoryOf · wallpaperForPicks: "가장 무거운 대분류(Σ 1 + 1000/인원)"로 벽지를 정하던 예전 규칙. 남의 땅굴만 이 규칙을 써서
+ *   내 땅굴(맨 앞 관심사 규칙)과 벽지가 달랐음 → 방 모습은 data/roomLook.ts roomLookOf 한 곳에서 정함
+ * - getMyWallpaper · setMyWallpaper: 계산한 벽지를 저장해 두던 곳 → 직접 고른 것만 data/myBurrow.ts getMyRoomPick 에
  */
-export function topCategoryOf(picks: string[]): string | undefined {
-  const weight = new Map<string, number>()
-  for (const t of picks) {
-    const c = CATEGORIES.find((x) => x.tags.some((g) => g.name === t))
-    const n = c?.tags.find((g) => g.name === t)?.count ?? 9999
-    if (c) weight.set(c.id, (weight.get(c.id) ?? 0) + 1 + 1000 / n)
-  }
-  return [...weight.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-}
-
-export const wallpaperForPicks = (picks: string[]) => wallpaperForCategory(topCategoryOf(picks))
-
-/* 내 벽지 (프로필 wallpaper_id). 관심사와 같은 방식: 메모리 + sessionStorage (아티팩트에서 저장소가 막혀도 페이지 안에서는 이어짐) */
-const KEY = 'digul.myWallpaper'
-let mine: string | null = null
-export function getMyWallpaper(fallback: string): string {
-  if (mine) return mine
-  try { const v = sessionStorage.getItem(KEY); if (v && WALLPAPERS.some((w) => w.id === v)) return (mine = v) } catch { /* 저장소를 못 쓰면 관심사로 정함 */ }
-  return fallback
-}
-export function setMyWallpaper(id: string) {
-  mine = id
-  try { sessionStorage.setItem(KEY, id) } catch { /* 무시 */ }
-}

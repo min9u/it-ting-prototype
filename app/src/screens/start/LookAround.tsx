@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { roomLookOf } from '../../data/roomLook'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import FieldView from '../../components/FieldView'
 import RoomView from '../../components/RoomView'
@@ -56,12 +57,14 @@ function SampleRoom({ room, seen, onBack }: { room: GuestRoom; seen: number; onB
   const nav = useNavigate()
   const [noteOpen, setNoteOpen] = useState(true)
   const toLogin = () => nav('/login')
+  // 견본 방도 실제 땅굴과 같은 방 모습 (data/roomLook.ts: 대표 관심사 대분류의 색 묶음 + 집주인 씨앗)
+  const look = useMemo(() => roomLookOf(room.id, room.interests), [room.id, room.interests])
   return (
     <div className={s.sampleRoom}>
       <div className={s.sampleBar} aria-hidden />
       <StartHeader right={<><GuestCounter seen={seen} max={GUEST_FREE} /><Link to="/login" className={s.headerLink}>로그인</Link></>} />
       <div className={s.sampleScene}>
-        <RoomView ownerId={room.id} interests={room.interests} hostName={room.owner} hostWorn={room.worn} focusX={noteOpen ? 0.4 : 0.5}
+        <RoomView ownerId={room.id} interests={room.interests} wallpaper={look.wallpaper} style={look.style} hostName={room.owner} hostWorn={room.worn} focusX={noteOpen ? 0.4 : 0.5}
           label={`${room.name} (견본 방)`} onMailbox={toLogin}
           hostBubble={<button className={s.lockedBubble} onClick={toLogin}><span aria-hidden>💬</span> 대화 요청하기<Lock /></button>}>
           <button className={s.lockedBtn} style={{ left: 24, top: 24 }} onClick={toLogin}>단골 추가<Lock /></button>

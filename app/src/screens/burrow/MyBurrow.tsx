@@ -10,11 +10,11 @@ import { PenIcon } from '../../components/Icons'
 import { GUESTBOOK } from '../../data/mock'
 import { getMyWorn, setMyWorn } from '../../data/moleItems'
 import { getMyInterests, setMyInterests, toSubIds } from '../../data/interests'
-import { getMyWallpaper, setMyWallpaper } from '../../data/wallpapers'
 import {
-  MY_REGULARS_COUNT, defaultFurniture, getMyFurnChoice, getMyProfile, leadCategory, moodWallpaper, myAffiliation, pruneChoice, qnaOf, setMyFurnChoice, setMyProfile,
+  MY_REGULARS_COUNT, defaultFurniture, getMyFurnChoice, getMyProfile, getMyRoomPick, myAffiliation, pruneChoice, qnaOf, setMyFurnChoice, setMyProfile, setMyRoomPick,
   type FurnChoice,
 } from '../../data/myBurrow'
+import { roomLookOf } from '../../data/roomLook'
 import { USERS, ME_ID } from '../../data/mock'
 import { liveGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
@@ -45,12 +45,15 @@ export default function MyBurrow() {
   const [mode, setMode] = useState<Mode>(() => (params.get('mode') === 'edit' ? 'edit' : params.get('mode') === 'decor' ? 'decor' : 'info'))
   const [profile, setProfile] = useState(() => { const p = getMyProfile(); return params.get('intro') === '0' ? { ...p, intro: '' } : p })
   const [interests, setInterests] = useState(() => getMyInterests(USERS[ME_ID].interests))
-  const [wallpaper, setWallpaper] = useState(() => getMyWallpaper(moodWallpaper(interests)))
+  // 내가 직접 고른 방 값 (벽지 · 색 테마. 가구 선택은 furn). 계산 값은 저장하지 않음 (data/myBurrow getMyRoomPick)
+  const [roomPick, setRoomPick] = useState(getMyRoomPick)
+  // 꾸미기 색 탭에서 고르는 중인 색 테마 (null = 자동)
+  const [themeDraft, setThemeDraft] = useState<string | null>(roomPick.themeId)
   const [worn, setWorn] = useState<string[]>(getMyWorn)
   const [wornDraft, setWornDraft] = useState<string[]>(worn)
   const [furn, setFurn] = useState<FurnChoice>(() => pruneChoice(getMyFurnChoice(), interests))
   const [furnDraft, setFurnDraft] = useState<FurnChoice>(furn)
-  const [tab, setTab] = useState<DecorTab>(params.get('tab') === 'mole' ? 'mole' : 'furniture')
+  const [tab, setTab] = useState<DecorTab>(params.get('tab') === 'mole' ? 'mole' : params.get('tab') === 'color' ? 'color' : 'furniture')
   const [focusSub, setFocusSub] = useState<string | null>(null)
   const [hintOn, setHintOn] = useState(params.get('hint') === '1')
   const [focusIntro, setFocusIntro] = useState(false)
@@ -65,13 +68,17 @@ export default function MyBurrow() {
   useEffect(() => { if (allOpen && !gbRead) { setGbRead(true); markGbSeen() } }, [allOpen, gbRead])
   const hasNewGb = entries.length > 0 && !gbRead
 
-  const startDecor = (t: DecorTab = 'furniture') => { setWornDraft(worn); setFurnDraft(furn); setTab(t); setMode('decor'); setHintOn(false) }
-  const decorDirty = wornDraft.join(',') !== worn.join(',') || JSON.stringify(furnDraft) !== JSON.stringify(furn)
+  const startDecor = (t: DecorTab = 'furniture') => { setWornDraft(worn); setFurnDraft(furn); setThemeDraft(roomPick.themeId); setTab(t); setMode('decor'); setHintOn(false) }
+  const decorDirty = wornDraft.join(',') !== worn.join(',') || JSON.stringify(furnDraft) !== JSON.stringify(furn) || themeDraft !== roomPick.themeId
   const firstSub = useMemo(() => toSubIds(interests).find((id) => defaultFurniture(id)) ?? null, [interests])
   const highlight = mode === 'decor' && tab === 'furniture' ? focusSub ?? firstSub : null
   const showPanel = panelOpen || mode !== 'info'
   const focusX = showPanel ? 0.403 : 0.5
   const qna = qnaOf(profile.qna)
+  // 방 모습: 남이 내 땅굴을 볼 때(VisitBurrow)와 같은 함수 (data/roomLook.ts). 꾸미는 중이면 고르는 중인 가구 · 색 테마로
+  const shownFurn = mode === 'decor' ? furnDraft : furn
+  const shownTheme = mode === 'decor' ? themeDraft : roomPick.themeId
+  const look = useMemo(() => roomLookOf(ME_ID, interests, { ...roomPick, themeId: shownTheme, furniture: shownFurn }), [interests, roomPick, shownTheme, shownFurn])
 
   const saveEdit = (d: EditDraft) => {
     const moved = d.campus !== profile.campus || d.floor !== profile.floor
@@ -81,8 +88,7 @@ export default function MyBurrow() {
       setMyInterests(nextInt); setInterests(nextInt)
       // 뺀 관심사의 가구는 사라지고 그대로 둔 관심사는 유지, 새 관심사는 기본 가구 (F4 가구 탭 3번)
       const c = pruneChoice(furn, nextInt); setFurn(c); setFurnDraft(c); setMyFurnChoice(c)
-      // 땅굴 무드(벽)는 대표 관심사(맨 앞)의 대분류가 달라질 때만 바뀜
-      if (leadCategory(nextInt) !== leadCategory(interests)) { const w = moodWallpaper(nextInt); setMyWallpaper(w); setWallpaper(w) }
+      // 땅굴 무드(벽)는 대표 관심사(맨 앞)의 대분류가 달라질 때만 바뀜 → roomLookOf 가 관심사로 계산하므로 따로 저장하지 않음
       setFocusSub(null)
     }
     setMode('info'); setFocusIntro(false)
@@ -91,13 +97,14 @@ export default function MyBurrow() {
   const saveDecor = () => {
     setWorn(wornDraft); setMyWorn(wornDraft)
     setFurn(furnDraft); setMyFurnChoice(furnDraft)
+    if (themeDraft !== roomPick.themeId) { setMyRoomPick({ themeId: themeDraft }); setRoomPick({ ...roomPick, themeId: themeDraft }) }
     setMode('info'); setToast(TOAST.edited)
   }
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={ME_ID} interests={interests} wallpaper={wallpaper} worn={mode === 'decor' ? wornDraft : worn} focusX={focusX} label="내 땅굴"
-        furniture={mode === 'decor' ? furnDraft : furn} highlight={highlight}
+      <RoomView ownerId={ME_ID} interests={interests} wallpaper={look.wallpaper} style={look.style} worn={mode === 'decor' ? wornDraft : worn} focusX={focusX} label="내 땅굴"
+        furniture={look.furniture} highlight={highlight}
         mailbox={hasNewGb} onMailbox={() => setAllOpen(true)} fx={MY_FX}>
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 · 바뀐 모습이 바로 보여요</span>
@@ -132,7 +139,8 @@ export default function MyBurrow() {
         <DecorPanel tab={tab} setTab={setTab} picks={interests}
           worn={wornDraft} setWorn={setWornDraft} furn={furnDraft} setFurn={setFurnDraft}
           focusSub={focusSub} setFocusSub={setFocusSub} dirty={decorDirty}
-          onCancel={() => { setWornDraft(worn); setFurnDraft(furn); setMode('info') }}
+          theme={themeDraft} setTheme={setThemeDraft}
+          onCancel={() => { setWornDraft(worn); setFurnDraft(furn); setThemeDraft(roomPick.themeId); setMode('info') }}
           onSave={saveDecor} />
       )}
 

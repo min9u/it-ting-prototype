@@ -1,9 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { RoomSceneHandle } from '../three/roomScene'
 import type { HostScreen } from '../three/engine'
 import { ROOM_FRAME } from '../three/roomFrame'
 import { stillFor } from '../three/stills'
 import type { FurnChoice } from '../data/myBurrow'
+import type { RoomStyle } from '../data/roomStyle'
+import { lookDiverse, subscribeLook } from '../lib/roomLookLab'
 import styles from './RoomView.module.css'
 import SceneBoundary from './SceneBoundary'
 import { useReducedMotion } from '../lib/useReducedMotion'
@@ -70,6 +72,11 @@ interface Props {
   loadingStill?: boolean
   /** 관심사 이펙트를 켬 (내 땅굴·남의 땅굴만. 시작 화면·온보딩 미리 보기는 안 씀). viewer = 남의 땅굴에서 내 관심사 (docs/interest-effects.md) */
   fx?: { viewer?: string[]; talk?: 'open' | 'slow' | null }
+  /**
+   * 꾸미기 값 (data/roomLook.ts roomLookOf 의 style: 색 테마 · 껍데기 색 · 무늬 · 모양). 없으면 디자이너 원래 모습.
+   * 🎨 땅굴 색 다양하게를 끄면(lib/roomLookLab.ts) 넘겨도 원래 모습. 바뀌면 장면을 다시 만들지 않고 갈아 입힘
+   */
+  style?: RoomStyle | null
 }
 
 /**
@@ -112,7 +119,9 @@ function LoaderMole() {
   )
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false, fx }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false, fx, style: styleIn }: Props) {
+  const diverse = useSyncExternalStore(subscribeLook, lookDiverse)
+  const style = diverse ? styleIn ?? null : null
   const [ready, setReady] = useState(false)
   const [loaded, setLoaded] = useState(false)
   // 3D 장면이 예전에 구운 같은 구도의 그림을 이미 깔았음 (SceneHandle.still) → 로딩 애니메이션 없이 장면을 바로 보임
@@ -138,6 +147,19 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const hlRef = useRef(highlight)
   hlRef.current = highlight
   useEffect(() => { (handle.current as RoomSceneHandle | null)?.setHighlight?.(highlight) }, [highlight])
+  // 꾸미기 값: 처음 값은 장면을 만들 때(getStyle), 그 뒤 바뀌면(🎨 스위치 · 꾸미기 테마) setStyle. styleMounted = 지금 장면에 입힌 값
+  const styleRef = useRef(style)
+  styleRef.current = style
+  const styleKey = JSON.stringify(style ?? null)
+  const styleMounted = useRef<string | null>(null)
+  const getStyle = () => { styleMounted.current = JSON.stringify(styleRef.current ?? null); return styleRef.current ?? null }
+  const syncStyle = (h: RoomSceneHandle | null) => {
+    const k = JSON.stringify(styleRef.current ?? null)
+    if (!h || styleMounted.current === k) return
+    styleMounted.current = k
+    h.setStyle?.(styleRef.current ?? null)
+  }
+  useEffect(() => { syncStyle(handle.current) }, [styleKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const onMailboxRef = useRef(onMailbox)
   onMailboxRef.current = onMailbox
   useEffect(() => {
@@ -195,6 +217,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           worn={worn}
           mailbox={mailboxRef.current}
           furniture={furnRef.current}
+          getStyle={getStyle}
           fx={fx}
           onMailbox={() => onMailboxRef.current?.()}
           focusX={focusX}
@@ -206,6 +229,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
           )}
           onReady={(h) => {
             handle.current = h; setReady(true)
+            syncStyle(h as RoomSceneHandle)
             ;(h as RoomSceneHandle).setMailbox?.(mailboxRef.current)
             if (furnRef.current) (h as RoomSceneHandle).setFurniture?.(furnRef.current)
             ;(h as RoomSceneHandle).setHighlight?.(hlRef.current)
