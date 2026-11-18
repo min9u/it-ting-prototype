@@ -11,6 +11,7 @@ import { loadGlb } from './glb'
 import { DROP_DURATION, DUST_AT, dustOpacity, furnitureDrop } from './furnitureDrop'
 import { bindDriveKeys } from './keys'
 import { createMoleActor, loadMoleGltf, REACTIONS, type FurnitureData, type MoleActor, type Seat } from './moleActor'
+import { clearPath, planPath, type Rect as NavRect } from './roomPath'
 import { loadAccessories } from './moleDress'
 import { blobShadow } from './roomLook'
 import { approach, createRenderer, destroyRenderer, frameCamera, quality, startLoop, testParam, type HostScreen, type SceneHandle } from './engine'
@@ -341,6 +342,33 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     return p
   }
 
+  /**
+   * 길 찾기 (three/roomPath.ts): clampRoom 과 같은 장애물(가구 발자리 + 집주인 두더지 자리)을 돌아가는 길.
+   * 집주인은 둥근 자리(clampRoom 의 need)를 감싸는 네모로 봄
+   */
+  const navRects = (): NavRect[] => {
+    if (!host) return feet
+    const h = host.object.position, need = MOLE_R * 2.1
+    return [...feet, { x0: h.x - need, x1: h.x + need, z0: h.z - need, z1: h.z + need }]
+  }
+  // ?nav=0 = 예전처럼 곧장 (비교용)
+  const nav = testParam('nav') === '0' ? undefined : {
+    plan: (from: { x: number; z: number }, to: { x: number; z: number }) => planPath(from, to, navRects(), ROOM_R - .5),
+    clear: (a: { x: number; z: number }, b: { x: number; z: number }) => clearPath(a, b, navRects()),
+  }
+  // 시험용 손잡이 ?navdbg=1: 두더지 자리 · 장애물 · 걷기 · 바닥 점의 화면 좌표 (헤드리스 크롬 확인)
+  if (testParam('navdbg') === '1') {
+    ;(window as unknown as { __roomNav?: unknown }).__roomNav = {
+      pos: () => (mole ? { x: mole.object.position.x, z: mole.object.position.z, idle: mole.isIdle() } : null),
+      rects: () => navRects(),
+      walkTo: (x: number, z: number) => { mole?.walkTo(new THREE.Vector3(x, FLOOR_Y, z)); loop.wake() },
+      screen: (x: number, z: number) => {
+        const v = new THREE.Vector3(x, FLOOR_Y, z).project(camera), r = renderer.domElement.getBoundingClientRect()
+        return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }
+      },
+    }
+  }
+
   /** 기본 가구 발자리·앉는 높이를 지금 모양(크기·두께)으로 다시 잼 */
   const measureBase = () => {
     scene.updateMatrixWorld(true)
@@ -605,7 +633,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn, simple: simpleMole })
       scene.add(host.object)
     }
-    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
+    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, nav, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     // 땅굴 비교 찍기용 (?nomole=1, tools/room-diversity, docs/room-diversity-2026-11-18.md): 두더지 두 마리를 숨기고 방만. 발밑 그림자는 루프가 따라 숨김.

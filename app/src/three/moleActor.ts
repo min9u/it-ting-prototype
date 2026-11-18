@@ -142,6 +142,14 @@ export function createMoleActor(gltf: GLTF, opts: {
   scale: number
   start: THREE.Vector3
   clamp?: (p: THREE.Vector3) => THREE.Vector3
+  /**
+   * 길 찾기 (땅굴 방, three/roomPath.ts). 주면 걷기를 시작할 때 가구를 돌아가는 길(점 목록)을 정하고,
+   * 걷는 동안 다음 점이 바로 보이면 앞당겨 넘어가 모서리를 살짝 둥글게 돎. 없으면 예전처럼 곧장 (clamp 로 밀어내기만)
+   */
+  nav?: {
+    plan(from: { x: number; z: number }, to: { x: number; z: number }): { x: number; z: number }[] | null
+    clear(a: { x: number; z: number }, b: { x: number; z: number }): boolean
+  }
   /** 카메라 쪽을 바라보는 yaw (정면 +Z 기준) */
   faceCamera?: number
   /** 처음에 천장에서 떨어질지 (기본 true) */
@@ -254,23 +262,46 @@ export function createMoleActor(gltf: GLTF, opts: {
   /* ---------- 단계들 ---------- */
   const speed = WALK_BASE * WALK_RATE * STRIDE * S
 
+  /**
+   * 길 중간 점에 이만큼 다 와야 (다음 점이 아직 안 보여도) 다음 점으로 (m, 방 단위).
+   * 크게 잡으면 안 보이는 다음 점으로 일찍 꺾어 모서리를 파고들어 다시 미끄러짐 (2026-11-18 방문자 뷰에서 확인). 둥글게 도는 건 "다음 점이 보이면 넘어감"이 맡음
+   */
+  const WAY_NEXT = .05
+
   function walkStep(target: THREE.Vector3, o: { strict?: boolean; until?: number; keep?: boolean } = {}): Step {
     let goal = target.clone(); let stuck = 0; let last = Infinity
+    /** 지나갈 점들 (마지막 = goal). nav 가 없거나 strict 면 [goal] */
+    let way: { x: number; z: number }[] = [goal]; let wi = 0
     return {
       begin() {
         goal.y = FY
         if (!o.strict && opts.clamp) goal = opts.clamp(goal)
+        way = [goal]; wi = 0; last = Infinity; stuck = 0
+        if (!o.strict && opts.nav) {
+          const p = opts.nav.plan(object.position, goal)
+          // 마지막 점은 goal 그대로 (clamp 된 값)
+          if (p && p.length > 1) way = [...p.slice(0, -1), goal]
+        }
         if (current !== act('mole_walk')) play('mole_walk', { from: .125, rate: WALK_RATE, fade: .12 })
       },
       tick(dt) {
-        const dx = goal.x - object.position.x, dz = goal.z - object.position.z, d = Math.hypot(dx, dz)
-        if (o.until && d < o.until) return true   // 이어서 approachStep 이 걷기를 끊지 않고 이어 받음
-        if (d < .03) { object.position.x = goal.x; object.position.z = goal.z; play('mole_idle', { fade: .12 }); return true }
-        // 몸을 진행 방향으로 (빠르게 따라 돌기)
-        const want = Math.atan2(dx, dz), diff = wrap(want - yawOf())
-        object.rotation.y = yawOf() + diff * Math.min(1, dt * 9)
-        // 많이 틀어져 있으면 제자리에서 먼저 돌기
-        const go = Math.abs(diff) > 1.2 ? 0 : Math.min(d, speed * dt)
+        // 길 중간: 다음 점이 바로 보이거나 지금 점에 거의 왔으면 넘어감 → 모서리를 살짝 둥글게
+        while (wi < way.length - 1) {
+          const w = way[wi], near = Math.hypot(w.x - object.position.x, w.z - object.position.z) < WAY_NEXT * S
+          if (near || opts.nav?.clear(object.position, way[wi + 1])) { wi++; last = Infinity; stuck = 0 } else break
+        }
+        const tgt = way[wi], final = wi === way.length - 1, turning = wi > 0
+        const dx = tgt.x - object.position.x, dz = tgt.z - object.position.z, d = Math.hypot(dx, dz)
+        if (final) {
+          if (o.until && d < o.until) return true   // 이어서 approachStep 이 걷기를 끊지 않고 이어 받음
+          if (d < .03) { object.position.x = goal.x; object.position.z = goal.z; play('mole_idle', { fade: .12 }); return true }
+        }
+        // 몸을 진행 방향으로 (빠르게 따라 돌기. 길을 도는 중에는 조금 더 빨리)
+        const want = Math.atan2(dx, dz), diff = wrap(want - yawOf()), ad = Math.abs(diff)
+        object.rotation.y = yawOf() + diff * Math.min(1, dt * (turning ? 11 : 9))
+        // 많이 틀어져 있으면 제자리에서 먼저 돌기. 길을 도는 중(모서리)에는 멈추지 않고 속도만 줄이며 돎
+        const k = turning ? (ad > 1.9 ? 0 : Math.max(.35, Math.min(1, 1.4 - ad * .7))) : (ad > 1.2 ? 0 : 1)
+        const go = Math.min(d, speed * dt * k)
         object.position.x += dx / d * go; object.position.z += dz / d * go
         if (!o.strict && opts.clamp) opts.clamp(object.position)
         // 가구에 막혀 더 못 가면 멈춤
