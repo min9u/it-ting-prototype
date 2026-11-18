@@ -11,6 +11,9 @@
 //            장면 최악 간격(그리기 묶음 사이), 프로세스별 CPU 사용률(렌더러 = 페이지 메인 스레드 포함, GPU = WARP 가 그리는 곳)
 // - load: 새 프로필(캐시 없음)로 열고 화면이 다 차려질 때까지(readyMs) + 3초. 긴 작업·가장 긴 멈춤
 // - explore: idle 6초 → 방향키 점프 4번(1.7초 간격) → idle 6초 → 구멍 클릭 점프 → 들판 바꾸기(다른 캠퍼스-층)
+// - zoom (2026-11-18, v3.10 줌 3단계, docs/explore-field-v3-10.md): near 가만히 4초 → − (near→mid) 2.5초 → mid 가만히 4초 → − (mid→far) 2.5초
+//         → far 가만히 4초 → far 에서 방향키 점프 2번 → + (far→mid) 2.5초 → + (mid→near) 2.5초 → near 가만히 4초.
+//         줌 단계마다 zoomFps(전환 0.5초 동안 장면이 그린 횟수/0.5) · zoomWorstGap, sharpMs(키를 누른 뒤 선명한 배경이 다시 깔릴 때까지, holeField __sharpAt)
 // - chat: idle 8초 → 메시지 보내기(인사 동작) 4초 → idle 8초
 // - room: idle 6초 → D·A 키로 걷기 8초 → idle 6초
 // - nav: 내 땅굴 → 탐색 → 다른 땅굴 → 탐색 → 채팅 (해시 주소 바꾸기, 각 전환 시간·긴 작업)
@@ -27,7 +30,7 @@ const REPS = +(process.env.REPS || 3)
 // 화면이 다 차려졌는지: 장면이 loop.ready() 로 첫 그림을 그린 시각(engine.ts markSceneReady) 이 이번 이동 뒤인지
 // (로더는 캐시가 있으면 한 번도 안 그려질 수 있어서 DOM 대신 앱이 남기는 표시를 씀)
 const READY = `(()=>(window.__sceneReadyAt||0)>(window.__navAt||0))()`
-const INJECT = `window.__f=[];window.__lt=[];window.__draws=[];window.__sceneT=[];window.__panT=[];window.__ready=null;window.__navAt=0;window.__readyFn=()=>(window.__sceneReadyAt||0)>(window.__navAt||0);
+const INJECT = `window.__f=[];window.__lt=[];window.__draws=[];window.__sceneT=[];window.__panT=[];window.__zoomT=[];window.__ready=null;window.__navAt=0;window.__readyFn=()=>(window.__sceneReadyAt||0)>(window.__navAt||0);
 window.__panT.push=function(t){try{performance.mark('pan')}catch(e){};return Array.prototype.push.call(this,t)};
 (function loop(t){window.__f.push(t);if(window.__ready===null&&window.__readyFn){try{if(window.__readyFn())window.__ready=performance.now()}catch(e){}}requestAnimationFrame(loop)})(0);
 const _gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(...a){const c=_gc.apply(this,a);if(c&&/webgl/.test(a[0])&&!c.__w){c.__w=1;for(const fn of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){const o=c[fn];if(!o)continue;const ci=fn.startsWith('drawElements')?1:2,ii=fn==='drawElementsInstanced'?4:fn==='drawArraysInstanced'?3:-1;c[fn]=function(...b){const n=performance.now();if(!window.__lastDraw||n-window.__lastDraw>4)window.__draws.push(n);window.__lastDraw=n;window.__nDraw=(window.__nDraw||0)+1;window.__nTri=(window.__nTri||0)+b[ci]*(ii>0?b[ii]:1)/3;return o.apply(this,b)}}}return c};
@@ -73,7 +76,9 @@ async function run(rep) {
       return{sec:+sec.toFixed(1),rafFps:+(f.length/sec).toFixed(1),sceneFps:+(d.length/sec).toFixed(1),worstGap:Math.round(gaps[gaps.length-1]||0),sceneWorstGap:Math.round(dg[dg.length-1]||0),
       longTaskMs:Math.round(lt.reduce((a,x)=>a+x[1],0)),longTaskMax:Math.round(Math.max(0,...lt.map(x=>x[1]))),
       // 점프 카메라 이동(0.4초)마다 그린 프레임 수 → fps (holeField 가 __panT 에 남김)
-      ...(()=>{const p=__panT.filter(t=>t>=s&&t<e);if(!p.length)return{};let n=1;const g=[];for(let i=1;i<p.length;i++){const d=p[i]-p[i-1];if(d>250)n++;else g.push(d)}return{panFps:+(p.length/n/0.4).toFixed(1),panWorstGap:Math.round(Math.max(0,...g))}})()}})()`)
+      ...(()=>{const p=__panT.filter(t=>t>=s&&t<e);if(!p.length)return{};let n=1;const g=[];for(let i=1;i<p.length;i++){const d=p[i]-p[i-1];if(d>250)n++;else g.push(d)}return{panFps:+(p.length/n/0.4).toFixed(1),panWorstGap:Math.round(Math.max(0,...g))}})(),
+      // 줌 전환(0.5초)마다 그린 프레임 수 → fps (holeField 가 __zoomT 에 남김)
+      ...(()=>{const p=(window.__zoomT||[]).filter(t=>t>=s&&t<e);if(!p.length)return{};let n=1;const g=[];for(let i=1;i<p.length;i++){const d=p[i]-p[i-1];if(d>300)n++;else g.push(d)}return{zoomFps:+(p.length/n/0.5).toFixed(1),zoomWorstGap:Math.round(Math.max(0,...g))}})()}})()`)
     if (c0 && c1) { const dt = r.sec; r.cpuRenderer = +(((c1.renderer ?? 0) - (c0.renderer ?? 0)) / dt * 100).toFixed(0); r.cpuGpu = +(((c1.gpu ?? c1.GPU ?? 0) - (c0.gpu ?? c0.GPU ?? 0)) / dt * 100).toFixed(0) }
     return r
   }
@@ -201,6 +206,38 @@ async function run(rep) {
       const r = await waitReady(); res.floorSwitchMs = r === null ? null : Math.round(r - t0)
       await sleep(1500)
     })
+  } else if (scenario === 'zoom') {
+    // 줌 키: − 멀리, = (+) 가까이 (ExploreBurrow). 키를 누른 시각 → 선명한 배경이 다시 깔린 시각(__sharpAt, 저사양만)
+    const zkey = async (k) => { const t = await now(); if (k === '-') await key('Minus', '-', 189); else await key('Equal', '=', 187); return t }
+    const zphase = async (label, k) => {
+      let t0 = 0
+      const r = await phase(label, 0, async () => { await ev('window.__sharpAt=0'); t0 = await zkey(k); await sleep(2500) })
+      const sa = await ev('window.__sharpAt||0')
+      r.sharpMs = sa > t0 ? Math.round(sa - t0) : null
+      // 키 → 카메라가 움직이기 시작한 프레임 (저사양 줌 아웃은 도착 그림을 기다렸다 움직임)
+      const z0 = await ev(`(window.__zoomT||[]).find(t=>t>${t0})||0`)
+      r.startMs = z0 > t0 ? Math.round(z0 - t0) : null
+      r.level = await ev(`((location.hash + location.search).match(/zoom=([a-z]+)/)||[])[1]||'near'`)
+      return r
+    }
+    res.idle = await phase('idle', 4000)
+    res.out1 = await zphase('out1', '-')
+    res.idleMid = await phase('idleMid', 4000)
+    res.out2 = await zphase('out2', '-')
+    res.idleFar = await phase('idleFar', 4000)
+    const seats = [await seatNow()]
+    res.hopFar = await phase('hopFar', 0, async () => {
+      for (const [k, vk] of [['ArrowUp', 38], ['ArrowDown', 40]]) {
+        const before = await seatNow()
+        await key(k, k, vk); await sleep(1700)
+        if ((await seatNow()) === before) { const alt = k === 'ArrowUp' ? ['ArrowRight', 39] : ['ArrowLeft', 37]; await key(alt[0], alt[0], alt[1]); await sleep(1700) }
+        seats.push(await seatNow())
+      }
+    })
+    res.hopFar.seats = seats
+    res.in1 = await zphase('in1', '+')
+    res.in2 = await zphase('in2', '+')
+    res.idleNear = await phase('idleNear', 4000)
   } else if (scenario === 'chat') {
     res.idle = await phase('idle', 8000)
     res.send = await phase('send', 0, async () => {
@@ -265,7 +302,7 @@ for (let i = 0; i < REPS; i++) { const r = await run(i); runs.push(r); process.s
 // 중앙값 (단계·지표마다)
 const med = (arr) => { const v = arr.filter((x) => typeof x === 'number').sort((a, b) => a - b); return v.length ? v[v.length >> 1] : null }
 const summary = { name, mode, url, scenario, aff: process.env.AFF ?? null, lab: process.env.LAB ?? null, window: !!process.env.WINDOW, renderer: runs[0]?.renderer }
-for (const ph of ['load', 'idle', 'hop', 'idle2', 'click', 'floor', 'send', 'walk', 'scroll']) {
+for (const ph of ['load', 'idle', 'hop', 'idle2', 'click', 'floor', 'send', 'walk', 'scroll', 'out1', 'idleMid', 'out2', 'idleFar', 'hopFar', 'in1', 'in2', 'idleNear']) {
   if (!runs.some((r) => r[ph])) continue
   summary[ph] = {}
   for (const k of Object.keys(runs.find((r) => r[ph])[ph])) { const m = med(runs.map((r) => r[ph]?.[k])); if (m !== null) summary[ph][k] = m }

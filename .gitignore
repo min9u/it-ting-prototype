@@ -31,9 +31,10 @@ explore/gpu/results/win/*.png
 !explore/gpu/results/win/keep-*.png
 explore/gpu/results/load/*.png
 explore/gpu/results/load/*.cpuprofile
-# 3D 핸드오프 v3.8·v3.9: 확인용 탑뷰 이미지는 zip에만
+# 3D 핸드오프 v3.8·v3.9·v3.10: 확인용 탑뷰·카메라 이미지는 zip에만
 design/digul_3d_handoff_v3_8/images/
 design/digul_3d_handoff_v3_9/images/
+design/digul_3d_handoff_v3_10/images/
 # 렌더링 실험 2 (2026-11-16): 단계별 스크린샷·CPU 프로필은 다시 만들 수 있어서 제외. 화질 비교 그림(results/quality)은 커밋
 explore/gpu/results/scene/*.png
 explore/gpu/results/scene/*.cpuprofile

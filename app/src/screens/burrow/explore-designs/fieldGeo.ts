@@ -5,9 +5,10 @@
  * - 좌표: three 좌표 그대로 x = 오른쪽, z = 아래(남쪽). -z 가 위(북쪽)라서 SVG (x, y) = (x, z) 로 바로 그림
  * - 길 타일은 2m 칸. 타일마다 이어지는 방향(팔)을 돌려서 길 그래프를 만들고, 구멍은 그 칸으로 들어오는 팔과 이어짐
  *   (150자리 전부 이어지는 것 확인: 한쪽만 이어진 팔 0, 끊긴 팔 0)
- * - 카메라 값(세로 FOV 32.3°, 45°, 12m, 목표점 = 켜진 구역 camRect 합집합 안)은 holeField.ts 와 같은 숫자를 여기 따로 둠
- *   (holeField.ts 는 다른 작업과 겹쳐서 손대지 않음. 값이 바뀌면 같이 바꿀 것)
+ * - 카메라(세로 FOV 32.3°, 45°, 거리 near 12 / mid 24 / far 46m, 단계별 타깃 한계)는 3D 와 같은 계산을 three/fieldCam.ts 에서 같이 씀 (v3.10, 2026-11-18)
+ * - v3.10: 바닥이 전부 잔디, 흙은 길·구멍 둘레 띠만 (잔디 덩어리 없음). 작물은 층마다 한 종류(themes)
  */
+import { ZOOM_DIST, camFootprint as footprintAt, camTargetAt, type ZoomLevel } from '../../../three/fieldCam'
 
 export type Item = [node: number, x: number, y: number, z: number, ry: number, sx: number, sy: number, sz: number]
 type Tile = { cell: string; t: Item }
@@ -17,13 +18,13 @@ export interface LayoutZone {
   camRect: { x: [number, number]; z: [number, number] }
   holes: [seat: number, x: number, z: number, ry: number, s: number, ring: number][]
   paths: Tile[]; linkAdd: Tile[]; linkReplace: Tile[]
-  grass: Item[]; tufts: Item[]; crops: Item[]; flowers: Item[]
+  tufts: Item[]; crops: Item[]; flowers: Item[]
 }
 export interface Layout {
-  theme: { grass_color: string }
   mineRing: string
   rings: string[]
   nodes: string[]
+  themes: { id: string; crops: Item[][] | null }[]
   ladder: Item
   zones: LayoutZone[]
 }
@@ -37,11 +38,12 @@ export const layoutNow = () => layoutV
 
 /* ---------- 색 (3D 재질 색을 화면 톤으로) ---------- */
 export const MAP_COLORS = {
-  grass: '#8CC56A', // 바깥 잔디 = 안 켠 구역 (3D 와 같은 색)
+  grass: '#8CC56A', // 잔디 (바닥 전체 · 안 켠 구역, 3D 테마 grass_color 와 같은 색)
   grassDim: '#97CB76',
-  soil: '#EFB27A', // 흙 슬랩 (dirt 재질)
+  grassLit: '#93C971', // 켜진 구역 바탕 (안 켠 구역과 살짝 구분)
+  soil: '#EFB27A', // 흙 띠 (테마 soil_color #F0B47A 를 화면 톤으로)
   soilEdge: '#D9925A',
-  patch: '#9FD077', // 잔디 덩어리
+  patch: '#9FD077', // (v3.9 잔디 덩어리, 지금은 마을 지도 꾸밈에만)
   patchEdge: '#7DB457',
   path: '#F8E6C4',
   pad: '#F6D6AA', // 빈 자리 (empty_pad)
@@ -50,6 +52,11 @@ export const MAP_COLORS = {
   ladder: '#6B3A1E',
   pumpkin: '#EE8A3A',
   flower: '#FFF6E8',
+}
+/** 작물 점 색 (마을 지도). 3D 재질 색을 화면 톤으로: 호박 주황 · 사과 빨강 · 딸기 진빨강 · 고구마 보라 · 당근 주황 */
+export const CROP_COLORS: Record<string, [fill: string, edge: string]> = {
+  pumpkin: ['#EE8A3A', '#C8642A'], apple: ['#D9473E', '#8E3A20'], strawberry: ['#EC3B4C', '#A22233'],
+  sweetpotato: ['#9B6FC8', '#5E3E86'], carrot: ['#FF7A1F', '#C25410'],
 }
 
 export const FIELD_BOUNDS = { x0: -54, x1: 54, z0: -72, z1: 0 }
@@ -66,7 +73,10 @@ export interface Village {
   holes: Hole[]
   /** 길: SVG path d (미터 단위, 칸 가운데에서 팔 방향으로 1m 씩) */
   pathD: string
+  /** v3.9 잔디 덩어리 (v3.10 은 늘 비어 있음) */
   grass: { x: number; z: number; w: number; h: number; ry: number }[]
+  /** 이 층 작물 테마 id 와 작물 자리 */
+  crop: string
   crops: { x: number; z: number; s: number }[]
   flowers: { x: number; z: number }[]
   /** 켜진 구역을 감싸는 상자 */
@@ -89,13 +99,11 @@ const rot = ([x, z]: [number, number], ry: number): [number, number] => {
 export const cellKey = (cx: number, cz: number) => `${cx},${cz}`
 export const cellOf = (x: number, z: number) => cellKey(Math.round(x / 2), Math.round(z / 2))
 export const cellPos = (k: string): [number, number] => { const [a, b] = k.split(','); return [+a * 2, +b * 2] }
-/** 잔디 덩어리 노드 크기 (grass_patch.glb 의 x·z 폭) */
-const PATCH: Record<string, [number, number]> = { grass_patch_1: [3, 2.4], grass_patch_2: [4, 2], grass_patch_3: [2.4, 3.4] }
-
 const villageCache = new Map<string, Village>()
 
-export function buildVillage(L: Layout, zones: number, occupied: number[], mySeat: number | null): Village {
-  const key = `${zones}|${mySeat}|${occupied.join(',')}`
+/** crop: 이 층 작물 테마 id (v3.10 themes). 작물 점은 마을 지도(디자인 B)만 그림 */
+export function buildVillage(L: Layout, zones: number, occupied: number[], mySeat: number | null, crop = 'pumpkin'): Village {
+  const key = `${zones}|${mySeat}|${crop}|${occupied.join(',')}`
   const hit = villageCache.get(key)
   if (hit) return hit
   const n = Math.max(1, Math.min(6, zones))
@@ -145,20 +153,18 @@ export function buildVillage(L: Layout, zones: number, occupied: number[], mySea
     }
   })
 
+  // v3.10 은 잔디 덩어리가 없음 (바닥 전체가 잔디) → grass 는 빈 목록
   const grass: Village['grass'] = [], crops: Village['crops'] = [], flowers: Village['flowers'] = []
+  const theme = L.themes?.find((t) => t.id === crop)
   for (const z of zonesOn) {
-    for (const it of z.grass) {
-      const size = PATCH[L.nodes[it[0]].split(':')[1]] ?? [3, 2.4]
-      grass.push({ x: it[1], z: it[3], w: size[0] * it[5], h: size[1] * it[7], ry: it[4] })
-    }
-    for (const it of z.crops) crops.push({ x: it[1], z: it[3], s: it[5] })
+    for (const it of theme?.crops ? theme.crops[z.zone - 1] ?? [] : z.crops) crops.push({ x: it[1], z: it[3], s: it[5] })
     for (let i = 0; i < z.flowers.length; i += 3) flowers.push({ x: z.flowers[i][1], z: z.flowers[i][3] })
   }
   const litBox = {
     x0: Math.min(...zonesOn.map((z) => z.bounds.x[0])), x1: Math.max(...zonesOn.map((z) => z.bounds.x[1])),
     z0: Math.min(...zonesOn.map((z) => z.bounds.z[1])), z1: Math.max(...zonesOn.map((z) => z.bounds.z[0])),
   }
-  const v: Village = { zonesOn, zonesOff, seats, holes, pathD: d, grass, crops, flowers, litBox, camRects: zonesOn.map((z) => z.camRect), adj, holeCell }
+  const v: Village = { zonesOn, zonesOff, seats, holes, pathD: d, grass, crop, crops, flowers, litBox, camRects: zonesOn.map((z) => z.camRect), adj, holeCell }
   villageCache.set(key, v)
   return v
 }
@@ -205,35 +211,18 @@ export function nearestInDir(holes: { seat: number; x: number; z: number }[], fr
   return best
 }
 
-/* ---------- 카메라 (디자인 A 3D 들판이 지금 보여 주는 범위) ---------- */
-const CAM_DIST = 12, CAM_PITCH = Math.PI / 4, FOV = 32.3
+/* ---------- 카메라 (디자인 A 3D 들판이 지금 보여 주는 범위, 계산은 three/fieldCam.ts) ---------- */
 
-/** 카메라 목표점: 켜진 구역 camRect 합집합 안으로 (가장 가까운 사각형 안의 점) */
-export function camTarget(v: Village, x: number, z: number): [number, number] {
-  let best: [number, number] = [x, z], bd = Infinity
-  for (const r of v.camRects) {
-    const zlo = Math.min(r.z[0], r.z[1]), zhi = Math.max(r.z[0], r.z[1])
-    const c: [number, number] = [Math.min(Math.max(x, r.x[0]), r.x[1]), Math.min(Math.max(z, zlo), zhi)]
-    const dd = (c[0] - x) ** 2 + (c[1] - z) ** 2
-    if (dd < bd) { bd = dd; best = c }
-  }
-  return best
+/** 카메라 목표점: near·mid 는 켜진 구역 camRect 합집합 안, far 는 한계 공식 (구멍 중앙 정렬 막음) */
+export function camTarget(v: Village, x: number, z: number, level: ZoomLevel = 'near'): [number, number] {
+  return camTargetAt(level, v.zonesOn, x, z)
 }
 
 /**
  * 화면에 보이는 땅 (사다리꼴 네 점: 왼쪽 아래 → 오른쪽 아래 → 오른쪽 위 → 왼쪽 위).
- * aspect = 장면 가로/세로, focusX = 목표점이 놓이는 가로 위치(오른쪽 카드가 열리면 0.403), u1 = 가려지지 않은 오른쪽 끝(0~1).
- * 16:9 · 가운데 · 안 가림이면 핸드오프 v3.9 값(아래 폭 9.6, 위 폭 17.4, 앞 3.8 / 뒤 6.9)과 같음
+ * aspect = 장면 가로/세로, focusX = 목표점이 놓이는 가로 위치(오른쪽 카드가 열리면 0.403), u1 = 가려지지 않은 오른쪽 끝(0~1), D = 카메라 거리.
+ * 16:9 · 가운데 · 안 가림 · near 면 핸드오프 값(아래 폭 9.6, 위 폭 17.4, 앞 3.8 / 뒤 6.9)과 같음
  */
-export function camFootprint(tx: number, tz: number, aspect = 16 / 9, focusX = 0.5, u1 = 1): [number, number][] {
-  const t = Math.tan((FOV * Math.PI) / 360)
-  const cy = Math.sin(CAM_PITCH) * CAM_DIST, cz = tz + Math.cos(CAM_PITCH) * CAM_DIST
-  const f = [0, -Math.SQRT1_2, -Math.SQRT1_2], up = [0, Math.SQRT1_2, -Math.SQRT1_2]
-  const at = (u: number, ny: number): [number, number] => {
-    const nx = 2 * (u + 0.5 - focusX) - 1
-    const dx = nx * aspect * t, dy = f[1] + up[1] * ny * t, dz = f[2] + up[2] * ny * t
-    const s = -cy / dy
-    return [tx + dx * s, cz + dz * s]
-  }
-  return [at(0, -1), at(u1, -1), at(u1, 1), at(0, 1)]
+export function camFootprint(tx: number, tz: number, aspect = 16 / 9, focusX = 0.5, u1 = 1, D = ZOOM_DIST.near): [number, number][] {
+  return footprintAt(tx, tz, aspect, focusX, u1, D)
 }
