@@ -153,6 +153,28 @@ HTTP/1.1 409 Conflict
 
 ✅ = 이번에 화면이 이 API 를 거치도록 바꾼 곳
 
+#### 땅굴 응답의 `room` (방 꾸미기 저장 값, 2026-11-18 프론트 연결함)
+`GET /burrows/{memberId}` 의 `room` 은 **집주인이 꾸미기에서 직접 고른 것만** 담는다. 관심사로 계산되는 값(대표 관심사의 대분류 → 벽지 등)은 서버가 저장하지 않고 프론트가 같은 함수로 계산한다 (`app/src/data/roomLook.ts roomLookOf`). 내 땅굴과 방문자 뷰가 이 함수 하나를 거쳐서, 내가 보는 내 땅굴과 남이 보는 내 땅굴이 같다 ([room-diversity-2-2026-11-18.md](../room-diversity-2-2026-11-18.md) 1단계).
+
+```json
+"room": {
+  "schemaVersion": 1,
+  "wallpaperId": null,
+  "furniture": { "novel": "book_stack" }
+}
+```
+| 필드 | 타입 | 뜻 | 없을 때 |
+|---|---|---|---|
+| `room` | object \| null | 꾸민 적이 없으면 `null` | 프론트가 관심사로 계산 |
+| `schemaVersion` | number | 형식 번호 (지금 1). 형식이 바뀌면 올림 | — |
+| `wallpaperId` | string \| null | 직접 고른 벽지 (`wallpaper_01_default` … `wallpaper_08_stripe`). 지금 화면에는 벽지 고르기가 없어서 늘 `null` | 대표 관심사(맨 앞, `sortOrder` 0)의 대분류로 계산 |
+| `furniture` | `{ [소분류 코드]: 가구 id }` | 꾸미기 가구 탭에서 기본 가구 대신 고른 것만 | 관심사마다 기본 가구 |
+
+- 키는 **소분류 코드**(`novel`, `cafe_coffee` …, [interest-enum.md](interest-enum.md)). `member_interest.furniture` 로 관심사마다 줘도 됨 (프론트는 둘 다 읽고 `room.furniture` 가 먼저)
+- 모르는 벽지·가구 id, 지금 관심사에 없는 소분류의 가구, 그 관심사의 후보가 아닌 가구는 프론트가 버리고 기본값으로 (서버가 400 으로 막아도 됨: 후보 = 그 소분류의 기본 가구 + 같은 대분류 선반 소품 2개)
+- 관심사를 바꾸면 뺀 관심사의 가구 선택은 서버가 지워도 되고 남겨도 됨 (프론트가 거름)
+- `PUT /me/burrow/room` 은 같은 모양으로 전체를 바꿈
+
 ### 2.4 오늘의 추천 친구 (F5) — `api.members`
 | 메서드 | 경로 | 본문 | 응답 | 에러 | 코드 |
 |---|---|---|---|---|---|

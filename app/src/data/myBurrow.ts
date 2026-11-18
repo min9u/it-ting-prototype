@@ -3,6 +3,7 @@
  * - 프로필: 닉네임 · 자기소개 · 질문 3개와 답변 · 캠퍼스 · 층 (기수는 SSAFY 인증 값이라 못 바꿈, 반은 받지 않음 — 00 공통 4·19)
  * - 가구 고르기: 세부 관심사 id → 가구 id (02 F4 꾸미기 모드 · 가구 탭, 00 공통 5 "땅굴 가구는 세부 관심사로 센다")
  * - 땅굴 무드: 대표 관심사(내 관심사 목록 맨 앞)의 대분류로 정함 (00 공통 5, F3 3a 3번, F4 꾸미기 가구 탭 3번)
+ * - 방 모습(벽지·가구 선택)은 내 땅굴과 남이 보는 내 땅굴이 같은 함수로 정함 → data/roomLook.ts roomLookOf
  */
 import { ME_ID, USERS } from './mock'
 import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
@@ -91,9 +92,23 @@ export const MOOD_NAMES: Record<string, string> = {
   outdoor: '캠핑장 무드', language_selfdev: '작은 공부방 무드', book: '다락 서재 무드', photo_video: '작은 암실 무드', art_craft: '작업실 무드',
   fandom_collect: '수집 진열장 무드', pet_plant: '포근한 온실 무드',
 }
-/** 대표 관심사(맨 앞)의 대분류 */
-export const leadCategory = (picks: string[]) => subOf(picks[0] ?? '')?.category
+/** 대표 관심사(고른 것 중 맨 앞)의 대분류. 모르는 값(예전 이름 등)은 건너뜀 */
+export const leadCategory = (picks: string[]) => subOf(toSubIds(picks)[0] ?? '')?.category
+/** 관심사로 계산한 벽지 (저장한 벽지가 없을 때. 방 모습 전체는 data/roomLook.ts roomLookOf) */
 export const moodWallpaper = (picks: string[]) => wallpaperForCategory(leadCategory(picks))
+
+/* ---------- 내가 저장한 방 (서버 BurrowDto.room 의 내 것, data/roomLook.ts SavedRoom) ---------- */
+/**
+ * 꾸미기에서 직접 고른 것만 저장 (가구 선택은 아래 FURN_KEY 에 따로). 관심사로 계산되는 값(벽지 기본값 등)은 저장하지 않음 →
+ * 관심사를 바꾸면 계산 값이 따라 바뀌고, 남이 볼 때도 같은 계산(roomLookOf)을 거침.
+ * 예전에는 온보딩·관심사 수정 때 계산한 벽지를 'digul.myWallpaper' 에 저장해서, 그 값이 남이 보는 벽지(다른 규칙)와 어긋났음 (2026-11-18)
+ */
+export interface MyRoomPick { wallpaperId: string | null }
+const ROOM_KEY = 'digul.myRoom.v1'
+export const getMyRoomPick = (): MyRoomPick => ({ wallpaperId: null, ...load<Partial<MyRoomPick>>(ROOM_KEY, {}) })
+export const setMyRoomPick = (p: Partial<MyRoomPick>) => save(ROOM_KEY, { ...getMyRoomPick(), ...p })
+/** 온보딩을 새로 마치면 꾸민 것을 처음으로 (가구 선택도) */
+export function resetMyRoom() { save(ROOM_KEY, {}); save(FURN_KEY, {}) }
 
 /* ---------- 가구 (세부 관심사마다 하나) ---------- */
 const rowOf = (id: string | null | undefined) => (id ? FURNITURE_CATALOG.find((r) => r.id === id) : undefined)

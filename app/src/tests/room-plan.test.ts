@@ -5,13 +5,14 @@
  * - F3 3a-3 · 00 공통 5: 땅굴 무드 = 대표 관심사(맨 앞)의 대분류 (docs/spec-f3-f4.md, 2026-11-16 결정)
  * - F4 꾸미기 가구 탭 3: 세부 관심사마다 가구 하나, 관심사를 바꾸면 뺀 것은 사라지고 둔 것은 유지
  * - 3D 핸드오프 v3 (HANDOFF_v3 2·3번, furniture_drop_spec 3·4번, v3.4 반려동물 짝), 낙하는 "2초 안에" (2026-11-12 사용자 요청)
- * - 예전 가중치 규칙 Σ(1 + 1000/인원) — 지금은 벽지 기본값(wallpaperForPicks)에만 남음
+ * - 예전 가중치 규칙 Σ(1 + 1000/인원) — 남의 땅굴 벽지에만 남아 있다가 2026-11-18 지움 (data/roomLook.ts 한 곳)
  */
 import { describe, expect, it } from 'vitest'
 import { ACCESSORY_CATEGORY, INTEREST_CATS, INTEREST_SUBS, MAX_PICK, categoriesOf, subOf, toSubIds } from '../data/interests'
 import { DROP_LEN, DROP_SPAN, FURNITURE_CATALOG, SLOTS, planRoom } from '../data/roomPlan'
 import { CATEGORIES } from '../data/mock'
-import { DEFAULT_WALLPAPER, topCategoryOf, wallpaperForCategory, wallpaperForPicks } from '../data/wallpapers'
+import { DEFAULT_WALLPAPER, wallpaperForCategory } from '../data/wallpapers'
+import { roomLookOf } from '../data/roomLook'
 import { MIN_PICK, applyChoice, furnitureCandidates, isRare, leadCategory, moodWallpaper, pruneChoice, ssafyCount } from '../data/myBurrow'
 
 const subsOfCat = (cat: string) => INTEREST_SUBS.filter((s) => s.category === cat)
@@ -80,22 +81,13 @@ describe('땅굴 무드 (F3 3a-3 · 00 공통 5: 대표 관심사 = 맨 앞)', (
     expect(wallpaperForCategory('culture')).toBe(DEFAULT_WALLPAPER)
     expect(wallpaperForCategory(undefined)).toBe(DEFAULT_WALLPAPER)
   })
-  it('예전 가중치 규칙: 드문 관심사 하나가 흔한 관심사 둘보다 무거움 (Σ 1 + 1000/인원)', () => {
-    const tags = CATEGORIES.flatMap((c) => c.tags.map((t) => ({ ...t, cat: c.id })))
-    const rare = [...tags].sort((a, b) => a.count - b.count)[0]
-    const common = tags.filter((t) => t.cat !== rare.cat).sort((a, b) => b.count - a.count)
-    const sameCat = common.filter((t) => t.cat === common[0].cat).slice(0, 2)
-    expect(sameCat).toHaveLength(2)
-    expect(topCategoryOf([sameCat[0].name, rare.name, sameCat[1].name])).toBe(rare.cat)
-  })
-  it.todo('남의 땅굴 벽지도 대표 관심사 규칙으로 — 지금 VisitBurrow 는 wallpaper 를 안 넘겨 roomScene 이 가중치 규칙(wallpaperForPicks)을 씀')
-  it('(현재 동작 기록) 대표 관심사 규칙과 가중치 규칙이 다른 경우가 있음', () => {
-    // 흔한 음악·댄스 관심사를 맨 앞에, 아주 드문 미술·수공예 관심사를 뒤에
+  it('남의 땅굴도 대표 관심사 규칙 (2026-11-18 고침: 예전 가중치 규칙 Σ 1 + 1000/인원 은 지움, 시험은 room-look.test.ts)', () => {
+    // 흔한 음악·댄스 관심사를 맨 앞에, 아주 드문 미술·수공예 관심사를 뒤에 → 예전 남의 땅굴 규칙이면 미술·수공예였음
     const music = [...subsOfCat('music_dance')].sort((a, b) => count(b.id) - count(a.id))[0]
     const art = [...subsOfCat('art_craft')].sort((a, b) => count(a.id) - count(b.id))[0]
     const names = [music.name_ko, art.name_ko]
     expect(moodWallpaper(names)).toBe(wallpaperForCategory('music_dance'))
-    expect(wallpaperForPicks(names)).toBe(wallpaperForCategory('art_craft'))
+    expect(roomLookOf('someone', names).wallpaper).toBe(wallpaperForCategory('music_dance'))
     expect(wallpaperForCategory('music_dance')).not.toBe(wallpaperForCategory('art_craft'))
   })
 })

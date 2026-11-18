@@ -1,11 +1,12 @@
 /**
  * 2D 조각: 두더지(서 있는 몸 전체) · 땅굴 미리보기(돔 단면 그림). 디자인 B·C·D 가 씀. 2026-11-16
  * - 두더지 얼굴·액세서리는 온보딩 2D 아바타(components/MoleAvatar)와 같은 그림을 씀. 3D 액세서리 id 는 비슷한 2D 그림으로 바꿔 끼움
- * - 땅굴 미리보기 벽지는 3D 땅굴과 같은 규칙(가장 큰 취향 분류 → 벽지 타일, data/wallpapers)
+ * - 땅굴 미리보기 벽지는 3D 땅굴과 같은 함수(data/roomLook.ts roomLookOf: 대표 관심사의 대분류 → 벽지 타일, 2026-11-18부터)
  */
 import type { CSSProperties } from 'react'
 import { findAcc, type Slot } from '../../../components/MoleAvatar'
-import { getMyWallpaper, tileUrl, wallpaperForPicks, wallpaperOf } from '../../../data/wallpapers'
+import { tileUrl, wallpaperOf } from '../../../data/wallpapers'
+import { mySavedRoom, roomLookOf } from '../../../data/roomLook'
 import { categoriesByWeight } from './match'
 import d from './designs.module.css'
 
@@ -66,8 +67,8 @@ const PROP_SPOTS: CSSProperties[] = [
 export function RoomPeek({ interests, worn, width = 220, mine, online, className, showMole = true }: {
   interests: string[]; worn?: string[]; width?: number; mine?: boolean; online?: boolean; className?: string; showMole?: boolean
 }) {
-  const wpId = mine ? getMyWallpaper(wallpaperForPicks(interests)) : wallpaperForPicks(interests)
-  const wp = wallpaperOf(wpId)
+  // 3D 땅굴과 같은 함수 (data/roomLook.ts): 내 것이면 내가 저장한 방, 남의 것은 저장한 방을 모르는 목 데이터라 관심사로 계산
+  const wp = wallpaperOf(roomLookOf('', interests, mine ? mySavedRoom() : null).wallpaper)
   const tile = tileUrl(wp.id, 512)
   const cats = categoriesByWeight(interests).slice(0, 4)
   return (

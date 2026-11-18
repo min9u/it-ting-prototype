@@ -19,8 +19,8 @@ import { createSharpBaker, type SharpBaker } from './sharpBake'
 import { getCachedStill, peekCachedStill, putCachedStill } from './stills'
 import { waitGpu, warmScene } from './warm'
 import { ROOM_FRAME } from './roomFrame'
-import { WALLPAPER_REPEAT, tileUrl, wallpaperForPicks, wallpaperOf } from '../data/wallpapers'
-import { applyChoice, type FurnChoice } from '../data/myBurrow'
+import { WALLPAPER_REPEAT, tileUrl, wallpaperOf } from '../data/wallpapers'
+import { applyChoice, moodWallpaper, type FurnChoice } from '../data/myBurrow'
 import { interestCatOf, subOf } from '../data/interests'
 import { createStyler, type Styler } from './roomStyle'
 import type { RoomStyle } from '../data/roomStyle'
@@ -413,7 +413,10 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
   let furnChoice: FurnChoice = { ...(opts.furniture ?? {}) }
   const plan = applyChoice(planRoom(opts.interests ?? []), furnChoice)
-  const wall = wallpaperOf(opts.wallpaper ?? wallpaperForPicks(opts.interests ?? []))
+  // 벽지: 화면이 정해 넘긴 값(data/roomLook.ts roomLookOf). 안 넘긴 화면(시작 화면 등)은 같은 규칙(대표 관심사의 대분류)으로
+  const wall = wallpaperOf(opts.wallpaper ?? moodWallpaper(opts.interests ?? []))
+  // 시험·비교 도구가 읽는 값 (tools/room-diversity: 내 땅굴과 방문자 뷰가 같은 방 모습인지). Worker(D)에는 window 가 없어서 globalThis
+  ;(globalThis as unknown as { __roomLook?: Record<string, unknown> }).__roomLook = { owner: opts.ownerId ?? null, wallpaper: wall.id, furniture: opts.furniture ?? {}, style: opts.style ?? null }
   const tileSrc = tileUrl(wall.id, q.level === 'low' ? 512 : 1024)
   let wallMat: THREE.MeshBasicMaterial | null = null
   const fixedRows = FURNITURE_CATALOG.filter((r) => (r.type === 'base' || r.type === 'deco') && urlOf(r))

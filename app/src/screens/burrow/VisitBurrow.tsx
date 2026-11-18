@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import NotFound from '../../components/NotFound'
+import { roomLookOf } from '../../data/roomLook'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWorn } from '../../data/moleItems'
@@ -89,6 +90,8 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const shared = owner.interests.filter((i) => me.interests.includes(i))
   // 관심사 이펙트: 나와 같은 관심사 가구가 빛남 · 집주인 대화 의향(목 데이터) 반딧불 (docs/interest-effects.md)
   const [fx] = useState(() => ({ viewer: getMyInterests(me.interests), talk: talkMoodOf(owner.id) }))
+  // 방 모습: 집주인이 저장한 방(b.room)이 먼저, 없으면 관심사로 계산. 내 땅굴과 같은 함수 (data/roomLook.ts)
+  const look = useMemo(() => roomLookOf(owner.id, owner.interests, b.room), [owner.id, owner.interests, b.room])
 
   /** 방명록 남기기: 목록 맨 위에 먼저 넣고 실패하면 빼고 입력값을 되돌림 */
   const submitGb = () => {
@@ -119,7 +122,8 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
+      <RoomView ownerId={owner.id} interests={owner.interests} wallpaper={look.wallpaper} furniture={look.furniture}
+        hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
         mailbox={posted} onMailbox={() => setAllOpen(true)} fx={fx}
         hostBubble={dmRoomId
           ? <Link className={s.speech} to={`/chat/${dmRoomId}`}>💬 대화하기</Link>

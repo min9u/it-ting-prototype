@@ -15,7 +15,8 @@ import { dmRoomWith, sentRequestTo } from '../data/chat'
 import { liveGuestbook } from '../lib/format'
 import { toIso } from '../lib/time'
 import type { GuestbookEntry } from '../data/types'
-import type { BurrowDto, CampusFloorDto, CursorPageDto, FieldDto, GuestbookEntryDto, Id, MemberProfileDto } from './types'
+import { getMyFurnChoice, getMyRoomPick } from '../data/myBurrow'
+import type { BurrowDto, CampusFloorDto, CursorPageDto, FieldDto, GuestbookEntryDto, Id, MemberProfileDto, RoomLayoutDto } from './types'
 
 /** 방명록 글자 수 (화면 100자, ERD VARCHAR(50) → erd-gaps) */
 /** 방명록 글자 수 (lib/validation · ERD guestbook_entry.content VARCHAR(50)) */
@@ -61,6 +62,16 @@ function bookOf(ownerId: string): GuestbookEntry[] {
   return b
 }
 const ownerOrThrow = (memberId: Id) => { const u = rawPerson(memberId); if (!u) throw notFound('땅굴'); return u }
+/**
+ * 저장한 방 (목). 나는 꾸미기에서 고른 값(data/myBurrow), 다른 목 주민은 꾸민 적이 없어서 null → 화면이 관심사로 계산.
+ * 시험·데모용으로 다른 사람 방을 넣으려면 mockRooms 에 (목 서버 안에서만)
+ */
+export const mockRooms = new Map<string, RoomLayoutDto>()
+function roomOf(memberId: string): RoomLayoutDto | null {
+  if (memberId !== ME_ID) return mockRooms.get(memberId) ?? null
+  const pick = getMyRoomPick(), furniture = getMyFurnChoice()
+  return pick.wallpaperId || Object.keys(furniture).length ? { schemaVersion: 1, wallpaperId: pick.wallpaperId, furniture } : null
+}
 
 const mock: BurrowsApi = {
   get: (memberId, signal) => mockRead(() => {
@@ -69,7 +80,7 @@ const mock: BurrowsApi = {
     return {
       id: `b-${u.id}`, owner: memberProfile(u.id), entrance: entranceOf(u.id), regular: getRegulars().includes(u.id),
       regularCount: 3 + (hash(u.id) % 20), visitorsNow: u.visitorsNow ?? 0,
-      chatRoomId: dm && !dm.closed ? dm.id : null, pendingRequestId: sentRequestTo(u.id)?.id ?? null, room: null,
+      chatRoomId: dm && !dm.closed ? dm.id : null, pendingRequestId: sentRequestTo(u.id)?.id ?? null, room: roomOf(u.id),
     }
   }, { signal, detail: true }),
   guestbook: (memberId, cursor, size = 20, signal) => mockRead(() => {
