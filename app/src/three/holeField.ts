@@ -987,7 +987,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       renderer.setScissorTest(true); renderer.setScissor(x0, y0, x1 - x0, y1 - y0); scissor = true
     }
     renderer.autoClear = false
-    if (sharpLayer) { renderer.clear(true, true, false); bd.blitDepth() } else bd.blit()
+    // 투명하게 지움: 바로 앞에 배경색(scene.background)이 있는 장면을 그렸으면(깊이 굽기 등) GL 지우기 색이 그 잔디색으로 남아 있어서,
+    // 같은 프레임에 선명한 배경으로 바꿔 끼우면 화면 전체가 진한 초록으로 덮였음 (2026-11-18 줌 뒤 깊이 굽기를 미뤘을 때) → 매번 투명으로 맞춤
+    if (sharpLayer) { renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false); bd.blitDepth() } else bd.blit()
     const bg = scene.background
     scene.background = null
     camera.layers.set(1)
