@@ -107,12 +107,12 @@ export const CATEGORY_THEMES: Record<string, ColorTheme> = {
     shell: { wall: '#C6E5D6', floor: '#DDC9A4', wood: '#E6D6BE' }, rug: '#5C8FD6', floorAlt: '#CDB490', wallAlt: '#A8D4C0',
   },
   book: {
-    id: 'cat_book', name: '다락 서재 무드', note: '양피지 벽 · 호두나무 · 짙은 초록',
+    id: 'cat_book', name: '다락 서재 무드', note: '아이보리 벽 · 호두나무 · 짙은 초록',
     colors: { cream: '#F0E4CC', green: '#3F6A4E', orange: '#9A3D32', sky: '#5E7A8A', yellow: '#C9A055', wood_light: '#8C5C3C', wood_dark: '#4E3325', stone: '#7A6E62' },
     shell: { wall: '#F1E8DA', floor: '#684836', wood: '#7E5A46' }, rug: '#3F6A4E', floorAlt: '#806050', wallAlt: '#E8D8B8',
   },
   photo_video: {
-    id: 'cat_photo_video', name: '작은 암실 무드', note: '숯 회색 벽 · 회색 나무 · 암실 빨강',
+    id: 'cat_photo_video', name: '작은 암실 무드', note: '회청 벽 · 회색 나무 · 암실 빨강',
     colors: { cream: '#EDEAE4', green: '#4E7E78', orange: '#C9453B', sky: '#6E8EAA', yellow: '#E6B84C', wood_light: '#8E7E72', wood_dark: '#4C4442', stone: '#6C6A6C' },
     shell: { wall: '#8E97A3', floor: '#77706C', wood: '#8C8480' }, rug: '#C9453B', floorAlt: '#7C7672', wallAlt: '#6E6A6C',
   },

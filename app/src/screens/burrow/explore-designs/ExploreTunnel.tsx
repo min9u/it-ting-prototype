@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { ME_ID } from '../../../data/mock'
 import RoomModeToggle from '../../../components/RoomModeToggle'
 import { HomeIcon } from '../../../components/Icons'
 import { getMyWorn } from '../../../data/moleItems'
@@ -250,7 +251,7 @@ export default function ExploreTunnel() {
                 </button>
                 <button className={t.room} style={{ left: x, top, width: R.dw, height: R.dh }} onClick={() => pick(i)}
                   aria-label={`${r.mine ? '내 땅굴' : `${r.user.nickname}님의 땅굴`} 들여다보기${sh.length ? `, 같은 관심사 ${sh.length}개` : ''}`}>
-                  <RoomPeek interests={r.user.interests} worn={r.mine ? worn : r.user.worn} width={R.dw} mine={r.mine} online={!r.mine && r.user.online} className={t.peek} />
+                  <RoomPeek ownerId={r.mine ? ME_ID : r.user.id} interests={r.user.interests} worn={r.mine ? worn : r.user.worn} width={R.dw} mine={r.mine} online={!r.mine && r.user.online} className={t.peek} />
                   {!r.mine && sh.length > 0 && (
                     <span className={t.shared} data-rare={isRare(sh[0]) ? '' : undefined}>
                       {isRare(sh[0]) ? '✦ ' : ''}{sh[0]}{sh.length > 1 ? ` +${sh.length - 1}` : ''}

@@ -1,4 +1,4 @@
-<title>땅굴 다양성 비교</title>
+<title>땅굴 다양성 전후</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -261,80 +261,144 @@ dialog#lb::backdrop { background: rgba(20, 14, 10, .8); }
   .seg button { padding: 7px 10px; font-size: 13.5px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* 2차 (2026-11-18 전 · 후): 전후 숫자 타일 · 전후 바꾸기 · 색 묶음 표 · 측정 표 */
+.tile .ba { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tile .ba s { font: 22px/1.05 var(--font-display); color: var(--ink-mute); text-decoration-thickness: 1.5px; }
+.tile .ba .arr { color: var(--ink-mute); font-size: 18px; }
+.setbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; background: var(--paper); border-bottom: 1px solid var(--line); }
+.setbar .wrap { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding-block: 10px; }
+.setbar .lab { font-size: 13.5px; color: var(--ink-mute); }
+.setbar .now { font-size: 13.5px; color: var(--ink-soft); margin-left: auto; }
+.filters { top: 58px; }
+.batable { width: 100%; min-width: 520px; }
+.batable td.b { color: var(--ink-mute); }
+.batable td.a { color: var(--ink); font-weight: 700; }
+.batable td.d { color: var(--sage-fg); font-weight: 700; }
+.batable td.d.bad { color: var(--accent); }
+.themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.theme { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.theme h3 { font-size: 19px; }
+.theme .sw { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 4px; height: 38px; }
+.theme .sw i { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); position: relative; }
+.theme .sw i span { position: absolute; left: 4px; bottom: 2px; font: 500 10.5px var(--font-body); color: rgba(255, 255, 255, .92); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); font-style: normal; }
+.theme .pal { display: flex; gap: 3px; }
+.theme .pal i { flex: 1; height: 12px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
+.theme .alt { font-size: 12.5px; color: var(--ink-mute); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.theme .alt b { display: inline-block; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); vertical-align: -2px; }
+.theme .who { font-size: 13px; color: var(--ink-soft); }
+.pairshot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; background: var(--box); }
+.pairshot img { width: 100%; height: auto; aspect-ratio: 1180 / 836; object-fit: cover; display: block; }
+.pairshot .t { position: relative; }
+.pairshot .t span { position: absolute; left: 6px; top: 6px; font-size: 11.5px; background: rgba(30, 22, 16, .72); color: #fbf4ec; padding: 1px 7px; border-radius: 999px; }
+.row .b0 { position: absolute; left: 0; top: 13px; height: 5px; background: var(--ink-mute); opacity: .55; border-radius: 0 4px 4px 0; min-width: 2px; }
+.perfwrap { overflow-x: auto; }
+.perf { min-width: 640px; width: 100%; }
+.perf td.r, .perf th.r { text-align: right; }
+.swatch-chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); margin-right: 4px; }
+@media (max-width: 520px) {
+  .filters { top: 0; }
+  .setbar .now { margin-left: 0; width: 100%; }
+  .pairshot { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 
 <header class="top wrap">
-  <p class="eyebrow">디굴디굴 · 탐색에서 남의 땅굴 들어가 보기 · 2026-11-18 지금 앱 그대로</p>
-  <h1>땅굴 다양성 비교</h1>
-  <p class="lede">관심사를 일부러 다르게 고른 {{N_A}}명과 지금 탐색 들판의 이웃 {{N_B}}명, 땅굴 {{N}}개를 같은 자리에서 찍어 비교했어요. <b>벽지를 같게 놓고 보면 방 넓이의 {{FURN_NEVER}}는 어느 방에서도 그대로</b>였어요. 벽지 말고 관심사가 바꾸는 곳은 벽 아래쪽 가구 띠와 선반 소품, 바닥 가장자리뿐이라 방이 다 비슷해 보여요.</p>
+  <p class="eyebrow">디굴디굴 · 탐색에서 남의 땅굴 들어가 보기 · 2026-11-18 다양성 작업 전 · 후</p>
+  <h1>땅굴 다양성 비교: 전 · 후</h1>
+  <p class="lede">관심사를 일부러 다르게 고른 {{N_A}}명과 지금 탐색 들판의 이웃 {{N_B}}명, 땅굴 {{N}}개를 같은 자리에서 찍어 <b>다양성 작업 전과 후</b>를 비교했어요. 후에는 대표 관심사(맨 앞)의 대분류마다 <b>벽 · 바닥 · 나무 뼈대 · 러그 · 가구 색 묶음</b>이 다르고, 같은 대분류도 사람마다 이불 · 러그 무늬, 가구 모양, 벽 · 바닥 빛깔이 조금씩 달라요. 전에는 벽지를 같게 놓으면 방 넓이의 <b>{{B_FURN_NEVER}}</b>가 26개 방 모두 빈 방과 똑같았는데, 후에는 <b>{{A_FURN_NEVER}}</b>예요.</p>
   <div class="tiles">
-    <div class="tile"><b>{{FURN_NEVER}}</b><span>벽지를 같게 놓았을 때 {{N}}개 방 모두 빈 방과 똑같은 넓이</span></div>
-    <div class="tile"><b>{{EMPTY_MED}}</b><span>방 하나에서 관심사 가구·소품이 차지하는 넓이 (가운데 값, {{EMPTY_MIN}}~{{EMPTY_MAX}})</span></div>
-    <div class="tile"><b>{{SCORE_MED}}</b><span>벽지까지 보이는 그대로 놓고 "평균 방"과 다른 넓이 (두더지 뺌, 가운데 값)</span></div>
-    <div class="tile"><b>{{PAIR_UNDER10}}</b><span>두 방씩 고른 325쌍 가운데 서로 다른 넓이가 10%도 안 되는 쌍</span></div>
+    <div class="tile"><span class="ba"><s>{{B_FURN_NEVER}}</s><span class="arr" aria-hidden="true">→</span><b>{{A_FURN_NEVER}}</b></span><span>벽지 그림을 같게 놓아도 {{N}}개 방 모두 빈 방과 똑같은 넓이</span></div>
+    <div class="tile"><span class="ba"><s>{{B_SCORE_MED}}</s><span class="arr" aria-hidden="true">→</span><b>{{A_SCORE_MED}}</b></span><span>보이는 그대로 "평균 방"과 다른 넓이 (가운데 값, 두더지 뺌)</span></div>
+    <div class="tile"><span class="ba"><s>{{B_PAIR_UNDER10}}</s><span class="arr" aria-hidden="true">→</span><b>{{A_PAIR_UNDER10}}</b></span><span>{{N_PAIRS}}쌍 가운데 서로 다른 넓이가 10%도 안 되는 쌍</span></div>
+    <div class="tile"><span class="ba"><s>{{B_SPORT_OUT}}</s><span class="arr" aria-hidden="true">→</span><b>{{A_SPORT_OUT}}</b></span><span>운동형 · 여행형 (같은 가구 세트를 빌려 씀) 서로 다른 넓이</span></div>
   </div>
   <div class="jump">
-    <a class="btn primary" href="#rooms">방 {{N}}개 보기</a>
+    <a class="btn primary" href="#rooms">방 {{N}}개 전 · 후 보기</a>
+    <a class="btn" href="#numbers">전후 숫자</a>
+    <a class="btn" href="#themes">대분류 색 묶음 12개</a>
     <a class="btn" href="#compare">둘 골라 비교</a>
-    <a class="btn" href="#why">왜 비슷해 보이나</a>
-    <a class="btn" href="#next">다음에 해 볼 것</a>
+    <a class="btn" href="#perf">저사양 PC</a>
   </div>
 </header>
 
+<div class="setbar" id="setbar">
+  <div class="wrap">
+    <span class="lab">보는 것</span>
+    <div class="seg" role="group" aria-label="전 · 후 고르기">
+      <button type="button" data-set="before" aria-pressed="false">전 · 디자이너 색</button>
+      <button type="button" data-set="after" aria-pressed="true">후 · 다양성 켬</button>
+      <button type="button" data-set="both" aria-pressed="false">나란히</button>
+    </div>
+    <span class="now" id="set-now"></span>
+  </div>
+</div>
+
 <main>
+<section class="block wrap" id="numbers" aria-labelledby="num-h">
+  <div class="block-head">
+    <h2 id="num-h">전후 숫자</h2>
+    <p>같은 {{N}}명, 같은 구도(방문자 뷰에서 방 정보 패널을 접은 것), 같은 계산. 두 색의 차이(CIE ΔE76)가 10 넘으면 "다름"이에요 (나란히 두면 바로 보이는 차이).</p>
+  </div>
+  <div class="tablewrap"><table class="batable" id="ba-table"><thead><tr><th>재는 것</th><th class="r">전</th><th class="r">후</th><th class="r">바뀜</th></tr></thead><tbody></tbody></table></div>
+  <p class="how-line" style="margin-top:8px">같은 사람의 방이 전과 후에 다른 넓이: 가운데 값 {{BA_MED}} ({{BA_MIN}}~{{BA_MAX}}). "평균 방" = 칸마다 {{N}}개 방의 가운데 값, "빈 방" = 관심사 0개 방(디자이너 원래 색, 전후 같음).</p>
+</section>
+
 <section class="block wrap" id="map" aria-labelledby="map-h">
   <div class="block-head">
     <h2 id="map-h">차이 지도</h2>
-    <p>{{N}}개 방 그림을 칸마다 겹쳐 본 것이에요. 흰 곳은 모든 방이 같고, 파랄수록 많은 방에서 달라져요. 지도 위에 마우스를 올리면 그 자리 숫자가 나와요.</p>
+    <p>{{N}}개 방 그림을 칸마다 겹쳐 본 것이에요. 흰 곳은 모든 방이 같고, 파랄수록 많은 방에서 달라요. 지도 위에 마우스를 올리면 그 자리 숫자가 나와요. 위 "보는 것"으로 전 · 후 · 나란히를 바꿔요.</p>
   </div>
-  <div class="mapgrid">
-    <div>
-      <div class="seg" role="group" aria-label="차이 지도 고르기">
-        <button type="button" id="map-seen" aria-pressed="true">보이는 그대로 (벽지 포함)</button>
-        <button type="button" id="map-furn" aria-pressed="false">벽지 같게 · 관심사 물건만</button>
-      </div>
-      <figure class="mapfig">
-        <div class="frame" id="map-frame">
-          <img id="map-img" src="img/diffmap.jpg" alt="차이 지도: 벽 아래쪽 띠와 바닥 가장자리, 벽면 일부만 파랗고 침대·러그·램프·가랜드·바닥은 하얗다" width="1180" height="836">
-          <div class="tip" id="map-tip" hidden></div>
-        </div>
-      </figure>
-      <div class="legend" aria-hidden="true">
-        <span class="zero"><i></i>0 = 모든 방이 같음</span>
-        <span class="ramp"><span class="bar"></span><span class="ticks"><span>1개 방</span><span>절반</span><span>{{N}}개 방 모두</span></span></span>
-      </div>
-      <p class="how-line" id="map-how" style="margin-top:8px"></p>
-    </div>
-    <div class="facts-panel">
-      <div class="panel">
-        <h3>늘 있는 물건은 정말 그대로인가</h3>
-        <p class="small muted" style="margin-bottom:10px">물건마다 둘레 상자 안에서 그림이 2% 넘게 바뀐 방 수 (벽지 같게, 빈 방과 비교)</p>
-        <ul class="regions" id="regions"></ul>
-      </div>
-      <div class="panel">
-        <h3>벽지</h3>
-        <p class="small" style="color:var(--ink-soft)">8가지 중 하나가 관심사로 정해져요. {{N}}개 방: {{WP_LIST}}.<br>연한 무늬 벽지 6가지(03~08)는 이 기준으로는 서로 거의 같게 보이고, 확 다른 건 <b>01 기본(진한 살구색)</b>과 <b>02 별자리(남색)</b>뿐이에요. 벽 위쪽 상자가 바뀐 방도 이 7개뿐이었어요.</p>
-      </div>
-    </div>
+  <div class="seg" role="group" aria-label="차이 지도 고르기">
+    <button type="button" data-map="seen" aria-pressed="true">평균 방과 다름</button>
+    <button type="button" data-map="empty" aria-pressed="false">빈 방과 다름</button>
+    <button type="button" data-map="furn" aria-pressed="false">벽지 그림 같게 · 빈 방과 다름</button>
   </div>
+  <div class="mapgrid" id="mapgrid" style="margin-top:12px"></div>
+  <div class="legend" aria-hidden="true">
+    <span class="zero"><i></i>0 = 모든 방이 같음</span>
+    <span class="ramp"><span class="bar"></span><span class="ticks"><span>1개 방</span><span>절반</span><span>{{N}}개 방 모두</span></span></span>
+  </div>
+  <p class="how-line" id="map-how" style="margin-top:8px"></p>
 
-  <h3 style="margin:28px 0 10px">방마다 얼마나 다른가</h3>
-  <div class="chart" id="chart">
-    <div class="chart-legend">
-      <span><i style="background:var(--s1)"></i>평균 방과 다른 넓이 (보이는 그대로, 두더지 뺌)</span>
-      <span><i style="background:var(--s2)"></i>관심사 가구·소품이 차지한 넓이 (벽지 같게, 빈 방과 비교)</span>
+  <div class="two" style="margin-top:20px">
+    <div class="panel">
+      <h3>늘 있던 물건이 이제 방마다 다른가</h3>
+      <p class="small muted" style="margin-bottom:10px">물건마다 둘레 상자 안에서 그림이 2% 넘게 빈 방과 다른 방 수 (보이는 그대로, 두더지 뺌). 전 → 후</p>
+      <ul class="regions" id="regions"></ul>
     </div>
-    <div class="axis" aria-hidden="true"><span></span><span class="t" id="axis"></span><span></span></div>
-    <div class="rows" id="rows"></div>
-    <div class="tip" id="chart-tip" hidden></div>
+    <div class="panel">
+      <h3>방마다 얼마나 다른가</h3>
+      <div class="seg" role="group" aria-label="막대 고르기" style="margin-bottom:10px">
+        <button type="button" data-bar="score" aria-pressed="true">평균 방과</button>
+        <button type="button" data-bar="vsEmptySeen" aria-pressed="false">빈 방과</button>
+      </div>
+      <div class="chart" id="chart" style="border:0;padding:0;background:none">
+        <div class="chart-legend">
+          <span><i style="background:var(--s1)"></i>후</span>
+          <span><i style="background:var(--ink-mute);opacity:.55"></i>전</span>
+        </div>
+        <div class="axis" aria-hidden="true"><span></span><span class="t" id="axis"></span><span></span></div>
+        <div class="rows" id="rows"></div>
+        <div class="tip" id="chart-tip" hidden></div>
+      </div>
+    </div>
   </div>
-  <p class="how-line" style="margin-top:8px">파란 막대가 긴데 주황 막대가 짧은 방은 <b>벽지</b> 때문에 달라 보이는 방이에요 (01 기본 · 02 별자리). 줄을 누르면 크게 보여요.</p>
+</section>
+
+<section class="block wrap" id="themes" aria-labelledby="th-h">
+  <div class="block-head">
+    <h2 id="th-h">무엇을 바꿨나: 대분류 색 묶음 {{N_THEMES}}개</h2>
+    <p>대표 관심사(맨 앞)의 대분류가 땅굴 분위기를 정해요 (온보딩 문구 그대로). 묶음마다 벽 · 바닥 · 나무 뼈대 · 러그 색과 가구 팔레트 8자리가 있고, 사람마다(회원 id 씨앗) 다른 벽 · 바닥 빛깔(40%), 이불 · 방석 · 러그 무늬, 침대 머리판 · 버섯 갓 · 테이블보 같은 모양이 달라요. 같은 사람은 늘 같은 방이에요.</p>
+  </div>
+  <div class="themes" id="theme-list"></div>
+  <p class="how-line" style="margin-top:10px">색은 "화면에 보이는 색"으로 적었어요. 껍데기(벽 · 바닥 · 나무)는 조명을 구운 그림이라, 앱이 톤 매핑(AgX)을 거꾸로 풀어 그 색이 나오도록 구운 빛에 곱해요 → 음영 · 나뭇결은 그대로. 동물(고양이 · 강아지 …)은 칠하지 않아요. 앱에서 ✨ 이펙트 → 🎨 땅굴 색 다양하게를 끄면 디자이너 원래 색으로 돌아가요.</p>
 </section>
 
 <section class="block wrap" id="rooms" aria-labelledby="rooms-h">
   <div class="block-head">
     <h2 id="rooms-h">방 {{N}}개</h2>
-    <p>방문자 뷰에서 방 정보 패널을 접은 것과 같은 구도예요. 칩 색은 관심사 대분류, 테두리만 있는 칩은 <b>방에 놓이는 소품이 없는 관심사</b>예요.</p>
+    <p>칩 색은 관심사 대분류, 테두리만 있는 칩은 <b>방에 놓이는 소품이 없는 관심사</b>예요. 위 "보는 것"에서 나란히를 고르면 카드마다 전 · 후가 나란히 나와요.</p>
   </div>
   <div class="filters" role="group" aria-label="거르기">
     <button type="button" class="chipbtn" data-g="all" aria-pressed="true">전체</button>
@@ -353,15 +417,15 @@ dialog#lb::backdrop { background: rgba(20, 14, 10, .8); }
 <section class="block wrap" id="compare" aria-labelledby="cmp-h">
   <div class="block-head">
     <h2 id="cmp-h">둘 골라 비교</h2>
-    <p>두 방을 나란히 놓거나, 겹쳐 놓고 막대를 밀어 보세요. 숫자는 두 방(두더지 뺌)끼리 색이 확 다른 칸의 비율이에요. {{N}}개 방의 325쌍 가운데 값은 {{PAIR_MED}}예요.</p>
+    <p>전 · 후 어느 쪽이든 두 방을 골라 나란히 놓거나 겹쳐 밀어 보세요. 숫자는 두 방(두더지 뺌)끼리 색이 확 다른 칸의 비율이에요. {{N_PAIRS}}쌍 가운데 값은 전 {{B_PAIR_MED}} → 후 {{A_PAIR_MED}}예요.</p>
   </div>
   <div class="cmp-ctl">
     <div class="f"><label for="cmp-a">왼쪽</label><select id="cmp-a"></select></div>
     <div class="f"><label for="cmp-b">오른쪽</label><select id="cmp-b"></select></div>
     <div class="f" style="flex:0 1 auto"><span class="lab">보기</span>
       <div class="seg" role="group" aria-label="비교 방식">
-        <button type="button" id="cmp-side" aria-pressed="false">나란히</button>
-        <button type="button" id="cmp-wipe" aria-pressed="true">겹쳐 밀기</button>
+        <button type="button" id="cmp-side" aria-pressed="true">나란히</button>
+        <button type="button" id="cmp-wipe" aria-pressed="false">겹쳐 밀기</button>
       </div>
     </div>
     <label style="font-size:14px;color:var(--ink-soft);display:inline-flex;gap:6px;align-items:center;padding-bottom:8px"><input type="checkbox" id="cmp-nomole"> 두더지 빼고</label>
@@ -375,60 +439,53 @@ dialog#lb::backdrop { background: rgba(20, 14, 10, .8); }
 
 <section class="block wrap" id="why" aria-labelledby="why-h">
   <div class="block-head">
-    <h2 id="why-h">왜 비슷해 보이나</h2>
-    <p>코드(<code>data/roomPlan.ts</code> · <code>data/interest3d.ts</code> · <code>three/roomScene.ts</code> · <code>furnitureCatalog.json</code> · <code>slots.json</code>)에서 확인한 것과 위에서 잰 숫자예요.</p>
+    <h2 id="why-h">전에는 왜 비슷해 보였나 · 무엇이 남았나</h2>
   </div>
   <div class="two">
     <div class="panel">
-      <h3>모든 방에 늘 같은 것</h3>
+      <h3>전: 늘 같았던 것</h3>
       <ul class="list">
-        <li><b>방 껍데기</b>: 돔 · 갈빗대 · 나무 벽판 · 바닥 · 둥근 러그 (한 파일, 조명까지 구워 둠)</li>
-        <li><b>기본 가구 6개</b>: 침대 · 협탁 + 버섯 스탠드 · 원탁 + 찻주전자 · 방석 둘 · 천장 버섯 램프</li>
-        <li><b>장식 10개</b>: 전구 줄 · 가랜드 · 걸이 화분 · 액자 셋 · 벽 선반 넷</li>
-        <li><b>우체통</b> 1개, <b>두더지 두 마리</b>(처음엔 늘 방 한가운데, 방 넓이 약 {{MOLE}}를 가림)</li>
-        <li>카메라 구도 · 조명 · 색감 (모든 방이 같은 스펙 카메라)</li>
+        <li><b>화면에서 큰 것은 전부 고정</b>: 벽 · 바닥 · 나무 뼈대 · 침대 · 러그 · 원탁 · 램프 · 가랜드 (벽지를 같게 놓으면 방 넓이의 {{B_FURN_NEVER}}가 어느 방에서나 같았음)</li>
+        <li><b>관심사 가구는 작고 같은 띠</b>에 모여 있음 (벽 아래쪽 띠 · 바닥 가장자리)</li>
+        <li><b>같은 대분류면 같은 방</b>, 빌려 쓰는 세트(스포츠 → 아웃도어, 외국어 → 책)는 다른 대분류끼리도 같은 방 (운동형 · 여행형 {{B_SPORT_OUT}})</li>
+        <li><b>벽지 8가지 중 6가지</b>가 비슷한 연한 무늬</li>
       </ul>
     </div>
     <div class="panel">
-      <h3>관심사로 바뀌는 것</h3>
+      <h3>후: 바꾼 것 · 남은 것</h3>
       <ul class="list">
-        <li><b>벽지 1장</b>: 고른 관심사 중 가장 무거운(드문) 대분류 하나로 8가지 중 하나</li>
-        <li><b>대분류 가구 세트</b>: 대분류 12개 → 3D 세트 10가지(가구 20개). 세트마다 1~3개, <b>자리가 고정</b>이라 같은 대분류면 같은 가구가 같은 자리에</li>
-        <li><b>선반 소품</b>: 소분류 90개 중 51개에만 있음, 벽 선반 12칸에 작게</li>
-        <li><b>바닥 소품</b>: 기타 1개 · <b>반려동물</b>: 강아지 · 고양이 · 새 · 도마뱀 + 용품</li>
+        <li><b>바꾼 것</b>: 벽 · 바닥 · 나무 뼈대 · 러그 · 기본 가구 · 관심사 가구 색 (대분류 묶음), 이불 · 방석 · 러그 무늬와 기본 가구 모양 (사람마다)</li>
+        <li><b>그대로</b>: 가구 배치 · 가구 종류 (관심사 가구는 여전히 작고 같은 띠), 가랜드 · 액자 · 매달린 화분 (구운 그림 한 장이라 못 칠함), 두더지, 카메라 구도</li>
+        <li><b>소품 없는 소분류 39개</b>는 여전히 방에 아무것도 안 생김 (디자이너 요청)</li>
+        <li>같은 대분류끼리는 벽 결이 같음 (사람마다 다른 빛깔 40%, 무늬 · 모양이 다름)</li>
       </ul>
     </div>
   </div>
-  <div class="figpair">
-    <figure><button type="button" data-ref="empty"><img src="img/nomole/empty.jpg" alt="관심사 0개 빈 방 (두더지 뺌)" loading="lazy" width="1180" height="836"></button>
-      <figcaption>관심사 0개 빈 방 (두더지 뺌, 비교용. 실제로는 3개 이상 골라야 함)</figcaption></figure>
-    <figure><button type="button" data-ref="median"><img src="img/full/median.jpg" alt="평균 방: 26개 방을 칸마다 가운데 값으로 합친 그림" loading="lazy" width="1180" height="836"></button>
-      <figcaption>"평균 방": {{N}}개 방(두더지 뺌)을 칸마다 가운데 값으로 합친 그림</figcaption></figure>
-  </div>
-  <ol class="reasons">
-    <li><span class="n">1</span><div><b>화면에서 큰 것은 전부 고정</b><span>침대 · 러그 · 원탁 · 램프 · 가랜드 · 바닥이 방 넓이 대부분이고, 이건 관심사와 상관없어요. 벽지를 같게 놓으면 방 넓이의 {{FURN_NEVER}}에는 {{N}}개 방 어디에도 관심사 물건이 놓이지 않았어요. 절반 넘는 방에서 바뀐 넓이는 {{FURN_HALF}}뿐이에요.</span></div></li>
-    <li><span class="n">2</span><div><b>관심사 가구는 작고, 같은 띠에 모여 있음</b><span>세트 자리 20곳이 벽 아래쪽 띠와 바닥 가장자리에 있고, 대부분 두더지 키 정도예요. 방 하나에서 관심사 물건이 차지하는 넓이는 가운데 값 {{EMPTY_MED}}, 10개를 꽉 채워도 {{EMPTY_MAX}}였어요.</span></div></li>
-    <li><span class="n">3</span><div><b>같은 대분류면 같은 방</b><span>세트가 대분류마다 하나라서, 소분류를 다르게 골라도 가구는 같아요. 바뀌는 건 선반 위 작은 소품뿐이에요. 스포츠는 아웃도어 세트를, 외국어·자기계발은 책 세트를 빌려 써서 <b>운동형과 여행형은 {{PAIRLO_V}}만 달랐어요</b> (가장 비슷한 쌍).</span></div></li>
-    <li><span class="n">4</span><div><b>소품이 없는 관심사가 많음</b><span>소분류 90개 중 39개는 소품이 없어서 골라도 방에 아무것도 안 생겨요 (외국어·자기계발 7개 모두, 스포츠 11개 중 8개 등). 외국어형 방은 책장 · 독서등뿐이라 책형 방과 거의 같아요.</span></div></li>
-    <li><span class="n">5</span><div><b>벽지는 8가지지만 6가지가 비슷한 연한 색</b><span>벽은 화면에서 넓지만 03~08 연한 무늬끼리는 나란히 봐도 차이가 작아요. 그래서 방마다 숫자가 큰 방은 거의 다 01 기본이나 02 별자리 벽지예요.</span></div></li>
-  </ol>
   <div class="note">
-    <span class="nt">따로 알게 된 것 (코드와 화면으로 확인)</span>
-    남의 땅굴 화면은 집주인이 저장한 벽지·가구 선택을 받지 않고, 관심사로 벽지를 다시 계산해요 (<code>BurrowDto.room</code>은 타입에만 있고 목 서버 · <code>toBurrow</code> · <code>VisitBurrow</code>가 쓰지 않음). 계산 방법도 달라서 내 땅굴은 <b>맨 앞 관심사의 대분류</b>, 남이 볼 때는 <b>가장 무거운 대분류</b>로 정해요. 예: 내 관심사 10개면 내 화면은 01 기본, 남이 보면 08 줄무늬.
+    <span class="nt">1단계에서 고친 것: 벽지 문제</span>
+    전에는 남의 땅굴 화면이 집주인이 저장한 벽지 · 가구를 받지 않고, 내 땅굴(맨 앞 관심사)과 다른 규칙(가장 무거운 대분류)으로 벽지를 다시 계산했어요 (예: "나"는 내 화면 01 기본, 남이 보면 08 줄무늬). 이제 내 땅굴 · 남의 땅굴 · 온보딩 미리 보기가 한 함수(<code>data/roomLook.ts roomLookOf</code>)로 방 모습을 정하고, 저장한 방(<code>BurrowDto.room</code>)이 방문자 뷰까지 그대로 와요. "나"를 두 화면으로 찍어 비교하니 다른 픽셀 0%였어요.
   </div>
+</section>
+
+<section class="block wrap" id="perf" aria-labelledby="perf-h">
+  <div class="block-head">
+    <h2 id="perf-h">저사양 PC (그래픽 가속 끔)</h2>
+    <p>남의 땅굴(예린, 입장 연출 있음)에 들어가서 가만히 6초 → 걷기 8초 → 가만히 6초. 반복 3번의 가운데 값. 색 묶음은 재질 색 값만 바꾸고(셰이더는 그대로), 무늬 · 벨벳 방석 · 모양 덧붙이만 그리기를 조금 늘려요.</p>
+  </div>
+  <div class="perfwrap"><table class="perf" id="perf-table"></table></div>
+  <p class="how-line" id="perf-how" style="margin-top:8px"></p>
 </section>
 
 <section class="block wrap" id="next" aria-labelledby="next-h">
   <div class="block-head">
-    <h2 id="next-h">다음에 해 볼 수 있는 것</h2>
-    <p>이번엔 지금 상태만 보여 드렸어요. 아래는 고를 수 있는 길이고, 어떤 걸 할지는 정해 주세요.</p>
+    <h2 id="next-h">남은 것 · 부탁할 것</h2>
   </div>
   <ul class="nexts">
-    <li><b>자동 꾸미기(씨앗) 켜기<span class="st have">실험실에 있음</span></b><span>같은 가구라도 집마다 색 테마 · 이불 무늬 · 러그 색 · 버섯 갓이 달라져요. 늘 같은 {{FURN_NEVER}} 넓이(침대 · 러그 · 방석 · 원탁)를 바꾸는 길이라 효과가 가장 클 것 같아요(추측, 재 보지 않음). 실험실 <code>/lab/style</code>, 기록 docs/burrow-diversity.md</span></li>
-    <li><b>꾸미기 모드에 색 테마 · 칠하기 탭<span class="st have">실험실에 있음</span></b><span>사용자가 직접 칠함. 저장 값은 40~500바이트. 저사양 PC 비용은 아직 안 잼.</span></li>
-    <li><b>벽지를 더 또렷하게, 그리고 남에게도 보이게<span class="st ask">정할 것</span></b><span>연한 6가지가 서로 비슷해요. 대비를 키우거나 색 테마와 묶고, 남의 땅굴 화면이 집주인이 고른 벽지를 받게 하기 (지금은 관심사로 다시 계산).</span></li>
-    <li><b>빌려 쓰는 세트 3개 · 소품 없는 소분류 39개 채우기<span class="st ask">디자이너 요청</span></b><span>관심사가 바꾸는 넓이 자체를 늘림. 목록은 docs/interest-tags-2026-11-18.md "디자이너에게 필요한 것"에 있어요.</span></li>
-    <li><b>가구 세트 자리를 2~3곳 중에서 고르기<span class="st new">새 아이디어</span></b><span>같은 대분류도 집마다 배치가 달라짐. 슬롯을 새로 설계해야 해서 디자이너와 같이 볼 것.</span></li>
+    <li><b>디자이너: 관심사 가구 · 소품 채우기<span class="st ask">디자이너 요청</span></b><span>빌려 쓰는 세트 3개(스포츠 · 외국어 · 덕질), 소품 없는 소분류 39개. 색으로 방 전체는 달라졌지만 "무슨 관심사인지"는 여전히 작은 가구로만 보여요.</span></li>
+    <li><b>디자이너: 재질 나누기 · 러그 떼기 · 장식 칠하기<span class="st ask">디자이너 요청</span></b><span>침대 크림 = 시트 + 베개처럼 한 재질을 같이 써서 따로 못 칠함. 러그는 껍데기에 구워져 테두리 · 가운데가 한 색이 됨. 가랜드 · 액자 · 매달린 화분은 구운 그림 한 장이라 테마 색을 못 받음.</span></li>
+    <li><b>디자이너: 기본 가구 변형 모델 · 관심사 액자<span class="st ask">디자이너 요청</span></b><span>침대 · 협탁 · 원탁 변형 2~3종, 벽 액자 3개에 넣을 관심사 그림(소품 없는 소분류용). 액자 그림을 받으면 코드 쪽은 그림만 끼우면 됨.</span></li>
+    <li><b>백엔드: 땅굴 응답의 room<span class="st new">API 초안</span></b><span><code>wallpaperId</code> · <code>furniture</code> · <code>themeId</code>(꾸미기 색 탭). 나머지 꾸미기 값은 회원 id 씨앗으로 프론트가 계산해서, 씨앗 = 실제 회원 id 여야 함.</span></li>
+    <li><b>확인받을 것<span class="st ask">정할 것</span></b><span>꾸미기 "색" 탭을 명세에 넣을지, 색 묶음 12개 색감, 같은 대분류 안에서 벽 빛깔을 바꾸는 정도(지금 40%).</span></li>
   </ul>
 </section>
 
@@ -437,14 +494,12 @@ dialog#lb::backdrop { background: rgba(20, 14, 10, .8); }
   <details class="how">
     <summary>찍은 방법 · 계산 · 고른 사람</summary>
     <div style="display:grid;gap:10px;color:var(--ink-soft);font-size:14.5px">
-      <p><b>찍기</b>: 헤드리스 크롬, 그래픽 가속 켬({{RENDERER}}), 창 1440×900. 앱에 실험 경로 <code>/lab/rooms</code>를 더해 아무 관심사로 방을 띄움. 방문자 뷰와 같은 화면 부품(RoomView) · 헤더 아래 같은 크기 · 방 정보 패널을 접은 구도. 입장 연출이 끝난 상태와 같은 "다 차려진 방"으로, 관심사 이펙트 꺼짐(지금 기본값), 리액션 버튼 줄은 숨김.</p>
-      <p><b>같은 방인지 확인</b>: 실험 경로와 실제 방문자 뷰(<code>/burrow/yerin</code>, 입장 연출 6초 뒤 패널 접음)를 같은 크기로 찍어 비교 → 다른 칸 0.99%, 두더지 둘레 밖은 4픽셀뿐이라 두더지 자세 차이였어요.</p>
-      <p><b>세 번 찍음</b>: ① 보이는 그대로(카드 · 크게 보기) ② 두더지만 숨김(숫자 · 차이 지도 · 비교) ③ 두더지 숨김 + 벽지를 모두 01 기본으로(관심사 물건만). 두더지 자세는 고정, 난수는 같은 씨앗.</p>
-      <p><b>계산</b>: 방 둘레(장면 가로 130~1310px)만 잘라 반으로 줄여(590×418) 칸마다 비교. 두 색의 차이(CIE ΔE76)가 10 넘으면 "다름" (2~3 = 겨우 알아챔, 10 = 나란히 두면 바로 보임). "평균 방" = 칸마다 {{N}}개 방의 가운데 값. 방마다 숫자 = 다른 칸 ÷ 방 칸. 방 바깥 흙색 배경은 뺌.</p>
-      <p><b>기준을 바꾸면</b> (방마다 "평균 방과 다른 넓이"의 가운데 값): ΔE 5 → {{SENS5}} · 10 → {{SENS10}} · 15 → {{SENS15}} · 20 → {{SENS20}}. 기준을 낮춰도 결론은 같아요.</p>
-      <p><b>고른 사람</b>: A는 대분류 12개를 모두 덮게 일부러 고른 16명 (한 분류만 12명 · 니치 3개 2명 · 10개 꽉 1명 · 섞임 1명, 확정본 이름 그대로 3~10개). B는 내 들판(2026 하반기 서울-2층) 자리 1~10번 이웃 그대로(빈 7번 빼고, 목 데이터) + 내 땅굴. 서벅이 · 민구는 목 데이터에 관심사가 2개라 그대로 둠. A의 집주인 두더지는 액세서리 없음.</p>
-      <div class="tablewrap"><table id="tbl"><thead><tr><th>방</th><th>관심사</th><th>벽지</th><th class="r">평균 방과</th><th class="r">관심사 물건</th></tr></thead><tbody></tbody></table></div>
-      <p class="small muted">다시 만들기: <code>tools/room-diversity/README.md</code> (capture.mjs → analyze.py → build.mjs). 자세한 기록: <code>docs/room-diversity-2026-11-18.md</code></p>
+      <p><b>찍기</b>: 헤드리스 크롬, 그래픽 가속 켬({{RENDERER}}), 창 1440×900. 앱의 실험 경로 <code>/lab/rooms</code>(방문자 뷰와 같은 RoomView · 같은 땅굴 API 길)에서 "다 차려진 방"으로, 관심사 이펙트 꺼짐, 리액션 버튼 줄 숨김, 두더지 자세 고정 · 같은 난수 씨앗.</p>
+      <p><b>전 · 후</b>: 전 = 다양성 작업 전 앱(11-18 1차 비교 때 같은 PC로 찍은 그림, 앱 코드 같음). 후 = 이번 작업 뒤 앱(🎨 땅굴 색 다양하게 켬, 기본값). 빈 방(관심사 0개)은 대표 관심사가 없어서 둘 다 디자이너 원래 색.</p>
+      <p><b>세 번 찍음</b>: ① 보이는 그대로(카드 · 크게 보기) ② 두더지만 숨김(숫자 · 차이 지도 · 비교) ③ 두더지 숨김 + 벽지 그림 01 고정. 후 묶음은 ③에서도 색 묶음이 벽 · 바닥 색을 바꿈.</p>
+      <p><b>계산</b>: 방 둘레(장면 가로 130~1310px)만 잘라 반으로 줄여(590×418) 칸마다 비교. ΔE76 10 넘으면 "다름". 방마다 숫자 = 다른 칸 ÷ 방 칸. 방 바깥 흙색 배경은 뺌.</p>
+      <div class="tablewrap"><table id="tbl"><thead><tr><th>방</th><th>관심사</th><th>후 색 묶음</th><th class="r">평균 방과 (전 → 후)</th><th class="r">빈 방과 (전 → 후)</th><th class="r">전후</th></tr></thead><tbody></tbody></table></div>
+      <p class="small muted">다시 만들기: <code>tools/room-diversity/README.md</code> (capture.mjs → analyze.py → build.mjs). 기록: <code>docs/room-diversity-2-2026-11-18.md</code>, 1차 <code>docs/room-diversity-2026-11-18.md</code></p>
     </div>
   </details>
 </section>
@@ -458,7 +513,8 @@ dialog#lb::backdrop { background: rgba(20, 14, 10, .8); }
     <div class="lbbar">
       <p class="cap"><b id="lb-name"></b><span id="lb-cap"></span></p>
       <div class="seg" role="group" aria-label="보기">
-        <button type="button" data-v="seen" aria-pressed="true">보이는 그대로</button>
+        <button type="button" data-v="before" aria-pressed="false">전</button>
+        <button type="button" data-v="after" aria-pressed="true">후</button>
         <button type="button" data-v="nomole" aria-pressed="false">두더지 빼고</button>
         <button type="button" data-v="mask" aria-pressed="false">평균과 다른 곳</button>
       </div>
@@ -476,12 +532,15 @@ const DATA = null /*__DATA__*/
 ;(() => {
   const $ = (s, el = document) => el.querySelector(s)
   const $$ = (s, el = document) => [...el.querySelectorAll(s)]
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
   const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`
-  const N = DATA.meta.n
-  const ROOMS = DATA.rooms
-  const BY = Object.fromEntries(ROOMS.map((r, i) => [r.key, { ...r, i }]))
-  // 대분류 이름 · 칩 색 (앱 data/interestTags.ts 와 같음)
+  const SB = DATA.sets.before, SA = DATA.sets.after
+  const SETS = { before: SB, after: SA }
+  const SET_NAME = { before: '전', after: '후' }
+  const N = SA.meta.n
+  const BYS = { before: Object.fromEntries(SB.rooms.map((r, i) => [r.key, { ...r, i }])), after: Object.fromEntries(SA.rooms.map((r, i) => [r.key, { ...r, i }])) }
+  const KEYS = SA.rooms.map((r) => r.key)
+  const BA = DATA.beforeAfter || {}
   const CATS = {
     food: ['음식·음료', 'butter'], sports: ['스포츠', 'mint'], culture: ['문화생활', 'rose'], game: ['게임', 'sky'], music_dance: ['음악·댄스', 'lilac'],
     outdoor: ['아웃도어', 'sage'], language_selfdev: ['외국어·자기계발', 'sand'], book: ['책·글', 'butter'], photo_video: ['사진·영상', 'mint'],
@@ -489,152 +548,186 @@ const DATA = null /*__DATA__*/
   }
   const label = (r) => (r.group === 'b' && r.seat ? `${r.name} · 자리 ${r.seat}` : r.name)
   const kindOf = (r) => (r.group === 'a' ? `A · ${r.kind}` : r.key === 'b-me' ? 'B · 내 땅굴' : 'B · 들판 이웃')
-  const REFS = { median: { name: '평균 방', full: 'img/full/median.jpg', nomole: 'img/nomole/median.jpg', cap: `${N}개 방(두더지 뺌)을 칸마다 가운데 값으로 합친 그림` },
-    empty: { name: '빈 방', full: 'img/full/empty.jpg', nomole: 'img/nomole/empty.jpg', cap: '관심사 0개 (비교용, 실제로는 3개 이상)' } }
-  const imgOf = (key, nm) => (REFS[key] ? (nm ? REFS[key].nomole : REFS[key].full) : `img/${nm ? 'nomole' : 'full'}/${key}.jpg`)
-  const nameOf = (key) => (REFS[key] ? REFS[key].name : label(BY[key]))
+  const REFS = { median: '평균 방', empty: '빈 방' }
+  const imgOf = (set, key, nm) => `img/${set}/${nm ? 'nomole' : 'full'}/${key}.jpg`
+  const nameOf = (key) => (REFS[key] ?? label(BYS.after[key]))
+  let view = 'after' // before · after · both
+  const curSet = () => (view === 'before' ? 'before' : 'after')
+
+  /* ---------- 전후 숫자 표 ---------- */
+  const pairOf = (S, a, b) => { const B = S === SB ? BYS.before : BYS.after; return S.pair[B[a].i][B[b].i] }
+  const ROWS = [
+    ['벽지 그림을 같게 놓아도 빈 방과 똑같은 넓이 (26개 방 모두)', (S) => S.vsEmpty.never, 'down'],
+    ['보이는 그대로 빈 방과 똑같은 넓이 (26개 방 모두)', (S) => S.vsEmptySeen.never, 'down'],
+    ['방 하나가 빈 방과 다른 넓이 (가운데 값)', (S) => S.vsEmptySeen.median, 'up'],
+    ['보이는 그대로 "평균 방"과 다른 넓이 (가운데 값)', (S) => S.seen.scoreMedian, 'up'],
+    ['어느 방에서도 평균 방과 안 다른 넓이', (S) => S.seen.never, 'down'],
+    ['둘씩 비교: 서로 다른 넓이 (가운데 값)', (S) => S.seen.pairMedian, 'up'],
+    ['둘씩 비교: 10%도 안 다른 쌍', (S) => S.seen.pairUnder10, 'down'],
+    ['둘씩 비교: 30% 넘게 다른 쌍', (S) => S.seen.pairOver30, 'up'],
+    ['가장 비슷한 쌍', (S) => S.seen.pairMin, 'up', (S) => `${nameOf(S.seen.pairLo[0])} · ${nameOf(S.seen.pairLo[1])}`],
+    ['운동형 · 여행형 (아웃도어 세트를 같이 씀)', (S) => pairOf(S, 'a01-sports', 'a11-outdoor'), 'up'],
+    ['외국어형 · 책형 (책 세트를 같이 씀)', (S) => pairOf(S, 'a06-language', 'a05-book'), 'up'],
+  ]
+  $('#ba-table tbody').innerHTML = ROWS.map(([name, f, want, extra]) => {
+    const b = f(SB), a = f(SA), d = a - b, good = want === 'up' ? d > 0 : d < 0
+    return `<tr><td>${esc(name)}${extra ? `<br><span class="muted small">전 ${esc(extra(SB))} → 후 ${esc(extra(SA))}</span>` : ''}</td><td class="r b">${pct(b)}</td><td class="r a">${pct(a)}</td><td class="r d ${good ? '' : 'bad'}">${d > 0 ? '+' : ''}${(d * 100).toFixed(1)}%p</td></tr>`
+  }).join('')
 
   /* ---------- 차이 지도 ---------- */
   const MAPS = {
-    seen: { src: 'img/diffmap.jpg', grid: DATA.grid, verb: '평균 방과 다름',
-      how: `두더지를 숨기고 찍은 ${N}개 방을 칸마다 "평균 방"(가운데 값)과 비교했어요. 칸 색 = 그 칸이 평균 방과 확 다른(ΔE 10 넘는) 방의 비율. 한 방에서라도 다른 넓이 ${pct(DATA.seen.any, 0)}, 절반 넘는 방에서 다른 넓이 ${pct(DATA.seen.half)}.` },
-    furn: { src: 'img/diffmap-furn.jpg', grid: DATA.gridFurn, verb: '관심사 물건이 놓임',
-      how: `벽지를 모두 01 기본으로 같게 찍은 ${N}개 방을 관심사 0개 빈 방과 비교했어요. 칸 색 = 그 칸에 관심사 가구·소품이 놓인 방의 비율. 한 방에라도 놓인 넓이 ${pct(DATA.vsEmpty.any, 0)}, 절반 넘는 방 ${pct(DATA.vsEmpty.half)}.` },
+    seen: { file: 'diffmap', grid: 'grid', verb: '평균 방과 다름', how: (S) => `두더지를 숨기고 찍은 ${N}개 방을 칸마다 "평균 방"(가운데 값)과 비교. 칸 색 = 그 칸이 평균 방과 확 다른 방의 비율. 어느 방에서도 안 다른 넓이 ${pct(S.seen.never)}.` },
+    empty: { file: 'diffmap-empty', grid: 'gridEmpty', verb: '빈 방과 다름', how: (S) => `${N}개 방(보이는 그대로, 두더지 뺌)을 관심사 0개 빈 방과 비교. 칸 색 = 그 칸이 빈 방과 다른 방의 비율. ${N}개 방 모두 빈 방과 같은 넓이 ${pct(S.vsEmptySeen.never)}.` },
+    furn: { file: 'diffmap-furn', grid: 'gridFurn', verb: '빈 방과 다름 (벽지 그림 같게)', how: (S) => `벽지 그림을 모두 01로 같게 찍은 ${N}개 방을 빈 방과 비교 (1차의 "관심사 물건" 지도). ${N}개 방 모두 빈 방과 같은 넓이 ${pct(S.vsEmpty.never)}.` },
   }
   const decode = (g) => { const b = atob(g.b64); const a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return { ...g, a } }
-  MAPS.seen.g = decode(MAPS.seen.grid); MAPS.furn.g = decode(MAPS.furn.grid)
+  const G = {}
+  for (const s of ['before', 'after']) for (const m of Object.keys(MAPS)) G[`${s}:${m}`] = decode(SETS[s][MAPS[m].grid])
   let mapMode = 'seen'
-  const setMap = (m) => {
-    mapMode = m
-    $('#map-img').src = MAPS[m].src
-    $('#map-seen').setAttribute('aria-pressed', String(m === 'seen'))
-    $('#map-furn').setAttribute('aria-pressed', String(m === 'furn'))
-    $('#map-how').textContent = MAPS[m].how
+  const renderMap = () => {
+    const sets = view === 'both' ? ['before', 'after'] : [curSet()]
+    const M = MAPS[mapMode]
+    $('#mapgrid').style.gridTemplateColumns = sets.length > 1 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)'
+    $('#mapgrid').innerHTML = sets.map((s) => `<figure class="mapfig" style="margin:0"><div class="frame" data-set="${s}"><img src="img/${s}/${M.file}.jpg" alt="${SET_NAME[s]} 차이 지도: ${esc(M.verb)}" width="1180" height="836"><div class="tip" hidden></div></div>${sets.length > 1 ? `<figcaption class="small muted" style="margin-top:4px">${SET_NAME[s]}</figcaption>` : ''}</figure>`).join('')
+    $('#map-how').textContent = sets.map((s) => `${SET_NAME[s]}: ${M.how(SETS[s])}`).join(' / ')
+    $$('[data-map]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.map === mapMode)))
+    $$('#mapgrid .frame').forEach((frame) => {
+      const tip = frame.querySelector('.tip'), img = frame.querySelector('img'), g = G[`${frame.dataset.set}:${mapMode}`]
+      frame.addEventListener('pointermove', (e) => {
+        const r = img.getBoundingClientRect()
+        const gx = Math.floor((e.clientX - r.left) / r.width * g.w), gy = Math.floor((e.clientY - r.top) / r.height * g.h)
+        if (gx < 0 || gy < 0 || gx >= g.w || gy >= g.h) { tip.hidden = true; return }
+        const v = g.a[gy * g.w + gx]
+        tip.innerHTML = v === 255 ? '방 바깥' : v === 0 ? `<b>${N}개 방 모두 같음</b>` : `<b>${N}개 방 중 ${v}개</b>: ${esc(M.verb)}`
+        tip.hidden = false
+        const fr = frame.getBoundingClientRect()
+        let x = e.clientX - fr.left + 14, y = e.clientY - fr.top + 14
+        if (x + tip.offsetWidth > fr.width - 4) x = e.clientX - fr.left - tip.offsetWidth - 14
+        if (y + tip.offsetHeight > fr.height - 4) y = e.clientY - fr.top - tip.offsetHeight - 14
+        tip.style.left = `${Math.max(4, x)}px`; tip.style.top = `${Math.max(4, y)}px`
+      })
+      frame.addEventListener('pointerleave', () => { tip.hidden = true })
+    })
   }
-  $('#map-seen').addEventListener('click', () => setMap('seen'))
-  $('#map-furn').addEventListener('click', () => setMap('furn'))
-  setMap('seen')
-  const frame = $('#map-frame'), tip = $('#map-tip')
-  frame.addEventListener('pointermove', (e) => {
-    const r = $('#map-img').getBoundingClientRect()
-    const g = MAPS[mapMode].g
-    const gx = Math.floor((e.clientX - r.left) / r.width * g.w), gy = Math.floor((e.clientY - r.top) / r.height * g.h)
-    if (gx < 0 || gy < 0 || gx >= g.w || gy >= g.h) { tip.hidden = true; return }
-    const v = g.a[gy * g.w + gx]
-    tip.innerHTML = v === 255 ? '방 바깥' : v === 0 ? `<b>${N}개 방 모두 같음</b>` : `<b>${N}개 방 중 ${v}개</b>: ${MAPS[mapMode].verb}`
-    tip.hidden = false
-    const fr = frame.getBoundingClientRect()
-    let x = e.clientX - fr.left + 14, y = e.clientY - fr.top + 14
-    if (x + tip.offsetWidth > fr.width - 4) x = e.clientX - fr.left - tip.offsetWidth - 14
-    if (y + tip.offsetHeight > fr.height - 4) y = e.clientY - fr.top - tip.offsetHeight - 14
-    tip.style.left = `${Math.max(4, x)}px`; tip.style.top = `${Math.max(4, y)}px`
-  })
-  frame.addEventListener('pointerleave', () => { tip.hidden = true })
+  $$('[data-map]').forEach((b) => b.addEventListener('click', () => { mapMode = b.dataset.map; renderMap() }))
 
-  // 늘 있는 물건: 바뀐 방 수 (벽지 같게 · 빈 방과) + 왜 바뀌었는지 (코드로 확인한 것)
-  const WHY = {
-    bed: '고양이 · 강아지가 침대 앞에 놓인 방', nightstand: '옆에 오락기 · 빈백(게임)이나 책장 · 독서등(책 · 외국어)이 선 방',
-    table: '뒤에 화분 받침대 · 이끼 벤치(반려동물·식물)가 보이는 방', cushions: '옆에 책장 · 독서등이나 이끼 벤치가 선 방',
-    shelf_row: '선반 소품이 놓이는 줄 (이 줄은 바뀌는 게 맞음)',
-  }
-  // 벽 위쪽(wall_top)은 벽지를 같게 놓으면 당연히 0 이라 빼고, 벽지 상자에 따로 적음
-  const ORDER = ['lamp', 'lights', 'bunting', 'rug', 'floor_front', 'bed', 'table', 'cushions', 'nightstand', 'shelf_row']
-  const whyText = (k, n) => (!n || !WHY[k] ? '' : k === 'shelf_row' ? WHY[k] : `${WHY[k]}. 물건 자체는 같고 일부가 가려짐`)
-  $('#regions').innerHTML = ORDER.filter((k) => DATA.regions[k]).map((k) => {
-    const r = DATA.regions[k], n = r.furn.length, why = whyText(k, n)
-    return `<li><span class="rn">${esc(r.name)}</span><span class="rv ${n ? '' : 'zero'}">${n ? `${n} / ${N}개 방` : '0 · 모두 같음'}</span>${why ? `<span class="why">${esc(why)}</span>` : ''}</li>`
+  /* 늘 있던 물건: 빈 방과 2% 넘게 다른 방 수 (보이는 그대로) 전 → 후 */
+  const ORDER = ['wall_top', 'floor_front', 'rug', 'bed', 'cushions', 'table', 'nightstand', 'lamp', 'lights', 'bunting', 'shelf_row']
+  $('#regions').innerHTML = ORDER.filter((k) => SA.regions[k] && SB.regions[k]).map((k) => {
+    const b = SB.regions[k].vsEmpty.length, a = SA.regions[k].vsEmpty.length
+    return `<li><span class="rn">${esc(SA.regions[k].name)}</span><span class="rv ${a > b ? '' : 'zero'}">${b} → <b style="color:var(--ink)">${a}</b> / ${N}개 방</span></li>`
   }).join('')
 
-  /* ---------- 방마다 막대 ---------- */
-  const MAXV = Math.ceil(Math.max(...ROOMS.map((r) => r.score)) * 10) / 10 + 0.0001
-  const ticks = [0, .1, .2, .3, .4].filter((t) => t <= MAXV)
-  $('#axis').innerHTML = ticks.map((t) => `<span style="left:${t / MAXV * 100}%">${t * 100}%</span>`).join('')
-  const sorted = [...ROOMS].sort((a, b) => b.score - a.score)
-  $('#rows').innerHTML = sorted.map((r) => `<button type="button" class="row" data-k="${r.key}" aria-label="${esc(label(r))}: 평균 방과 다른 넓이 ${pct(r.score)}, 관심사 물건 ${pct(r.vsEmpty)}, 벽지 ${r.wallpaper.no} ${esc(r.wallpaper.name)}. 크게 보기">
-      <span class="rl">${esc(r.name)}${r.group === 'b' && r.seat ? ` <small>${r.seat}</small>` : ''}</span>
-      <span class="track">${ticks.slice(1).map((t) => `<i class="g" style="left:${t / MAXV * 100}%"></i>`).join('')}
-        <i class="b1" style="width:${r.score / MAXV * 100}%"></i><i class="b2" style="width:${r.vsEmpty / MAXV * 100}%"></i></span>
-      <span class="rv">${pct(r.score)}</span></button>`).join('')
-  const ctip = $('#chart-tip'), chart = $('#chart')
-  $$('#rows .row').forEach((el) => {
-    const r = BY[el.dataset.k]
-    el.addEventListener('click', () => openLb(r.key))
-    el.addEventListener('pointerenter', () => {
-      ctip.innerHTML = `<b>${esc(label(r))}</b> · 벽지 ${String(r.wallpaper.no).padStart(2, '0')} ${esc(r.wallpaper.name)}<br><span style="color:var(--s1)">■</span> 평균 방과 다름 ${pct(r.score)}<br><span style="color:var(--s2)">■</span> 관심사 물건 ${pct(r.vsEmpty)}`
-      ctip.hidden = false
-      const cr = chart.getBoundingClientRect(), er = el.getBoundingClientRect()
-      const tx = Math.min(cr.width - ctip.offsetWidth - 8, Math.max(8, er.left - cr.left + 130))
-      ctip.style.left = `${tx}px`; ctip.style.top = `${er.bottom - cr.top + 4}px`
+  /* ---------- 방마다 막대 (전 회색 · 후 파랑) ---------- */
+  let barMode = 'score'
+  const renderChart = () => {
+    const val = (s, k) => BYS[s][k][barMode]
+    const MAXV = Math.ceil(Math.max(...KEYS.flatMap((k) => [val('before', k), val('after', k)])) * 10) / 10 + 0.0001
+    const ticks = (MAXV > .5 ? [0, .2, .4, .6, .8, 1] : [0, .1, .2, .3, .4, .5]).filter((t) => t <= MAXV)
+    $('#axis').innerHTML = ticks.map((t) => `<span style="left:${t / MAXV * 100}%">${Math.round(t * 100)}%</span>`).join('')
+    const sorted = [...KEYS].sort((a, b) => val('after', b) - val('after', a))
+    $('#rows').innerHTML = sorted.map((k) => {
+      const r = BYS.after[k], a = val('after', k), b = val('before', k)
+      return `<button type="button" class="row" data-k="${k}" aria-label="${esc(label(r))}: 전 ${pct(b)}, 후 ${pct(a)}. 크게 보기">
+        <span class="rl">${esc(r.name)}${r.group === 'b' && r.seat ? ` <small>${r.seat}</small>` : ''}</span>
+        <span class="track">${ticks.slice(1).map((t) => `<i class="g" style="left:${t / MAXV * 100}%"></i>`).join('')}
+          <i class="b1" style="width:${a / MAXV * 100}%"></i><i class="b0" style="width:${b / MAXV * 100}%"></i></span>
+        <span class="rv">${pct(a)}</span></button>`
+    }).join('')
+    $$('[data-bar]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bar === barMode)))
+    const ctip = $('#chart-tip'), chart = $('#chart')
+    $$('#rows .row').forEach((el) => {
+      const k = el.dataset.k, r = BYS.after[k]
+      el.addEventListener('click', () => openLb(k))
+      el.addEventListener('pointerenter', () => {
+        ctip.innerHTML = `<b>${esc(label(r))}</b>${r.theme ? ` · ${esc(r.theme.name)}` : ''}<br>전 ${pct(val('before', k))} → 후 <b>${pct(val('after', k))}</b><br><span class="muted">${barMode === 'score' ? '평균 방과 다른 넓이' : '빈 방과 다른 넓이'}</span>`
+        ctip.hidden = false
+        const cr = chart.getBoundingClientRect(), er = el.getBoundingClientRect()
+        ctip.style.left = `${Math.min(cr.width - ctip.offsetWidth - 8, Math.max(8, er.left - cr.left + 110))}px`; ctip.style.top = `${er.bottom - cr.top + 4}px`
+      })
+      el.addEventListener('pointerleave', () => { ctip.hidden = true })
     })
-    el.addEventListener('pointerleave', () => { ctip.hidden = true })
-  })
+  }
+  $$('[data-bar]').forEach((b) => b.addEventListener('click', () => { barMode = b.dataset.bar; renderChart() }))
+
+  /* ---------- 색 묶음 ---------- */
+  const PAL = ['cream', 'green', 'orange', 'sky', 'yellow', 'wood_light', 'wood_dark', 'stone']
+  const users = (id) => SA.rooms.filter((r) => r.theme?.id === id)
+  $('#theme-list').innerHTML = [...SA.themes].sort((a, b) => a.id.localeCompare(b.id)).map((t) => {
+    const sh = t.shell || {}, who = users(t.id)
+    const sw = (c, n) => `<i style="background:${c}"><span>${n}</span></i>`
+    return `<article class="theme"><h3>${esc(t.name)}</h3><p class="small muted">${esc(t.note)}</p>
+      <div class="sw" aria-label="벽 ${sh.wall} · 바닥 ${sh.floor} · 나무 ${sh.wood} · 러그 ${t.rug}">${sw(sh.wall, '벽')}${sw(sh.floor, '바닥')}${sw(sh.wood, '나무')}${sw(t.rug, '러그')}</div>
+      <div class="pal" aria-hidden="true">${PAL.map((k) => `<i title="${k}" style="background:${t.colors[k]}"></i>`).join('')}</div>
+      <p class="who">${who.length}개 방: ${esc(who.map((r) => r.name).join(' · '))}${who.some((r) => r.theme.wall || r.theme.floor) ? `<br><span class="muted small">다른 빛깔: ${esc(who.filter((r) => r.theme.wall || r.theme.floor).map((r) => `${r.name}(${[r.theme.wall ? '벽' : '', r.theme.floor ? '바닥' : ''].filter(Boolean).join('·')})`).join(' · '))}</span>` : ''}</p></article>`
+  }).join('')
 
   /* ---------- 방 카드 ---------- */
   let group = 'all', sortBy = 'base', noMole = false
-  const meter = (lab, v, color) => `<div class="m"><span>${lab}<span class="track"><span class="fill" style="width:${Math.min(100, v / MAXV * 100)}%;background:${color}"></span></span></span><b>${pct(v)}</b></div>`
-  const card = (r) => {
+  const card = (k) => {
+    const r = BYS.after[k], rb = BYS.before[k], s = curSet()
     const chips = r.interests.map((x) => `<span class="chip t-${CATS[x.cat][1]}${x.prop ? '' : ' noprop'}" title="${esc(CATS[x.cat][0])}${x.prop ? '' : ' · 방에 놓이는 소품 없음'}">${esc(x.name)}</span>`).join('')
-    const sets = r.sets.map((s) => {
-      if (!s.furniture.length) return `<span class="muted">${esc(s.name)}: ${esc(s.sharedWith ?? '')} 세트와 같은 가구라 한 번만</span>`
-      return `${esc(s.furniture.join(' · '))} <span class="muted">(${esc(s.name)}${s.borrowed ? ', 빌려 씀' : ''})</span>`
-    }).join('<br>')
-    const props = r.shelf.length ? `${r.shelf.length}개 · ${esc(r.shelf.join(' · '))}` : '<span class="warn">없음</span>'
-    const extra = [...r.floor, ...r.pets.map((p, i) => `${p}${r.petGoods[i] ? ` + ${r.petGoods[i]}` : ''}`)]
-    const near = BY[r.near.key]
-    return `<article class="card" data-k="${r.key}">
-      <button type="button" class="shot" data-k="${r.key}" aria-label="${esc(label(r))} 땅굴 크게 보기">
-        <img src="${noMole ? `img/nomole/${r.key}.jpg` : `img/rooms/${r.key}.jpg`}" alt="${esc(label(r))}의 땅굴" loading="lazy" width="640" height="453">
-        <span class="tag">벽지 ${String(r.wallpaper.no).padStart(2, '0')} ${esc(r.wallpaper.name)}</span></button>
+    const sets = r.sets.map((st) => (st.furniture.length ? `${esc(st.furniture.join(' · '))} <span class="muted">(${esc(st.name)}${st.borrowed ? ', 빌려 씀' : ''})</span>` : `<span class="muted">${esc(st.name)}: ${esc(st.sharedWith ?? '')} 세트와 같은 가구</span>`)).join('<br>')
+    const img = (set) => (noMole ? `img/${set}/nomole/${k}.jpg` : `img/${set}/rooms/${k}.jpg`)
+    const shot = view === 'both'
+      ? `<div class="pairshot"><button type="button" class="shot t" data-k="${k}" data-set="before" aria-label="${esc(label(r))} 전 크게 보기"><img src="${img('before')}" alt="${esc(label(r))} 전" loading="lazy" width="640" height="453"><span>전</span></button><button type="button" class="shot t" data-k="${k}" data-set="after" aria-label="${esc(label(r))} 후 크게 보기"><img src="${img('after')}" alt="${esc(label(r))} 후" loading="lazy" width="640" height="453"><span>후</span></button></div>`
+      : `<button type="button" class="shot" data-k="${k}" data-set="${s}" aria-label="${esc(label(r))} 땅굴 크게 보기"><img src="${img(s)}" alt="${esc(label(r))}의 땅굴 (${SET_NAME[s]})" loading="lazy" width="640" height="453"><span class="tag">${SET_NAME[s]} · ${s === 'after' && r.theme ? esc(r.theme.name) : `벽지 ${String(BYS[s][k].wallpaper.no).padStart(2, '0')} ${esc(BYS[s][k].wallpaper.name)}`}</span></button>`
+    const near = BYS.after[r.near.key]
+    const meter = (lab, b, a) => `<div class="m"><span>${lab}<span class="track"><span class="fill" style="width:${Math.min(100, b * 100)}%;background:var(--ink-mute);opacity:.5"></span></span><span class="track"><span class="fill" style="width:${Math.min(100, a * 100)}%;background:var(--s1)"></span></span></span><b>${pct(a)}</b></div>`
+    return `<article class="card" data-k="${k}">${shot}
       <div class="cbody">
         <div class="chead"><h3>${esc(r.name)}</h3><span class="pill ${r.group === 'a' ? 'a' : ''}">${esc(kindOf(r))}${r.seat ? ` · 자리 ${r.seat}` : ''}</span><span class="muted small">관심사 ${r.interests.length}개</span></div>
         <div class="chips">${chips}</div>
         <dl class="facts">
-          <div><dt>벽지</dt><dd>${String(r.wallpaper.no).padStart(2, '0')} ${esc(r.wallpaper.name)} <span class="muted">(${esc(CATS[r.topCategory]?.[0] ?? '')} 기준)</span></dd></div>
+          <div><dt>색 묶음</dt><dd>${r.theme ? `${esc(r.theme.name)}${r.theme.wall || r.theme.floor ? ` <span class="muted">(다른 ${[r.theme.wall ? '벽' : '', r.theme.floor ? '바닥' : ''].filter(Boolean).join(' · ')} 빛깔)</span>` : ''}` : '<span class="muted">없음 (디자이너 색)</span>'}</dd></div>
+          <div><dt>벽지</dt><dd>${String(r.wallpaper.no).padStart(2, '0')} ${esc(r.wallpaper.name)}${rb.wallpaper.id !== r.wallpaper.id ? ` <span class="warn">(전 ${String(rb.wallpaper.no).padStart(2, '0')} ${esc(rb.wallpaper.name)})</span>` : ''}</dd></div>
           <div><dt>가구 세트</dt><dd>${sets}</dd></div>
-          <div><dt>선반 소품</dt><dd>${props}</dd></div>
-          ${extra.length ? `<div><dt>바닥·동물</dt><dd>${esc(extra.join(' · '))}</dd></div>` : ''}
           ${r.noProp.length ? `<div><dt>소품 없음</dt><dd class="muted">${esc(r.noProp.join(' · '))}</dd></div>` : ''}
         </dl>
         <div class="meter">
-          ${meter('평균 방과 다른 넓이', r.score, 'var(--s1)')}
-          ${meter('관심사 물건이 차지한 넓이', r.vsEmpty, 'var(--s2)')}
+          ${meter('평균 방과 다른 넓이 (전 · 후)', rb.score, r.score)}
+          ${meter('빈 방과 다른 넓이 (전 · 후)', rb.vsEmptySeen, r.vsEmptySeen)}
         </div>
-        <p class="near">가장 비슷한 방: <b style="color:var(--ink-soft)">${esc(label(near))}</b> ${pct(r.near.v)} 다름 <button type="button" class="linkbtn" data-cmp="${r.key}|${near.key}">나란히 보기</button></p>
+        <p class="near">전후 다른 넓이 <b style="color:var(--ink-soft)">${BA[k] != null ? pct(BA[k]) : '-'}</b> · 후에 가장 비슷한 방: <b style="color:var(--ink-soft)">${esc(label(near))}</b> ${pct(r.near.v)} <button type="button" class="linkbtn" data-cmp="after:${k}|after:${near.key}">나란히 보기</button></p>
       </div></article>`
   }
   const renderGrid = () => {
-    let list = ROOMS.filter((r) => group === 'all' || r.group === group)
-    if (sortBy === 'desc') list = [...list].sort((a, b) => b.score - a.score)
+    let list = KEYS.filter((k) => group === 'all' || BYS.after[k].group === group)
+    if (sortBy === 'desc') list = [...list].sort((a, b) => BYS[curSet()][b].score - BYS[curSet()][a].score)
     $('#grid').innerHTML = list.map(card).join('')
     $('#count').textContent = `${list.length}개 방`
-    $$('#grid .shot').forEach((b) => b.addEventListener('click', () => openLb(b.dataset.k, list.map((r) => r.key))))
+    $$('#grid .shot').forEach((b) => b.addEventListener('click', () => openLb(b.dataset.k, list, b.dataset.set)))
     $$('#grid [data-cmp]').forEach((b) => b.addEventListener('click', () => { const [a, c] = b.dataset.cmp.split('|'); setCmp(a, c, 'side'); $('#compare').scrollIntoView({ block: 'start' }) }))
   }
   $$('.filters [data-g]').forEach((b) => b.addEventListener('click', () => { group = b.dataset.g; $$('.filters [data-g]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); renderGrid() }))
   $$('.filters [data-s]').forEach((b) => b.addEventListener('click', () => { sortBy = b.dataset.s; $$('.filters [data-s]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); renderGrid() }))
   $('#nomole').addEventListener('change', (e) => { noMole = e.target.checked; renderGrid() })
-  renderGrid()
 
   /* ---------- 크게 보기 ---------- */
   const lb = $('#lb')
-  let lbList = ROOMS.map((r) => r.key), lbKey = null, lbView = 'seen'
+  let lbList = KEYS, lbKey = null, lbSet = 'after', lbView = 'seen'
   const showLb = () => {
-    const ref = REFS[lbKey], r = BY[lbKey]
+    const ref = REFS[lbKey], r = BYS[lbSet][lbKey]
     const nm = lbView !== 'seen'
-    $('#lb-img').src = imgOf(lbKey, nm)
-    $('#lb-img').alt = `${nameOf(lbKey)} 땅굴${nm ? ' (두더지 뺌)' : ''}`
+    $('#lb-img').src = imgOf(lbSet, lbKey, nm)
+    $('#lb-img').alt = `${nameOf(lbKey)} 땅굴 ${SET_NAME[lbSet]}${nm ? ' (두더지 뺌)' : ''}`
     const mk = $('#lb-mask')
     mk.hidden = !(lbView === 'mask' && r)
-    if (r) mk.src = `img/mask/${r.key}.png`
-    $('#lb-name').textContent = nameOf(lbKey)
-    $('#lb-cap').textContent = ref ? ref.cap : `${r.interests.map((x) => x.name).join(' · ')} — 평균 방과 다른 넓이 ${pct(r.score)}${lbView === 'mask' ? ' (파랗게 칠한 곳)' : ''}`
-    $$('#lb [data-v]').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.v === lbView)); b.disabled = !!ref && b.dataset.v === 'mask' })
+    if (r) mk.src = `img/${lbSet}/mask/${lbKey}.png`
+    $('#lb-name').textContent = `${nameOf(lbKey)} · ${SET_NAME[lbSet]}`
+    $('#lb-cap').textContent = ref ? (lbKey === 'median' ? `${N}개 방(두더지 뺌)을 칸마다 가운데 값으로` : '관심사 0개 (비교 기준)') : `${r.interests.map((x) => x.name).join(' · ')}${lbSet === 'after' && r.theme ? ` — ${r.theme.name}` : ''} — 평균 방과 다른 넓이 ${pct(r.score)}${lbView === 'mask' ? ' (파랗게 칠한 곳)' : ''}`
+    $$('#lb [data-v]').forEach((b) => {
+      const on = b.dataset.v === lbSet || b.dataset.v === lbView
+      b.setAttribute('aria-pressed', String(on))
+      b.disabled = !!ref && b.dataset.v === 'mask'
+    })
     const multi = !ref && lbList.length > 1
     $('#lb-prev').hidden = !multi; $('#lb-next').hidden = !multi
   }
-  function openLb (key, list) {
+  function openLb (key, list, set) {
     if (list) lbList = list
     lbKey = key
+    lbSet = set ?? curSet()
     if (REFS[key] && lbView === 'mask') lbView = 'nomole'
     showLb()
     if (lb.showModal) { if (!lb.open) lb.showModal() } else lb.setAttribute('open', '')
@@ -643,39 +736,46 @@ const DATA = null /*__DATA__*/
   $('#lb-prev').addEventListener('click', () => step(-1))
   $('#lb-next').addEventListener('click', () => step(1))
   $('#lb-close').addEventListener('click', () => lb.close ? lb.close() : lb.removeAttribute('open'))
-  $$('#lb [data-v]').forEach((b) => b.addEventListener('click', () => { lbView = b.dataset.v; showLb() }))
+  $$('#lb [data-v]').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.v
+    if (v === 'before' || v === 'after') lbSet = v
+    else lbView = lbView === v ? 'seen' : v
+    showLb()
+  }))
   lb.addEventListener('click', (e) => { if (e.target === lb) lb.close() })
   lb.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1) })
-  $$('.figpair [data-ref]').forEach((b) => b.addEventListener('click', () => openLb(b.dataset.ref)))
 
   /* ---------- 둘 비교 ---------- */
-  const opts = [...ROOMS.map((r) => `<option value="${r.key}">${esc(label(r))} (${r.group === 'a' ? 'A' : 'B'})</option>`),
-    '<option value="median">평균 방 (가운데 값)</option>', '<option value="empty">빈 방 (관심사 0개)</option>'].join('')
-  $('#cmp-a').innerHTML = opts; $('#cmp-b').innerHTML = opts
-  let cmpMode = 'wipe', cmpNm = false, wipeX = 50
+  const optList = ['after', 'before'].flatMap((s) => [...SETS[s].rooms.map((r) => `<option value="${s}:${r.key}">${SET_NAME[s]} · ${esc(label(r))}</option>`),
+    `<option value="${s}:median">${SET_NAME[s]} · 평균 방</option>`]).concat('<option value="after:empty">빈 방 (관심사 0개)</option>').join('')
+  $('#cmp-a').innerHTML = optList; $('#cmp-b').innerHTML = optList
+  let cmpMode = 'side', cmpNm = false, wipeX = 50
+  const parse = (v) => { const [s, k] = v.split(':'); return { s, k } }
+  const capOf = (x) => `${SET_NAME[x.s] ?? ''} · ${nameOf(x.k)}`
   const pairText = (a, b) => {
-    if (a === b) return '같은 방을 골랐어요.'
-    const A = BY[a], B = BY[b]
-    if (A && B) {
-      const v = DATA.pair[A.i][B.i]
-      const rank = DATA.pair.flatMap((row, i) => row.filter((_, j) => j > i)).filter((x) => x < v).length
-      return `<b>${esc(label(A))}</b>와 <b>${esc(label(B))}</b>: 방 넓이의 <b>${pct(v)}</b>가 달라요. 325쌍 중 ${rank + 1}번째로 비슷한 쌍이에요.`
+    if (a.s === b.s && a.k === b.k) return '같은 방을 골랐어요.'
+    if (a.k === b.k && BA[a.k] != null) return `<b>${esc(nameOf(a.k))}</b>의 땅굴은 전과 후에 방 넓이의 <b>${pct(BA[a.k])}</b>가 달라요.`
+    const A = BYS[a.s][a.k], Bx = BYS[b.s][b.k]
+    if (a.s === b.s && A && Bx) {
+      const S = SETS[a.s], v = S.pair[A.i][Bx.i]
+      const rank = S.pair.flatMap((row, i) => row.filter((_, j) => j > i)).filter((x) => x < v).length
+      return `${SET_NAME[a.s]}: <b>${esc(label(A))}</b>와 <b>${esc(label(Bx))}</b>는 방 넓이의 <b>${pct(v)}</b>가 달라요. ${S.pair.length * (S.pair.length - 1) / 2}쌍 중 ${rank + 1}번째로 비슷한 쌍이에요.`
     }
-    const r = A ?? B, ref = A ? b : a
-    if (!r) return '평균 방과 빈 방은 둘 다 비교 기준이에요.'
-    return ref === 'median' ? `<b>${esc(label(r))}</b>는 평균 방과 방 넓이의 <b>${pct(r.score)}</b>가 달라요.`
-      : `<b>${esc(label(r))}</b>에서 관심사 가구·소품이 차지한 넓이는 <b>${pct(r.vsEmpty)}</b>예요 (벽지를 같게 놓고 빈 방과 비교).`
+    const r = A ?? Bx, other = A ? b : a
+    if (r && other.k === 'median' && other.s === (A ? a.s : b.s)) return `${SET_NAME[other.s]}: <b>${esc(label(r))}</b>는 평균 방과 방 넓이의 <b>${pct(r.score)}</b>가 달라요.`
+    if (r && other.k === 'empty') return `<b>${esc(label(r))}</b>(${SET_NAME[A ? a.s : b.s]})는 빈 방과 방 넓이의 <b>${pct(r.vsEmptySeen)}</b>가 달라요.`
+    return '전과 후의 서로 다른 방은 숫자 없이 그림만 비교해요.'
   }
   const renderCmp = () => {
-    const a = $('#cmp-a').value, b = $('#cmp-b').value
+    const a = parse($('#cmp-a').value), b = parse($('#cmp-b').value)
     $('#cmp-num').innerHTML = pairText(a, b)
     $('#cmp-side').setAttribute('aria-pressed', String(cmpMode === 'side'))
     $('#cmp-wipe').setAttribute('aria-pressed', String(cmpMode === 'wipe'))
-    const ia = imgOf(a, cmpNm), ib = imgOf(b, cmpNm)
+    const ia = imgOf(a.s, a.k, cmpNm), ib = imgOf(b.s, b.k, cmpNm)
     if (cmpMode === 'side') {
-      $('#cmp-view').innerHTML = `<div class="side"><figure><img src="${ia}" alt="${esc(nameOf(a))}"><figcaption>왼쪽 · ${esc(nameOf(a))}</figcaption></figure><figure><img src="${ib}" alt="${esc(nameOf(b))}"><figcaption>오른쪽 · ${esc(nameOf(b))}</figcaption></figure></div>`
+      $('#cmp-view').innerHTML = `<div class="side"><figure><img src="${ia}" alt="${esc(capOf(a))}"><figcaption>왼쪽 · ${esc(capOf(a))}</figcaption></figure><figure><img src="${ib}" alt="${esc(capOf(b))}"><figcaption>오른쪽 · ${esc(capOf(b))}</figcaption></figure></div>`
     } else {
-      $('#cmp-view').innerHTML = `<div class="wipe" id="wipe" style="--x:${wipeX}%"><img src="${ib}" alt="${esc(nameOf(b))}"><img class="top" src="${ia}" alt="${esc(nameOf(a))}"><span class="handle"></span><span class="lab l">${esc(nameOf(a))}</span><span class="lab r">${esc(nameOf(b))}</span></div>
+      $('#cmp-view').innerHTML = `<div class="wipe" id="wipe" style="--x:${wipeX}%"><img src="${ib}" alt="${esc(capOf(b))}"><img class="top" src="${ia}" alt="${esc(capOf(a))}"><span class="handle"></span><span class="lab l">${esc(capOf(a))}</span><span class="lab r">${esc(capOf(b))}</span></div>
         <label for="wipe-x" class="small muted" style="display:block;margin-top:6px">막대 위치 (왼쪽 방이 보이는 만큼)</label><input type="range" id="wipe-x" min="0" max="100" value="${wipeX}">`
       const w = $('#wipe'), rng = $('#wipe-x')
       const set = (x) => { wipeX = Math.max(0, Math.min(100, x)); w.style.setProperty('--x', `${wipeX}%`); rng.value = String(Math.round(wipeX)) }
@@ -692,17 +792,42 @@ const DATA = null /*__DATA__*/
   $('#cmp-side').addEventListener('click', () => { cmpMode = 'side'; renderCmp() })
   $('#cmp-wipe').addEventListener('click', () => { cmpMode = 'wipe'; renderCmp() })
   $('#cmp-nomole').addEventListener('change', (e) => { cmpNm = e.target.checked; renderCmp() })
-  const lo = DATA.seen.pairLo, hi = DATA.seen.pairHi
+  const lo = SA.seen.pairLo
   const PRESETS = [
-    ['가장 비슷한 쌍', lo[0], lo[1]], ['가장 다른 쌍', hi[0], hi[1]],
-    ['니치형 1 · 꽉 채움형', 'a13-niche1', 'a15-full'], ['외국어형 · 책형', 'a06-language', 'a05-book'],
-    ['예린 · 빈 방', 'b-seat01', 'empty'], ['내 땅굴 · 평균 방', 'b-me', 'median'],
-  ].filter(([, a, b]) => (BY[a] || REFS[a]) && (BY[b] || REFS[b]))
-  $('#presets').innerHTML = PRESETS.map(([n, a, b], i) => `<button type="button" class="chipbtn" data-p="${i}" aria-pressed="false">${esc(n)}</button>`).join('')
+    ['운동형 · 여행형 (전)', 'before:a01-sports', 'before:a11-outdoor'], ['운동형 · 여행형 (후)', 'after:a01-sports', 'after:a11-outdoor'],
+    ['외국어형 · 책형 (후)', 'after:a06-language', 'after:a05-book'], ['예린 전 · 후', 'before:b-seat01', 'after:b-seat01'],
+    ['나 전 · 후', 'before:b-me', 'after:b-me'], ['후에 가장 비슷한 쌍', `after:${lo[0]}`, `after:${lo[1]}`],
+    ['캠핑장 이웃끼리 (후)', 'after:b-seat01', 'after:b-seat04'],
+  ].filter(([, a, b]) => BYS[parse(a).s]?.[parse(a).k] && BYS[parse(b).s]?.[parse(b).k])
+  $('#presets').innerHTML = PRESETS.map(([n], i) => `<button type="button" class="chipbtn" data-p="${i}" aria-pressed="false">${esc(n)}</button>`).join('')
   $$('#presets [data-p]').forEach((btn) => btn.addEventListener('click', () => { const p = PRESETS[+btn.dataset.p]; setCmp(p[1], p[2]) }))
-  setCmp('a13-niche1', 'a15-full', 'wipe')
+  setCmp('after:a01-sports', 'after:a11-outdoor', 'side')
 
-  /* ---------- 표 (방마다 숫자) ---------- */
-  $('#tbl tbody').innerHTML = ROOMS.map((r) => `<tr><td>${esc(label(r))}<br><span class="muted small">${esc(kindOf(r))}</span></td><td>${esc(r.interests.map((x) => x.name).join(' · '))}</td><td>${String(r.wallpaper.no).padStart(2, '0')} ${esc(r.wallpaper.name)}</td><td class="r">${pct(r.score)}</td><td class="r">${pct(r.vsEmpty)}</td></tr>`).join('')
+  /* ---------- 저사양 측정 ---------- */
+  const P = DATA.perf
+  if (P && P.rows) {
+    const head = `<thead><tr><th>조건</th><th>재는 것</th><th class="r">전</th><th class="r">후</th></tr></thead>`
+    $('#perf-table').innerHTML = head + `<tbody>${P.rows.map((r) => `<tr><td>${esc(r.cond)}</td><td>${esc(r.what)}</td><td class="r num">${esc(r.before)}</td><td class="r num"><b>${esc(r.after)}</b></td></tr>`).join('')}</tbody>`
+    $('#perf-how').textContent = P.how || ''
+  } else {
+    $('#perf-table').innerHTML = '<tbody><tr><td>측정 결과가 아직 없어요</td></tr></tbody>'
+  }
+
+  /* ---------- 표 ---------- */
+  $('#tbl tbody').innerHTML = KEYS.map((k) => {
+    const a = BYS.after[k], b = BYS.before[k]
+    return `<tr><td>${esc(label(a))}<br><span class="muted small">${esc(kindOf(a))}</span></td><td>${esc(a.interests.map((x) => x.name).join(' · '))}</td><td>${a.theme ? esc(a.theme.name) : '-'}</td><td class="r">${pct(b.score)} → ${pct(a.score)}</td><td class="r">${pct(b.vsEmptySeen)} → ${pct(a.vsEmptySeen)}</td><td class="r">${BA[k] != null ? pct(BA[k]) : '-'}</td></tr>`
+  }).join('')
+
+  /* ---------- 전 · 후 바꾸기 ---------- */
+  const setView = (v) => {
+    view = v
+    $$('#setbar [data-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.set === v)))
+    $('#set-now').textContent = v === 'before' ? '전: 다양성 작업 전 앱 (디자이너 색, 남의 땅굴 벽지는 예전 규칙)' : v === 'after' ? '후: 대분류 색 묶음 + 사람마다 무늬 · 모양' : '전 · 후 나란히'
+    renderMap(); renderGrid()
+  }
+  $$('#setbar [data-set]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.set)))
+  renderChart()
+  setView('after')
 })()
 </script>

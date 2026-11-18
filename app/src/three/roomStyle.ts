@@ -57,6 +57,8 @@ const RUG_REF_LUM = .72
 const cellsOf = (p: PatternStyle) => PATTERN_SIZES.find((s) => s.id === p.size)?.cells ?? 11
 /** 원래 껍데기가 화면에 보이는 색 (빈 방 사진에서 잰 평균, sRGB). 목표 색 ÷ 이 색 = 구운 빛에 곱할 배율 */
 const SHELL_REF = { floor: '#D49E78', wood: '#DDB08A' }
+/** 원래 러그 가운데(크림)가 화면에 보이는 색 (무늬 없는 러그를 구운 빛 배율로 칠할 때 기준) */
+const RUG_REF = '#ECCC9E'
 /*
  * 화면 색 → 넣을 값 (AgX 거꾸로): 땅굴은 AgX 톤 매핑(roomScene)을 써서, 넣은 빛 값이 화면에 나올 때 많이 눌리고 채널끼리 섞임(채도가 줄어듦).
  * 처음엔 "목표 ÷ 원래" 비율을 그대로 곱했더니 하늘·민트 벽이 회색, 빨강 벽이 형광 산호색으로 나왔음 (2026-11-18, 26개 방을 찍어 보며 확인).
@@ -235,7 +237,26 @@ function linkClone(src: THREE.Object3D, copy: THREE.Object3D) {
   a.forEach((m, i) => { const o = ORIG.get(m); if (o && b[i]) { ORIG.set(b[i], o); b[i].material = o } })
 }
 
-const plainMat = (slot: PaletteKey) => new THREE.MeshStandardMaterial({ name: `M_${slot}`, roughness: .8 })
+/** 흰 1×1 (덧붙이 재질의 AO 자리, 아래 plainMatLike). UV 채널마다 하나 */
+const WHITE_AO = new Map<number, THREE.DataTexture>()
+/**
+ * 점토 덧붙이(머리판 · 테이블보 · 술) 재질. 가구 glb 의 팔레트 재질(tpl)을 복제하고 AO 만 흰 1×1 로 바꿈 →
+ * 셰이더가 가구 재질과 같아서 새로 컴파일할 것이 없음 (2026-11-18: 맨 MeshStandardMaterial 은 셰이더 종류가 하나 늘어
+ * 가속 끈 PC 첫 진입이 길어졌음). tpl 이 없으면(가구를 아직 못 받음) 예전처럼 맨 재질
+ */
+function plainMatLike(tpl: THREE.Material | undefined, slot: PaletteKey) {
+  const src = tpl as THREE.MeshStandardMaterial | undefined
+  if (!src?.isMeshStandardMaterial) return new THREE.MeshStandardMaterial({ name: `M_${slot}`, roughness: .8 })
+  const m = src.clone()
+  m.name = `M_${slot}`
+  if (m.aoMap) {
+    const ch = m.aoMap.channel
+    let w = WHITE_AO.get(ch)
+    if (!w) { w = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); w.channel = ch; w.needsUpdate = true; WHITE_AO.set(ch, w) }
+    m.aoMap = w
+  }
+  return m
+}
 
 /** 노드 원래 상태 */
 function snapshotTree(root: THREE.Object3D) {
@@ -269,8 +290,14 @@ function localBox(root: THREE.Object3D, nodes: THREE.Object3D[]) {
   return box
 }
 
-export function createStyler(renderer: THREE.WebGLRenderer) {
+/**
+ * opts.patterns = false 면 무늬를 그리지 않음(색만): 무늬마다 셰이더 종류가 하나씩 늘어 아주 느린 PC(CPU 2코어 WARP)에서
+ * 첫 진입 컴파일이 길어져서 (2026-11-18 측정, docs/room-diversity-2-2026-11-18.md). 저장 값은 그대로라 빠른 PC 에서는 무늬가 보임
+ */
+export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: boolean } = { patterns: true }) {
   const targets: Target[] = []
+  /** 덧붙이 재질: 등록한 가구의 팔레트 재질 하나를 본으로 (셰이더를 같이 씀) */
+  const plainMat = (slot: PaletteKey) => plainMatLike(targets.flatMap((t) => t.entries).find((e) => !e.addon)?.orig, slot)
   let env: THREE.Texture | null = null
   let pmrem: THREE.PMREMGenerator | null = null
   const envMap = () => {
@@ -282,7 +309,7 @@ export function createStyler(renderer: THREE.WebGLRenderer) {
     }
     return env
   }
-  let rug: { mesh: THREE.Mesh; orig: THREE.Material; mat: THREE.MeshStandardMaterial | null; sig: string; u: PatUniforms; color: { value: THREE.Color }; lum: { value: number } } | null = null
+  let rug: { mesh: THREE.Mesh; orig: THREE.Material; mat: THREE.MeshStandardMaterial | null; tint?: THREE.MeshStandardMaterial; sig: string; u: PatUniforms; color: { value: THREE.Color }; lum: { value: number } } | null = null
   const frameTmp = { p: new THREE.Vector3(), q: new THREE.Quaternion(), s: new THREE.Vector3() }
   /*
    * 껍데기 (2026-11-18 2단계): 바닥 · 나무(갈빗대·벽판·난간) · 돔 테두리는 구운 빛(emissive 그림) 하나를 같이 쓰는 재질이라
@@ -475,7 +502,10 @@ export function createStyler(renderer: THREE.WebGLRenderer) {
 
   const resolve = (t: Target, e: Entry, s: RoomStyle): PartStyle => {
     const user = s.parts[t.id]?.[e.part] as PartStyle | undefined
-    return { ...e.defaults, ...user, pattern: user?.pattern ?? e.defaults?.pattern }
+    const ps: PartStyle = { ...e.defaults, ...user, pattern: user?.pattern ?? e.defaults?.pattern }
+    // 가벼운 꾸미기: 무늬 · 마감(벨벳 등)은 셰이더 종류를 늘려서 빼고 색만
+    if (!opts.patterns) { delete ps.pattern; delete ps.finish }
+    return ps
   }
 
   const colorOf = (t: Target, e: Entry, s: RoomStyle) => resolve(t, e, s).color ?? themeOf(s.theme).colors[e.slot]
@@ -590,8 +620,15 @@ export function createStyler(renderer: THREE.WebGLRenderer) {
       }
       if (rug) {
         const r = rug, want = s.rug
+        const pat = opts.patterns && want?.pattern && want.pattern.kind !== 'none' ? want.pattern : null
         if (!want?.color && !want?.pattern) {
           r.mesh.material = r.orig
+        } else if (!pat) {
+          // 무늬 없는 러그 (2026-11-18): 구운 빛에 색 배율을 곱함 → 셰이더가 원래와 같아서 새로 컴파일할 것이 없음 (저사양 PC 첫 진입).
+          // 원래 러그의 두 색(크림 가운데 · 초록 테두리)이 목표 색의 밝고 어두운 두 톤으로 남음
+          r.tint ??= (r.orig as THREE.MeshStandardMaterial).clone()
+          tintTo(r.tint.emissive, want.color ?? '#E9B98A', RUG_REF)
+          r.mesh.material = r.tint
         } else {
           const sig = want.pattern?.kind ?? 'none'
           if (!r.mat || r.sig !== sig) {
@@ -643,7 +680,7 @@ export function createStyler(renderer: THREE.WebGLRenderer) {
     rootOf: (id: string) => targets.find((t) => t.id === id)?.root ?? null,
     dispose() {
       for (const t of targets) { restore(t); for (const ms of t.mats.values()) ms.mat.dispose(); for (const e of t.entries) e.mesh.material = e.orig }
-      if (rug) { rug.mesh.material = rug.orig; rug.mat?.dispose() }
+      if (rug) { rug.mesh.material = rug.orig; rug.mat?.dispose(); rug.tint?.dispose() }
       if (shell) {
         for (const p of Object.values(shell.parts)) if (p) { for (const m of p.meshes) m.material = p.orig; p.mat.dispose() }
         shell.wall?.mat.color.copy(shell.wall.base)

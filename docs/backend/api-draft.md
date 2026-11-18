@@ -160,7 +160,8 @@ HTTP/1.1 409 Conflict
 "room": {
   "schemaVersion": 1,
   "wallpaperId": null,
-  "furniture": { "novel": "book_stack" }
+  "furniture": { "novel": "book_stack" },
+  "themeId": null
 }
 ```
 | 필드 | 타입 | 뜻 | 없을 때 |
@@ -169,6 +170,10 @@ HTTP/1.1 409 Conflict
 | `schemaVersion` | number | 형식 번호 (지금 1). 형식이 바뀌면 올림 | — |
 | `wallpaperId` | string \| null | 직접 고른 벽지 (`wallpaper_01_default` … `wallpaper_08_stripe`). 지금 화면에는 벽지 고르기가 없어서 늘 `null` | 대표 관심사(맨 앞, `sortOrder` 0)의 대분류로 계산 |
 | `furniture` | `{ [소분류 코드]: 가구 id }` | 꾸미기 가구 탭에서 기본 가구 대신 고른 것만 | 관심사마다 기본 가구 |
+| `themeId` | string \| null | 꾸미기 색 탭에서 고른 땅굴 색 묶음 (`cat_food` … `cat_pet_plant` 12개, `base` = 디자이너 원래 색. 2026-11-18 2단계, 목록은 `app/src/data/roomStyle.ts CATEGORY_THEMES`) | 대표 관심사 대분류의 묶음 |
+
+- **나머지 꾸미기 값은 저장하지 않음**: 이불 · 러그 무늬, 기본 가구 모양, 사람마다 다른 벽 · 바닥 빛깔은 프론트가 **회원 id 를 씨앗**으로 계산 (`data/roomStyle.ts autoStyleFor`). 그래서 같은 사람은 어느 화면 · 누가 봐도 같음. 프론트는 내 땅굴에서도 실제 회원 id 를 써야 함 (지금 목은 `'me'`)
+- 디자이너가 묶음 색을 바꾸면 모두의 방이 같이 바뀜 (프론트 `STYLE_VERSION` 을 올려 저사양 PC 의 구운 방 그림 캐시도 새로). 옛 모습을 그대로 남겨야 하면 `room.style`(JSON 수백 바이트, `RoomStyle`)을 더하는 길이 있음 → 지금은 안 함
 
 - 키는 **소분류 코드**(`novel`, `cafe_coffee` …, [interest-enum.md](interest-enum.md)). `member_interest.furniture` 로 관심사마다 줘도 됨 (프론트는 둘 다 읽고 `room.furniture` 가 먼저)
 - 모르는 벽지·가구 id, 지금 관심사에 없는 소분류의 가구, 그 관심사의 후보가 아닌 가구는 프론트가 버리고 기본값으로 (서버가 400 으로 막아도 됨: 후보 = 그 소분류의 기본 가구 + 같은 대분류 선반 소품 2개)

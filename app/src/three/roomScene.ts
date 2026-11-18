@@ -151,6 +151,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let camLock = q.level === 'low' && !!q.lab?.C
   // F 단순한 두더지 (moleActor simple)
   const simpleMole = q.level === 'low' && !!q.lab?.F
+  /*
+   * 꾸미기 무늬 · 마감 (2026-11-18 2단계): 아주 느린 PC(기기 단계 weak)는 무늬 · 벨벳 없이 색 · 모양만 (무늬마다 셰이더 종류가 늘어
+   * 첫 진입 컴파일이 길어짐, docs/room-diversity-2-2026-11-18.md 저사양). 구운 방 그림 캐시 키에도 넣음. 시험용 ?stylepat=0 (끔) · 1 (켬)
+   */
+  const spParam = testParam('stylepat')
+  const stylePatterns = spParam === '1' || (spParam !== '0' && q.tier !== 'weak')
   const renderer = createRenderer(container, { alpha: true, exposure: 1, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: partial, canvas: opts.canvas })
   renderer.toneMapping = THREE.AgXToneMapping   // Blender 기본(AgX)과 맞춤
   renderer.shadowMap.enabled = false             // 바닥·벽은 그림자가 구워져 있음. 두더지는 발밑 그림자 판
@@ -190,7 +196,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     camera.updateMatrixWorld()
     const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
     // STYLE_VERSION: 테마 색처럼 코드에 있는 꾸미기 값이 바뀌면 키가 바뀜 → 예전에 구운 방 그림(IndexedDB)이 남지 않음
-    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, `s${STYLE_VERSION}`, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
+    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, `s${STYLE_VERSION}${stylePatterns ? 'p' : 'c'}`, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
   }
   const ensureSharpCv = () => {
     if (!sharpCv) {
@@ -495,7 +501,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       markShadows(root)
     })
     // 칠하기·모양: 기본 가구·전구 줄·러그를 등록하고 먼저 한 번 적용 (모양이 바뀐 상태로 발자리·앉는 높이를 잼)
-    styler = createStyler(renderer)
+    styler = createStyler(renderer, { patterns: stylePatterns })
     for (const c of fixedRows) {
       const node = roots.get(urlOf(c)!)?.getObjectByName(c.node)
       if (!node) continue
@@ -508,7 +514,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     if (rugMesh?.isMesh) styler.registerRug(rugMesh)
     // 껍데기(벽 · 바닥 · 나무 뼈대): 테마에 shell 이 있으면 색을 곱해 물들임 (data/roomStyle CATEGORY_THEMES, 2026-11-18 2단계)
     styler.registerShell(shellS, wallMat, tile ? wall.avg_color_srgb : wall.solid_color ?? '#F0B47A', !tile)
-    if (style) styler.apply(style)
+    // 꾸미기는 관심사 가구까지 등록한 뒤 한 번만 입힘 (아래, 2026-11-18: 두 번 입히면 첫 진입 작업이 길어짐). 모양이 바뀐 발자리는 그때 다시 잼
     scene.updateMatrixWorld(true)
     for (const { c, node } of baseNodes) {
       const box = new THREE.Box3().setFromObject(node)
@@ -578,7 +584,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       mailboxFeet = [{ x0: mx - mb.half.x - MOLE_R, x1: mx + mb.half.x + MOLE_R, z0: mz - mb.half.z - MOLE_R, z1: mz + mb.half.z + MOLE_R }]
     }
     syncFeet()
-    if (style) styler.apply(style)
+    if (style) { styler.apply(style); measureBase() }
 
     // 천장 구멍
     holeObj = holeS

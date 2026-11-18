@@ -10,6 +10,8 @@ import { wallpaperOf } from '../../data/wallpapers'
 import { MOOD_NAMES } from '../../data/myBurrow'
 import { roomLookOf, type SavedRoom } from '../../data/roomLook'
 import { talkMoodOf } from '../../data/interestFx'
+import { themeOf } from '../../data/roomStyle'
+import { lookDiverse } from '../../lib/roomLookLab'
 import { useBurrow } from '../../api/queries'
 import s from '../burrow/Burrow.module.css'
 
@@ -62,6 +64,11 @@ function roomSummary(o: Owner, wallpaperId: string) {
     mood: look.lead ? MOOD_NAMES[look.lead] ?? null : null,
     wallpaper: { id: wp.id, no: wp.no, name: wp.name_ko },
     look,
+    // 2단계 색 묶음 (data/roomStyle.ts): 비교 페이지의 "대분류별 묶음" 표와 방 카드에 씀. 🎨 스위치가 꺼져 있으면(?look=designer) null
+    theme: look.style && lookDiverse() ? (() => {
+      const t = themeOf(look.style.theme)
+      return { id: t.id, name: t.name, note: t.note, shell: t.shell ?? null, rug: t.rug ?? null, colors: t.colors, wall: look.style.wall ?? null, floor: look.style.floor ?? null }
+    })() : null,
     items: plan.items.map((it) => ({
       id: it.row.id, name: it.row.name_ko, type: it.row.type, cat: it.category, sub: it.sub, slot: it.slot.name, kind: it.slot.kind, built: it.built,
     })),
@@ -103,6 +110,7 @@ export default function RoomsLab() {
           <strong>{owner.nickname}</strong> · 관심사 {owner.interests.length}개
           <div>{owner.interests.join(' · ')}</div>
           <div>벽지 {wp.no} {wp.name_ko}{forced ? ' (고정)' : look.from.wallpaper === 'saved' ? ' (저장한 벽지)' : ''} · 가구 {summary.items.filter((it) => it.type === 'category_furniture').length} · 소품 {props.length}</div>
+          <div>색: {summary.theme ? `${summary.theme.name} (${summary.theme.note})` : '디자이너 원래 색'}</div>
         </aside>
       )}
     </main>

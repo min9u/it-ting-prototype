@@ -1,0 +1,394 @@
+{
+  "summary": {
+    "name": "after-hwoff2c",
+    "mode": "hwoff",
+    "url": "http://127.0.0.1:5377/#/burrow/yerin",
+    "scenario": "room",
+    "aff": "3",
+    "lab": null,
+    "window": false,
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "load": {
+      "readyMs": 6912,
+      "longTaskMs": 3120,
+      "longTaskMax": 1437,
+      "worstFreezeMs": 1417,
+      "heapMB": 78,
+      "mb": 10.8,
+      "cpuGpuSec": 9.11,
+      "cpuRendererSec": 5.53
+    },
+    "idle": {
+      "sec": 6,
+      "rafFps": 53.9,
+      "sceneFps": 9.5,
+      "worstGap": 50,
+      "sceneWorstGap": 4007,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 20,
+      "cpuGpu": 44,
+      "drawsPerFrame": 60,
+      "ktrisPerFrame": 37
+    },
+    "idle2": {
+      "sec": 6,
+      "rafFps": 54.4,
+      "sceneFps": 7,
+      "worstGap": 50,
+      "sceneWorstGap": 54,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 10,
+      "cpuGpu": 35,
+      "drawsPerFrame": 58,
+      "ktrisPerFrame": 36
+    },
+    "walk": {
+      "sec": 8.1,
+      "rafFps": 39,
+      "sceneFps": 38.9,
+      "worstGap": 50,
+      "sceneWorstGap": 64,
+      "longTaskMs": 0,
+      "longTaskMax": 0,
+      "cpuRenderer": 21,
+      "cpuGpu": 160,
+      "drawsPerFrame": 58,
+      "ktrisPerFrame": 36
+    },
+    "captures": {
+      "n": 1
+    }
+  },
+  "runs": [
+    {
+      "rep": 0,
+      "load": {
+        "readyMs": 7575,
+        "longTaskMs": 3120,
+        "longTaskMax": 1029,
+        "worstFreezeMs": 1017,
+        "heapMB": 67,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 10.8,
+        "cpuGpuSec": 8.93,
+        "cpuRendererSec": 5.66
+      },
+      "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "idle": {
+        "sec": 6,
+        "rafFps": 54.1,
+        "sceneFps": 6.5,
+        "worstGap": 33,
+        "sceneWorstGap": 54,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 20,
+        "cpuGpu": 36,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "walk": {
+        "sec": 8.1,
+        "rafFps": 39,
+        "sceneFps": 38.9,
+        "worstGap": 50,
+        "sceneWorstGap": 63,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 20,
+        "cpuGpu": 160,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 54.4,
+        "sceneFps": 6.8,
+        "worstGap": 50,
+        "sceneWorstGap": 56,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 13,
+        "cpuGpu": 36,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            165,
+            0.53,
+            312
+          ],
+          [
+            "room",
+            91,
+            0.53,
+            171
+          ],
+          [
+            "room",
+            48,
+            0.53,
+            90
+          ],
+          [
+            "room",
+            480,
+            0.53,
+            906
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794982344148,\"low\":\"weak\",\"score\":171}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 487,
+            "max": 487
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            487
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    },
+    {
+      "rep": 1,
+      "load": {
+        "readyMs": 6051,
+        "longTaskMs": 2933,
+        "longTaskMax": 1596,
+        "worstFreezeMs": 1583,
+        "heapMB": 78,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 10.8,
+        "cpuGpuSec": 10.51,
+        "cpuRendererSec": 4.96
+      },
+      "idle": {
+        "sec": 6,
+        "rafFps": 53.9,
+        "sceneFps": 9.5,
+        "worstGap": 50,
+        "sceneWorstGap": 4041,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 20,
+        "cpuGpu": 44,
+        "drawsPerFrame": 60,
+        "ktrisPerFrame": 37
+      },
+      "walk": {
+        "sec": 8.6,
+        "rafFps": 31.1,
+        "sceneFps": 31.1,
+        "worstGap": 67,
+        "sceneWorstGap": 82,
+        "longTaskMs": 289,
+        "longTaskMax": 67,
+        "cpuRenderer": 21,
+        "cpuGpu": 142,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 56.1,
+        "sceneFps": 8.5,
+        "worstGap": 50,
+        "sceneWorstGap": 48,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 10,
+        "cpuGpu": 35,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            166,
+            0.53,
+            313
+          ],
+          [
+            "room",
+            95,
+            0.53,
+            179
+          ],
+          [
+            "room",
+            54,
+            0.53,
+            101
+          ],
+          [
+            "room",
+            575,
+            0.53,
+            1085
+          ],
+          [
+            "room",
+            350,
+            0.53,
+            660
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794982379451,\"low\":\"weak\",\"score\":179}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 551,
+            "max": 551
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            551
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    },
+    {
+      "rep": 2,
+      "load": {
+        "readyMs": 6912,
+        "longTaskMs": 3263,
+        "longTaskMax": 1437,
+        "worstFreezeMs": 1417,
+        "heapMB": 82,
+        "warmMs": null,
+        "fieldWarmMs": null,
+        "stillAt": null,
+        "mb": 10.8,
+        "cpuGpuSec": 9.11,
+        "cpuRendererSec": 5.53
+      },
+      "idle": {
+        "sec": 6,
+        "rafFps": 51.9,
+        "sceneFps": 9.8,
+        "worstGap": 67,
+        "sceneWorstGap": 4007,
+        "longTaskMs": 132,
+        "longTaskMax": 79,
+        "cpuRenderer": 22,
+        "cpuGpu": 54,
+        "drawsPerFrame": 65,
+        "ktrisPerFrame": 39
+      },
+      "walk": {
+        "sec": 8.1,
+        "rafFps": 41.8,
+        "sceneFps": 41.8,
+        "worstGap": 50,
+        "sceneWorstGap": 64,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 21,
+        "cpuGpu": 163,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "idle2": {
+        "sec": 6,
+        "rafFps": 54.3,
+        "sceneFps": 7,
+        "worstGap": 83,
+        "sceneWorstGap": 54,
+        "longTaskMs": 0,
+        "longTaskMax": 0,
+        "cpuRenderer": 9,
+        "cpuGpu": 35,
+        "drawsPerFrame": 58,
+        "ktrisPerFrame": 36
+      },
+      "tier": {
+        "samples": [
+          [
+            "room",
+            211,
+            0.53,
+            397
+          ],
+          [
+            "room",
+            104,
+            0.53,
+            196
+          ],
+          [
+            "room",
+            65,
+            0.53,
+            123
+          ],
+          [
+            "room",
+            485,
+            0.53,
+            915
+          ],
+          [
+            "room",
+            259,
+            0.53,
+            490
+          ]
+        ],
+        "store": "{\"v\":1,\"at\":1794982413650,\"low\":\"weak\",\"score\":196}"
+      },
+      "captures": {
+        "kinds": {
+          "roomBake": {
+            "n": 1,
+            "med": 589,
+            "max": 589
+          }
+        },
+        "raw": [
+          [
+            "roomBake",
+            589
+          ]
+        ],
+        "n": 1,
+        "bdMax": null,
+        "sharpMed": null,
+        "sharpMax": null,
+        "waitMed": null,
+        "waitMax": null
+      }
+    }
+  ]
+}

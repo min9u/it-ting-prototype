@@ -1,0 +1,131 @@
+{
+ "rows": [
+  {
+   "cond": "가속 켬 (RTX 5060 Ti)",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "127ms",
+   "after": "162ms"
+  },
+  {
+   "cond": "가속 켬 (RTX 5060 Ti)",
+   "what": "다 보이기까지",
+   "before": "2714ms",
+   "after": "2923ms"
+  },
+  {
+   "cond": "가속 켬 (RTX 5060 Ti)",
+   "what": "걷기 장면 fps",
+   "before": "60",
+   "after": "59.9"
+  },
+  {
+   "cond": "가속 켬 (RTX 5060 Ti)",
+   "what": "가만히 있을 때 CPU (페이지 + 그리기)",
+   "before": "63%",
+   "after": "58%"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP)",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "176ms",
+   "after": "276ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP)",
+   "what": "다 보이기까지",
+   "before": "2657ms",
+   "after": "3310ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP)",
+   "what": "걷기 장면 fps",
+   "before": "59.4",
+   "after": "59.9"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP)",
+   "what": "가만히 있을 때 CPU (페이지 + 그리기)",
+   "before": "120%",
+   "after": "119%"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "176ms",
+   "after": "263ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "다 보이기까지",
+   "before": "2657ms",
+   "after": "3064ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "걷기 장면 fps",
+   "before": "59.4",
+   "after": "59.9"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 마지막 빌드로 다시",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "176ms",
+   "after": "270ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 마지막 빌드로 다시",
+   "what": "다 보이기까지",
+   "before": "2657ms",
+   "after": "3154ms"
+  },
+  {
+   "cond": "가속 끔 · 16스레드 (WARP) · 마지막 빌드로 다시",
+   "what": "걷기 장면 fps",
+   "before": "59.4",
+   "after": "59.7"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP)",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "991ms",
+   "after": "1437ms"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP)",
+   "what": "다 보이기까지",
+   "before": "6372ms",
+   "after": "6912ms"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP)",
+   "what": "걷기 장면 fps",
+   "before": "29.9",
+   "after": "38.9"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP)",
+   "what": "가만히 있을 때 CPU (페이지 + 그리기)",
+   "before": "67%",
+   "after": "64%"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "첫 진입 가장 긴 멈춤",
+   "before": "991ms",
+   "after": "849ms"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "다 보이기까지",
+   "before": "6372ms",
+   "after": "6850ms"
+  },
+  {
+   "cond": "가속 끔 · CPU 2코어 (WARP) · 무늬 없이(가벼운 꾸미기)",
+   "what": "걷기 장면 fps",
+   "before": "29.9",
+   "after": "34.8"
+  }
+ ],
+ "how": "explore/gpu/cdp-scene.mjs room 시나리오, 공유 빌드(npm run build:share), 헤드리스 크롬 1920×1080, 반복 3번 가운데 값. 가만히 6초 → 걷기(D·A) 8초 → 가만히 6초. CPU 100% = 코어 하나. 가속 켬 = NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11. 2코어 = 크롬을 CPU 2개에 묶음(start /affinity 3), 이 시험에서는 기기 단계가 strong 으로 잡혀 무늬를 그림 (실제 2코어 PC 는 weak → 무늬 없이)"
+}

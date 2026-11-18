@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { ME_ID } from '../../../data/mock'
 import RoomModeToggle from '../../../components/RoomModeToggle'
 import Avatar from '../../../components/Avatar'
 import InterestChip from '../../../components/InterestChip'
@@ -202,7 +203,7 @@ function CardFront({ base, r, worn, regular, onFlip }: { base: ExploreBase; r: R
   return (
     <div className={c.front}>
       <div className={c.peekCol}>
-        <RoomPeek interests={u.interests} worn={r.mine ? worn : u.worn} width={236} mine={r.mine} online={!r.mine && u.online} />
+        <RoomPeek ownerId={r.mine ? ME_ID : u.id} interests={u.interests} worn={r.mine ? worn : u.worn} width={236} mine={r.mine} online={!r.mine && u.online} />
         <span className={c.seat}>{floorLabel(base.floor)} · {r.seat}번 자리</span>
       </div>
       <div className={c.info}>

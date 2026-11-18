@@ -149,7 +149,7 @@ if ((!args.check && !args.me) || args.all) {
     for (const j of jobs) {
       if (only && !j.key.includes(only)) continue
       const t0 = Date.now()
-      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=0${LOOK}`, path.join(OUT, SET, pass.dir, `${j.key}.png`))
+      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=${args.fx ?? 0}${LOOK}`, path.join(OUT, SET, pass.dir, `${j.key}.png`))
       const rec = { key: j.key, group: j.group, kind: j.persona?.kind ?? (j.me ? '내 땅굴' : j.group === 'z' ? '기준' : '들판 이웃'), seat: j.seat ?? null, ...r }
       fs.writeFileSync(path.join(OUT, SET, pass.dir, `${j.key}.json`), JSON.stringify(rec, null, 2))
       meta.items.push(j.key)
