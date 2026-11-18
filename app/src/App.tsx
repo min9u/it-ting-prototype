@@ -85,6 +85,8 @@ export const router = createRouter([{ errorElement: <RouteError />, children: [
       { path: '/burrow', element: <MyBurrow /> },
       { path: '/burrow/explore', element: <ExploreDesigns /> }, // 디자인 시안 A(ExploreBurrow)·B·C·D 전환
       { path: '/burrow/:userId', element: <VisitBurrow /> },
+      // 땅굴 비교 실험실 (2026-11-18, docs/room-diversity-2026-11-18.md): 방문자 뷰와 같은 방을 아무 관심사로. 헤더 아래 크기가 같게 이 묶음 안에
+      { path: '/lab/rooms', lazy: () => import('./screens/lab/RoomsLab').then((m) => ({ Component: m.default })) },
       { path: '/board', element: <BoardList /> },
       { path: '/board/write', element: <BoardWrite /> },
       { path: '/board/saved', element: <BoardActivity kind="saved" /> },

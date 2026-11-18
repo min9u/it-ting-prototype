@@ -593,6 +593,9 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
+    // 땅굴 비교 찍기용 (?nomole=1, tools/room-diversity, docs/room-diversity-2026-11-18.md): 두더지 두 마리를 숨기고 방만. 발밑 그림자는 루프가 따라 숨김.
+    // 연출 없는 방(still)에서만 맞음 (떨어지는 연출은 두더지를 다시 보이게 함)
+    if (testParam('nomole') === '1') for (const a of [host, mole]) if (a) a.object.visible = false
     if (opts.fx && !opts.canvas) {
       fx = createRoomFx({
         container, after: renderer.domElement, camera, ownerId: opts.ownerId, interests: opts.interests ?? [], viewer: opts.fx.viewer,
