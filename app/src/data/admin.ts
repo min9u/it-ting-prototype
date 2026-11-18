@@ -8,11 +8,11 @@ export interface IntroQuestion { id: string; text: string; type: QuestionType; c
 
 export const questionStore = createStore<{ list: IntroQuestion[] }>({
   list: [
-    { id: 'q1', text: '요즘 가장 자주 듣는 시티팝 한 곡은?', type: '관심사', category: '음악' },
-    { id: 'q2', text: '필름카메라로 처음 찍은 건 뭐였어요?', type: '관심사', category: '사진' },
+    { id: 'q1', text: '요즘 가장 자주 듣는 시티팝 한 곡은?', type: '관심사', category: '음악·댄스' },
+    { id: 'q2', text: '필름카메라로 처음 찍은 건 뭐였어요?', type: '관심사', category: '사진·영상' },
     { id: 'q3', text: '하루 동안 투명 인간이 된다면 뭐 해볼래요?', type: 'TMI', category: null },
     { id: 'q4', text: '남들은 모르는 나만의 잠버릇은?', type: 'TMI', category: null },
-    { id: 'q5', text: '테라리움에 꼭 넣고 싶은 식물은?', type: '관심사', category: '자연·식물' },
+    { id: 'q5', text: '테라리움에 꼭 넣고 싶은 식물은?', type: '관심사', category: '반려동물·식물' },
   ],
 })
 export function saveQuestion(q: Omit<IntroQuestion, 'id'> & { id?: string }) {

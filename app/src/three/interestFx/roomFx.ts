@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { fxOn, subscribeFx } from '../../lib/fxLab'
 import {
-  RARITY_LABEL, SUB_TOTAL, TALK_LABEL, catName, fxColor, greetLine, greetTopicsOf, leadOf, mainFurnitureOf, neighborsWith, peopleCount, rarestOf,
+  FX_STYLE, RARITY_LABEL, SUB_TOTAL, TALK_LABEL, catName, fxColor, greetLine, greetTopicsOf, hasPet, leadOf, mainFurnitureOf, neighborsWith, peopleCount, rarestOf,
   rarityOf, rarityRank, rollcallOf, rollcallText, sharedSubs, subName, subsOfCat, summaryOf, type Rarity, type TalkMood,
 } from '../../data/interestFx'
 import { createOverlay, type OverlayFrame } from './overlay'
@@ -13,9 +13,10 @@ import { badge, glow, glyph, lighten, sticker, stickerSize, tag, toRgba } from '
  * r_summary 관심사 한 줄 요약 (2차): 장면 위 가운데 관심사 줄 (겹치는 것 ♥ → 가장 드문 것 ✦ → 고른 순서) + "나와 N개 겹쳐요".
  *   하나에 마우스를 올리면 그 가구에 불이 들어오고 줄에서 가구까지 점선, 제목에 올리면 입장 이름표를 다시
  * r_rollcall 입장 이름표 (2차): 입장 연출이 끝나면 카테고리 가구마다 "음악 · 시티팝, 피아노" 이름표가 차례로 퐁 → 몇 초 뒤 사라짐
- * r_particles 관심사 숨결: 카테고리 주 가구(피아노·이젤 …)와 세부 관심사 소품에서 그 관심사다운 입자 (2차: 흰 테두리 스티커라 밝은 벽 위에서도 읽힘)
- *   음악 음표 · 사진 플래시 반짝 · 자연 잎 · 게임 픽셀(계단식으로 오름) · 공예 물감 방울 · 책 종이 · 과학 별 반짝 ·
- *   차 김 · 아웃도어 모닥불 불티 · 영화 팝콘 · 반려동물 바닥 발자국
+ * r_particles 관심사 숨결: 대분류 주 가구(피아노·이젤 …)와 소분류 소품에서 그 관심사다운 입자 (2차: 흰 테두리 스티커라 밝은 벽 위에서도 읽힘)
+ *   2026-11-18 확정본 12개: 음악·댄스 음표 · 사진·영상 플래시 반짝 · 반려동물·식물 잎(+ 동물 바닥 발자국) · 게임 픽셀(계단식으로 오름) ·
+ *   미술·수공예 물감 방울 · 책·글 종이 · 음식·음료 김 · 아웃도어 모닥불 불티 · 문화생활 팝콘 ·
+ *   스포츠 통통 튀는 공 · 외국어·자기계발 말풍선 · 덕질·수집 반짝 별 (data/interestFx.ts FX_STYLE)
  * r_card 관심사 카드: 가구에 마우스를 올리면 관심사·고른 사람 수·드문 정도·내 들판 이웃 수·(남의 땅굴) 같이 좋아함 + 말 걸기 한마디
  * r_shared 나와 같은 관심사 (남의 땅굴): 그 가구에 따뜻한 빛 + "♥ 나도 캠핑" 배지 + 하트
  * r_rare 가장 드문 관심사: 방에서 가장 드문 관심사 가구에 반짝이 + "✦ 다도 · 드문 취미" 배지 (아주 드물면 무지개)
@@ -104,13 +105,18 @@ const RATE_MAIN = 1.7, RATE_PROP = 0.45, PET_STEP = 0.42, HEART_RATE = 0.8
 /** 입자 크기 배율 (첫 스크린샷에서 너무 작아 보였음) */
 const K = 1.45
 const pickOf = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]
+/** 대분류 → 입자 모양 (data/interestFx.ts FX_STYLE). 인사 하트는 가짜 대분류 '__heart' */
+const styleOf = (cat: string) => FX_STYLE[cat] ?? (cat === '__heart' ? 'heart' : 'star')
+/** 입자 모양 → 스티커 글리프 이름 (three/interestFx/icons.ts) */
+const STICKER_OF: Record<string, string> = { note: 'note', leaf: 'nature', heart: 'heart', talk: 'language_selfdev', ball: 'sports' }
 const PAL = {
-  nature: ['#5FAE45', '#8CC56A', '#3F8A3A', '#A9D46F'],
-  game: ['#58C4F6', '#F5C452', '#E8743B', '#8CC56A', '#B784F0'],
-  craft: ['#E8705A', '#F2C14E', '#4E8FD0', '#6FB24A', '#B784F0'],
-  science: ['#ffffff', '#C9CCFF', '#FFE08A'],
-  outdoor: ['#FFB347', '#FF7A3A', '#FFD27A'],
-  movie: ['#FFF6D8', '#FFE9A8', '#FFF0C0'],
+  leaf: ['#5FAE45', '#8CC56A', '#3F8A3A', '#A9D46F'],
+  pixel: ['#58C4F6', '#F5C452', '#E8743B', '#8CC56A', '#B784F0'],
+  paint: ['#E8705A', '#F2C14E', '#4E8FD0', '#6FB24A', '#B784F0'],
+  ember: ['#FFB347', '#FF7A3A', '#FFD27A'],
+  popcorn: ['#FFF6D8', '#FFE9A8', '#FFF0C0'],
+  ball: ['#F28C38', '#F5D547', '#58C4F6', '#D23C54'],
+  star5: ['#FF9EC7', '#FFD36E', '#9ED8FF', '#C7A6FF'],
 }
 /** 무지개 반짝이 색 (hsl 을 그때그때 만들면 글리프 캐시가 끝없이 늘어서 12단계로) */
 const RAINBOW = Array.from({ length: 12 }, (_, i) => {
@@ -145,8 +151,8 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       for (const it of items) {
         const pet = it.type === 'pet'
         const main = !it.sub && it.rowId === mainFurnitureOf(it.category)
-        // 반려동물 용품(침대·집)은 동물이 발자국을 내므로 입자 없음
-        const kind: Em['kind'] = pet ? 'pet' : main ? 'main' : it.sub && it.category !== 'pet' ? 'prop' : 'none'
+        // 반려동물 용품(침대·집)은 동물이 발자국을 내므로 입자 없음 (반려동물·식물의 식물 소품은 잎)
+        const kind: Em['kind'] = pet ? 'pet' : main ? 'main' : it.sub && !hasPet(it.sub) ? 'prop' : 'none'
         ems.push({
           item: it, cat: it.category, color: fxColor(it.category), kind, top: new THREE.Vector3(), center: new THREE.Vector3(), half: .3,
           acc: Math.random(), heartAcc: Math.random(), flashAt: 1 + Math.random() * 3, step: 0,
@@ -231,26 +237,27 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   const spawn = (e: Em, small: boolean) => {
     const r = Math.random
     const p: P = {
-      em: e, kind: e.cat, x: e.top.x + (r() - .5) * e.half * 1.1, y: e.top.y + .02, z: e.top.z + (r() - .5) * e.half * .5,
+      em: e, kind: styleOf(e.cat), x: e.top.x + (r() - .5) * e.half * 1.1, y: e.top.y + .02, z: e.top.z + (r() - .5) * e.half * .5,
       vx: 0, vy: 0, vz: 0, age: 0, life: 2, size: .12, rot: 0, vr: 0, color: e.color, seed: r() * 10,
     }
     const k = (small ? .75 : 1) * K
-    switch (e.cat) {
-      case 'music': p.vy = .36; p.vx = (r() - .5) * .1; p.life = 2.4; p.size = .16 * k; p.color = r() < .5 ? e.color : lighten(e.color, .3); p.rot = (r() - .5) * .5; break
-      case 'photo': p.kind = 'flash'; p.y = e.top.y - r() * .25; p.vy = .04; p.life = .55; p.size = .16 * k; p.color = '#ffffff'; break
-      case 'nature': p.vy = .2; p.vx = (r() - .5) * .22; p.life = 3; p.size = .13 * k; p.vr = (r() - .5) * 2.5; p.rot = r() * 6; p.color = pickOf(PAL.nature); break
-      case 'game': p.vy = .34; p.vx = (r() - .5) * .12; p.life = 1.8; p.size = .07 * k; p.color = pickOf(PAL.game); break
-      case 'craft': p.vy = .75 + r() * .3; p.vx = (r() - .5) * .45; p.vz = (r() - .5) * .2; p.life = 1.3; p.size = (.045 + r() * .03) * k; p.color = pickOf(PAL.craft); break
-      case 'book': p.vy = .2; p.vx = (r() - .5) * .15; p.life = 2.6; p.size = .12 * k; p.color = '#fffaf0'; p.vr = (r() - .5) * .8; break
-      case 'science': {
-        const a = r() * Math.PI * 2, rr = e.half + .1 + r() * .25
-        p.x = e.center.x + Math.cos(a) * rr; p.z = e.center.z + Math.sin(a) * rr * .5; p.y = e.top.y - .1 + r() * .55
-        p.vy = .03; p.life = 1.6; p.size = (.1 + r() * .08) * k; p.color = pickOf(PAL.science); break
-      }
-      case 'tea_coffee': p.x = e.top.x + (r() - .5) * e.half * .5; p.vy = .22; p.life = 2.4; p.size = .16 * k; p.color = '#ffffff'; break
-      case 'outdoor': p.vy = .5 + r() * .3; p.vx = (r() - .5) * .15; p.life = 1.3 + r() * .5; p.size = .06 * k; p.color = pickOf(PAL.outdoor); break
-      case 'movie': p.vy = 1 + r() * .4; p.vx = (r() - .5) * .5; p.vz = (r() - .5) * .3; p.life = 1.2; p.size = .075 * k; p.color = pickOf(PAL.movie); p.vr = (r() - .5) * 6; break
-      case 'pet': p.kind = 'heart'; p.vy = .4; p.life = 1.6; p.size = .12 * k; p.color = SHARE; break
+    switch (p.kind) {
+      case 'note': p.vy = .36; p.vx = (r() - .5) * .1; p.life = 2.4; p.size = .16 * k; p.color = r() < .5 ? e.color : lighten(e.color, .3); p.rot = (r() - .5) * .5; break
+      case 'flash': p.y = e.top.y - r() * .25; p.vy = .04; p.life = .55; p.size = .16 * k; p.color = '#ffffff'; break
+      case 'leaf': p.vy = .2; p.vx = (r() - .5) * .22; p.life = 3; p.size = .13 * k; p.vr = (r() - .5) * 2.5; p.rot = r() * 6; p.color = pickOf(PAL.leaf); break
+      case 'pixel': p.vy = .34; p.vx = (r() - .5) * .12; p.life = 1.8; p.size = .07 * k; p.color = pickOf(PAL.pixel); break
+      case 'paint': p.vy = .75 + r() * .3; p.vx = (r() - .5) * .45; p.vz = (r() - .5) * .2; p.life = 1.3; p.size = (.045 + r() * .03) * k; p.color = pickOf(PAL.paint); break
+      case 'page': p.vy = .2; p.vx = (r() - .5) * .15; p.life = 2.6; p.size = .12 * k; p.color = '#fffaf0'; p.vr = (r() - .5) * .8; break
+      case 'steam': p.x = e.top.x + (r() - .5) * e.half * .5; p.vy = .22; p.life = 2.4; p.size = .16 * k; p.color = '#ffffff'; break
+      case 'ember': p.vy = .5 + r() * .3; p.vx = (r() - .5) * .15; p.life = 1.3 + r() * .5; p.size = .06 * k; p.color = pickOf(PAL.ember); break
+      case 'popcorn': p.vy = 1 + r() * .4; p.vx = (r() - .5) * .5; p.vz = (r() - .5) * .3; p.life = 1.2; p.size = .075 * k; p.color = pickOf(PAL.popcorn); p.vr = (r() - .5) * 6; break
+      // 스포츠: 가구 위에서 통통 튀는 작은 공 (떨어지면 가구 윗면에서 한 번 튐, stepParticles)
+      case 'ball': p.vy = .95 + r() * .35; p.vx = (r() - .5) * .3; p.vz = (r() - .5) * .15; p.life = 1.6; p.size = .095 * k; p.color = pickOf(PAL.ball); p.vr = (r() - .5) * 5; break
+      // 외국어·자기계발: 천천히 떠오르는 말풍선
+      case 'talk': p.vy = .26; p.vx = (r() - .5) * .12; p.life = 2.5; p.size = .14 * k; p.color = r() < .5 ? e.color : lighten(e.color, .35); p.rot = (r() - .5) * .3; break
+      // 덕질·수집: 반짝이며 도는 별 스티커
+      case 'star5': p.vy = .22; p.vx = (r() - .5) * .16; p.life = 2.4; p.size = .13 * k; p.vr = (r() - .5) * 1.6; p.rot = r() * 6; p.color = pickOf(PAL.star5); break
+      case 'heart': p.vy = .4; p.life = 1.6; p.size = .12 * k; p.color = SHARE; break
       default: p.vy = .3; p.life = 2; p.kind = 'star'; p.color = '#ffffff'
     }
     ps.push(p)
@@ -277,7 +284,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       p.vx = Math.cos(a) * sp; p.vz = Math.sin(a) * sp * .4; p.vy = .9 + r() * .8
       p.life = Math.min(p.life, 1.15 + r() * .35); p.burst = true
       if (p.kind === 'flash') { p.kind = 'star'; p.size = .14 * K }
-      if (p.kind === 'tea_coffee') { p.vx *= .4; p.vz *= .4; p.vy *= .5; p.burst = false }
+      if (p.kind === 'steam') { p.vx *= .4; p.vz *= .4; p.vy *= .5; p.burst = false }
     }
   }
 
@@ -912,7 +919,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         e.acc += dt * rate
         while (e.acc >= 1) { e.acc -= 1; if (ps.length < cap) spawn(e, e.kind === 'prop') }
         // 사진: 가끔 큰 플래시
-        if (e.cat === 'photo' && e.kind === 'main') {
+        if (styleOf(e.cat) === 'flash' && e.kind === 'main') {
           e.flashAt -= dt
           if (e.flashAt <= 0 && ps.length < cap) {
             e.flashAt = 3 + Math.random() * 3
@@ -936,8 +943,12 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
       const p = ps[i]
       p.age += dt
       if (p.age >= p.life) { ps.splice(i, 1); continue }
-      if (p.kind === 'movie' || p.kind === 'craft') p.vy -= (p.kind === 'craft' ? 1.6 : 2.4) * dt
-      else if (p.burst) { p.vy -= 1.7 * dt; p.vx *= 1 - dt * .8; p.vz *= 1 - dt * .8 }
+      if (p.kind === 'popcorn' || p.kind === 'paint') p.vy -= (p.kind === 'paint' ? 1.6 : 2.4) * dt
+      else if (p.kind === 'ball') {
+        p.vy -= 2.6 * dt
+        // 가구 윗면에 닿으면 한 번 튐 (누르면 터진 공은 그대로 떨어짐)
+        if (!p.burst && p.vy < 0 && p.y < p.em.top.y + .02 && p.age > .2) { p.y = p.em.top.y + .02; p.vy = -p.vy * .55; p.vx *= .7 }
+      } else if (p.burst) { p.vy -= 1.7 * dt; p.vx *= 1 - dt * .8; p.vz *= 1 - dt * .8 }
       if (p.kind !== 'paw') { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt }
       p.rot += p.vr * dt
       drawParticle(ctx, p, t, fade, s)
@@ -949,8 +960,8 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     let a = Math.min(1, u / .15) * (u > .6 ? 1 - (u - .6) / .4 : 1)
     if (p.burst) a = Math.min(1, u / .05) * (u > .7 ? 1 - (u - .7) / .3 : 1)
     const sway = Math.sin(p.age * 2.6 + p.seed) * .05
-    const y = p.kind === 'game' ? Math.round(p.y / .05) * .05 : p.y
-    const wx = p.x + (p.kind === 'music' || p.kind === 'nature' || p.kind === 'book' || p.kind === 'heart' ? sway : 0)
+    const y = p.kind === 'pixel' ? Math.round(p.y / .05) * .05 : p.y
+    const wx = p.x + (p.kind === 'note' || p.kind === 'leaf' || p.kind === 'page' || p.kind === 'heart' || p.kind === 'talk' || p.kind === 'star5' ? sway : 0)
     const sp = proj(wx, y, p.z)
     if (!sp.ok) return
     const x = sp.x, yy = sp.y
@@ -959,14 +970,21 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     const px = p.size * p.em.ppm
     ctx.globalAlpha = a * fade
     switch (p.kind) {
-      case 'music': case 'nature': case 'heart': {
+      case 'note': case 'leaf': case 'heart': case 'talk': case 'ball': {
         // 흰 테두리 스티커 (2차): 연보라 음표·연두 잎이 밝은 흙벽 위에서 묻히던 것
-        const g = sticker(p.kind === 'music' ? 'note' : p.kind, SPRITE, p.color, s)
+        const g = sticker(STICKER_OF[p.kind] ?? p.kind, SPRITE, p.color, s)
         const z = stickerSize(px, SPRITE)
         ctx.save(); ctx.translate(x, yy); ctx.rotate(p.rot + (p.kind === 'heart' ? sway * 2 : 0)); ctx.drawImage(g, -z / 2, -z / 2, z, z); ctx.restore()
         break
       }
-      case 'flash': case 'star': case 'science': {
+      case 'star5': {
+        // 덕질·수집: 돌면서 살짝 반짝 (크기가 숨 쉬듯)
+        const g = sticker('fandom_collect', SPRITE, p.color, s)
+        const z = stickerSize(px, SPRITE) * (.85 + .15 * Math.sin(p.age * 7 + p.seed))
+        ctx.save(); ctx.translate(x, yy); ctx.rotate(p.rot); ctx.drawImage(g, -z / 2, -z / 2, z, z); ctx.restore()
+        break
+      }
+      case 'flash': case 'star': {
         const tw = p.kind === 'flash' ? Math.sin(u * Math.PI) : .55 + .45 * Math.sin(p.age * 9 + p.seed)
         const z = px * tw
         const g = glyph('star4', SPRITE, p.color, s)
@@ -983,7 +1001,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.restore()
         break
       }
-      case 'game': {
+      case 'pixel': {
         // 끝 무렵 깜빡임
         if (u > .7 && Math.floor(p.age * 14) % 2) break
         const z = Math.max(3, Math.round(px))
@@ -993,7 +1011,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.fillRect(Math.round(x - z / 2), Math.round(yy - z / 2), z, z)
         break
       }
-      case 'craft': {
+      case 'paint': {
         const z = px * (u > .85 ? 1 + (u - .85) * 4 : 1)
         ctx.fillStyle = p.color
         ctx.beginPath(); ctx.ellipse(x, yy, z / 2, z / 2 * 1.12, 0, 0, Math.PI * 2); ctx.fill()
@@ -1001,7 +1019,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.beginPath(); ctx.arc(x - z * .15, yy - z * .18, z * .14, 0, Math.PI * 2); ctx.fill()
         break
       }
-      case 'book': {
+      case 'page': {
         const g = sticker('page', SPRITE, p.color, s)
         const fx = Math.cos(p.age * 5 + p.seed)
         const z = stickerSize(px, SPRITE)
@@ -1010,7 +1028,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.restore()
         break
       }
-      case 'tea_coffee': {
+      case 'steam': {
         const z = px * (1 + u * 1.8)
         ctx.globalAlpha = a * .38 * fade
         const g = glow('#ffffff', 64, .2)
@@ -1018,7 +1036,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.drawImage(g, x - z / 2 + wob, yy - z / 2, z, z)
         break
       }
-      case 'outdoor': {
+      case 'ember': {
         const fl = .6 + .4 * Math.sin(p.age * 22 + p.seed * 3)
         const z = px * 2.4 * fl
         ctx.save(); ctx.globalCompositeOperation = 'lighter'
@@ -1026,7 +1044,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         ctx.restore()
         break
       }
-      case 'movie': {
+      case 'popcorn': {
         const g = sticker('popcorn', SPRITE, p.color, s)
         const z = stickerSize(px, SPRITE)
         ctx.save(); ctx.translate(x, yy); ctx.rotate(p.rot); ctx.drawImage(g, -z / 2, -z / 2, z, z); ctx.restore()
@@ -1065,11 +1083,19 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
     if (o.viewer) warm.push(() => glow('#FF8A6A', 64, .2))
     const cats = new Set(groups.map((g) => g.cat))
     if (!still) {
-      if (cats.has('music')) { const c = fxColor('music'); warm.push(() => sticker('note', SPRITE, c, s0), () => sticker('note', SPRITE, lighten(c, .3), s0)) }
-      if (cats.has('nature')) for (const c of PAL.nature) warm.push(() => sticker('nature', SPRITE, c, s0))
-      if (cats.has('movie')) for (const c of PAL.movie) warm.push(() => sticker('popcorn', SPRITE, c, s0))
-      if (cats.has('book')) warm.push(() => sticker('page', SPRITE, '#fffaf0', s0))
-      if (o.viewer || cats.has('pet')) warm.push(() => sticker('heart', SPRITE, SHARE, s0))
+      for (const cat of cats) {
+        const c = fxColor(cat)
+        switch (styleOf(cat)) {
+          case 'note': warm.push(() => sticker('note', SPRITE, c, s0), () => sticker('note', SPRITE, lighten(c, .3), s0)); break
+          case 'talk': warm.push(() => sticker('language_selfdev', SPRITE, c, s0), () => sticker('language_selfdev', SPRITE, lighten(c, .35), s0)); break
+          case 'leaf': for (const x of PAL.leaf) warm.push(() => sticker('nature', SPRITE, x, s0)); break
+          case 'popcorn': for (const x of PAL.popcorn) warm.push(() => sticker('popcorn', SPRITE, x, s0)); break
+          case 'ball': for (const x of PAL.ball) warm.push(() => sticker('sports', SPRITE, x, s0)); break
+          case 'star5': for (const x of PAL.star5) warm.push(() => sticker('fandom_collect', SPRITE, x, s0)); break
+          case 'page': warm.push(() => sticker('page', SPRITE, '#fffaf0', s0)); break
+        }
+      }
+      if (o.viewer) warm.push(() => sticker('heart', SPRITE, SHARE, s0))
       if (rarest) for (const c of rarest.rarity === 'legend' ? RAINBOW : [GOLD, '#FFF1B8']) warm.push(() => sticker('star4', SPRITE, c, s0))
     }
     const idle = (f: () => void) => (window.requestIdleCallback ? window.requestIdleCallback(f, { timeout: 600 }) : window.setTimeout(f, 30))
@@ -1129,7 +1155,7 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
         const a = o.actors?.()
         if (a?.me && a.host) {
           const m = a.me.position.clone().add(a.host.position).multiplyScalar(.5)
-          const fake = { cat: 'pet', top: new THREE.Vector3(m.x, 1.05, m.z), center: new THREE.Vector3(m.x, .9, m.z), half: .3, color: SHARE, ppm: 120 } as unknown as Em
+          const fake = { cat: '__heart', top: new THREE.Vector3(m.x, 1.05, m.z), center: new THREE.Vector3(m.x, .9, m.z), half: .3, color: SHARE, ppm: 120 } as unknown as Em
           const ref = ems[0]
           if (ref) { fake.ppm = ref.ppm; burst(fake, overlay.mode.level === 'full' ? 8 : 4) }
         }

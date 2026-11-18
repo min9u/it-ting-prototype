@@ -136,7 +136,7 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
             <FieldError id="w-body-err" error={srvErr} field="content" />
           </div>
 
-          {/* 4 관심사 태그 (선택, 대분류 11개 중 최대 5개) */}
+          {/* 4 관심사 태그 (선택, 대분류 12개 중 최대 5개) */}
           <div className={s.field}>
             <p className={s.fieldHead}><span>관심사 태그</span><small>선택 · 최대 {TAG_MAX}개</small></p>
             <div className={s.chipRow}>

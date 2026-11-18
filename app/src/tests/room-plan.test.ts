@@ -29,16 +29,16 @@ function randomPicks(r: () => number, n: number) {
   return out
 }
 
-describe('관심사 카탈로그 (3D 핸드오프 v3 interest_catalog)', () => {
-  it('카테고리 11 · 세부 관심사 65 · 최대 10개 (F3 2-5)', () => {
-    expect(INTEREST_CATS).toHaveLength(11)
-    expect(INTEREST_SUBS).toHaveLength(65)
+describe('관심사 목록 (2026-11-18 확정본, 자세한 것은 interest-tags.test.ts)', () => {
+  it('대분류 12 · 소분류 90 · 최대 10개 (F3 2-5)', () => {
+    expect(INTEREST_CATS).toHaveLength(12)
+    expect(INTEREST_SUBS).toHaveLength(90)
     expect(MAX_PICK).toBe(10)
     expect(MIN_PICK).toBe(3)
   })
-  it('세부 관심사 id 와 화면 이름이 겹치지 않음 (subOf 가 이름으로도 찾음)', () => {
-    expect(new Set(INTEREST_SUBS.map((s) => s.id)).size).toBe(65)
-    expect(new Set(INTEREST_SUBS.map((s) => s.name_ko)).size).toBe(65)
+  it('소분류 id 와 화면 이름이 겹치지 않음 (subOf 가 이름으로도 찾음)', () => {
+    expect(new Set(INTEREST_SUBS.map((s) => s.id)).size).toBe(90)
+    expect(new Set(INTEREST_SUBS.map((s) => s.name_ko)).size).toBe(90)
   })
   it('모든 세부 관심사의 카테고리가 있음 · 카테고리마다 세부 관심사가 하나 이상', () => {
     for (const s of INTEREST_SUBS) expect(INTEREST_CATS.some((c) => c.id === s.category), s.id).toBe(true)
@@ -62,21 +62,22 @@ describe('toSubIds · categoriesOf (F3 2-4 고른 순서)', () => {
   it('최대 10개에서 자름 (F3 10개 초과)', () => {
     expect(toSubIds(INTEREST_SUBS.slice(0, 15).map((s) => s.id))).toHaveLength(10)
   })
-  it('카테고리는 처음 나온 순서', () => {
-    const music = subsOfCat('music'), pet = subsOfCat('pet')
-    expect(categoriesOf([pet[0].id, music[0].id, pet[1].id])).toEqual(['pet', 'music'])
+  it('대분류는 처음 나온 순서', () => {
+    const music = subsOfCat('music_dance'), pet = subsOfCat('pet_plant')
+    expect(categoriesOf([pet[0].id, music[0].id, pet[1].id])).toEqual(['pet_plant', 'music_dance'])
   })
 })
 
 describe('땅굴 무드 (F3 3a-3 · 00 공통 5: 대표 관심사 = 맨 앞)', () => {
   it('맨 앞 관심사의 대분류 → 벽지', () => {
-    const picks = [subsOfCat('music')[0].id, ...subsOfCat('science').slice(0, 3).map((s) => s.id)]
-    expect(leadCategory(picks)).toBe('music')
-    expect(moodWallpaper(picks)).toBe(wallpaperForCategory('music'))
+    const picks = [subsOfCat('music_dance')[0].id, ...subsOfCat('book').slice(0, 3).map((s) => s.id)]
+    expect(leadCategory(picks)).toBe('music_dance')
+    expect(moodWallpaper(picks)).toBe(wallpaperForCategory('music_dance'))
   })
-  it('차·커피는 벽지 표의 "tea" 로도 찾음, 표에 없는 분야는 기본 벽지', () => {
+  it('음식·음료(차·커피 세트)는 벽지 표의 "tea" 로 찾음, 표에 없는 세트는 기본 벽지', () => {
+    expect(wallpaperForCategory('food')).not.toBe(DEFAULT_WALLPAPER)
     expect(wallpaperForCategory('tea_coffee')).not.toBe(DEFAULT_WALLPAPER)
-    expect(wallpaperForCategory('pet')).toBe(DEFAULT_WALLPAPER)
+    expect(wallpaperForCategory('culture')).toBe(DEFAULT_WALLPAPER)
     expect(wallpaperForCategory(undefined)).toBe(DEFAULT_WALLPAPER)
   })
   it('예전 가중치 규칙: 드문 관심사 하나가 흔한 관심사 둘보다 무거움 (Σ 1 + 1000/인원)', () => {
@@ -89,12 +90,13 @@ describe('땅굴 무드 (F3 3a-3 · 00 공통 5: 대표 관심사 = 맨 앞)', (
   })
   it.todo('남의 땅굴 벽지도 대표 관심사 규칙으로 — 지금 VisitBurrow 는 wallpaper 를 안 넘겨 roomScene 이 가중치 규칙(wallpaperForPicks)을 씀')
   it('(현재 동작 기록) 대표 관심사 규칙과 가중치 규칙이 다른 경우가 있음', () => {
-    // 흔한 음악 관심사를 맨 앞에, 아주 드문 과학 관심사를 뒤에
-    const music = [...subsOfCat('music')].sort((a, b) => count(b.id) - count(a.id))[0]
-    const sci = [...subsOfCat('science')].sort((a, b) => count(a.id) - count(b.id))[0]
-    const names = [music.name_ko, sci.name_ko]
-    expect(moodWallpaper(names)).toBe(wallpaperForCategory('music'))
-    expect(wallpaperForPicks(names)).toBe(wallpaperForCategory('science'))
+    // 흔한 음악·댄스 관심사를 맨 앞에, 아주 드문 미술·수공예 관심사를 뒤에
+    const music = [...subsOfCat('music_dance')].sort((a, b) => count(b.id) - count(a.id))[0]
+    const art = [...subsOfCat('art_craft')].sort((a, b) => count(a.id) - count(b.id))[0]
+    const names = [music.name_ko, art.name_ko]
+    expect(moodWallpaper(names)).toBe(wallpaperForCategory('music_dance'))
+    expect(wallpaperForPicks(names)).toBe(wallpaperForCategory('art_craft'))
+    expect(wallpaperForCategory('music_dance')).not.toBe(wallpaperForCategory('art_craft'))
   })
 })
 function count(subId: string) { return CATEGORIES.flatMap((c) => c.tags).find((t) => t.id === subId)!.count }
@@ -105,10 +107,10 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
     expect(p.items).toEqual([])
     expect(p.duration).toBe(0)
   })
-  it('고른 카테고리의 카테고리 가구는 모두 정해진 슬롯에', () => {
-    const picks = [subsOfCat('book')[0].id, subsOfCat('music')[0].id]
+  it('고른 대분류의 대분류 가구는 모두 정해진 슬롯에', () => {
+    const picks = [subsOfCat('book')[0].id, subsOfCat('music_dance')[0].id]
     const p = planRoom(picks)
-    expect(p.categories).toEqual(['book', 'music'])
+    expect(p.categories).toEqual(['book', 'music_dance'])
     for (const cat of p.categories) {
       const cd = INTEREST_CATS.find((c) => c.id === cat)!
       const placed = p.items.filter((it) => it.category === cat && it.sub === null)
@@ -116,22 +118,26 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
     }
   })
   it('화면 이름으로 골라도 id 로 고른 것과 같음', () => {
-    const ids = subsOfCat('craft').slice(0, 3).map((s) => s.id)
+    const ids = subsOfCat('art_craft').slice(0, 3).map((s) => s.id)
     const a = planRoom(ids), b = planRoom(ids.map(nameOf))
     expect(b.items.map((it) => [it.row.id, it.slot.name])).toEqual(a.items.map((it) => [it.row.id, it.slot.name]))
   })
-  it('무작위 조합 300개: 슬롯 하나에 가구 하나, 고른 세부 관심사마다 소품 하나', () => {
+  it('무작위 조합 300개: 슬롯 하나에 가구 하나(같은 가구 두 번 없음), 소품이 있는 소분류마다 소품 하나', () => {
     const r = rng(20261116)
     for (let k = 0; k < 300; k++) {
       const picks = randomPicks(r, 3 + Math.floor(r() * 8))
       const p = planRoom(picks)
       const slots = p.items.map((it) => it.slot.name)
       expect(new Set(slots).size, picks.join(',')).toBe(slots.length)
+      expect(new Set(p.items.map((it) => it.row.id)).size, picks.join(',')).toBe(p.items.length)
       for (const id of picks) {
         const props = p.items.filter((it) => it.sub === id && it.row.type !== 'pet')
-        expect(props, id).toHaveLength(1)
-        expect(props[0].row.id).toBe(subOf(id)!.prop)
+        const prop = subOf(id)!.prop
+        expect(props, id).toHaveLength(prop ? 1 : 0)
+        if (prop) expect(props[0].row.id).toBe(prop)
       }
+      // 고른 대분류의 가구는 (다른 대분류가 먼저 놓았더라도) 방에 있음
+      for (const c of p.categories) for (const f of INTEREST_CATS.find((x) => x.id === c)!.furniture) expect(p.items.some((it) => it.row.id === f), f).toBe(true)
     }
   })
   it('선반 소품은 선반 슬롯에만, 바닥·반려동물 소품은 카탈로그가 정한 슬롯에', () => {
@@ -147,7 +153,7 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
     }
   })
   it('반려동물 용품을 고르면 짝 동물도 같이, 같은 시각에 떨어짐 (v3.4)', () => {
-    for (const sub of subsOfCat('pet').filter((s) => s.pet)) {
+    for (const sub of subsOfCat('pet_plant').filter((s) => s.pet)) {
       const p = planRoom([sub.id])
       const pair = p.items.filter((it) => it.sub === sub.id)
       expect(pair.map((it) => it.row.id).sort()).toEqual([sub.prop, sub.pet!].sort())
@@ -186,13 +192,17 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
 
 describe('가구 고르기 (F4 꾸미기 가구 탭 3)', () => {
   const shelfSub = INTEREST_SUBS.find((s) => s.slot_kind === 'shelf')!
-  const floorSub = INTEREST_SUBS.find((s) => s.slot_kind !== 'shelf')!
+  const floorSub = INTEREST_SUBS.find((s) => s.slot_kind === 'floor' || s.slot_kind === 'pet_floor')!
   it('후보 = 기본 가구 + 같은 대분류 선반 소품 최대 2개, 기본 가구가 맨 앞', () => {
     const c = furnitureCandidates(shelfSub.id, [shelfSub.id])
     expect(c[0].id).toBe(shelfSub.prop)
     expect(c.length).toBeGreaterThanOrEqual(1)
     expect(c.length).toBeLessThanOrEqual(3)
-    for (const row of c) expect(row.category).toBe(shelfSub.category)
+    for (const row of c) expect(INTEREST_SUBS.find((s) => s.prop === row.id)?.category).toBe(shelfSub.category)
+  })
+  it('소품이 아직 없는 소분류는 후보 없음', () => {
+    const none = INTEREST_SUBS.find((s) => !s.prop)!
+    expect(furnitureCandidates(none.id, [none.id])).toEqual([])
   })
   it('내가 고른 다른 관심사의 기본 가구는 후보에서 뺌', () => {
     const siblings = subsOfCat(shelfSub.category).filter((s) => s.slot_kind === 'shelf' && s.id !== shelfSub.id)

@@ -37,7 +37,7 @@ const real = {
   updateMole: (look: MoleLookDto) => http.put<MoleLookDto>('/me/mole', look),
   /** PUT /me/interests — 관심사 (순서 = sort_order, 맨 앞이 대표). 3~10개 */
   updateInterests: (items: { interestId: Id; furniture: string | null }[]) => http.put<void>('/me/interests', { items }),
-  /** GET /interest-categories — 대분류 11 + 세부 65 */
+  /** GET /interest-categories — 대분류 12 + 소분류 90 (2026-11-18 확정본, docs/backend/interest-enum.md) */
   interestCategories: (signal?: AbortSignal) => http.get<InterestCategoryDto[]>('/interest-categories', undefined, signal),
   /** GET /intro-questions */
   introQuestions: (signal?: AbortSignal) => http.get<IntroQuestionDto[]>('/intro-questions', undefined, signal),

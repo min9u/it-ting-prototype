@@ -99,17 +99,23 @@ export function planRoom(picksIn: string[]): RoomPlan {
     if (!bySet.has(c)) bySet.set(c, [])
     bySet.get(c)!.push({ row, slot, category: c, built: isBuilt(row), sub })
   }
-  // 카테고리 가구 (슬롯 고정)
+  // 대분류 가구 (슬롯 고정). 2026-11-18 확정본은 두 대분류가 같은 3D 세트를 빌려 쓰기도 해서(스포츠·아웃도어, 외국어·자기계발·책·글)
+  // 이미 놓인 가구는 다시 놓지 않음 → 먼저 고른 대분류 몫 (data/interest3d.ts)
+  const placed = new Set<string>()
   for (const c of cats) {
     const cd = INTEREST_CATS.find((x) => x.id === c)!
-    cd.furniture.forEach((fid, i) => push(c, rowOf(fid), slotOf(cd.furniture_slots[i]), null))
+    cd.furniture.forEach((fid, i) => {
+      if (placed.has(fid)) return
+      placed.add(fid)
+      push(c, rowOf(fid), slotOf(cd.furniture_slots[i]), null)
+    })
   }
-  // 소품
+  // 소품 (소분류에 맞는 소품이 아직 없으면 건너뜀)
   for (const id of picks) {
-    const sub = subOf(id)!, prop = rowOf(sub.prop)
+    const sub = subOf(id)!, prop = sub.prop ? rowOf(sub.prop) : undefined
     if (!prop) continue
     if (sub.slot_kind === 'shelf') {
-      const main = slotOf(INTEREST_CATS.find((x) => x.id === sub.category)!.furniture_slots[0])
+      const main = slotOf(INTEREST_CATS.find((x) => x.id === sub.category)!.furniture_slots[0] ?? '')
       const free = shelf.filter((s) => !used.has(s.name))
         .sort((a, b) => (main ? dist(a, main) - dist(b, main) : 0) || a.name.localeCompare(b.name))
       if (!free[0]) continue
@@ -129,7 +135,7 @@ export function planRoom(picksIn: string[]): RoomPlan {
     // 동물과 짝 용품은 같은 시각 (HANDOFF_v3_4 3번): 같은 세부 관심사의 pet·용품을 한 묶음으로, 묶음끼리 부피 큰 것부터 0.12초 간격
     const groups = new Map<string, Omit<PlannedItem, 'start'>[]>()
     set.forEach((it, i) => {
-      const key = it.category === 'pet' && it.sub ? `pair:${it.sub}` : `one:${i}`
+      const key = it.sub && subOf(it.sub)?.pet ? `pair:${it.sub}` : `one:${i}`
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(it)
     })
@@ -143,8 +149,11 @@ export function planRoom(picksIn: string[]): RoomPlan {
   return { picks, categories: cats, items, duration: items.length ? Math.min(last, DROP_SPAN) + DROP_LEN : 0 }
 }
 
-/** 둥근 블록 색 (HANDOFF_v3 3번 추천 팔레트, 무광) */
+/**
+ * 둥근 블록 색 (HANDOFF_v3 3번 추천 팔레트, 무광). 모델이 없는 가구 자리 · 꾸미기 가구 탭 썸네일.
+ * 2026-11-18 확정본 대분류 12개 (빌려 쓰는 3D 세트의 색을 따름)
+ */
 export const BLOCK_COLORS: Record<string, string> = {
-  music: '#E8743B', photo: '#A8D4EE', nature: '#8CC56A', game: '#F5C452', craft: '#C98A5A', book: '#A86B45',
-  science: '#A8D4EE', tea_coffee: '#F7E6C8', outdoor: '#8CC56A', movie: '#E8743B', pet: '#F7E6C8',
+  food: '#F7E6C8', sports: '#8CC56A', culture: '#E8743B', game: '#F5C452', music_dance: '#E8743B', outdoor: '#8CC56A',
+  language_selfdev: '#A86B45', book: '#A86B45', photo_video: '#A8D4EE', art_craft: '#C98A5A', fandom_collect: '#A8D4EE', pet_plant: '#8CC56A',
 }
