@@ -412,6 +412,11 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (mm.isMesh) { mm.receiveShadow = true; mm.material = swapMat(mm.material as THREE.Material) }
     })
     dropNodes.forEach((o) => o.removeFromParent()) // 숨기기보다 빼는 쪽이 예열·굽기에서 건너뛰기 쉬움
+    if (testParam('soilsplit') !== '0') {
+      const soilMeshes: THREE.Mesh[] = []
+      g.traverse((o) => { if (soilNodes.has(o.name) && (o as THREE.Mesh).isMesh) soilMeshes.push(o as THREE.Mesh) })
+      soilMeshes.forEach(splitSoil)
+    }
     matchOuterGrass(g)
     if (!hide.has('ground')) scene.add(g)
 
@@ -528,6 +533,46 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     m.color.setRGB(sum[0] / n * sm.color.r, sum[1] / n * sm.color.g, sum[2] / n * sm.color.b, THREE.LinearSRGBColorSpace)
     outer.material = m
     own.push(m)
+  }
+
+  /*
+   * 흙 노드를 12m 칸으로 나눔 (2026-11-18 측정, docs/explore-field-v3-10.md). 흙 메시는 구역마다 36m 한 덩어리(정점 약 5천)라
+   * 가속 끈 PC 에서 띠로 나눠 굽기·빈 곳 메우기를 할 때마다 화면 밖 부분까지 통째로 그려서 2코어 점프가 28 → 20fps 로 떨어졌음.
+   * 정점은 그대로 함께 쓰고 삼각형 목록(index)만 칸마다 나눠 칸 단위로 화면 밖은 안 그림 (다른 부품 인스턴싱 칸과 같은 크기). ?soilsplit=0 이면 안 나눔
+   */
+  function splitSoil(mesh: THREE.Mesh) {
+    const geo = mesh.geometry, idx = geo.index, pos = geo.getAttribute('position') as THREE.BufferAttribute
+    if (!idx || !mesh.parent) return
+    mesh.updateMatrixWorld(true)
+    const mw = mesh.matrixWorld
+    const v = new THREE.Vector3()
+    const cells = new Map<string, number[]>()
+    for (let t = 0; t + 2 < idx.count; t += 3) {
+      let cx = 0, cz = 0
+      for (let k = 0; k < 3; k++) { v.fromBufferAttribute(pos, idx.getX(t + k)).applyMatrix4(mw); cx += v.x; cz += v.z }
+      const key = cellKey(cx / 3, cz / 3)
+      let list = cells.get(key)
+      if (!list) cells.set(key, (list = []))
+      list.push(idx.getX(t), idx.getX(t + 1), idx.getX(t + 2))
+    }
+    if (cells.size < 2) return
+    const box = new THREE.Box3()
+    cells.forEach((list, key) => {
+      const g2 = new THREE.BufferGeometry()
+      for (const [name, a] of Object.entries(geo.attributes)) g2.setAttribute(name, a)
+      g2.setIndex(new THREE.BufferAttribute(pos.count < 65536 ? new Uint16Array(list) : new Uint32Array(list), 1))
+      box.makeEmpty()
+      for (const i of list) box.expandByPoint(v.fromBufferAttribute(pos, i))
+      g2.boundingBox = box.clone()
+      g2.boundingSphere = box.getBoundingSphere(new THREE.Sphere())
+      own.push(g2)
+      const part = new THREE.Mesh(g2, mesh.material)
+      part.name = `${mesh.name}#${key}`
+      part.position.copy(mesh.position); part.quaternion.copy(mesh.quaternion); part.scale.copy(mesh.scale)
+      part.receiveShadow = true
+      mesh.parent!.add(part)
+    })
+    mesh.removeFromParent()
   }
 
   /* ---------- 단계별 표시 (LOD, camera_zoom_spec 3) ---------- */

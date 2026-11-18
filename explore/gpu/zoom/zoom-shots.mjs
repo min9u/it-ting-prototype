@@ -34,6 +34,12 @@ const SHOTS = [
   { name: 'near-sweetpotato', url: `${E}?panel=closed&floor=${D1}`, wait: 2500 },
   { name: 'near-carrot', url: `${E}?panel=closed&floor=${D2}`, wait: 2500 },
   { name: 'near-apple', url: `${E}?panel=closed&floor=${F3}`, wait: 2500 },
+  // 작물 5종 mid (문서용 한 장)
+  { name: 'crop-mid-pumpkin', url: `${E}?panel=closed&zoom=mid&seat=20`, wait: 2500 },
+  { name: 'crop-mid-apple', url: `${E}?panel=closed&floor=${F3}&zoom=mid&seat=22`, wait: 2500 },
+  { name: 'crop-mid-strawberry', url: `${E}?panel=closed&floor=${F12}&zoom=mid&seat=10`, wait: 2500 },
+  { name: 'crop-mid-sweetpotato', url: `${E}?panel=closed&floor=${D1}&zoom=mid&seat=10`, wait: 2500 },
+  { name: 'crop-mid-carrot', url: `${E}?panel=closed&floor=${D2}&zoom=mid&seat=5`, wait: 2500 },
   // 패널 열림 + 줌 단계 전환 (키)
   { name: 'panel-far-key', url: `${E}`, steps: [['-'], 1800, ['-'], 2500], wait: 1500 },
   { name: 'panel-near-back', url: `${E}?zoom=far`, steps: [['+'], 1800, ['+'], 2500], wait: 1500 },
