@@ -132,7 +132,7 @@ HTTP/1.1 409 Conflict
 | GET | `/nicknames/{nickname}/availability` | — | `{ available }` | — | 🔒 | `nicknameAvailable` |
 | PUT | `/me/mole` | `MoleLookDto { head, face, neck, hand }` | `MoleLookDto` | 400 INVALID_ITEM (잠긴 아이템·금지 조합) | 🔒 | `updateMole` |
 | PUT | `/me/interests` | `{ items: [{ interestId, furniture }] }` (순서 = sort_order, 맨 앞 대표) | 204 | 400 INTEREST_COUNT (3~10) | 🔒 | `updateInterests` |
-| GET | `/interest-categories` | — | `InterestCategoryDto[]` (대분류 11 · 세부 65, `memberCount` 포함) | — | 🔓 | `interestCategories` |
+| GET | `/interest-categories` | — | `InterestCategoryDto[]` (대분류 12 · 소분류 90, `memberCount` 포함. **2026-11-18 확정본으로 바뀜** (예전 11 · 65), `code`·`emoji`·`sortOrder` 추가 제안 → [interest-enum.md](interest-enum.md)) | — | 🔓 | `interestCategories` |
 | GET | `/intro-questions` | — | `IntroQuestionDto[]` | — | 🔒 | `introQuestions` |
 | GET | `/me/blocks` | — | `(MemberSummaryDto & { blockedAt })[]` | — | 🔒 | `blocked` |
 | PUT · DELETE | `/me/blocks/{memberId}` | — | 204 | — | 🔒 | `block` · `unblock` |

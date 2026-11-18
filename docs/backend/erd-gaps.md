@@ -77,7 +77,7 @@
 
 | 테이블.칼럼 | 프론트 값 | 제안 타입 |
 |---|---|---|
-| `interest_category.name`, `interest.name` | "책·글", "SF소설" (가장 긴 것 약 10자) | VARCHAR(20) |
+| `interest_category.name`, `interest.name` | "책·글", "SF소설" (가장 긴 것 약 10자) → **2026-11-18 확정본으로 바뀜**: "외국어·자기계발", "자전거/바이크/드라이브" (가장 긴 것 12자, [interest-enum.md](interest-enum.md)) | VARCHAR(20) |
 | `intro_question.content` | "하루 동안 투명 인간이 된다면 뭐 해볼래요?" (관리자 입력 60자) | VARCHAR(100) |
 | `intro_question.type` | 관심사 · TMI | VARCHAR(10) enum `INTEREST`·`TMI` |
 | `member_answer.slot` | 1 · 2 · 3 | TINYINT |
@@ -105,6 +105,7 @@
 | `chat_request.status` | `PENDING` · `ACCEPTED` · `DECLINED` · `CANCELED` · `EXPIRED` | 받은/보낸, 5일 | VARCHAR(20) ✓ |
 | `meetup.mode` | `OFFLINE` · `ONLINE` | 오프라인 · 온라인 | VARCHAR(10) ✓ |
 | `meetup.category` | 대표 관심사 (Q3) | 세부 관심사 이름 | id 로 바꾸기 제안 |
+| `interest_category.code` · `interest.code` (새 칼럼 제안) | 대분류 12 · 소분류 90 영어 code (예: `food` · `cafe_coffee`) | `data/interestTags.ts` | **2026-11-18 관심사 확정본**. 표 전체와 길이(code 최장 20자 · 이름 최장 12자)는 [interest-enum.md](interest-enum.md) |
 | `meetup.platform` | Zoom · Discord · Gather · (직접 쓴 이름) | `PLATFORMS` | 자유 문자열 VARCHAR(20) |
 | `meetup_application.status` | `PENDING` · `CANCELED`(스스로 취소, 다시 신청 가능) · `REJECTED`(주최자 거절) · `EXPIRED`(자동 미승인) · `APPROVED` · `LEFT`(확정 후 참여 취소, 다시 신청 불가) · `KICKED`(내보내짐) | `pending`·`withdrawn`·`rejected`(+auto)·`joined`·`quit`·`kicked` | M7·M8 규칙. VARCHAR(20) ✓ |
 | (계산) 모집 상태 | `OPEN` · `CLOSED` · `ENDED` · `CANCELED` | `open`·`closed`·`past`·`cancelled` | 칼럼 아님, 응답 값 |

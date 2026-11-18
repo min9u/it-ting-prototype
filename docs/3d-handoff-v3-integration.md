@@ -7,7 +7,7 @@
 
 ## 결론
 - 땅굴 방이 **고른 관심사로 슬롯에 가구·소품을 놓는 방식**으로 바뀜. 모델이 있는 4개 카테고리(사진·책·영화·공예)는 진짜 모델, 나머지 7개는 카테고리 색 둥근 블록
-- 온보딩 관심사가 **카테고리 11 · 세부 관심사 65 · 최대 10개**로 바뀜 (화면 배치는 그대로)
+- 온보딩 관심사가 **카테고리 11 · 세부 관심사 65 · 최대 10개**로 바뀜 (화면 배치는 그대로) → **2026-11-18 사용자 확정본(대분류 12 · 소분류 90)으로 다시 바뀜**. 이 문서의 가구·소품 glb 는 그대로 쓰고 새 분류에 이어 붙임 ([interest-tags-2026-11-18.md](interest-tags-2026-11-18.md), `data/interest3d.ts`). `app/src/data/interestCatalog.json` 복사본은 지움 (원본은 `design/digul_3d_handoff_v3/docs/interest_catalog.json`)
 - Draco 압축 glb를 씀. 일반 빌드는 wasm 해독기, 공유 빌드(아티팩트)는 JS 해독기를 번들에 넣어 메인 스레드에서 풂
 - 디자이너가 다음 전달(M2~M4)에서 `furnitureCatalog.json`의 `glb`를 채워 보내면, 그 glb를 `app/src/assets/models/room/`에 넣고 JSON만 바꾸면 블록이 모델로 바뀜 (코드 변경 없음)
 
