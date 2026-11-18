@@ -61,6 +61,19 @@ describe('타깃 한계 (camera_zoom_spec 2)', () => {
       expect(camTargetAt(lv, one, 0, -2)).toEqual([0, -3.8]) // 남쪽 끝은 3.8m 에서 멈춤
     }
   })
+  it('far 구역 1 맞춤 타깃이면 16:9 화면 사다리꼴이 구역 네 모서리를 다 덮음 (한 구역이 한 화면에)', () => {
+    const [tx, tz] = camTargetAt('far', zones.slice(0, 1), 0, -20)
+    const poly = camFootprint(tx, tz, 16 / 9, 0.5, 1, 46)
+    const inside = ([x, z]: [number, number]) => {
+      let c = false
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, zi] = poly[i], [xj, zj] = poly[j]
+        if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c
+      }
+      return c
+    }
+    for (const p of [[-18, 0], [18, 0], [-18, -36], [18, -36]] as [number, number][]) expect(inside(p), `${p}`).toBe(true)
+  })
   it('far 구역 2개(1·2, 세로): x 는 가운데 고정, y 는 움직임', () => {
     const two = zones.slice(0, 2)
     const L = farLimits(two)

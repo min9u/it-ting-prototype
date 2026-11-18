@@ -214,6 +214,9 @@ async function run(rep) {
       const r = await phase(label, 0, async () => { await ev('window.__sharpAt=0'); t0 = await zkey(k); await sleep(2500) })
       const sa = await ev('window.__sharpAt||0')
       r.sharpMs = sa > t0 ? Math.round(sa - t0) : null
+      // 키 → 카메라가 움직이기 시작한 프레임 (저사양 줌 아웃은 도착 그림을 기다렸다 움직임)
+      const z0 = await ev(`(window.__zoomT||[]).find(t=>t>${t0})||0`)
+      r.startMs = z0 > t0 ? Math.round(z0 - t0) : null
       r.level = await ev(`((location.hash + location.search).match(/zoom=([a-z]+)/)||[])[1]||'near'`)
       return r
     }
@@ -299,7 +302,7 @@ for (let i = 0; i < REPS; i++) { const r = await run(i); runs.push(r); process.s
 // 중앙값 (단계·지표마다)
 const med = (arr) => { const v = arr.filter((x) => typeof x === 'number').sort((a, b) => a - b); return v.length ? v[v.length >> 1] : null }
 const summary = { name, mode, url, scenario, aff: process.env.AFF ?? null, lab: process.env.LAB ?? null, window: !!process.env.WINDOW, renderer: runs[0]?.renderer }
-for (const ph of ['load', 'idle', 'hop', 'idle2', 'click', 'floor', 'send', 'walk', 'scroll']) {
+for (const ph of ['load', 'idle', 'hop', 'idle2', 'click', 'floor', 'send', 'walk', 'scroll', 'out1', 'idleMid', 'out2', 'idleFar', 'hopFar', 'in1', 'in2', 'idleNear']) {
   if (!runs.some((r) => r[ph])) continue
   summary[ph] = {}
   for (const k of Object.keys(runs.find((r) => r[ph])[ph])) { const m = med(runs.map((r) => r[ph]?.[k])); if (m !== null) summary[ph][k] = m }

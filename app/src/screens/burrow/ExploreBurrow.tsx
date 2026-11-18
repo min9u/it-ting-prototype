@@ -132,7 +132,8 @@ export default function ExploreBurrow() {
     if (!el) return
     let acc = 0, quietUntil = 0, last = 0
     const onWheel = (e: WheelEvent) => {
-      if (modal || leaving || !(e.target instanceof HTMLCanvasElement)) return
+      // Ctrl + 휠(브라우저 확대·트랙패드 집기)은 브라우저에 맡김
+      if (modal || leaving || e.ctrlKey || !(e.target instanceof HTMLCanvasElement)) return
       e.preventDefault()
       const now = performance.now()
       if (now < quietUntil) return

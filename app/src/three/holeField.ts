@@ -141,6 +141,11 @@ const ANCHOR_Y = 0.075 // 구멍 바닥 = 두더지 발 (구멍 배율만큼 높
 const HOP_CAM = 0.4, HOP_CAM_FAR = 0.35, HOP_CAM_LONG = 0.1
 /** M: 도착할 자리 그림이 아직이면 두더지가 땅속에서 이만큼(초)까지 더 기다림 (2코어급에서 굽기가 hop_down 0.42초보다 김) */
 const HOLD_MAX = 0.9
+/**
+ * M: 줌 아웃 키를 누른 뒤 도착 구도 그림을 기다리는 최대 시간 (초, 강한 PC / 약한 PC). 그동안 화면은 그대로 (docs/explore-field-v3-10.md 저사양 측정).
+ * 기다리지 않으면 지금 그림이 덮지 못하는 바깥을 매 프레임 3D 로 메우느라 2코어에서 4~5fps 였음
+ */
+const ZOOM_HOLD = 0.35, ZOOM_HOLD_WEAK = 1.2
 /** M: 이동 중 빈 곳(두 그림 다 못 덮는 곳)이 화면의 이 비율보다 크면 메움을 낮은 해상도(panScale)로 */
 const FILL_LOW_FRAC = 0.3
 const HIT_R = 1.05 // 구멍 클릭 반지름 (테두리 지름 약 2m)
@@ -304,7 +309,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let anim: { from: number; to: number; t: number; phase: 'down' | 'dig' | 'cam' | 'up'; dur: number; camFrom: THREE.Vector3; camTo: THREE.Vector3; camDur: number; still: boolean; slide?: boolean; k?: number } | null = null
 
   /** 줌 전환 (거리 d0 → d1, 타깃 t0 → t1). slide = 저사양 M: 지금 그림을 옮기며 도착 구도를 미리 굽는 중 */
-  let zoomAnim: { d0: number; d1: number; t0: THREE.Vector3; t1: THREE.Vector3; t: number; slide: boolean; k: number } | null = null
+  let zoomAnim: { d0: number; d1: number; t0: THREE.Vector3; t1: THREE.Vector3; t: number; slide: boolean; k: number; hold: number; holdMax: number } | null = null
   /** 줌은 끝났는데 도착 구도 그림이 아직 (저사양 M): 그동안 옮긴 그림을 계속 보여 줌 */
   let zoomWait = false
   /** 지금 장면에 적용된 단계별 표시 (LOD) */
@@ -699,11 +704,13 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
    */
   const zfP = testParam('zoomfreeze')
   const zoomFreeze = zfP != null ? +zfP.replace('_', '.') : null
+  /** 저사양 M: 줌 키를 누른 뒤 도착 그림을 기다리는 최대 시간 (초). 시험용 ?zoomhold=0_35 */
+  const zoomHold = +(testParam('zoomhold') ?? String(ZOOM_HOLD)).replace('_', '.')
   function zoomTo(lv: ZoomLevel): boolean {
     if (anim || zoomAnim || zoomWait || !mole || lv === level || !ZOOM_LEVELS.includes(lv)) return false
     const d1 = ZOOM_DIST[lv]
     const t1 = holes.has(curSeat) ? clampTarget(holeVec(curSeat), lv) : clampTarget(target.clone(), lv)
-    zoomAnim = { d0: dist, d1, t0: target.clone(), t1, t: 0, slide: false, k: 0 }
+    zoomAnim = { d0: dist, d1, t0: target.clone(), t1, t: 0, slide: false, k: 0, hold: 0, holdMax: 0 }
     level = lv
     hoverSeat = null; hoverRing.visible = false; ev.onHover?.(null, 0, 0)
     if (slide && wantGl() && sharpOk && sharpCv && !reduce) {
@@ -713,7 +720,10 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       slideDrop()
       slideLoad(0, sharpCv, camera.clone())
       startPrep(camAt(t1, d1), seatKey(curSeat, focus, lv))
+      if (prep) prep.zoom = true
       zoomAnim.slide = !!prep
+      // 줌 아웃만 기다림 (지금 그림이 사이 화면의 가운데만 덮어서). 줌 인은 지금 그림이 다 덮어서 바로 움직임. 약한 PC 는 더 오래
+      zoomAnim.holdMax = d1 > zoomAnim.d0 ? (testParam('zoomhold') != null ? zoomHold : fillLow ? ZOOM_HOLD_WEAK : ZOOM_HOLD) : 0
     }
     ev.onZoom?.(lv)
     loop.wake()
@@ -723,6 +733,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   function stepZoom(dt: number): boolean {
     const z = zoomAnim
     if (!z) return false
+    // 저사양 M: 도착 그림이 준비될 때까지 ZOOM_HOLD 초까지는 카메라를 움직이지 않고 지금 그림 그대로 (점프의 dig 와 같은 생각).
+    // 준비된 뒤 움직이면 줌 아웃은 도착 그림이, 줌 인은 지금 그림이 사이 화면을 다 덮어서 3D 로 메울 곳이 없음 → 전환이 부드러움
+    if (z.slide && z.t === 0 && prep && !prep.loaded && z.hold < z.holdMax) { z.hold += dt; return false }
     z.t += dt
     let k = reduce ? 1 : Math.min(1, z.t / ZOOM_SEC)
     // 측정용 ?zoomfreeze=0_5: 줌 전환을 그 지점에서 멈춤 (전환 도중 화질 보기, explore/gpu/zoom/zoom-shots.mjs)
@@ -1100,7 +1113,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let bdNext: Backdrop | null = null
   /** 이동 중 빈 곳 메우기용 배경 (0.55배, 빈 곳 사각형만 그림) */
   let fillBd: Backdrop | null = null
-  type Prep = { cam: THREE.PerspectiveCamera; key: string | null; img: boolean; baking: boolean; depth: boolean; loaded: boolean; save: boolean; t0: number }
+  type Prep = { cam: THREE.PerspectiveCamera; key: string | null; img: boolean; baking: boolean; depth: boolean; loaded: boolean; save: boolean; t0: number; zoom?: boolean }
   let prep: Prep | null = null
   const prepReady = () => !!prep && prep.img && prep.depth
   function startPrep(cam: THREE.PerspectiveCamera, key: string | null) {
@@ -1140,7 +1153,16 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       }
       return
     }
+    // 줌: 도착 그림을 깊이보다 먼저 칸 1 에 넣고(줌 아웃은 이 그림이 사이 화면을 다 덮음),
+    // 깊이(장면 전체를 한 번 그림, 가속 끈 2코어에서 0.3~0.5초 멈춤)는 카메라가 움직이는 동안 미룸 → 멈춘 뒤에
+    if (p.zoom && !p.loaded) {
+      if (slideHas(0)) slideLoad(1, nextCv!, p.cam)
+      savePrep(p)
+      p.loaded = true
+      return
+    }
     if (!p.depth) {
+      if (p.zoom && zoomAnim && zoomAnim.t > 0) return
       bdNext ??= createBackdrop(renderer, { scale: bdScale })
       bdNext.capture(scene, p.cam)
       p.depth = true
@@ -1337,7 +1359,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (zoomed) (window as unknown as { __zoomT?: number[] }).__zoomT?.push(performance.now()) // 측정용 (줌 전환 프레임)
       if (!backdrop) renderer.render(scene, camera)
       else if (camMoved && anim?.slide) drawSlide(anim.k ?? 0)
-      else if (zSlide && zoomed && !anim) drawSlide(zoomAnim ? zoomAnim.k : 1) // 줌 전환 (M). 끝나는 프레임은 도착 그림 쪽(1)
+      else if (zSlide && !anim) drawSlide(zoomAnim ? zoomAnim.k : 1) // 줌 전환 (M, 기다리는 동안 포함). 끝나는 프레임은 도착 그림 쪽(1)
       else if (zoomWait && !anim) drawSlide(slideHas(1) ? 1 : 0) // 줌은 끝났고 도착 구도 굽기를 기다리는 중
       else if (focusTr != null && !anim) drawSlide(slideHas(1) ? 1 : 0) // 패널 이동 중·새 구도 굽기를 기다리는 중
       else if (camMoved) drawMoving()
