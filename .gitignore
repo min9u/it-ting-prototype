@@ -40,3 +40,4 @@ explore/gpu/results/scene/*.cpuprofile
 
 # 프론트엔드 가이드 웹 페이지 결과물 (node tools/guide-page/build.mjs)
 tools/guide-page/out/
+tools/effects-guide/out/
