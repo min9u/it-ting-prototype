@@ -1,6 +1,6 @@
 /**
  * 디자이너 핸드오프에서 옮긴 JSON 무결성
- * - data/fieldLayout150.json: 3D 핸드오프 v3.9 (들판 108×72m, 구역 36×36 6칸, 구역마다 25자리 → 150자리), app/scripts/build-field-layout.mjs 가 만듦
+ * - data/fieldLayout150.json: 3D 핸드오프 v3.10 (들판 108×72m, 구역 36×36 6칸, 구역마다 25자리 → 150자리, 흙 노드·작물 5종·카메라 3단계), app/scripts/build-field-layout.mjs 가 만듦
  * - data/furnitureCatalog.json · slots.json · interestCatalog.json: 3D 핸드오프 v3 ~ v3.6 (카테고리 가구 슬롯 고정, 선반 12칸, 반려동물 짝)
  * - data/wallpapers.json: v3.5.1 (mood_map)
  * 새 JSON 을 받아 바꿨을 때 앱이 조용히 깨지지 않게 (자리 빠짐·번호 중복·없는 가구 id·슬롯 없음)
@@ -26,7 +26,7 @@ const slot = (name: string) => SLOTS.find((s) => s.name === name)
 const TOL = 0.01
 const fits = (a: Row['size_m'], b: Slot['max_m']) => a.w <= b.w + TOL && a.d <= b.d + TOL && a.h <= b.h + TOL
 
-describe('fieldLayout150.json (3D 핸드오프 v3.9 들판)', () => {
+describe('fieldLayout150.json (3D 핸드오프 v3.10 들판)', () => {
   const [x0, x1] = [...layout.field.x_range].sort((a, b) => a - b)
   const [z0, z1] = [...layout.field.z_range].sort((a, b) => a - b)
   const within = (v: number, [a, b]: number[]) => v >= Math.min(a, b) && v <= Math.max(a, b)
@@ -90,11 +90,51 @@ describe('fieldLayout150.json (3D 핸드오프 v3.9 들판)', () => {
     const nodeOk = (t: number[]) => Number.isInteger(t[0]) && t[0] >= 0 && t[0] < layout.nodes.length
     for (const z of layout.zones) {
       for (const h of z.holes) expect(h[5] >= 0 && h[5] < layout.rings.length, `${z.name} #${h[0]}`).toBe(true)
-      for (const t of [...z.grass, ...z.tufts, ...z.crops, ...z.flowers]) expect(nodeOk(t), z.name).toBe(true)
+      for (const t of [...z.tufts, ...z.crops, ...z.flowers]) expect(nodeOk(t), z.name).toBe(true)
       for (const p of [...z.paths, ...z.linkAdd, ...z.linkReplace]) expect(nodeOk(p.t), z.name).toBe(true)
     }
+    for (const th of layout.themes) for (const zs of th.crops ?? []) for (const t of zs) expect(nodeOk(t), th.id).toBe(true)
     for (const t of [layout.ladder, ...layout.fence]) expect(nodeOk(t)).toBe(true)
     for (const c of [...layout.rings, layout.mineRing]) expect(c).toMatch(/^#[0-9A-F]{6}$/i)
+  })
+  // v3.10 (2026-11-18): 잔디 바닥 + 흙 노드, 작물 5종, 카메라 3단계 (docs/explore-field-v3-10.md)
+  it('v3.10 잔디 덩어리 없음, 작은 풀은 grass_tuft_small.glb', () => {
+    expect(layout.nodes.some((n) => n.startsWith('grass_patch'))).toBe(false)
+    expect(layout.nodes).toContain('grass_tuft_small:grass_tuft_small')
+    expect(layout.zones.every((z) => !('grass' in z))).toBe(true)
+  })
+  it('흙 노드: 구역마다 안쪽 흙 하나, 경계 흙은 맞닿은 두 구역 (이웃 7곳)', () => {
+    expect(Object.keys(layout.soil.byZone).sort()).toEqual(['1', '2', '3', '4', '5', '6'])
+    for (const [k, n] of Object.entries(layout.soil.byZone)) expect(n).toBe(`soil_zone${k}`)
+    expect(layout.soil.links).toHaveLength(7)
+    const touch = (a: number, b: number) => {
+      const A = layout.zones[a - 1].bounds, Bb = layout.zones[b - 1].bounds
+      const ox = Math.min(Math.max(...A.x), Math.max(...Bb.x)) - Math.max(Math.min(...A.x), Math.min(...Bb.x))
+      const oz = Math.min(Math.max(...A.z), Math.max(...Bb.z)) - Math.max(Math.min(...A.z), Math.min(...Bb.z))
+      return (ox === 0 && oz > 0) || (oz === 0 && ox > 0) // 한 변을 맞댐
+    }
+    for (const l of layout.soil.links) {
+      expect(l.node).toBe(`soil_link_${l.zones[0]}_${l.zones[1]}`)
+      expect(touch(l.zones[0], l.zones[1]), l.node).toBe(true)
+    }
+  })
+  it('작물 테마 5종: 호박은 기본 슬롯(null), 나머지는 구역마다 기본 슬롯과 같은 수의 전용 슬롯, 그 작물 노드만', () => {
+    expect(layout.themes.map((t) => t.id)).toEqual(['pumpkin', 'apple', 'strawberry', 'sweetpotato', 'carrot'])
+    for (const th of layout.themes) {
+      expect(th.nodes, th.id).toHaveLength(3)
+      if (th.id === 'pumpkin') { expect(th.crops).toBeNull(); continue }
+      expect(th.crops, th.id).toHaveLength(6)
+      th.crops!.forEach((zs, i) => {
+        expect(zs.length, `${th.id} 구역 ${i + 1}`).toBe(layout.zones[i].crops.length)
+        for (const t of zs) expect(th.nodes.map((n) => `${th.glb}:${n}`)).toContain(layout.nodes[t[0]])
+      })
+    }
+  })
+  it('카메라 3단계: 거리 12 / 24 / 46, 각도 45°·FOV 32.3° 같음, far 만 구멍 중앙 정렬 막음', () => {
+    const L = layout.camera.levels
+    expect([L.near.distance, L.mid.distance, L.far.distance]).toEqual([12, 24, 46])
+    for (const v of [L.near, L.mid, L.far]) { expect(v.tilt).toBe(45); expect(v.fov).toBe(32.3) }
+    expect([L.near.centering, L.mid.centering, L.far.centering]).toEqual([true, true, false])
   })
 })
 

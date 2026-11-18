@@ -14,27 +14,32 @@ import { approach, createRenderer, destroyRenderer, frameCamera, quality, startL
 import { onLowTierChange } from '../lib/deviceTier'
 import { createFieldFx, type FieldFx } from './interestFx/fieldFx'
 import type { HoleFx } from '../data/interestFx'
-import groundUrl from '../assets/models/field/explore_ground_150.glb?url'
+import { CAM_FOV, CAM_PITCH, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, ZOOM_SEC, camTargetAt, distAt, easeStd, lodAt, moleScaleAt, type ZoomLevel } from './fieldCam'
+import groundUrl from '../assets/models/field/explore_ground_150_v3.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
 import haloUrl from '../assets/models/field/hole_mine_halo.glb?url'
 import padUrl from '../assets/models/field/empty_pad.glb?url'
 import pathUrl from '../assets/models/field/path_kit.glb?url'
 import ladderUrl from '../assets/models/field/ladder_shaft.glb?url'
 import fenceUrl from '../assets/models/field/fence.glb?url'
-import grassUrl from '../assets/models/field/grass_patch.glb?url'
-import vineUrl from '../assets/models/field/vine_patch.glb?url'
+import tuftUrl from '../assets/models/field/grass_tuft_small.glb?url'
 import flowersUrl from '../assets/models/field/flowers.glb?url'
 
 /*
- * 탐색 들판 (3D 핸드오프 v3.9 층 단위 150자리 + v3.8 "두더지 잡기" 이동). 설명은 docs/explore-field-v3-9.md
+ * 탐색 들판 (3D 핸드오프 v3.10 층 단위 150자리 + v3.8 "두더지 잡기" 이동). 설명은 docs/explore-field-v3-9.md · docs/explore-field-v3-10.md
  *
- * - 배치: data/fieldLayout150.json (원본 explore_field_layout_150.json 을 app/scripts/build-field-layout.mjs 로 줄인 것). 모든 좌표 절대값
- * - common(땅·사다리·울타리)은 항상, zones[k](구멍·길·잔디·작물·꽃·풀 뭉치)는 켜진 구역만. 경계 길은 구역 번호 순서로 links add/replace 적용
- * - 안 켠 구역은 잔디색 평면으로 덮고, 울타리는 켜진 구역 안에 있는 것만
+ * - 배치: data/fieldLayout150.json (원본 explore_field_layout_150_v3_10.json 을 app/scripts/build-field-layout.mjs 로 줄인 것). 모든 좌표 절대값
+ * - common(땅·사다리·울타리)은 항상, zones[k](구멍·길·작물·꽃·풀 뭉치)는 켜진 구역만. 경계 길은 구역 번호 순서로 links add/replace 적용
+ * - v3.10 바닥: 슬랩 전체가 잔디(정점 색). 흙은 노드로 따로: soil_zoneN 은 구역 N 이 켜질 때, soil_link_N_M 은 N·M 둘 다 켜졌을 때만.
+ *   안 켠 구역은 아무것도 안 놓아서 잔디만 보임 (v3.9 의 잔디색 덮개 평면은 없앰). 울타리는 켜진 구역 안에 있는 것만
+ * - 작물: 층마다 한 종류 (opts.crop = 테마 id, 층 → 작물은 data/field.ts cropOf). 호박은 구역 기본 슬롯, 다른 작물은 그 작물 전용 슬롯
  * - 인스턴싱: 노드(부품)마다, 12m 칸마다 InstancedMesh 하나 → 칸 단위로 화면 밖은 안 그림(frustum culling)
  * - 구멍: hole_inner 는 그대로, hole_rim 만 인스턴스 색. 내 구멍은 분홍 링 + 후광. 배정 안 된 자리는 빈 자리(empty_pad)
- * - 카메라: 세로 FOV 32.3°, 내려다보기 45°, 거리 12m 고정. 목표점은 켜진 구역 camRect 합집합 안
- * - 이동: mole_hop_down(0.42s) → 숨김 → 카메라 0.4s → 보임 + mole_hop_up(0.5s) → idle. 이동 중엔 입력 잠금
+ * - 카메라: 세로 FOV 32.3°, 내려다보기 45°, 거리 near 12 / mid 24 / far 46m (줌, fieldCam.ts). near·mid 타깃은 켜진 구역 camRect 합집합 안
+ *   (구멍 중앙 정렬 허용), far 는 켜진 구역 상자 안 한계 공식(구멍 중앙 정렬 막음, 구역 하나면 맞춤 타깃 고정)
+ * - 줌 전환 0.5초: 거리 로그 보간 + 타깃 같은 비율로. 단계별 표시(LOD: 꽃·풀 뭉치·작물·구멍·두더지 배율)는 거리 기준 히스테리시스로 한 번에 바꿈.
+ *   저사양(M 이동 중 선명)은 도착 구도를 미리 굽고(점프와 같은 prep) 그동안 지금 그림을 옮겨 그림 → 도착 구도의 LOD 를 전환 시작에 바로 적용
+ * - 이동: mole_hop_down(0.42s) → 숨김 → 카메라 0.4s(far 0.35s, 12m 넘으면 +0.1s) → 보임 + mole_hop_up(0.5s) → idle. 이동·줌 중엔 입력 잠금
  * - 저사양(그래픽 가속 꺼짐, docs/rendering-experiments-2.md):
  *   A 들판은 렌더 타깃에 한 번 그리고(staticBackdrop.ts) 매 프레임은 붙인 뒤 움직이는 층(두더지·발밑 그림자·링)만.
  *     CPU 렌더러(WARP)는 화면 가득한 땅·풀의 재질 계산이 병목이라(한 프레임 CPU 약 0.36초) 들판을 다시 안 그리는 게 가장 큼.
@@ -55,13 +60,18 @@ interface Zone {
   camRect: { x: [number, number]; z: [number, number] }
   holes: [seat: number, x: number, z: number, ry: number, s: number, ring: number][]
   paths: Tile[]; linkAdd: Tile[]; linkReplace: Tile[]
-  grass: Item[]; tufts: Item[]; crops: Item[]; flowers: Item[]
+  /** 풀 뭉치 · 작물 기본 슬롯(호박) · 꽃 */
+  tufts: Item[]; crops: Item[]; flowers: Item[]
 }
+/** 작물 테마 (v3.10 themes). crops = 구역마다 그 작물 전용 슬롯 (호박은 null = 구역 기본 슬롯) */
+export interface CropTheme { id: string; glb: string; nodes: string[]; grass: string; soil: string; crops: Item[][] | null }
 export interface FieldLayout {
-  theme: { grass_color: string; crop_glb: string; crop_nodes: string[] }
   mineRing: string
   rings: string[]
   nodes: string[]
+  /** 흙 노드 규칙: byZone[N] = 구역 N 안쪽 흙, links = 두 구역이 모두 켜졌을 때만 */
+  soil: { byZone: Record<string, string>; links: { node: string; zones: [number, number] }[]; always: string[] }
+  themes: CropTheme[]
   ladder: Item
   fence: Item[]
   zones: Zone[]
@@ -81,6 +91,8 @@ export interface HoleFieldEvents {
   onLadder?(): void
   /** 서 있는 구멍의 화면 좌표 (두더지 머리 위). 카메라·크기가 바뀔 때마다 */
   onAnchor?(x: number, y: number, visible: boolean): void
+  /** 줌 단계가 바뀜 (전환 시작 때. 전환 0.5초) */
+  onZoom?(level: ZoomLevel): void
 }
 
 export interface HoleFieldOptions {
@@ -97,6 +109,10 @@ export interface HoleFieldOptions {
   events: HoleFieldEvents
   /** 관심사 이펙트 (three/interestFx/fieldFx.ts, docs/interest-effects.md): 자리마다 대표 관심사·겹침·드문 정도·접속 */
   fx?: HoleFx[]
+  /** 이 층의 작물 테마 id (v3.10 themes: pumpkin · apple · strawberry · sweetpotato · carrot). 없으면 호박 */
+  crop?: string
+  /** 처음 줌 단계 (기본 near) */
+  zoom?: ZoomLevel
 }
 
 export interface HoleFieldHandle extends SceneHandle {
@@ -104,8 +120,13 @@ export interface HoleFieldHandle extends SceneHandle {
   move(dir: Dir): boolean
   /** 그 자리로 바로 점프 (사이 구멍을 거치지 않음) */
   goSeat(seat: number): boolean
-  /** 지금 이동 중인지 */
+  /** 지금 이동(점프·줌) 중인지 */
   busy(): boolean
+  /** 줌 단계로 (0.5초 전환). 이동 중이거나 같은 단계면 false */
+  zoom(level: ZoomLevel): boolean
+  /** 한 단계 멀리(+1) / 가까이(−1) */
+  zoomBy(step: 1 | -1): boolean
+  zoomLevel(): ZoomLevel
 }
 
 const CELL = 12 // 컬링 칸 크기 (구역 36m = 3칸)
@@ -114,9 +135,10 @@ const CELL = 12 // 컬링 칸 크기 (구역 36m = 3칸)
  * 띠로 나눠 구우면(기본) 한 프레임 일이 작아서 끄지 않음 (docs/rendering-experiments-3.md)
  */
 const SHARP_SLOW_MS = 200
-const CAM_DIST = 12, CAM_PITCH = THREE.MathUtils.degToRad(45), FOV = 32.3
-const ANCHOR_Y = 0.075 // 구멍 바닥 = 두더지 발
-const HOP_CAM = 0.4 // 카메라 이동 시간
+const FOV = CAM_FOV
+const ANCHOR_Y = 0.075 // 구멍 바닥 = 두더지 발 (구멍 배율만큼 높아짐: far ×1.25)
+/** 카메라 이동 시간 (camera_zoom_spec 5: near·mid 0.4, far 0.35, 12m 넘는 점프 +0.1) */
+const HOP_CAM = 0.4, HOP_CAM_FAR = 0.35, HOP_CAM_LONG = 0.1
 /** M: 도착할 자리 그림이 아직이면 두더지가 땅속에서 이만큼(초)까지 더 기다림 (2코어급에서 굽기가 hop_down 0.42초보다 김) */
 const HOLD_MAX = 0.9
 /** M: 이동 중 빈 곳(두 그림 다 못 덮는 곳)이 화면의 이 비율보다 크면 메움을 낮은 해상도(panScale)로 */
@@ -128,7 +150,15 @@ let layoutP: Promise<FieldLayout> | null = null
 const loadLayout = () => (layoutP ??= import('../data/fieldLayout150.json').then((m) => m.default as unknown as FieldLayout))
 
 const GLB: Record<string, string> = {
-  path_kit: pathUrl, grass_patch: grassUrl, vine_patch: vineUrl, flowers: flowersUrl, ladder_shaft: ladderUrl, fence: fenceUrl,
+  path_kit: pathUrl, grass_tuft_small: tuftUrl, flowers: flowersUrl, ladder_shaft: ladderUrl, fence: fenceUrl,
+}
+/** 작물 glb 는 그 층 것 하나만 받음 (공유 빌드는 glb 가 JS 에 들어가서 다섯 개를 한 청크에 넣지 않게 따로 불러옴) */
+const CROP_GLB: Record<string, () => Promise<{ default: string }>> = {
+  vine_patch: () => import('../assets/models/field/vine_patch.glb?url'),
+  apple_patch: () => import('../assets/models/field/apple_patch.glb?url'),
+  strawberry_patch_v2: () => import('../assets/models/field/strawberry_patch_v2.glb?url'),
+  sweetpotato_patch: () => import('../assets/models/field/sweetpotato_patch.glb?url'),
+  carrot_patch_v2: () => import('../assets/models/field/carrot_patch_v2.glb?url'),
 }
 
 /** 노드 하나 = 여러 재질 부분(primitive). 노드 자체 위치는 버리고(배치가 절대 좌표라) 자식 상대 위치만 */
@@ -215,9 +245,24 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /* ---------- 카메라 ---------- */
   const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 0.5, 120)
   camera.layers.enable(1)
-  const camOff = new THREE.Vector3(0, Math.sin(CAM_PITCH) * CAM_DIST, Math.cos(CAM_PITCH) * CAM_DIST)
+  /** 지금 줌 단계(목표)와 카메라 거리 (전환 중엔 사이 값) */
+  let level: ZoomLevel = opts.zoom && ZOOM_LEVELS.includes(opts.zoom) ? opts.zoom : 'near'
+  let dist = ZOOM_DIST[level]
+  const offFor = (d: number, out = new THREE.Vector3()) => out.set(0, Math.sin(CAM_PITCH) * d, Math.cos(CAM_PITCH) * d)
+  const camOff = offFor(dist)
+  /** 거리에 맞춘 near·far 면 (멀리서도 흙 띠 0.004m 가 잔디와 깊이 다툼 없게 near 를 거리에 비례) */
+  const setPlanes = (cam: THREE.PerspectiveCamera, d: number) => { cam.near = 0.5 * d / ZOOM_DIST.near; cam.far = Math.max(120, d * 3); cam.updateProjectionMatrix() }
+  setPlanes(camera, dist)
+  const setDist = (d: number) => { if (d === dist) return; dist = d; offFor(d, camOff); setPlanes(camera, d) }
   const target = new THREE.Vector3()
   const placeCamera = () => { camera.position.copy(target).add(camOff); camera.lookAt(target); camera.updateMatrixWorld() }
+  /** 지금 카메라(구도·화면 밀기)를 복제해 타깃 t·거리 d 에 놓은 것 (미리 굽기용) */
+  const camAt = (t: THREE.Vector3, d: number) => {
+    const c = camera.clone()
+    setPlanes(c, d)
+    c.position.copy(t).add(offFor(d)); c.lookAt(t); c.updateMatrixWorld()
+    return c
+  }
 
   /* ---------- 조명: 따뜻한 해 하나(위 48°, 왼쪽 앞) + 크림빛 환경광 ---------- */
   const sun = new THREE.DirectionalLight('#FFE3BD', 2.4)
@@ -230,10 +275,17 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   scene.add(hemi)
   // 움직이는 층(layer 1: 두더지·발밑 그림자·링)도 빛을 받게. 카메라는 평소 두 층 모두 봄
   sun.layers.enable(1); hemi.layers.enable(1)
+  let shadowHalf = 15
   const followSun = () => {
-    // 그림자 상자를 화면 가운데에 따라 붙임 (들판 108×72 전체에 그림자 맵 하나를 펴면 너무 흐림)
-    sun.target.position.set(target.x, 0, target.z - 1.5)
-    sun.position.copy(sun.target.position).addScaledVector(sunDir, 30)
+    // 그림자 상자를 화면 가운데에 따라 붙임 (들판 108×72 전체에 그림자 맵 하나를 펴면 너무 흐림). 멀리 볼수록 상자도 크게 (near 30m → far 약 115m)
+    const half = Math.round(15 * dist / ZOOM_DIST.near)
+    if (half !== shadowHalf) {
+      shadowHalf = half
+      Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, far: 60 + half * 2 })
+      sun.shadow.camera.updateProjectionMatrix()
+    }
+    sun.target.position.set(target.x, 0, target.z - 1.5 * dist / ZOOM_DIST.near)
+    sun.position.copy(sun.target.position).addScaledVector(sunDir, 30 + half)
     sun.target.updateMatrixWorld()
   }
 
@@ -245,10 +297,20 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 관심사 이펙트 (3D 위 2D 겹 캔버스. 배경 굽기·이동 경로와 상관없음) */
   let fieldFx: FieldFx | null = null
   const holes = new Map<number, HoleInfo>() // 구멍이 있는 자리만
-  let camRects: Zone['camRect'][] = []
+  /** 켜진 구역 (카메라 타깃 한계) */
+  let zonesOn: Zone[] = []
   let curSeat = opts.startSeat
   /** 점프 이동. phase: down(두더지 들어감) → dig(M: 도착 그림을 기다림) → cam(카메라 이동) → up. slide = 카메라 이동을 띠 밀기로(M) */
-  let anim: { from: number; to: number; t: number; phase: 'down' | 'dig' | 'cam' | 'up'; dur: number; camFrom: THREE.Vector3; camTo: THREE.Vector3; slide?: boolean; k?: number } | null = null
+  let anim: { from: number; to: number; t: number; phase: 'down' | 'dig' | 'cam' | 'up'; dur: number; camFrom: THREE.Vector3; camTo: THREE.Vector3; camDur: number; still: boolean; slide?: boolean; k?: number } | null = null
+
+  /** 줌 전환 (거리 d0 → d1, 타깃 t0 → t1). slide = 저사양 M: 지금 그림을 옮기며 도착 구도를 미리 굽는 중 */
+  let zoomAnim: { d0: number; d1: number; t0: THREE.Vector3; t1: THREE.Vector3; t: number; slide: boolean; k: number } | null = null
+  /** 줌은 끝났는데 도착 구도 그림이 아직 (저사양 M): 그동안 옮긴 그림을 계속 보여 줌 */
+  let zoomWait = false
+  /** 지금 장면에 적용된 단계별 표시 (LOD) */
+  let lodLevel: ZoomLevel = level
+  /** 지금 구멍 배율 (far 1.25): 두더지 높이·클릭 반지름·하이라이트 링 */
+  let holeScale = ZOOM_LOD[lodLevel].hole
 
   // 하이라이트 링 (마우스를 올린 구멍 · 이동 목표)
   const ringGeo = new THREE.RingGeometry(1.02, 1.22, 48).rotateX(-Math.PI / 2)
@@ -258,38 +320,44 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   targetRing.visible = false; targetRing.renderOrder = 2; targetRing.layers.set(1); scene.add(targetRing)
   let hoverSeat: number | null = null
 
-  /** 카메라 목표점을 켜진 구역 camRect 합집합 안으로 (가장 가까운 사각형 안의 점) */
-  const clampTarget = (p: THREE.Vector3) => {
-    if (!camRects.length) return p
-    let best: THREE.Vector3 | null = null, bd = Infinity
-    for (const r of camRects) {
-      const zlo = Math.min(r.z[0], r.z[1]), zhi = Math.max(r.z[0], r.z[1])
-      const c = new THREE.Vector3(THREE.MathUtils.clamp(p.x, r.x[0], r.x[1]), 0, THREE.MathUtils.clamp(p.z, zlo, zhi))
-      const d = c.distanceToSquared(p)
-      if (d < bd) { bd = d; best = c }
-    }
-    return p.copy(best!)
+  /** 카메라 목표점: near·mid 는 켜진 구역 camRect 합집합 안, far 는 한계 공식 (fieldCam.ts camTargetAt) */
+  const clampTarget = (p: THREE.Vector3, lv: ZoomLevel = level) => {
+    const [x, z] = camTargetAt(lv, zonesOn, p.x, p.z)
+    return p.set(x, 0, z)
   }
   const holeVec = (seat: number, y = 0) => { const h = holes.get(seat)!; return new THREE.Vector3(h.x, y, h.z) }
+  /** 이 층 작물 테마 (없는 id 면 첫 테마 = 호박) */
+  const themeOf = (L: FieldLayout) => L.themes.find((t) => t.id === (opts.crop ?? 'pumpkin')) ?? L.themes[0]
 
   /* ---------- 불러오기 ---------- */
   const loaded = (async () => {
-    const [layout, ground, hole, halo, pad, moleG, acc] = await Promise.all([
-      loadLayout(), loadGlb(groundUrl), loadGlb(holeUrl), loadGlb(haloUrl), loadGlb(padUrl), loadMoleGltf(),
+    const lp = loadLayout()
+    // 이 층 작물 glb 하나만 (배치의 테마 표에서 파일 이름을 찾음)
+    const cropP = lp.then(async (L) => {
+      const th = themeOf(L)
+      const f = CROP_GLB[th.glb]
+      if (!f) { console.warn(`[들판] 작물 glb 없음: ${th.glb}`); return null }
+      return { key: th.glb, gltf: await loadGlb((await f()).default) }
+    })
+    const [layout, ground, hole, halo, pad, moleG, acc, cropG] = await Promise.all([
+      lp, loadGlb(groundUrl), loadGlb(holeUrl), loadGlb(haloUrl), loadGlb(padUrl), loadMoleGltf(),
       q.level === 'low' && q.lab?.F ? Promise.resolve(undefined) : loadAccessories().catch(() => undefined),
+      cropP,
     ])
     const glbs: Record<string, GLTF> = {}
     await Promise.all(Object.entries(GLB).map(async ([k, url]) => { glbs[k] = await loadGlb(url) }))
+    if (cropG) glbs[cropG.key] = cropG.gltf
     if (disposed) return
     build(layout, { ground, hole, halo, pad, glbs })
-    if (opts.fx) fieldFx = createFieldFx({ container, after: renderer.domElement, camera, holes, seats: opts.fx, here: () => ({ seat: anim ? anim.to : curSeat, moving: !!anim }) })
-    // 두더지
-    const start = holes.has(curSeat) ? holeVec(curSeat, ANCHOR_Y) : new THREE.Vector3(1.9, 0, -3.4) // 구멍이 하나도 없으면 사다리 옆 흙 위
+    if (opts.fx) fieldFx = createFieldFx({ container, after: renderer.domElement, camera, holes, seats: opts.fx, here: () => ({ seat: anim ? anim.to : curSeat, moving: !!anim }), dist: () => dist })
+    // 두더지 (배율은 줌 거리에 따라: near 1 · mid 1.15 · far 1.5)
+    const start = holes.has(curSeat) ? holeVec(curSeat, anchorY()) : new THREE.Vector3(1.9, 0, -3.4) // 구멍이 하나도 없으면 사다리 옆 흙 위
     mole = createMoleActor(moleG, {
       scale: 1, start, yaw: 0, drop: false, lookEvery: [7, 14], floorY: ANCHOR_Y, acc, worn: opts.worn,
       simple: q.level === 'low' && !!q.lab?.F,
     })
     toDynamicLayer(mole.object)
+    applyMoleScale()
     if (qshot) mole.update(0) // 측정용: 자세 고정 (아래 루프에서 update 를 안 함)
     if (noEnv && envTex) {
       const cl = new Map<THREE.Material, THREE.Material>()
@@ -306,9 +374,10 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (!q.shadows) {
       moleBlob = blobShadow(.9, .3)
       own.push(moleBlob.geometry, moleBlob.material as THREE.Material)
-      moleBlob.position.set(start.x + .08, .085, start.z - .05)
+      moleBlob.position.set(start.x + .08, .085 * holeScale, start.z - .05)
       moleBlob.layers.set(1)
       scene.add(moleBlob)
+      applyMoleScale()
     }
     target.copy(start).setY(0); clampTarget(target); placeCamera(); followSun()
     if (precompile) await warm()
@@ -321,30 +390,25 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
 
   function build(L: FieldLayout, m: { ground: GLTF; hole: GLTF; halo: GLTF; pad: GLTF; glbs: Record<string, GLTF> }) {
     const on = L.zones.filter((z) => z.zone <= Math.max(1, Math.min(6, opts.zones)))
-    camRects = on.map((z) => z.camRect)
+    zonesOn = on
+    const lit = new Set(on.map((z) => z.zone))
     const inOn = (x: number, z: number) => on.some((zn) => x >= zn.bounds.x[0] - .01 && x <= zn.bounds.x[1] + .01 && z <= zn.bounds.z[0] + .01 && z >= zn.bounds.z[1] - .01)
 
-    // 땅: 흙 슬랩 + 바깥 잔디 (그림자 받기만)
+    // 땅: 잔디 슬랩 + 바깥 잔디는 항상, 흙은 규칙대로 (soil_zoneN = 구역 N 켜짐, soil_link_N_M = N·M 둘 다 켜짐). 그림자 받기만
     const g = m.ground.scene.clone(true)
-    g.traverse((o) => { const mm = o as THREE.Mesh; if (mm.isMesh) { mm.receiveShadow = true; mm.material = swapMat(mm.material as THREE.Material) } })
+    const soilOn = new Set<string>()
+    for (const z of on) { const n = L.soil.byZone[String(z.zone)]; if (n) soilOn.add(n) }
+    for (const l of L.soil.links) if (lit.has(l.zones[0]) && lit.has(l.zones[1])) soilOn.add(l.node)
+    const soilNodes = new Set([...Object.values(L.soil.byZone), ...L.soil.links.map((l) => l.node)])
+    const dropNodes: THREE.Object3D[] = []
+    g.traverse((o) => {
+      if (soilNodes.has(o.name) && (!soilOn.has(o.name) || hide.has('soil'))) { dropNodes.push(o); return }
+      const mm = o as THREE.Mesh
+      if (mm.isMesh) { mm.receiveShadow = true; mm.material = swapMat(mm.material as THREE.Material) }
+    })
+    dropNodes.forEach((o) => o.removeFromParent()) // 숨기기보다 빼는 쪽이 예열·굽기에서 건너뛰기 쉬움
+    matchOuterGrass(g)
     if (!hide.has('ground')) scene.add(g)
-    // 안 켠 구역은 잔디색 평면으로 덮음 (바깥 잔디 재질을 그대로 써서 색이 같게)
-    const outer = m.ground.scene.getObjectByName('outer_grass') as THREE.Mesh | undefined
-    const coverMat = (outer?.material as THREE.MeshStandardMaterial | undefined)?.clone() ?? new THREE.MeshStandardMaterial({ color: L.theme.grass_color, roughness: .95 })
-    own.push(coverMat)
-    for (const z of L.zones) {
-      if (z.zone <= on.length) continue
-      const w = z.bounds.x[1] - z.bounds.x[0], d = Math.abs(z.bounds.z[1] - z.bounds.z[0])
-      // 슬랩 바깥 모서리(둥근 부분)까지 덮으려고 바깥쪽으로 조금 키움. 켜진 구역 쪽 경계는 그대로
-      const pad = 1.5
-      const growX0 = z.bounds.x[0] <= -54 ? pad : 0, growX1 = z.bounds.x[1] >= 54 ? pad : 0
-      const growS = z.bounds.z[0] >= 0 ? pad : 0, growN = z.bounds.z[1] <= -72 ? pad : 0
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(w + growX0 + growX1, d + growS + growN).rotateX(-Math.PI / 2), coverMat)
-      own.push(plane.geometry)
-      plane.position.set((z.bounds.x[0] - growX0 + z.bounds.x[1] + growX1) / 2, .004, (z.bounds.z[0] + growS + z.bounds.z[1] - growN) / 2)
-      plane.receiveShadow = true
-      scene.add(plane)
-    }
 
     // 부품(노드) 재료
     const partCache = new Map<number, Part[]>()
@@ -358,17 +422,19 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       return p
     }
     const glbs = (k: string) => m.glbs[k]
-    // 작물은 층 테마 설정값 (theme.crop_glb). 지금은 vine_patch 만 있음
-    const crop = L.theme.crop_glb.replace('.glb', '')
-    if (!m.glbs[crop]) console.warn(`[들판] 작물 glb 없음: ${crop}`)
+    // 작물은 층 테마 (opts.crop). 호박은 구역 기본 슬롯, 다른 작물은 그 작물 전용 슬롯
+    const theme = themeOf(L)
+    if (!m.glbs[theme.glb]) console.warn(`[들판] 작물 glb 없음: ${theme.glb}`)
 
-    // 칸 × 노드별로 모음
-    const buckets = new Map<string, { node: number; mats: THREE.Matrix4[]; cast: boolean }>()
-    const put = (it: Item, cast: boolean) => {
-      const k = `${cellKey(it[1], it[3])}|${it[0]}`
+    // 칸 × 노드별로 모음. kind = 단계별 표시(LOD)로 따로 다룰 묶음
+    type Kind = 'base' | 'tuft' | 'crop' | 'flower'
+    const buckets = new Map<string, { node: number; mats: THREE.Matrix4[]; cast: boolean; kind: Kind; even: number }>()
+    const put = (it: Item, cast: boolean, kind: Kind = 'base', odd = false) => {
+      const k = `${cellKey(it[1], it[3])}|${it[0]}|${kind}`
       let b = buckets.get(k)
-      if (!b) buckets.set(k, (b = { node: it[0], mats: [], cast }))
-      b.mats.push(itemMatrix(it))
+      if (!b) buckets.set(k, (b = { node: it[0], mats: [], cast, kind, even: 0 }))
+      // 꽃: mid 는 짝수 번째만 → 짝수 번째를 앞에 모아 두고 count 로 자름
+      if (kind === 'flower' && !odd) { b.mats.splice(b.even, 0, itemMatrix(it)); b.even++ } else b.mats.push(itemMatrix(it))
     }
     // 길: 구역 번호 순서로 켜면서 경계 길 add/replace
     const tiles = new Map<string, Item>()
@@ -379,26 +445,25 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     }
     if (!hide.has('paths')) tiles.forEach((t) => put(t, false))
     for (const z of on) {
-      if (!hide.has('grass')) z.grass.forEach((it) => put(it, false))
-      if (!hide.has('tufts')) z.tufts.forEach((it) => put(it, false))
-      if (!hide.has('crops')) z.crops.forEach((it) => put(it, q.shadows))
-      if (!hide.has('flowers')) z.flowers.forEach((it) => put(it, false))
+      if (!hide.has('tufts')) z.tufts.forEach((it) => put(it, false, 'tuft'))
+      if (!hide.has('crops')) (theme.crops ? theme.crops[z.zone - 1] ?? [] : z.crops).forEach((it) => put(it, q.shadows, 'crop'))
+      if (!hide.has('flowers')) z.flowers.forEach((it, i) => put(it, false, 'flower', i % 2 === 1))
     }
     if (!hide.has('fence')) L.fence.forEach((it) => { if (inOn(it[1], it[3])) put(it, q.shadows) })
     put(L.ladder, q.shadows)
 
-    const insts: THREE.InstancedMesh[] = []
-    const addInst = (pp: Part[], mats: THREE.Matrix4[], cast: boolean, colors?: THREE.Color[]) => {
+    const addInst = (pp: Part[], mats: THREE.Matrix4[], cast: boolean, colors?: THREE.Color[], group?: LodGroup, even = 0) => {
       for (const p of pp) {
         const im = new THREE.InstancedMesh(p.geo, swapMat(p.mat), mats.length)
         mats.forEach((mm, i) => im.setMatrixAt(i, tmpM.multiplyMatrices(mm, p.local)))
         colors?.forEach((c, i) => im.setColorAt(i, c))
         im.computeBoundingSphere()
         im.castShadow = cast; im.receiveShadow = true
-        scene.add(im); insts.push(im)
+        scene.add(im)
+        group?.push({ im, mats, local: p.local, n: mats.length, even })
       }
     }
-    buckets.forEach((b) => addInst(parts(b.node), b.mats, b.cast))
+    buckets.forEach((b) => addInst(parts(b.node), b.mats, b.cast, undefined, b.kind === 'base' ? undefined : lodGroups[b.kind], b.even))
 
     // 구멍 · 빈 자리 · 내 후광
     const holeParts = { inner: partsOf(m.hole, 'hole_inner'), rim: partsOf(m.hole, 'hole_rim') }
@@ -418,7 +483,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
         b.push(itemMatrix([0, x, 0, zz, ry, 1, 1, 1]))
       }
     }
-    hb.forEach((b) => { addInst(holeParts.inner, b.mats, false); addInst(holeParts.rim, b.mats, false, b.colors) })
+    hb.forEach((b) => { addInst(holeParts.inner, b.mats, false, undefined, lodGroups.hole); addInst(holeParts.rim, b.mats, false, b.colors, lodGroups.hole) })
     const padParts = partsOf(m.pad, 'empty_pad')
     pads.forEach((mats) => addInst(padParts, mats, false))
     if (opts.mySeat && holes.has(opts.mySeat)) {
@@ -427,7 +492,83 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       halo.position.set(h.x, 0, h.z)
       halo.traverse((o) => { const mm = o as THREE.Mesh; if (mm.isMesh) mm.receiveShadow = true })
       scene.add(halo)
+      haloObj = halo
     }
+    applyLod(lodLevel, true)
+  }
+
+  /*
+   * 바깥 잔디(outer_grass) 색을 잔디 바닥(field_slab) 가장자리 색에 맞춤 (2026-11-18 화면 확인).
+   * v3.10 바닥은 정점 색 잔디(명암 있음)인데 바깥 잔디는 한 가지 색이라 약 8~10% 밝아서, far 에서 구역 하나만 켠 층(들판 남쪽 끝이 보임)은
+   * 울타리 밖에 밝은 띠가 보였음. 바닥 가장자리 정점 색 평균 × 바닥 재질 색으로 바꿈 (재질은 복제, 원본 glb 캐시는 그대로). ?fouter=0 이면 원래대로
+   */
+  function matchOuterGrass(root: THREE.Object3D) {
+    if (testParam('fouter') === '0') return
+    const slab = root.getObjectByName('field_slab') as THREE.Mesh | undefined
+    const outer = root.getObjectByName('outer_grass') as THREE.Mesh | undefined
+    const col = slab?.geometry.getAttribute('color') as THREE.BufferAttribute | undefined
+    const pos = slab?.geometry.getAttribute('position') as THREE.BufferAttribute | undefined
+    if (!slab || !outer || !col || !pos) return
+    const sum = [0, 0, 0]
+    let n = 0
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
+      // 윗면(평평한 곳)의 바깥 둘레 2m 띠
+      if (y < -0.02 || (Math.abs(x) < 52 && z < -2 && z > -70)) continue
+      sum[0] += col.getX(i); sum[1] += col.getY(i); sum[2] += col.getZ(i); n++
+    }
+    if (!n) return
+    const sm = slab.material as THREE.MeshStandardMaterial
+    const m = (outer.material as THREE.MeshStandardMaterial).clone()
+    m.color.setRGB(sum[0] / n * sm.color.r, sum[1] / n * sm.color.g, sum[2] / n * sm.color.b, THREE.LinearSRGBColorSpace)
+    outer.material = m
+    own.push(m)
+  }
+
+  /* ---------- 단계별 표시 (LOD, camera_zoom_spec 3) ---------- */
+  /** 인스턴스 묶음 하나: 원래 행렬(배치) · 부품 상대 행렬 · 개수 · 꽃은 짝수 번째 개수 */
+  type LodGroup = { im: THREE.InstancedMesh; mats: THREE.Matrix4[]; local: THREE.Matrix4; n: number; even: number }[]
+  const lodGroups: Record<'tuft' | 'crop' | 'flower' | 'hole', LodGroup> = { tuft: [], crop: [], flower: [], hole: [] }
+  let haloObj: THREE.Object3D | null = null
+  let cropScale = 1
+  const scaleM = new THREE.Matrix4()
+  /** 묶음의 인스턴스를 제자리에서 k 배 (배치 행렬 × 배율 × 부품 행렬 → 각자 원점 기준) */
+  const rescale = (grp: LodGroup, k: number) => {
+    scaleM.makeScale(k, k, k)
+    for (const g of grp) {
+      for (let i = 0; i < g.n; i++) g.im.setMatrixAt(i, tmpM.multiplyMatrices(g.mats[i], scaleM).multiply(g.local))
+      g.im.instanceMatrix.needsUpdate = true
+      g.im.computeBoundingSphere()
+    }
+  }
+  /** 단계별 표시를 그 단계로 (꽃·풀 뭉치 켜고 끄기, 작물·구멍 배율). 바뀐 게 있으면 true */
+  function applyLod(lv: ZoomLevel, force = false): boolean {
+    if (lv === lodLevel && !force) return false
+    lodLevel = lv
+    const L = ZOOM_LOD[lv]
+    for (const g of lodGroups.flower) { g.im.visible = L.flowers > 0; g.im.count = L.flowers >= 1 ? g.n : g.even }
+    for (const g of lodGroups.tuft) g.im.visible = L.tufts
+    if (L.crop !== cropScale || force) { cropScale = L.crop; if (L.crop !== 1 || !force) rescale(lodGroups.crop, L.crop) }
+    if (L.hole !== holeScale || force) {
+      holeScale = L.hole
+      if (L.hole !== 1 || !force) rescale(lodGroups.hole, L.hole)
+      haloObj?.scale.setScalar(L.hole)
+      for (const ring of [hoverRing, targetRing]) ring.scale.setScalar(L.hole)
+      // 두더지 발 높이 = 구멍 바닥 (구멍 배율만큼)
+      if (mole && !anim) mole.object.position.y = anchorY()
+      if (moleBlob) moleBlob.position.y = .085 * holeScale
+    }
+    // 저사양: 배경을 다시 찍어야 함
+    backdrop?.invalidate(); fullNext = true
+    return true
+  }
+  /** 두더지 발 높이 (구멍 바닥 0.075 × 구멍 배율) */
+  function anchorY() { return ANCHOR_Y * holeScale }
+  /** 두더지 배율: 거리에 따라 부드럽게 (fieldCam moleScaleAt) */
+  function applyMoleScale() {
+    const k = moleScaleAt(dist)
+    mole?.object.scale.setScalar(k)
+    moleBlob?.scale.setScalar(k)
   }
 
   /* ---------- 화면 맞추기 ---------- */
@@ -442,9 +583,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let lastAnchor = ''
   const emitAnchor = () => {
     if (!holes.has(curSeat) && !mole) return
-    const p = mole ? mole.object.position.clone().setY(ANCHOR_Y + 1.12) : holeVec(curSeat, 1.2)
+    const p = mole ? mole.object.position.clone().setY(anchorY() + 1.12 * mole.object.scale.y) : holeVec(curSeat, 1.2)
     const s = toScreen(p)
-    const vis = !anim && !!mole?.object.visible
+    const vis = !anim && !zoomAnim && !!mole?.object.visible
     const key = `${s.x.toFixed(1)},${s.y.toFixed(1)},${vis}`
     if (key === lastAnchor) return
     lastAnchor = key
@@ -459,20 +600,23 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /* ---------- 점프 이동 ---------- */
   const ease = (t: number) => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
   function jump(to: number): boolean {
-    if (anim || !mole || to === curSeat || !holes.has(to)) return false
+    if (anim || zoomAnim || zoomWait || !mole || to === curSeat || !holes.has(to)) return false
     const from = curSeat
     const dur = mole.hop('down')
-    anim = { from, to, t: 0, phase: 'down', dur, camFrom: target.clone(), camTo: clampTarget(holeVec(to)) }
+    const camTo = clampTarget(holeVec(to))
+    // 카메라 이동 시간: near·mid 0.4, far 0.35, 타깃이 12m 넘게 움직이면 +0.1 (camera_zoom_spec 5)
+    const camDur = (level === 'far' ? HOP_CAM_FAR : HOP_CAM) + (camTo.distanceTo(target) >= 12 ? HOP_CAM_LONG : 0)
+    // far 에서 구역 하나면 타깃이 고정이라 카메라가 안 움직임 → 배경을 다시 그리거나 굽지 않음 (두더지만 들어갔다 나옴)
+    const still = camTo.distanceTo(target) < 1e-3
+    anim = { from, to, t: 0, phase: 'down', dur, camFrom: target.clone(), camTo, camDur, still }
     const h = holes.get(to)!
-    if (baker) void getCachedStill(seatKey(to)) // 도착할 자리의 구운 배경을 미리 읽어 둠
-    if (slide) {
+    if (baker && !still) void getCachedStill(seatKey(to)) // 도착할 자리의 구운 배경을 미리 읽어 둠
+    if (slide && !still) {
       // M: 떠날 자리 그림(지금 선명한 배경)을 띠에 넣고, 도착할 자리를 미리 굽기 시작
       slideKind = wantGl() ? 'gl' : 'css'
       slideDrop()
       if (sharpOk && sharpCv) slideLoad(0, sharpCv, camera.clone())
-      const dc = camera.clone()
-      dc.position.copy(anim.camTo).add(camOff); dc.lookAt(anim.camTo); dc.updateMatrixWorld()
-      startPrep(dc, seatKey(to))
+      startPrep(camAt(anim.camTo, dist), seatKey(to))
     }
     targetRing.position.set(h.x, .06, h.z); targetRing.visible = true
     // 이동이 시작되면 마우스 표시는 지움 (도착하면 그 구멍이 서 있는 자리가 됨)
@@ -500,18 +644,20 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     }
     let moved = false
     if (anim.phase === 'cam') {
-      let k = reduce ? 1 : Math.min(1, anim.t / HOP_CAM)
+      let k = reduce ? 1 : Math.min(1, anim.t / anim.camDur)
       // 측정용 ?movefreeze=0_5: 카메라 이동을 그 지점에서 멈춤 (이동 도중 화질 비교, explore/gpu/move/move-shots.mjs)
-      if (moveFreeze != null && k >= moveFreeze) { k = moveFreeze; anim.t = k * HOP_CAM }
-      target.lerpVectors(anim.camFrom, anim.camTo, ease(k))
-      placeCamera(); followSun()
-      moved = true
+      if (moveFreeze != null && k >= moveFreeze) { k = moveFreeze; anim.t = k * anim.camDur }
+      if (!anim.still) {
+        target.lerpVectors(anim.camFrom, anim.camTo, ease(k))
+        placeCamera(); followSun()
+        moved = true
+      }
       anim.k = k
       if (k >= 1) {
-        const p = holeVec(anim.to, ANCHOR_Y)
+        const p = holeVec(anim.to, anchorY())
         mole.object.position.copy(p); mole.object.rotation.y = 0
         mole.object.visible = true
-        if (moleBlob) { moleBlob.position.set(p.x + .08, .085, p.z - .05); moleBlob.visible = true }
+        if (moleBlob) { moleBlob.position.set(p.x + .08, .085 * holeScale, p.z - .05); moleBlob.visible = true }
         anim.dur = mole.hop('up'); anim.phase = 'up'; anim.t = 0
         // M: 미리 구운 도착 그림을 선명한 배경으로 바꿔 끼움 → 이 프레임부터 멈춰 있을 때와 같은 그리기
         if (prepReady()) { finishPrep(); moved = false }
@@ -527,7 +673,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   }
 
   function move(dir: Dir): boolean {
-    if (anim || !holes.has(curSeat)) return false
+    if (anim || zoomAnim || zoomWait || !holes.has(curSeat)) return false
     const c = holes.get(curSeat)!
     // 화면 기준 방향 = 들판 기준 (카메라가 좌우로 돌지 않음): 위 = -z, 오른쪽 = +x
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]
@@ -544,6 +690,61 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     return best != null && jump(best)
   }
 
+  /* ---------- 줌 (near / mid / far, camera_zoom_spec 6) ---------- */
+  /*
+   * 0.5초 동안 거리는 로그 보간, 타깃은 지금 타깃 → 새 단계 타깃(같은 구멍을 그 단계 한계로)을 같은 곡선으로.
+   * 단계별 표시(LOD)는 거리 기준 히스테리시스로 전환 도중 한 번에 (가속 켬·저사양 예전 길).
+   * 저사양 M(선명한 배경 + 옮겨 그리기): 지금 그림을 칸 0 에 넣고, 도착 구도(새 LOD 적용)를 미리 굽기 시작 → 전환 동안 두 그림을
+   * 바닥 평면 호모그래피로 옮겨 그리고 빈 곳만 낮은 해상도 3D 로 메움. 도착 그림이 늦으면 다 구워질 때까지 옮긴 그림을 그대로(zoomWait)
+   */
+  const zfP = testParam('zoomfreeze')
+  const zoomFreeze = zfP != null ? +zfP.replace('_', '.') : null
+  function zoomTo(lv: ZoomLevel): boolean {
+    if (anim || zoomAnim || zoomWait || !mole || lv === level || !ZOOM_LEVELS.includes(lv)) return false
+    const d1 = ZOOM_DIST[lv]
+    const t1 = holes.has(curSeat) ? clampTarget(holeVec(curSeat), lv) : clampTarget(target.clone(), lv)
+    zoomAnim = { d0: dist, d1, t0: target.clone(), t1, t: 0, slide: false, k: 0 }
+    level = lv
+    hoverSeat = null; hoverRing.visible = false; ev.onHover?.(null, 0, 0)
+    if (slide && wantGl() && sharpOk && sharpCv && !reduce) {
+      // 도착 구도의 LOD 로 바로 바꿈 (미리 굽는 그림이 도착 모습이어야 함). 지금 그림(칸 0)은 이전 LOD 그대로라 전환 동안만 섞여 보임
+      applyLod(lv)
+      slideKind = 'gl'
+      slideDrop()
+      slideLoad(0, sharpCv, camera.clone())
+      startPrep(camAt(t1, d1), seatKey(curSeat, focus, lv))
+      zoomAnim.slide = !!prep
+    }
+    ev.onZoom?.(lv)
+    loop.wake()
+    return true
+  }
+  /** 이번 프레임에 카메라가 움직였으면 true */
+  function stepZoom(dt: number): boolean {
+    const z = zoomAnim
+    if (!z) return false
+    z.t += dt
+    let k = reduce ? 1 : Math.min(1, z.t / ZOOM_SEC)
+    // 측정용 ?zoomfreeze=0_5: 줌 전환을 그 지점에서 멈춤 (전환 도중 화질 보기, explore/gpu/zoom/zoom-shots.mjs)
+    if (zoomFreeze != null && k >= zoomFreeze) { k = zoomFreeze; z.t = k * ZOOM_SEC }
+    const e = easeStd(k)
+    z.k = k
+    setDist(distAt(z.d0, z.d1, e))
+    target.lerpVectors(z.t0, z.t1, e)
+    placeCamera(); followSun()
+    applyMoleScale()
+    if (!z.slide) applyLod(lodAt(dist, lodLevel))
+    if (k >= 1) {
+      setDist(z.d1)
+      applyLod(level)
+      zoomAnim = null
+      lastAnchor = ''
+      // 저사양 M: 도착 그림이 아직이면 옮긴 그림을 그대로 두고 기다림 (아래 frame 에서 준비되면 바꿔 끼움)
+      if (z.slide && prep && !prepReady()) zoomWait = true
+    }
+    return true
+  }
+
   /* ---------- 마우스: 구멍 누르기·올리기, 사다리 누르기 ---------- */
   const el = renderer.domElement
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(UP, -.1), hit = new THREE.Vector3()
@@ -553,7 +754,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     ray.setFromCamera(ndc, camera)
     // 두더지 몸통을 눌러도 그 구멍 (두더지는 구멍 위에 서 있음)
     if (!ray.ray.intersectPlane(plane, hit)) return {}
-    let best: number | undefined, bd = HIT_R
+    let best: number | undefined, bd = HIT_R * holeScale
     holes.forEach((h) => { const dd = Math.hypot(h.x - hit.x, h.z - hit.z); if (dd < bd) { bd = dd; best = h.seat } })
     if (best != null) return { seat: best }
     if (Math.hypot(hit.x - LADDER_POS.x, hit.z - LADDER_POS.z) < 1.5) return { ladder: true }
@@ -698,13 +899,13 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const dynRect = (): Rect => {
     const r: Rect = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
     if (mole && mole.object.visible) {
-      const p = mole.object.position
+      const p = mole.object.position, ms = mole.object.scale.x // 줌 단계 배율 (far 1.5)
       mole.object.updateMatrixWorld(true)
-      addBox(r, p.x, p.y - .3, p.y + 1.5, p.z, .62)
+      addBox(r, p.x, p.y - .3 * ms, p.y + 1.5 * ms, p.z, .62 * ms)
       if (!moleBones) { const list: THREE.Object3D[] = []; mole.object.traverse((o) => { if ((o as THREE.Bone).isBone) list.push(o) }); moleBones = list }
-      for (const b of moleBones) { b.getWorldPosition(boneP); addBox(r, boneP.x, boneP.y - .5, boneP.y + .5, boneP.z, .5) }
+      for (const b of moleBones) { b.getWorldPosition(boneP); addBox(r, boneP.x, boneP.y - .5 * ms, boneP.y + .5 * ms, boneP.z, .5 * ms) }
     }
-    for (const ring of [hoverRing, targetRing]) if (ring.visible) addBox(r, ring.position.x, 0, .12, ring.position.z, 1.26)
+    for (const ring of [hoverRing, targetRing]) if (ring.visible) addBox(r, ring.position.x, 0, .12, ring.position.z, 1.26 * holeScale)
     return r
   }
   /*
@@ -776,7 +977,12 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
    */
   let occHash = 0
   for (const n of opts.occupied) occHash = (occHash * 31 + n) | 0
-  const seatKey = (seat: number, f = focus) => stillKey('hole', [opts.zones, occHash, opts.mySeat, seat], W, H, f)
+  /**
+   * v3.10: 작물·줌 단계도 키에 (자리마다 단계별 타깃이 정해져 있어서 자리 + 단계면 같은 그림). 들어오기 전(배치를 읽기 전)에도 키를 알 수 있게 자리 기준 그대로.
+   * 'f10': v3.9 때 저장한 그림(흙 바닥)을 다시 쓰지 않게
+   */
+  const seatKey = (seat: number, f = focus, lv: ZoomLevel = level) =>
+    stillKey('hole', ['f10', opts.crop ?? 'pumpkin', lv, opts.zones, occHash, opts.mySeat, seat], W, H, f)
   /** 그림 한 장을 선명한 배경으로 */
   const showSharp = (img: CanvasImageSource & { width: number; height: number }) => {
     const cv = makeSharpCv()
@@ -819,8 +1025,10 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 측정용: 배경을 다시 찍는 데 든 시간 (메인 스레드, ms) */
   const noteCapture = (kind: string, t0: number) => {
     const ms = performance.now() - t0
-    const w = window as unknown as { __captures?: [string, number][] }
+    const w = window as unknown as { __captures?: [string, number][]; __sharpAt?: number }
     ;(w.__captures ??= []).push([kind, Math.round(ms)])
+    // 선명한 배경이 깔린 시각 (cdp-scene.mjs zoom: 줌 키 → 선명해질 때까지)
+    if (kind === 'sharpWait' || kind === 'sharpSaved' || kind === 'swap') w.__sharpAt = performance.now()
     // 느린 PC 는 S 를 끔 (한 번에 굽는 경우만): 선명한 배경이 준비되기까지 SHARP_SLOW_MS 를 넘은 적이 두 번이면 이 장면에서는 0.55배 배경만 (A_R).
     // 띠로 나눠 구우면 한 프레임 일이 작아서 3D 가 크게 밀리지 않음
     if (kind === 'sharpWait' && bakeStrips <= 1 && ms > SHARP_SLOW_MS && ++sharpStrikes >= 2 && sharpField) {
@@ -902,7 +1110,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     prep = { cam, key, img: false, baking: false, depth: false, loaded: false, save: false, t0: performance.now() }
     loop.wake()
   }
-  function cancelPrep() { if (prep?.baking) baker?.cancel(); prep = null; focusTr = null }
+  function cancelPrep() { if (prep?.baking) baker?.cancel(); prep = null; focusTr = null; zoomWait = false }
   /** 패널 이동(focusX)을 띠 밀기로 하는 중이면 그 목표 focusX */
   let focusTr: number | null = null
   /** 한 프레임에 한 가지 (그리기 전에 부름) */
@@ -963,7 +1171,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   /** 도착 자리 그림·깊이를 지금 배경으로 바꿔 끼움 */
   function finishPrep() {
     if (prep) savePrep(prep)
-    prep = null; focusTr = null
+    prep = null; focusTr = null; zoomWait = false
     const old = sharpCv
     sharpCv = nextCv; nextCv = old
     if (old) old.style.visibility = 'hidden'
@@ -1044,7 +1252,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let quietT = 0
   const drawStatic = (full: boolean, dt: number) => {
     const bd = backdrop!
-    const quiet = !anim && focus === focusTarget
+    const quiet = !anim && !zoomAnim && focus === focusTarget
     quietT = quiet ? quietT + dt : 0
     if (lowActive && panBd && quietT < .12) { drawWith(panBd, full, false); return }
     if (lowActive) { lowActive = false; full = true }
@@ -1089,6 +1297,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       W = w; H = h; renderer.setSize(w, h, false); applyFrame(); lastAnchor = ''
       cancelPrep(); slide?.size(w, h, Math.min(window.devicePixelRatio || 1, 2)); glSlide?.size(w, h); slideDrop()
       if (anim) anim.slide = false
+      if (zoomAnim) zoomAnim.slide = false
       backdrop?.invalidate(); sharpOff(); lowActive = false; fullNext = true
     },
     frame(dt) {
@@ -1096,15 +1305,16 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (warming || (sharpField && !mole)) return
       // M: 도착 자리 준비 (한 프레임에 한 가지). 이미 도착했거나 서 있는데 준비가 끝나면 그때 바꿔 끼움
       if (prep && !(prep.img && prep.depth && prep.loaded)) prepStep()
-      if (prepReady() && (!anim || anim.phase === 'up') && (focusTr == null || focus === focusTarget)) finishPrep()
+      if (prepReady() && (!anim || anim.phase === 'up') && !zoomAnim && (focusTr == null || focus === focusTarget)) finishPrep()
       const full = fullNext || dt === 0
       fullNext = false
-      // 카메라 구도가 바뀌는 프레임(패널 이동·점프 카메라)은 따로 (drawMoving), 멈추면 A 배경을 다시 찍음
+      // 카메라 구도가 바뀌는 프레임(패널 이동·점프 카메라·줌)은 따로 (drawMoving), 멈추면 A 배경을 다시 찍음
       let camMoved = false
-      // M: 점프 중에 패널이 열리고 닫혀 구도가 바뀌면 미리 구운 도착 그림은 맞지 않음 → 버리고 예전 길로
+      // M: 점프·줌 중에 패널이 열리고 닫혀 구도가 바뀌면 미리 구운 도착 그림은 맞지 않음 → 버리고 예전 길로
       if (focus !== focusTarget && prep && anim) { cancelPrep(); slideHide(); slideDrop(); anim.slide = false }
+      if (focus !== focusTarget && prep && (zoomAnim || zoomWait)) { cancelPrep(); slideHide(); slideDrop(); if (zoomAnim) zoomAnim.slide = false }
       // M: 패널 이동 시작 → 지금 그림을 띠에 넣고 새 구도를 미리 굽기. 도중에 목표가 또 바뀌면 버리고 예전 길로
-      if (focus !== focusTarget && !anim && slide && focusTr !== focusTarget) {
+      if (focus !== focusTarget && !anim && !zoomAnim && !zoomWait && slide && focusTr !== focusTarget) {
         if (focusTr == null && sharpOk && sharpCv && !prep && mole) {
           slideKind = wantGl() ? 'gl' : 'css'
           slideDrop()
@@ -1117,19 +1327,26 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       }
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); lastAnchor = ''; camMoved = true }
       if (stepAnim(dt)) camMoved = true
+      // 줌: 이번 프레임이 옮겨 그리기(M)인지는 끝나기 전 값으로 (끝나는 프레임도 도착 그림으로 그림)
+      const zSlide = !!zoomAnim?.slide
+      const zoomed = stepZoom(dt)
+      if (zoomed) camMoved = true
       if (!qshot) mole?.update(dt)
       if (targetRing.visible) { pulse += dt; (targetRing.material as THREE.MeshBasicMaterial).opacity = .65 + .3 * Math.sin(pulse * 9) }
       if (camMoved && anim) (window as unknown as { __panT?: number[] }).__panT?.push(performance.now()) // 측정용 (cdp-scene.mjs 가 배열을 만들어 둔 경우만)
+      if (zoomed) (window as unknown as { __zoomT?: number[] }).__zoomT?.push(performance.now()) // 측정용 (줌 전환 프레임)
       if (!backdrop) renderer.render(scene, camera)
       else if (camMoved && anim?.slide) drawSlide(anim.k ?? 0)
+      else if (zSlide && zoomed && !anim) drawSlide(zoomAnim ? zoomAnim.k : 1) // 줌 전환 (M). 끝나는 프레임은 도착 그림 쪽(1)
+      else if (zoomWait && !anim) drawSlide(slideHas(1) ? 1 : 0) // 줌은 끝났고 도착 구도 굽기를 기다리는 중
       else if (focusTr != null && !anim) drawSlide(slideHas(1) ? 1 : 0) // 패널 이동 중·새 구도 굽기를 기다리는 중
       else if (camMoved) drawMoving()
       else drawStatic(full, dt)
       emitAnchor()
-      if (anim || focus !== focusTarget) emitHover()
+      if (anim || zoomAnim || focus !== focusTarget) emitHover()
       if (qshot) reportMole()
     },
-    busy: () => spin || !!anim || !!prep || focus !== focusTarget || (!!mole && !mole.isResting()) || (!!backdrop && (lowActive || (sharpField && !sharpOk && !!mole) || !!baker?.busy())),
+    busy: () => spin || !!anim || !!zoomAnim || zoomWait || !!prep || focus !== focusTarget || (!!mole && !mole.isResting()) || (!!backdrop && (lowActive || (sharpField && !sharpOk && !!mole) || !!baker?.busy())),
     downgrade(nq) {
       renderer.setPixelRatio(nq.pixelRatio)
       sun.castShadow = false; renderer.shadowMap.enabled = false
@@ -1156,7 +1373,13 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     },
     move(dir) { const ok = move(dir); return ok },
     goSeat(seat) { return jump(seat) },
-    busy: () => !!anim,
+    busy: () => !!anim || !!zoomAnim || zoomWait,
+    zoom: (lv) => zoomTo(lv),
+    zoomBy(step) {
+      const i = ZOOM_LEVELS.indexOf(level) + step
+      return i >= 0 && i < ZOOM_LEVELS.length && zoomTo(ZOOM_LEVELS[i])
+    },
+    zoomLevel: () => level,
     dispose() {
       disposed = true
       loop.stop()

@@ -20,6 +20,9 @@
   pointer-events: none;
 }
 .sign[data-hidden='1'] { visibility: hidden; }
+/* 두더지가 화면 왼쪽 끝 가까이면(줌 far·패널 열림에서 왼쪽 구멍) 안내판을 머리 오른쪽 위로 (화면 밖으로 잘리지 않게) */
+.sign[data-side='right'] { transform: translate(34px, calc(-100% + 24px)); }
+.sign[data-side='right'] .signCard { border-radius: 14px 14px 4px 14px; }
 .signCard {
   pointer-events: auto;
   width: 248px; padding: 18px 18px 16px;
@@ -51,6 +54,25 @@
 /* 왼쪽 아래 "내 땅굴로 돌아가기" */
 .homeBtn { position: absolute; left: 35px; bottom: 33px; z-index: 5; gap: 7px; }
 .homeBtn:disabled { opacity: .55; }
+
+/* 줌 단계 (3D 핸드오프 v3.10 near·mid·far, docs/explore-field-v3-10.md). 정보 패널 왼쪽, "✨ 이펙트" 버튼 위. right 는 패널 따라 style 로 */
+.zoom {
+  position: absolute; bottom: 88px; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px;
+  border-radius: 999px; background: rgba(251, 248, 244, .94); box-shadow: var(--shadow-card);
+  transition: right .3s var(--ease-out);
+}
+.zoomStep {
+  width: 34px; height: 34px; border-radius: 50%;
+  font: 700 20px/1 var(--font-body); color: var(--ink-800);
+}
+.zoomStep:hover:not(:disabled) { background: var(--surface-item); }
+.zoomStep:disabled { opacity: .3; cursor: default; }
+.zoomDot { width: 34px; height: 22px; display: grid; place-items: center; border-radius: 8px; }
+.zoomDot:hover { background: var(--surface-item); }
+.zoomDot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); transition: transform .2s var(--ease-out), background .2s; }
+.zoomDot[aria-pressed='true'] i { background: var(--cta); transform: scale(1.45); }
+@media (prefers-reduced-motion: reduce) { .zoom, .zoomDot i { transition: none; } }
 
 /* 조작 안내 (모드 토글 위) */
 .hint {

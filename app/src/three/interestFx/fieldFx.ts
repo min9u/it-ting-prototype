@@ -29,7 +29,14 @@ export interface FieldFxOptions {
   seats: HoleFx[]
   /** 두더지가 서 있는(또는 가는) 자리와 이동 중인지 */
   here: () => { seat: number; moving: boolean }
+  /**
+   * 카메라 거리 (m, 줌 단계 v3.10: near 12 · mid 24 · far 46). 멀리 볼수록 한 화면 구멍이 많아서(near 2.5 → far 약 42개)
+   * 말풍선을 가까운 순으로 줄임 (BUBBLE_CAP). 없으면 near
+   */
+  dist?: () => number
 }
+/** 줌 단계별 말풍선 수 상한 (가까운 순. 등불을 켠 땅굴·이정표는 따로). mid 는 한 화면 구멍 약 12개라 거의 다, far 는 약 42개라 8개 */
+const BUBBLE_CAP = { mid: 14, far: 8 }
 export interface FieldFx { dispose(): void }
 
 const EXPAND_R = 6.6, EDGE_R = 10.5, ICON_GAP = 27
@@ -241,6 +248,14 @@ export function createFieldFx(o: FieldFxOptions): FieldFx {
     for (const st of seats) {
       const standing = st.info.seat === here.seat && !here.moving
       if (!standing && (st.pin || (st.vis && inSafe(st.bx, st.by + 20)))) shown.push(st)
+    }
+    // 멀리 볼 때(줌 mid·far)는 말풍선을 두더지에서 가까운 순으로 상한까지만 (등불 땅굴·이정표·잘 맞는 이웃은 늘 보임)
+    const D = o.dist?.() ?? 12
+    const cap = D > 34 ? BUBBLE_CAP.far : D > 17 ? BUBBLE_CAP.mid : Infinity
+    if (shown.length > cap) {
+      const keep = new Set(shown.filter((st) => st.pin || st.lit || st === best))
+      for (const st of [...shown].filter((x) => !keep.has(x)).sort((a, b) => a.dist - b.dist).slice(0, Math.max(0, cap - keep.size))) keep.add(st)
+      for (let i = shown.length - 1; i >= 0; i--) if (!keep.has(shown[i])) shown.splice(i, 1)
     }
     // 움직이는 구멍: 두더지에 가까운 순 N개 (화면 안 + 이정표)
     if (!still) [...shown].sort((a, b) => a.dist - b.dist).slice(0, overlay.mode.active).forEach((st) => { st.active = true })

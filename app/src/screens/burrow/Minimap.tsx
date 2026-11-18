@@ -10,6 +10,8 @@ import m from './Minimap.module.css'
 import { fxOn, fxVersion, getLantern, subscribeFx } from '../../lib/fxLab'
 import { closeSeatsOf, fxColor, leadOf, subName, zoneLabel, zoneNamesOf, type ZoneName } from '../../data/interestFx'
 import { toSubIds } from '../../data/interests'
+import { ZOOM_DIST, ZOOM_SEC, distAt, easeStd, type ZoomLevel } from '../../three/fieldCam'
+import { cropOf } from '../../data/field'
 
 /*
  * 미니맵 (전체 마을 지도). 2026-11-16, docs/explore-designs.md
@@ -27,8 +29,8 @@ export interface MinimapHandle {
 }
 
 type View =
-  /** 디자인 A 3D 카메라: 사다리꼴 (focusX = 목표점 가로 위치, coverRight = 오른쪽 카드가 가리는 px) */
-  | { kind: 'camera'; focusX: number; coverRight: number }
+  /** 디자인 A 3D 카메라: 사다리꼴 (focusX = 목표점 가로 위치, coverRight = 오른쪽 카드가 가리는 px, level = 줌 단계. 바뀌면 0.5초 동안 따라감) */
+  | { kind: 'camera'; focusX: number; coverRight: number; level?: ZoomLevel }
   /** 직접 넣음 (handleRef.setView) */
   | { kind: 'external' }
   | { kind: 'none' }
@@ -55,7 +57,7 @@ function useLayout(): Layout | null {
 }
 export function useVillage(field: FieldData): Village | null {
   const L = useLayout()
-  return useMemo(() => (L ? buildVillage(L, field.zones, field.residents.map((r) => r.seat), field.mySeat) : null), [L, field])
+  return useMemo(() => (L ? buildVillage(L, field.zones, field.residents.map((r) => r.seat), field.mySeat, cropOf(field.floor).id) : null), [L, field])
 }
 
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
@@ -120,12 +122,19 @@ export default function Minimap({
     const h = v?.seats.get(n)
     return h?.occupied ? [h.x, h.z] : [LADDER.x + 1.9, LADDER.z - 1.4] // 구멍이 없으면 사다리 옆 흙 위 (3D 와 같음)
   }
+  // 줌 단계 (3D 와 같은 거리·타깃 한계, three/fieldCam.ts). zoomT = 줌 전환 중이면 [시작 타깃, 시작 거리, 진행 0~1]
+  const level: ZoomLevel = view.kind === 'camera' ? view.level ?? 'near' : 'near'
+  const lvRef = useRef(level)
+  const zoomT = useRef<{ t0: [number, number]; d0: number; e: number } | null>(null)
   const footprint = (p: [number, number]) => {
     if (!v || view.kind !== 'camera') return null
-    const [tx, tz] = camTarget(v, p[0], p[1])
+    let [tx, tz] = camTarget(v, p[0], p[1], lvRef.current)
+    let D = ZOOM_DIST[lvRef.current]
+    const z = zoomT.current
+    if (z) { tx = z.t0[0] + (tx - z.t0[0]) * z.e; tz = z.t0[1] + (tz - z.t0[1]) * z.e; D = distAt(z.d0, D, z.e) }
     const { w, h } = sceneSize.current
     const u1 = Math.max(0.3, (w - view.coverRight) / w)
-    return camFootprint(tx, tz, w / h, view.focusX, u1)
+    return camFootprint(tx, tz, w / h, view.focusX, u1, D)
   }
   const drawMole = (p: [number, number], k = 1) => {
     cur.current.mole = p
@@ -167,7 +176,7 @@ export default function Minimap({
     const from = prev.current != null && prev.current !== seat ? posOf(prev.current) : null
     prev.current = seat
     if (!from || !moving || reduceMotion()) { drawMole(to); drawView(footprint(to)); return }
-    const camFrom = cur.current.view ? camTarget(v, from[0], from[1]) : null
+    const camFrom = cur.current.view ? camTarget(v, from[0], from[1], lvRef.current) : null
     let raf = 0
     const t0 = performance.now()
     const step = () => {
@@ -188,6 +197,25 @@ export default function Minimap({
   }, [seat, v, open]) // eslint-disable-line react-hooks/exhaustive-deps
   // 펼칠 때·카메라 값이 바뀔 때 다시 그림
   useEffect(() => { if (v && view.kind === 'camera') drawView(footprint(cur.current.mole)) }, [view.kind === 'camera' ? view.focusX : 0, view.kind === 'camera' ? view.coverRight : 0, open]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 줌 단계가 바뀌면 보이는 범위도 3D 처럼 0.5초 동안 (거리 로그 보간 + 타깃 같은 곡선)
+  useEffect(() => {
+    const prevLv = lvRef.current
+    if (prevLv === level) return
+    lvRef.current = level
+    if (!v || view.kind !== 'camera' || reduceMotion()) { zoomT.current = null; drawView(footprint(cur.current.mole)); return }
+    const p = cur.current.mole
+    const t0 = camTarget(v, p[0], p[1], prevLv), d0 = ZOOM_DIST[prevLv]
+    const s = performance.now()
+    let raf = 0
+    const step = () => {
+      const k = Math.min(1, (performance.now() - s) / (ZOOM_SEC * 1000))
+      zoomT.current = k < 1 ? { t0, d0, e: easeStd(k) } : null
+      drawView(footprint(cur.current.mole))
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => { cancelAnimationFrame(raf); zoomT.current = null; drawView(footprint(cur.current.mole)) }
+  }, [level, v]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hitAt = (e: { clientX: number; clientY: number }, r: number) => {
     const el = svg.current

@@ -7,8 +7,9 @@ import SceneButton from '../../components/SceneButton'
 import { EmptyMole, Toast } from '../../components/Feedback'
 import { HomeIcon } from '../../components/Icons'
 import { getMyWorn } from '../../data/moleItems'
-import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
+import { MY_FLOOR, affOf, cropOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
 import type { HoleFieldHandle } from '../../three/holeField'
+import { ZOOM_LEVELS, ZOOM_NAME, type ZoomLevel } from '../../three/fieldCam'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
 import Minimap from './Minimap'
 import SceneBoundary from '../../components/SceneBoundary'
@@ -25,6 +26,8 @@ const HoleFieldCanvas = lazy(() => import('../../three/HoleFieldCanvas'))
 
 /** 땅굴로 들어갈 때 화면이 어두워지는 시간 (ms) */
 const ENTER_FADE = 450
+/** 줌 휠: 누적 deltaY 가 이만큼이면 한 단계, 한 단계 바꾼 뒤 이 시간(ms) 동안 들어오는 휠은 무시 (camera_zoom_spec 6) */
+const WHEEL_STEP = 80, WHEEL_QUIET = 250
 
 /**
  * 땅굴 메인 – 탐색 (Figma 02 F5 787:3619 · 03 Screens 디자인 참고, 3D 핸드오프 v3.9 들판 + v3.8 두더지 잡기 이동). 2026-11-16 새로 만듦
@@ -33,7 +36,10 @@ const ENTER_FADE = 450
  * - Enter / 안내판 "땅굴 놀러가기" = 화면이 어두워진 뒤 그 땅굴로 (내 구멍이면 내 땅굴). 땅굴에서 탐색으로 나오면 어두운 화면에서 밝아짐
  * - 왼쪽 위: 단골 땅굴 · 오늘의 추천 친구(오늘 아직 안 받았으면 빨간 점) · 캠퍼스-층. 사다리를 눌러도 캠퍼스-층 고르기
  * - 오른쪽: 서 있는 구멍의 땅굴 주인 정보 (접기). 아래 가운데: 내 땅굴 / 탐색, 왼쪽 아래: 내 땅굴로 돌아가기
- * 데모용 쿼리: ?panel=closed · ?modal=regulars|recommend|floor · ?recommend=reset (오늘 받은 추천 지우기)
+ * - 줌 (3D 핸드오프 v3.10, docs/explore-field-v3-10.md): 가까이·중간·멀리 3단계. 휠(누적 ±80 이면 한 단계, 250ms 쉼) · +/− 키 · 오른쪽 아래 버튼.
+ *   전환 0.5초. 주소 ?zoom=mid|far 로 기억 (땅굴에 들어갔다 뒤로 오면 같은 단계)
+ * - 작물: 층마다 한 종류 (data/field.ts cropOf)
+ * 데모용 쿼리: ?panel=closed · ?modal=regulars|recommend|floor · ?recommend=reset (오늘 받은 추천 지우기) · ?zoom=mid|far
  */
 export default function ExploreBurrow() {
   const [params, setParams] = useSearchParams()
@@ -51,6 +57,11 @@ export default function ExploreBurrow() {
   }, [field])
   const seatParam = Number(params.get('seat'))
   const startSeat = bySeat.has(seatParam) ? seatParam : field.mySeat ?? field.residents[0]?.seat ?? 0
+  const crop = cropOf(floor)
+  // 줌 단계 (주소에 기억). 장면이 단계를 바꾸면 onZoom 으로 알려 줌
+  const zoomParam = params.get('zoom') as ZoomLevel | null
+  const [zoom, setZoom] = useState<ZoomLevel>(zoomParam && ZOOM_LEVELS.includes(zoomParam) ? zoomParam : 'near')
+  const sceneEl = useRef<HTMLDivElement | null>(null)
 
   const [seat, setSeat] = useState(startSeat)
   const [moving, setMoving] = useState(false)
@@ -73,6 +84,8 @@ export default function ExploreBurrow() {
     if (!el) return
     el.style.left = `${a.x}px`; el.style.top = `${a.y}px`
     el.dataset.hidden = a.vis ? '0' : '1'
+    // 안내판 폭 248 + 머리와 간격 34 + 여백: 왼쪽에 자리가 없으면 오른쪽으로 (줌 far 에서 왼쪽 끝 구멍)
+    el.dataset.side = a.x < 300 ? 'right' : 'left'
   }
   const worn = useMemo(() => getMyWorn(), [])
   // 오늘의 추천을 받았는지 (팝업을 닫을 때 다시 읽음)
@@ -103,12 +116,37 @@ export default function ExploreBurrow() {
       if (modal || leaving || !shortcutAllowed(e)) return
       const dir = ({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' } as const)[e.code as 'ArrowUp']
       if (dir) { e.preventDefault(); handle.current?.move(dir); return }
+      // 줌: + (= 키 포함) 가까이, − 멀리
+      if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); handle.current?.zoomBy(-1); return }
+      if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); handle.current?.zoomBy(1); return }
       // Enter 가 버튼·링크·탭 자체의 동작이면 그쪽에 맡김
       if (e.key === 'Enter' && !isActivatable(e.target)) { e.preventDefault(); enter() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [modal, leaving, enter])
+
+  // 줌 휠 (3D 캔버스 위에서만. 미니맵·버튼·패널 위 휠은 그대로): 누적 ±80 이면 한 단계, 바꾼 뒤 250ms 동안 들어오는 휠은 무시
+  useEffect(() => {
+    const el = sceneEl.current
+    if (!el) return
+    let acc = 0, quietUntil = 0, last = 0
+    const onWheel = (e: WheelEvent) => {
+      if (modal || leaving || !(e.target instanceof HTMLCanvasElement)) return
+      e.preventDefault()
+      const now = performance.now()
+      if (now < quietUntil) return
+      if (now - last > WHEEL_QUIET) acc = 0 // 한동안 안 굴렸으면 새로 셈
+      last = now
+      acc += e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 800 : 1)
+      if (Math.abs(acc) < WHEEL_STEP) return
+      const step = acc > 0 ? 1 : -1
+      acc = 0; quietUntil = now + WHEEL_QUIET
+      handle.current?.zoomBy(step)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [modal, leaving])
 
   useEffect(() => {
     if (params.get('recommend') === 'reset') import('../../data/field').then((m) => { m.resetToday(); setRecTick((n) => n + 1) })
@@ -140,13 +178,18 @@ export default function ExploreBurrow() {
     onHover: (n: number | null, hx: number, hy: number) => setHover(n == null ? null : { seat: n, x: hx, y: hy }),
     onLadder: () => setModal('floor'),
     onAnchor: (ax: number, ay: number, vis: boolean) => { anchor.current = { x: ax, y: ay, vis }; placeSign() },
+    onZoom: (lv: ZoomLevel) => {
+      setZoom(lv); setHover(null)
+      setParams((p) => { const q = new URLSearchParams(p); if (lv === 'near') q.delete('zoom'); else q.set('zoom', lv); return q }, { replace: true })
+    },
   }
+  const zoomIdx = ZOOM_LEVELS.indexOf(zoom)
 
   const hoverUser = hover ? bySeat.get(hover.seat) : null
 
   return (
     <main className={s.page}>
-      <div className={`${rv.scene} ${x.sceneBg}`}>
+      <div ref={sceneEl} className={`${rv.scene} ${x.sceneBg}`}>
         {/* 3D 를 못 만들면(WebGL 없음 등) 3D 자리에 GPU 로 미리 찍은 들판 그림 (three/stills.ts, docs/rendering-experiments-3.md 4번) */}
         <SceneBoundary onError={() => setFailed3d(true)} fallback={<img src={fieldStill.src} alt="" aria-hidden draggable={false} style={stillStyle(fieldStill, focusX)} />}>
         <Suspense fallback={null}>
@@ -161,8 +204,10 @@ export default function ExploreBurrow() {
             events={events}
             onReady={(h) => { handle.current = h; h.loaded?.then(() => setReady(true)) }}
             fx={fxSeats}
+            crop={crop.id}
+            zoom={zoom}
             className={rv.canvas}
-            label={`${floorLabel(floor)} 들판. 두더지가 구멍 위에 서 있어요`}
+            label={`${floorLabel(floor)} 들판 (${crop.name}밭). 두더지가 구멍 위에 서 있어요`}
           />
         </Suspense>
         </SceneBoundary>
@@ -220,11 +265,22 @@ export default function ExploreBurrow() {
           </SceneButton>
         )}
 
-        {/* 미니맵 (전체 마을 지도, docs/explore-designs.md) */}
-        {ready && <Minimap field={field} floor={floor} seat={seat} moving={moving} view={{ kind: 'camera', focusX, coverRight: panelOpen ? 372 : 0 }} onGo={(n) => { handle.current?.goSeat(n) }} onLadder={() => setModal('floor')} />}
+        {/* 미니맵 (전체 마을 지도, docs/explore-designs.md). 보이는 범위는 줌 단계를 따라감 */}
+        {ready && <Minimap field={field} floor={floor} seat={seat} moving={moving} view={{ kind: 'camera', focusX, coverRight: panelOpen ? 372 : 0, level: zoom }} onGo={(n) => { handle.current?.goSeat(n) }} onLadder={() => setModal('floor')} />}
+
+        {/* 줌 3단계 (+ 가까이 · 점 = 가까이/중간/멀리 · − 멀리). 이펙트 버튼 위 */}
+        {ready && (
+          <div className={x.zoom} style={{ right: panelOpen ? 388 : 33 }} role="group" aria-label="들판 보기 거리">
+            <button className={x.zoomStep} onClick={() => handle.current?.zoomBy(-1)} disabled={zoomIdx <= 0} aria-label="가까이 보기 (+ 키)" title="가까이 (+)">+</button>
+            {ZOOM_LEVELS.map((lv) => (
+              <button key={lv} className={x.zoomDot} onClick={() => handle.current?.zoom(lv)} aria-pressed={zoom === lv} aria-label={`${ZOOM_NAME[lv]} 보기`} title={ZOOM_NAME[lv]}><i /></button>
+            ))}
+            <button className={x.zoomStep} onClick={() => handle.current?.zoomBy(1)} disabled={zoomIdx >= ZOOM_LEVELS.length - 1} aria-label="멀리 보기 (− 키)" title="멀리 (−)">−</button>
+          </div>
+        )}
 
         <p className={x.hint} style={{ left: `${focusX * 100}%` }}>
-          <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 옆 구멍으로 · 구멍을 누르면 바로 이동 · <kbd>Enter</kbd> 땅굴에 들어가기
+          <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 옆 구멍으로 · 구멍을 누르면 바로 이동 · <kbd>+</kbd><kbd>−</kbd> 휠 멀리·가까이 · <kbd>Enter</kbd> 땅굴에 들어가기
         </p>
         <RoomModeToggle style={{ left: `${focusX * 100}%` }} />
         {/* 관심사 이펙트 켜고 끄기 (docs/interest-effects.md). 정보 패널 왼쪽 아래 */}
