@@ -36,6 +36,7 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['꾸미기 모드 · 사이드바 변신', '/burrow?mode=decor', '682:7764', true],
     ['내 정보 수정 · 사이드바 교체', '/burrow?mode=edit', '683:8058', true],
     ['🧪 땅굴 다양성 실험실 (칠하기·무늬·모양·자동)', '/lab/style', '실험', true],
+    ['🧪 땅굴 비교 실험실 (아무 관심사로 방문자 뷰 방)', `/lab/rooms?interests=${encodeURIComponent('사주/타로,곤충/파충류/기타,LP/음반')}&name=${encodeURIComponent('니치형')}`, '실험', true],
   ] },
   { title: '커뮤니티', items: [
     ['커뮤니티 목록 (02 F8)', '/board', 'F8-01', true],
