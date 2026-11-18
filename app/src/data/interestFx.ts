@@ -13,12 +13,28 @@ import { RARITY, rarityOf, type Rarity } from './rarity'
 
 export { rarityOf, type Rarity } from './rarity'
 
-/** 카테고리 이펙트 색 (말풍선 테두리·아이콘·입자·빛줄기) */
+/**
+ * 대분류 이펙트 색 (말풍선 테두리·아이콘·입자·빛줄기). 2026-11-18 확정본 12개.
+ * 예전 색을 이어 쓴 것: 음악·댄스(음악) · 사진·영상(사진) · 게임 · 미술·수공예(공예) · 책·글 · 음식·음료(차·커피) · 아웃도어 ·
+ * 외국어·자기계발(예전 우주·과학의 남색) · 덕질·수집(예전 반려동물의 분홍) · 반려동물·식물(예전 자연의 초록).
+ * 새로: 스포츠 진홍 · 문화생활 자주 (빨강 계열이 셋이라 붉은 쪽·보라 쪽으로 벌림)
+ */
 export const FX_COLORS: Record<string, string> = {
-  music: '#9C6FD6', photo: '#33A3A4', nature: '#5FAE45', game: '#3E8EDE', craft: '#E8705A', book: '#B98A3E',
-  science: '#6A6FE0', tea_coffee: '#A8693F', outdoor: '#E8902B', movie: '#D9486B', pet: '#E57AA6',
+  food: '#A8693F', sports: '#D23C54', culture: '#B5509E', game: '#3E8EDE', music_dance: '#9C6FD6', outdoor: '#E8902B',
+  language_selfdev: '#5B6CE0', book: '#B98A3E', photo_video: '#33A3A4', art_craft: '#E8705A', fandom_collect: '#E57AA6', pet_plant: '#5FAE45',
 }
 export const fxColor = (cat: string | null | undefined) => (cat && FX_COLORS[cat]) || '#C8643A'
+
+/**
+ * 대분류 → 땅굴 입자 모양 (three/interestFx/roomFx.ts 가 그림, 2026-11-18 확정본 12개).
+ * 예전 모양을 이어 쓴 것: 음표(음악·댄스) · 플래시(사진·영상) · 잎(반려동물·식물, 반려동물 용품을 고르면 동물이 발자국도) · 픽셀(게임) ·
+ * 물감(미술·수공예) · 종이(책·글) · 김(음식·음료) · 불티(아웃도어) · 팝콘(문화생활).
+ * 새로: 통통 튀는 공(스포츠) · 말풍선(외국어·자기계발) · 반짝 별(덕질·수집). 예전 우주·과학의 별 반짝은 없어짐
+ */
+export const FX_STYLE: Record<string, string> = {
+  food: 'steam', sports: 'ball', culture: 'popcorn', game: 'pixel', music_dance: 'note', outdoor: 'ember',
+  language_selfdev: 'talk', book: 'page', photo_video: 'flash', art_craft: 'paint', fandom_collect: 'star5', pet_plant: 'leaf',
+}
 
 /** 세부 관심사 id → 같은 관심사를 고른 사람 수 */
 const COUNT = new Map<string, number>(CATEGORIES.flatMap((c) => c.tags.map((t) => [t.id, t.count] as const)))
@@ -27,7 +43,7 @@ const RANK = new Map([...COUNT.entries()].sort((a, b) => a[1] - b[1]).map(([id],
 
 /** 같은 관심사를 고른 사람 수 (세부 관심사 id 또는 이름). 모르면 null */
 export const peopleCount = (sub: string): number | null => COUNT.get(subOf(sub)?.id ?? '') ?? null
-/** 65개 중 몇 번째로 드문지 (1 = 가장 드묾) */
+/** 소분류 90개 중 몇 번째로 드문지 (1 = 가장 드묾) */
 export const rarityRank = (sub: string): number | null => RANK.get(subOf(sub)?.id ?? '') ?? null
 export const SUB_TOTAL = INTEREST_SUBS.length
 
@@ -61,6 +77,8 @@ export function leadOf(list: string[]): { sub: string; cat: string } | null {
 export const catName = (cat: string) => interestCatOf(cat)?.name_ko ?? cat
 export const subName = (sub: string) => subOf(sub)?.name_ko ?? sub
 export const catOfSub = (sub: string) => subOf(sub)?.category ?? null
+/** 반려동물 용품처럼 짝 동물이 있는 소분류 (동물이 발자국을 내므로 용품은 입자 없음) */
+export const hasPet = (sub: string | null | undefined) => !!(sub && subOf(sub)?.pet)
 /** 카테고리 가구 중 주 가구 (이펙트 입자를 내는 가구) */
 export const mainFurnitureOf = (cat: string) => INTEREST_CATS.find((c) => c.id === cat)?.furniture[0] ?? null
 

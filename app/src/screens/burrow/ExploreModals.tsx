@@ -4,6 +4,7 @@ import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
 import { EmptyMole } from '../../components/Feedback'
 import { toneOf } from '../../data/mock'
+import { migrateInterests } from '../../data/interests'
 import {
   CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, RECOMMEND_QUESTIONS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId, floorLabel,
   getRecommendSettings, getRegulars, me, setRecommendSettings, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendSettings,
@@ -60,7 +61,8 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
 }
 
 function RecommendSettingsView({ onDraw }: { onDraw: () => void }) {
-  const [st, setSt] = useState<RecommendSettings>(getRecommendSettings)
+  // 2026-11-18 전에 저장된 설정은 예전 관심사 이름(시티팝 …)일 수 있어서 새 이름으로 옮겨서 보여 줌 (data/interests migrateInterests)
+  const [st, setSt] = useState<RecommendSettings>(() => { const s = getRecommendSettings(); return { ...s, interests: migrateInterests(s.interests) } })
   const [qOpen, setQOpen] = useState(false)
   const set = (p: Partial<RecommendSettings>) => { const v = { ...st, ...p }; setSt(v); setRecommendSettings(v) }
   const myInt = me().interests

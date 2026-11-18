@@ -22,7 +22,7 @@ import s from './Onboarding.module.css'
  *  1 이름 · 두더지 꾸미기 → 2 관심사(분야 카드 + 분야 팝업, 최대 10개) → 3 자기소개(질문 목록에서 3개 고르기)
  *  → 3a 땅굴 만드는 중(버튼 없음, 끝나면 자동) → 4 땅굴 미리보기(관심사 재선택 / 관심사 확정)
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
- * 관심사는 interest_catalog.json 의 카테고리 11 · 세부 관심사 65 (data/interests.ts). 가구 배치는 data/roomPlan.ts
+ * 관심사는 2026-11-18 확정본 대분류 12 · 소분류 90 (data/interestTags.ts → data/interests.ts). 가구 배치는 data/roomPlan.ts
  */
 
 const STEPS = [
@@ -35,7 +35,8 @@ const STEPS = [
 const DEMO = {
   name: '새벽산책',
   worn: DEFAULT_WORN,
-  picks: ['시티팝', '필름카메라', '테라리움', '체스', '뜨개질', '클라이밍', '요가', '애니메이션', '고양이', '강아지'],
+  // 2026-11-18 확정본 이름 (예전 시안: 시티팝 · 필름카메라 · 테라리움 · 체스 · 뜨개질 · 클라이밍 · 요가 · 애니메이션 · 고양이 · 강아지)
+  picks: ['JPOP/OST', '필름/컴팩트', '식물/테라리움', '바둑/장기/체스', '자수/뜨개/패브릭', '클라이밍', '헬스/필라테스/요가', '애니메이션', '고양이', '강아지'],
 }
 const DEMO_ANSWERS = ['마리아 타케우치 「Plastic Love」요. 출근길마다 들어요.', '동네 고양이요. 반은 흔들렸어요.', '유명한 맛집 주방을 몰래 구경해 볼래요.']
 
@@ -177,7 +178,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
 
 /* ---------- 2. 내 관심사 선택 (분야 카드 + 분야 팝업) ---------- */
 /**
- * 1 "내 관심사 선택하기" + 한 줄 안내 / 2 분야 11개 카드, 누르면 세부 관심사 팝업 / 3 고른 게 있으면 테두리 + "✓ N개", 없으면 "선택"
+ * 1 "내 관심사 선택하기" + 한 줄 안내 / 2 분야 12개 카드(4칸 × 3줄), 누르면 세부 관심사 팝업 / 3 고른 게 있으면 테두리 + "✓ N개", 없으면 "선택"
  * 4 선택한 관심사(개수 + 고른 순서, 맨 앞 = 대표 관심사 → 땅굴 무드), ×로 바로 해제 / 5 이전 · 다음(3개 이상), 최대 10개
  * 10개 초과: "N · 최대 10개"(10개면 빨간 글씨), 안 고른 분야 카드는 흐리게, 더 고르면 안내 3초
  */
@@ -370,7 +371,7 @@ const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '�
  * 4 가구 매칭: 고른 관심사 → 추천 가구(기본 가구) 카드를 차례로, 아직 안 채운 자리는 빈 카드. 다 되면 자동으로 온보딩 4 (버튼 없음)
  */
 function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onDone: () => void }) {
-  const lead = leadCategory(picks) ?? 'nature'
+  const lead = leadCategory(picks) ?? 'pet_plant'
   const leadCat = CATEGORIES.find((c) => c.id === lead)
   const inLead = picks.filter((t) => subOf(t)?.category === lead)
   const wall = wallpaperOf(moodWallpaper(picks))
@@ -420,7 +421,7 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
           <Arrow />
           <div className={s.moodResult}>
             <span className={s.moodSwatch} style={wallSwatch(wall.id, wall.solid_color)} aria-hidden />
-            <div><strong>{MOOD_NAMES[lead] ?? MOOD_NAMES.nature}</strong><small>벽지 · {wall.name_ko}</small></div>
+            <div><strong>{MOOD_NAMES[lead] ?? MOOD_NAMES.pet_plant}</strong><small>벽지 · {wall.name_ko}</small></div>
           </div>
         </div>
       ) : <div className={s.skelRow} aria-hidden />}

@@ -5,7 +5,7 @@
  * - 땅굴 무드: 대표 관심사(내 관심사 목록 맨 앞)의 대분류로 정함 (00 공통 5, F3 3a 3번, F4 꾸미기 가구 탭 3번)
  */
 import { ME_ID, USERS } from './mock'
-import { INTEREST_SUBS, interestCatOf, subOf, toSubIds } from './interests'
+import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
 import { FURNITURE_CATALOG, type FurnitureRow, type RoomPlan } from './roomPlan'
 import { wallpaperForCategory } from './wallpapers'
 import { ME_HOME } from './field'
@@ -85,18 +85,20 @@ export const MIN_PICK = 3
 export { ONBOARDING_MAX_PEOPLE as RARE_MAX, ssafyCount, isOnboardingRare as isRare } from './rarity' // 기준은 data/rarity.ts 한 곳
 
 /* ---------- 땅굴 무드 ---------- */
+/** 대분류 → 땅굴 무드 이름 (2026-11-18 확정본 12개. 벽지는 그 대분류의 3D 세트로 정함, data/wallpapers.ts) */
 export const MOOD_NAMES: Record<string, string> = {
-  music: '레코드 가게 무드', photo: '작은 암실 무드', nature: '작은 온실 무드', game: '동네 오락실 무드', craft: '작업실 무드',
-  book: '다락 서재 무드', science: '별 관측소 무드', tea_coffee: '골목 카페 무드', outdoor: '캠핑장 무드', movie: '작은 극장 무드', pet: '포근한 둥지 무드',
+  food: '골목 카페 무드', sports: '운동장 무드', culture: '작은 극장 무드', game: '동네 오락실 무드', music_dance: '레코드 가게 무드',
+  outdoor: '캠핑장 무드', language_selfdev: '작은 공부방 무드', book: '다락 서재 무드', photo_video: '작은 암실 무드', art_craft: '작업실 무드',
+  fandom_collect: '수집 진열장 무드', pet_plant: '포근한 온실 무드',
 }
 /** 대표 관심사(맨 앞)의 대분류 */
 export const leadCategory = (picks: string[]) => subOf(picks[0] ?? '')?.category
 export const moodWallpaper = (picks: string[]) => wallpaperForCategory(leadCategory(picks))
 
 /* ---------- 가구 (세부 관심사마다 하나) ---------- */
-const rowOf = (id: string) => FURNITURE_CATALOG.find((r) => r.id === id)
-/** 그 관심사의 기본 가구 (온보딩 3a 에서 놓이는 추천 가구) */
-export const defaultFurniture = (subId: string) => rowOf(subOf(subId)?.prop ?? '')
+const rowOf = (id: string | null | undefined) => (id ? FURNITURE_CATALOG.find((r) => r.id === id) : undefined)
+/** 그 관심사의 기본 가구 (온보딩 3a 에서 놓이는 추천 가구). 소품이 아직 없는 소분류는 undefined */
+export const defaultFurniture = (subId: string) => rowOf(subOf(subId)?.prop)
 /**
  * 그 관심사의 가구 후보 (기본 가구 + 같은 대분류 선반 소품 2개, 최대 3개).
  * 가구 자리는 정해져 있어서 같은 종류 자리(선반)에 들어가는 것만 후보. 바닥·반려동물 자리는 기본 가구 하나뿐.
@@ -115,7 +117,13 @@ export function furnitureCandidates(subId: string, picks: string[]): FurnitureRo
 }
 export type FurnChoice = Record<string, string>
 const FURN_KEY = 'digul.myFurnitureBySub'
-export const getMyFurnChoice = (): FurnChoice => load<FurnChoice>(FURN_KEY, {})
+/** 예전(관심사 v2) 소분류 id 로 저장된 선택은 새 id 로 옮김 (옮길 곳이 없으면 버림, data/interests migrateSubId) */
+export const getMyFurnChoice = (): FurnChoice => {
+  const c = load<FurnChoice>(FURN_KEY, {})
+  const out: FurnChoice = {}
+  for (const [k, v] of Object.entries(c ?? {})) { const id = migrateSubId(k); if (id && typeof v === 'string' && !(id in out)) out[id] = v }
+  return out
+}
 export const setMyFurnChoice = (c: FurnChoice) => save(FURN_KEY, c)
 /** 관심사를 바꾸면: 뺀 관심사의 고른 가구는 사라지고, 그대로 둔 관심사는 유지, 새 관심사는 기본 가구 */
 export function pruneChoice(c: FurnChoice, picks: string[]): FurnChoice {

@@ -19,78 +19,112 @@ const cut = (c: Ctx, f: Draw) => {
 }
 const strokeWith = (c: Ctx, w: number, f: Draw) => { c.save(); c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = c.fillStyle; f(c); c.restore() }
 
-/** 카테고리 글리프 + 입자용 작은 글리프 */
+/** 발바닥 (반려동물 발자국 입자 · 반려동물·식물 배지 안 구멍) */
+const paw: Draw = (c) => {
+  ellipse(c, 0, 0.16, 0.22, 0.18)
+  ellipse(c, -0.3, -0.06, 0.095, 0.12, -0.35); ellipse(c, -0.11, -0.27, 0.095, 0.125, -0.1)
+  ellipse(c, 0.11, -0.27, 0.095, 0.125, 0.1); ellipse(c, 0.3, -0.06, 0.095, 0.12, 0.35)
+}
+/** 잎 (잎맥 구멍) */
+const leaf: Draw = (c) => {
+  c.beginPath(); c.moveTo(-0.3, 0.36); c.bezierCurveTo(-0.44, -0.06, -0.1, -0.4, 0.42, -0.42); c.bezierCurveTo(0.4, 0.06, 0.1, 0.38, -0.3, 0.36); c.fill()
+  cut(c, () => { c.lineWidth = 0.055; c.beginPath(); c.moveTo(-0.24, 0.3); c.quadraticCurveTo(0.04, 0.02, 0.32, -0.32); c.stroke() })
+  strokeWith(c, 0.07, () => { c.beginPath(); c.moveTo(-0.3, 0.36); c.lineTo(-0.42, 0.46); c.stroke() })
+}
+
+/**
+ * 대분류 글리프 (2026-11-18 확정본 12개, 배지·말풍선·이름표) + 입자용 작은 글리프.
+ * 예전 글리프를 이어 쓴 것: 음표(음악·댄스) · 카메라(사진·영상) · 게임패드 · 팔레트(미술·수공예) · 펼친 책 · 산과 해(아웃도어).
+ * 새로: 김 나는 그릇(음식·음료) · 공(스포츠) · 표(문화생활) · 말풍선 A(외국어·자기계발) · 별(덕질·수집) · 발바닥이 뚫린 잎(반려동물·식물)
+ */
 const GLYPHS: Record<string, Draw> = {
-  // 음악: 들보로 이은 두 음표
-  music(c) {
-    ellipse(c, -0.23, 0.27, 0.15, 0.11, -0.45); ellipse(c, 0.23, 0.18, 0.15, 0.11, -0.45)
-    rect(c, -0.12, -0.27, 0.07, 0.54); rect(c, 0.34, -0.36, 0.07, 0.54)
-    poly(c, [[-0.12, -0.27], [0.41, -0.39], [0.41, -0.26], [-0.12, -0.14]])
+  // 음식·음료: 김 나는 그릇
+  food(c) {
+    c.beginPath(); c.moveTo(-0.45, -0.02); c.lineTo(0.45, -0.02); c.bezierCurveTo(0.43, 0.26, 0.24, 0.36, 0, 0.36); c.bezierCurveTo(-0.24, 0.36, -0.43, 0.26, -0.45, -0.02); c.closePath(); c.fill()
+    rrect(c, -0.17, 0.33, 0.34, 0.1, 0.03)
+    strokeWith(c, 0.065, () => {
+      for (const x of [-0.16, 0.08]) { c.beginPath(); c.moveTo(x, -0.11); c.bezierCurveTo(x - 0.09, -0.2, x + 0.09, -0.29, x, -0.42); c.stroke() }
+    })
   },
-  // 사진: 카메라 (렌즈·플래시 구멍)
-  photo(c) {
-    rrect(c, -0.45, -0.2, 0.9, 0.58, 0.1); rrect(c, -0.18, -0.34, 0.32, 0.2, 0.05)
-    cut(c, () => circle(c, 0, 0.08, 0.2)); circle(c, 0, 0.08, 0.11)
-    cut(c, () => circle(c, 0.31, -0.08, 0.05))
+  // 스포츠: 공 (농구공처럼 줄 구멍)
+  sports(c) {
+    circle(c, 0, 0, 0.43)
+    cut(c, () => {
+      c.lineWidth = 0.06
+      c.beginPath(); c.moveTo(-0.45, 0); c.lineTo(0.45, 0); c.stroke()
+      c.beginPath(); c.moveTo(0, -0.45); c.lineTo(0, 0.45); c.stroke()
+      c.beginPath(); c.arc(-0.64, 0, 0.42, -0.9, 0.9); c.stroke()
+      c.beginPath(); c.arc(0.64, 0, 0.42, Math.PI - 0.9, Math.PI + 0.9); c.stroke()
+    })
   },
-  // 자연·식물: 잎 (잎맥 구멍)
-  nature(c) {
-    c.beginPath(); c.moveTo(-0.3, 0.36); c.bezierCurveTo(-0.44, -0.06, -0.1, -0.4, 0.42, -0.42); c.bezierCurveTo(0.4, 0.06, 0.1, 0.38, -0.3, 0.36); c.fill()
-    cut(c, () => { c.lineWidth = 0.055; c.beginPath(); c.moveTo(-0.24, 0.3); c.quadraticCurveTo(0.04, 0.02, 0.32, -0.32); c.stroke() })
-    strokeWith(c, 0.07, () => { c.beginPath(); c.moveTo(-0.3, 0.36); c.lineTo(-0.42, 0.46); c.stroke() })
+  // 문화생활: 표 (양옆 홈 + 절취선)
+  culture(c) {
+    c.save(); c.rotate(-0.22)
+    rrect(c, -0.47, -0.27, 0.94, 0.54, 0.07)
+    cut(c, () => {
+      circle(c, -0.47, 0, 0.1); circle(c, 0.47, 0, 0.1)
+      for (let i = 0; i < 5; i++) circle(c, 0.2, -0.2 + i * 0.1, 0.024)
+      rrect(c, -0.32, -0.11, 0.38, 0.07, 0.02); rrect(c, -0.32, 0.04, 0.27, 0.07, 0.02)
+    })
+    c.restore()
   },
-  // 게임·놀이: 게임패드
+  // 게임: 게임패드
   game(c) {
     rrect(c, -0.42, -0.2, 0.84, 0.36, 0.16); circle(c, -0.27, 0.14, 0.17); circle(c, 0.27, 0.14, 0.17)
     cut(c, () => { rect(c, -0.34, -0.05, 0.17, 0.06); rect(c, -0.285, -0.105, 0.06, 0.17); circle(c, 0.2, -0.06, 0.048); circle(c, 0.31, 0.03, 0.048) })
   },
-  // 공예·만들기: 팔레트 (엄지 구멍 + 물감 자리)
-  craft(c) {
-    ellipse(c, 0, 0.02, 0.46, 0.37, -0.2)
-    cut(c, () => { circle(c, 0.21, 0.15, 0.085); circle(c, -0.2, -0.12, 0.07); circle(c, 0.03, -0.2, 0.07); circle(c, -0.25, 0.13, 0.065) })
+  // 음악·댄스: 들보로 이은 두 음표
+  music_dance(c) {
+    ellipse(c, -0.23, 0.27, 0.15, 0.11, -0.45); ellipse(c, 0.23, 0.18, 0.15, 0.11, -0.45)
+    rect(c, -0.12, -0.27, 0.07, 0.54); rect(c, 0.34, -0.36, 0.07, 0.54)
+    poly(c, [[-0.12, -0.27], [0.41, -0.39], [0.41, -0.26], [-0.12, -0.14]])
+  },
+  // 아웃도어: 산과 해
+  outdoor(c) {
+    poly(c, [[-0.48, 0.34], [-0.14, -0.28], [0.04, 0.02], [0.19, -0.15], [0.48, 0.34]])
+    cut(c, () => poly(c, [[-0.14, -0.28], [-0.25, -0.08], [-0.18, -0.04], [-0.13, -0.11], [-0.07, -0.05], [-0.03, -0.08]]))
+    circle(c, 0.31, -0.33, 0.09)
+  },
+  // 외국어·자기계발: 말풍선 + A
+  language_selfdev(c) {
+    rrect(c, -0.45, -0.4, 0.9, 0.64, 0.17)
+    poly(c, [[-0.22, 0.18], [-0.3, 0.45], [0.04, 0.18]])
+    cut(c, () => {
+      c.lineWidth = 0.08; c.lineCap = 'round'; c.lineJoin = 'round'
+      c.beginPath(); c.moveTo(-0.15, 0.1); c.lineTo(0, -0.26); c.lineTo(0.15, 0.1); c.stroke()
+      c.beginPath(); c.moveTo(-0.085, -0.03); c.lineTo(0.085, -0.03); c.stroke()
+    })
   },
   // 책·글: 펼친 책
   book(c) {
     c.beginPath(); c.moveTo(-0.03, -0.24); c.quadraticCurveTo(-0.22, -0.36, -0.47, -0.3); c.lineTo(-0.47, 0.3); c.quadraticCurveTo(-0.22, 0.24, -0.03, 0.36); c.closePath(); c.fill()
     c.beginPath(); c.moveTo(0.03, -0.24); c.quadraticCurveTo(0.22, -0.36, 0.47, -0.3); c.lineTo(0.47, 0.3); c.quadraticCurveTo(0.22, 0.24, 0.03, 0.36); c.closePath(); c.fill()
   },
-  // 우주·과학: 고리 행성
-  science(c) {
-    strokeWith(c, 0.075, () => { c.beginPath(); c.ellipse(0, 0.02, 0.47, 0.14, -0.35, Math.PI, Math.PI * 2); c.stroke() })
-    circle(c, 0, 0.02, 0.25)
-    cut(c, () => { c.lineWidth = 0.16; c.beginPath(); c.ellipse(0, 0.02, 0.47, 0.14, -0.35, 0.15, Math.PI - 0.15); c.stroke() })
-    strokeWith(c, 0.075, () => { c.beginPath(); c.ellipse(0, 0.02, 0.47, 0.14, -0.35, 0, Math.PI); c.stroke() })
+  // 사진·영상: 카메라 (렌즈·플래시 구멍)
+  photo_video(c) {
+    rrect(c, -0.45, -0.2, 0.9, 0.58, 0.1); rrect(c, -0.18, -0.34, 0.32, 0.2, 0.05)
+    cut(c, () => circle(c, 0, 0.08, 0.2)); circle(c, 0, 0.08, 0.11)
+    cut(c, () => circle(c, 0.31, -0.08, 0.05))
   },
-  // 차·커피·베이킹: 김 나는 잔
-  tea_coffee(c) {
-    c.beginPath(); c.moveTo(-0.34, -0.04); c.lineTo(0.24, -0.04); c.lineTo(0.19, 0.28); c.quadraticCurveTo(0.17, 0.37, 0.08, 0.37); c.lineTo(-0.22, 0.37); c.quadraticCurveTo(-0.3, 0.37, -0.31, 0.28); c.closePath(); c.fill()
-    strokeWith(c, 0.065, () => { c.beginPath(); c.arc(0.26, 0.12, 0.1, -Math.PI / 2, Math.PI / 2); c.stroke() })
-    strokeWith(c, 0.06, () => {
-      for (const x of [-0.17, 0.04]) { c.beginPath(); c.moveTo(x, -0.13); c.bezierCurveTo(x - 0.09, -0.21, x + 0.09, -0.3, x, -0.42); c.stroke() }
-    })
+  // 미술·수공예: 팔레트 (엄지 구멍 + 물감 자리)
+  art_craft(c) {
+    ellipse(c, 0, 0.02, 0.46, 0.37, -0.2)
+    cut(c, () => { circle(c, 0.21, 0.15, 0.085); circle(c, -0.2, -0.12, 0.07); circle(c, 0.03, -0.2, 0.07); circle(c, -0.25, 0.13, 0.065) })
   },
-  // 운동·아웃도어: 산과 해
-  outdoor(c) {
-    poly(c, [[-0.48, 0.34], [-0.14, -0.28], [0.04, 0.02], [0.19, -0.15], [0.48, 0.34]])
-    cut(c, () => poly(c, [[-0.14, -0.28], [-0.25, -0.08], [-0.18, -0.04], [-0.13, -0.11], [-0.07, -0.05], [-0.03, -0.08]]))
-    circle(c, 0.31, -0.33, 0.09)
+  // 덕질·수집: 둥근 별
+  fandom_collect(c) {
+    const pts: [number, number][] = []
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 0.2 : 0.44; pts.push([Math.cos(a) * r, Math.sin(a) * r + 0.04]) }
+    strokeWith(c, 0.09, () => { poly(c, pts); c.stroke() })
   },
-  // 영화·애니: 슬레이트
-  movie(c) {
-    rrect(c, -0.42, -0.04, 0.84, 0.42, 0.05)
-    c.save(); c.translate(-0.42, -0.08); c.rotate(-0.26)
-    rrect(c, 0, -0.15, 0.84, 0.15, 0.03)
-    cut(c, () => { for (let i = 0; i < 4; i++) { const x = 0.08 + i * 0.2; poly(c, [[x, -0.15], [x + 0.09, -0.15], [x + 0.03, 0], [x - 0.06, 0]]) } })
-    c.restore()
-    cut(c, () => rect(c, -0.42, 0.05, 0.84, 0.04))
+  // 반려동물·식물: 잎 안에 발바닥 구멍
+  pet_plant(c) {
+    c.beginPath(); c.moveTo(-0.36, 0.42); c.bezierCurveTo(-0.52, -0.06, -0.12, -0.46, 0.46, -0.47); c.bezierCurveTo(0.45, 0.08, 0.1, 0.44, -0.36, 0.42); c.fill()
+    cut(c, () => { c.translate(0.03, -0.03); c.scale(0.44, 0.44); paw(c) })
   },
-  // 반려동물: 발바닥
-  pet(c) {
-    ellipse(c, 0, 0.16, 0.22, 0.18)
-    ellipse(c, -0.3, -0.06, 0.095, 0.12, -0.35); ellipse(c, -0.11, -0.27, 0.095, 0.125, -0.1)
-    ellipse(c, 0.11, -0.27, 0.095, 0.125, 0.1); ellipse(c, 0.3, -0.06, 0.095, 0.12, 0.35)
-  },
-  // 입자용
+  // 입자용: 반려동물 발자국 · 잎 (예전 대분류 이름 그대로)
+  pet: paw,
+  nature: leaf,
   note(c) {
     ellipse(c, -0.12, 0.27, 0.17, 0.13, -0.45); rect(c, 0.01, -0.4, 0.075, 0.66)
     c.beginPath(); c.moveTo(0.08, -0.4); c.bezierCurveTo(0.32, -0.3, 0.36, -0.1, 0.22, 0.05); c.bezierCurveTo(0.26, -0.12, 0.18, -0.2, 0.08, -0.22); c.closePath(); c.fill()
@@ -125,6 +159,9 @@ const GLYPHS: Record<string, Draw> = {
     cut(c, () => { c.lineWidth = 0.045; for (const x of [-0.13, 0.13]) { c.beginPath(); c.ellipse(x * 0.6, 0.02, Math.abs(x) + 0.04, 0.34, 0, 0, Math.PI * 2); c.stroke() } })
   },
 }
+
+/** 그릴 수 있는 글리프 이름 (시험용: 모든 대분류에 글리프가 있는지) */
+export const GLYPH_NAMES: readonly string[] = Object.keys(GLYPHS)
 
 const cache = new Map<string, HTMLCanvasElement>()
 const canvas = (w: number, h: number) => { const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(w)); cv.height = Math.max(1, Math.ceil(h)); return cv }

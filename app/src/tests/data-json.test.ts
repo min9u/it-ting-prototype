@@ -9,17 +9,16 @@ import { describe, expect, it } from 'vitest'
 import layout from '../data/fieldLayout150.json'
 import catalogRaw from '../data/furnitureCatalog.json'
 import slotsRaw from '../data/slots.json'
-import interestRaw from '../data/interestCatalog.json'
+import { INTEREST_CATS, INTEREST_SUBS } from '../data/interests'
 import wallRaw from '../data/wallpapers.json'
 
 interface Row { id: string; type: string; category: string | null; sub_interest?: string | null; glb: string | null; glb_compressed?: string; size_m: { w: number; d: number; h: number }; slot: { kind: string; name?: string | null } | null; status: string; sit_point: string | null }
 interface Slot { name: string; kind: string; category: string | null; pos_three: number[]; ry_deg: number; max_m: { w: number; d: number; h: number }; drop: { mode: string } }
-interface Cat { type: 'category'; id: string; furniture: string[]; furniture_slots: string[]; accessories: string[]; max_pick: number; order: number }
-interface Sub { type: 'sub'; id: string; category: string; prop: string; slot_kind: string; pet: string | null }
 const CATALOG = catalogRaw as unknown as Row[]
 const SLOTS = slotsRaw as unknown as Slot[]
-const CATS = (interestRaw as unknown as (Cat | Sub)[]).filter((r): r is Cat => r.type === 'category')
-const SUBS = (interestRaw as unknown as (Cat | Sub)[]).filter((r): r is Sub => r.type === 'sub')
+/** 관심사는 2026-11-18 확정본(data/interestTags.ts + 3D 연결 data/interest3d.ts). 예전 interestCatalog.json 복사본은 지움 */
+const CATS = INTEREST_CATS
+const SUBS = INTEREST_SUBS
 const row = (id: string) => CATALOG.find((r) => r.id === id)
 const slot = (name: string) => SLOTS.find((s) => s.name === name)
 /** 가구 크기 허용 오차 1cm (디자이너 값에 1~2mm 넘치는 것이 있음: reading_lamp 0.301 > 0.3, yoga_mat 0.302 > 0.3) */
@@ -98,13 +97,13 @@ describe('fieldLayout150.json (3D 핸드오프 v3.9 들판)', () => {
   })
 })
 
-describe('interestCatalog · furnitureCatalog · slots (3D 핸드오프 v3)', () => {
+describe('관심사 3D 연결 · furnitureCatalog · slots (3D 핸드오프 v3, 관심사는 2026-11-18 확정본)', () => {
   it('id 는 하나씩 (가구 행 · 슬롯 · 관심사)', () => {
     expect(new Set(CATALOG.map((r) => r.id)).size).toBe(CATALOG.length)
     expect(new Set(SLOTS.map((s) => s.name)).size).toBe(SLOTS.length)
     expect(new Set([...CATS, ...SUBS].map((r) => r.id)).size).toBe(CATS.length + SUBS.length)
   })
-  it('카테고리 가구: 가구 수 = 슬롯 수, 가구 행·슬롯이 있고 같은 카테고리, 슬롯 크기 안', () => {
+  it('대분류 가구: 가구 수 = 슬롯 수, 가구 행·슬롯이 있고 같은 3D 세트, 슬롯 크기 안', () => {
     for (const c of CATS) {
       expect(c.furniture.length, c.id).toBe(c.furniture_slots.length)
       expect(c.max_pick, c.id).toBe(10)
@@ -113,23 +112,26 @@ describe('interestCatalog · furnitureCatalog · slots (3D 핸드오프 v3)', ()
         expect(r, fid).toBeDefined()
         expect(s, c.furniture_slots[i]).toBeDefined()
         expect(r!.type, fid).toBe('category_furniture')
-        expect(r!.category, fid).toBe(c.id)
-        expect(s!.category, s!.name).toBe(c.id)
+        expect(r!.category, fid).toBe(c.kit)
+        expect(s!.category, s!.name).toBe(c.kit)
         expect(fits(r!.size_m, s!.max_m), `${fid} ${JSON.stringify(r!.size_m)} > ${s!.name} ${JSON.stringify(s!.max_m)}`).toBe(true)
       })
     }
   })
-  it('카테고리 가구 슬롯은 카테고리끼리 겹치지 않음', () => {
-    const all = CATS.flatMap((c) => c.furniture_slots)
-    expect(new Set(all).size).toBe(all.length)
+  it('대분류 가구 슬롯이 겹치는 건 같은 3D 세트를 빌려 쓰는 대분류끼리뿐 (같은 슬롯 = 같은 가구)', () => {
+    const bySlot = new Map<string, string>()
+    for (const c of CATS) c.furniture_slots.forEach((sl, i) => {
+      const f = c.furniture[i]
+      if (bySlot.has(sl)) expect(bySlot.get(sl), sl).toBe(f)
+      bySlot.set(sl, f)
+    })
   })
-  it('세부 관심사 소품: 행이 있고, 같은 카테고리·같은 세부 관심사, 자리 종류가 같음', () => {
+  it('소분류 소품: 있으면 행이 있고 소품 행, 자리 종류가 같음', () => {
     for (const s of SUBS) {
+      if (!s.prop) { expect(s.slot_kind, s.id).toBeNull(); continue }
       const p = row(s.prop)
       expect(p, s.id).toBeDefined()
       expect(p!.type, s.id).toBe('sub_prop')
-      expect(p!.category, s.id).toBe(s.category)
-      expect(p!.sub_interest, s.id).toBe(s.id)
       expect(p!.slot?.kind, s.id).toBe(s.slot_kind)
     }
   })
@@ -137,6 +139,7 @@ describe('interestCatalog · furnitureCatalog · slots (3D 핸드오프 v3)', ()
     const shelves = SLOTS.filter((s) => s.kind === 'shelf')
     expect(shelves).toHaveLength(12)
     for (const s of SUBS) {
+      if (!s.prop) continue
       const p = row(s.prop)!
       if (s.slot_kind === 'shelf') for (const sh of shelves) expect(fits(p.size_m, sh.max_m), `${p.id} → ${sh.name}`).toBe(true)
       else {
@@ -152,7 +155,7 @@ describe('interestCatalog · furnitureCatalog · slots (3D 핸드오프 v3)', ()
       const pet = row(s.pet!)
       expect(pet?.type, s.pet!).toBe('pet')
       expect(slot(pet!.slot!.name!)?.kind).toBe('pet_floor')
-      expect(slot(row(s.prop)!.slot!.name!)?.kind).toBe('pet_floor')
+      expect(slot(row(s.prop!)!.slot!.name!)?.kind).toBe('pet_floor')
     }
   })
   it('행이 가리키는 슬롯 이름은 모두 slots.json 에 있음', () => {
@@ -181,8 +184,8 @@ describe('wallpapers.json (v3.5.1)', () => {
     for (const v of Object.values(w.mood_map.by_category_id)) expect(ids).toContain(v)
     expect(ids).toContain(w.mood_map.default)
   })
-  it('mood_map 의 카테고리 키는 관심사 카테고리 id (차·커피만 "tea" 로 적혀 있어 앱이 따로 받음)', () => {
-    const catIds = CATS.map((c) => c.id)
-    for (const k of Object.keys(w.mood_map.by_category_id)) expect([...catIds, 'tea'], k).toContain(k)
+  it('mood_map 의 카테고리 키는 3D 세트 id (관심사 대분류가 쓰는 kit, 차·커피만 "tea" 로 적혀 있어 앱이 따로 받음)', () => {
+    const kits = CATS.map((c) => c.kit)
+    for (const k of Object.keys(w.mood_map.by_category_id)) expect([...kits, 'tea'], k).toContain(k)
   })
 })

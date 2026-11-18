@@ -96,14 +96,14 @@ describe('온보딩 입력 (F3)', () => {
     expect(answerOk('가'.repeat(51))).toBe(false)
   })
   it('추천 질문 3개 = 서로 다른 대분류의 관심사 질문 2개 + TMI 1개', () => {
-    const music = INTEREST_SUBS.find((s) => s.category === 'music')!, photo = INTEREST_SUBS.find((s) => s.category === 'photo')!
+    const music = INTEREST_SUBS.find((s) => s.category === 'music_dance')!, photo = INTEREST_SUBS.find((s) => s.category === 'photo_video')!
     const q = recommendedQuestions([music.id, photo.id])
     expect(q).toHaveLength(3)
-    expect(q.slice(0, 2).map((x) => x.category)).toEqual(['music', 'photo'])
+    expect(q.slice(0, 2).map((x) => x.category)).toEqual(['music_dance', 'photo_video'])
     expect(q[2].kind).toBe('tmi')
   })
   it('대분류가 하나뿐이면 그 대분류 질문 2개 + TMI, 질문 id 는 하나씩', () => {
-    const music = INTEREST_SUBS.filter((s) => s.category === 'music').slice(0, 3).map((s) => s.id)
+    const music = INTEREST_SUBS.filter((s) => s.category === 'music_dance').slice(0, 3).map((s) => s.id)
     const q = recommendedQuestions(music)
     expect(q).toHaveLength(3)
     expect(new Set(q.map((x) => x.id)).size).toBe(3)

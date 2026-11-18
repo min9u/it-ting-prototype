@@ -1,5 +1,7 @@
 /**
  * 관심사 이펙트 데이터 (data/interestFx.ts) · 켜고 끄기 (lib/fxLab.ts). docs/interest-effects.md
+ * 2026-11-18 관심사 확정본(대분류 12 · 소분류 90)으로 예시를 옮김 (docs/interest-tags-2026-11-18.md):
+ * 가장 드문 것 = 기타언어 70명(목, 예전 운석수집 30명), 예린의 드문 관심사 = 차/다도 190명(예전 다도)
  */
 import { describe, expect, it } from 'vitest'
 import { holeFxOf, leadOf, peopleCount, rarestOf, rarityOf, rarityRank, sharedSubs, subsOfCat, SUB_TOTAL } from '../data/interestFx'
@@ -9,13 +11,14 @@ import { allCurrentFloors, fieldOf } from '../data/field'
 
 describe('인원수 · 드문 정도', () => {
   it('목 인원수를 이름·id 로 찾음', () => {
-    expect(peopleCount('운석수집')).toBe(30)
-    expect(peopleCount('meteorites')).toBe(30)
+    expect(peopleCount('기타언어')).toBe(70)
+    expect(peopleCount('other_language')).toBe(70)
     expect(peopleCount('없는 관심사')).toBeNull()
   })
-  it('드문 순서: 운석수집이 65개 중 가장 드묾', () => {
-    expect(rarityRank('운석수집')).toBe(1)
-    expect(rarityRank('인디밴드')).toBe(SUB_TOTAL) // 3,400명으로 가장 흔함
+  it('드문 순서: 기타언어가 90개 중 가장 드묾', () => {
+    expect(SUB_TOTAL).toBe(90)
+    expect(rarityRank('기타언어')).toBe(1)
+    expect(rarityRank('영화')).toBe(SUB_TOTAL) // 3,400명으로 가장 흔함
   })
   it('100명 미만 아주 드묾 · 250명 미만 드묾 · 700명 미만 흔치 않음', () => {
     expect(rarityOf(30)).toBe('legend')
@@ -24,37 +27,37 @@ describe('인원수 · 드문 정도', () => {
     expect(rarityOf(700)).toBeNull()
     expect(rarityOf(null)).toBeNull()
   })
-  it('방에서 가장 드문 관심사: 예린은 다도(190명)', () => {
-    expect(rarestOf(USERS.yerin.interests)).toEqual({ id: 'tea_ceremony', count: 190, rarity: 'rare' })
+  it('방에서 가장 드문 관심사: 예린은 차/다도(190명)', () => {
+    expect(rarestOf(USERS.yerin.interests)).toEqual({ id: 'tea', count: 190, rarity: 'rare' })
     expect(rarestOf(['고양이', '강아지'])).toBeNull()
   })
 })
 
 describe('겹치는 관심사 · 대표 관심사', () => {
-  it('예린과 나: 캠핑 · 수채화 · 레트로게임 (예린이 고른 순서)', () => {
-    expect(sharedSubs(USERS.yerin.interests, USERS.me.interests)).toEqual(['camping', 'watercolor', 'retro_game'])
+  it('예린과 나: 캠핑/글램핑 · 드로잉/회화 · 콘솔게임 (예린이 고른 순서)', () => {
+    expect(sharedSubs(USERS.yerin.interests, USERS.me.interests)).toEqual(['camping', 'drawing_painting', 'console_game'])
   })
   it('대표 관심사 = 맨 앞', () => {
-    expect(leadOf(['수채화', '캠핑'])).toEqual({ sub: 'watercolor', cat: 'craft' })
+    expect(leadOf(['드로잉/회화', '캠핑/글램핑'])).toEqual({ sub: 'drawing_painting', cat: 'art_craft' })
     expect(leadOf([])).toBeNull()
   })
-  it('카테고리 안에서 고른 것', () => {
-    expect(subsOfCat(USERS.me.interests, 'music')).toEqual(['city_pop', 'piano'])
+  it('대분류 안에서 고른 것', () => {
+    expect(subsOfCat(USERS.me.interests, 'music_dance')).toEqual(['jpop_ost', 'piano_keys'])
   })
 })
 
 describe('탐색 들판 구멍 정보 (holeFxOf)', () => {
   it('아이콘은 겹치는 것 → 가장 드문 것 → 고른 순서, 최대 3개', () => {
-    const h = holeFxOf(5, { nickname: '도토리', interests: ['고양이', '운석수집', '캠핑', '보드게임', '요가'], online: true }, false, ['캠핑'])!
-    expect(h.icons).toEqual(['camping', 'meteorites', 'cat'])
+    const h = holeFxOf(5, { nickname: '도토리', interests: ['고양이', '기타언어', '캠핑/글램핑', '보드게임', '헬스/필라테스/요가'], online: true }, false, ['캠핑/글램핑'])!
+    expect(h.icons).toEqual(['camping', 'other_language', 'cat'])
     expect(h.more).toBe(2)
     expect(h.shared).toBe(1)
     expect(h.rarity).toBe('legend')
-    expect(h.cat).toBe('pet')
+    expect(h.cat).toBe('pet_plant')
     expect(h.name).toBe('도토리')
   })
   it('내 땅굴은 겹침 0 · 흔치 않음(700명 미만)은 들판에서 반짝이지 않음', () => {
-    const h = holeFxOf(13, { interests: ['캠핑', 'SF소설'] }, true, ['캠핑'])!
+    const h = holeFxOf(13, { interests: ['캠핑/글램핑', '시/에세이'] }, true, ['캠핑/글램핑'])!
     expect(h.shared).toBe(0)
     expect(h.rarity).toBeNull()
     expect(h.name).toBe('내 땅굴')
@@ -99,8 +102,8 @@ import { getLantern, mergeSaved, setLantern } from '../lib/fxLab'
 describe('드문 기준 한 곳 (data/rarity.ts)', () => {
   it('이펙트 · 탐색 시안 B~D 가 같은 250명 기준', () => {
     expect(MATCH_RARE_MAX).toBe(RARITY.rare)
-    expect(matchIsRare('다도')).toBe(true) // 190명
-    expect(matchIsRare('열대어')).toBe(false) // 380명: 예전 400명 기준에선 드묾 → 이제 아님
+    expect(matchIsRare('차/다도')).toBe(true) // 190명
+    expect(matchIsRare('물고기')).toBe(false) // 380명: 예전 400명 기준에선 드묾 → 이제 아님
     expect(isRareCount(249)).toBe(true); expect(isRareCount(250)).toBe(false); expect(isRareCount(null)).toBe(false)
     expect(rarityOf2(99)).toBe('legend'); expect(rarityOf2(699)).toBe('uncommon')
   })
@@ -126,24 +129,24 @@ describe('저장값 합치기 (새 이펙트도 보이게)', () => {
 describe('땅굴: 한 줄 요약 · 입장 이름표 · 인사 · 대화 의향', () => {
   it('요약 줄 순서: 겹치는 것 → 가장 드문 것 → 고른 순서', () => {
     const s = summaryOf(USERS.yerin.interests, USERS.me.interests)
-    expect(s.map((x) => x.sub)).toEqual(['camping', 'watercolor', 'retro_game', 'tea_ceremony', 'baking', 'cat'])
+    expect(s.map((x) => x.sub)).toEqual(['camping', 'drawing_painting', 'console_game', 'tea', 'baking_dessert', 'cat'])
     expect(s.filter((x) => x.shared).length).toBe(3)
     expect(s[3].rarest).toBe(true)
-    // 내 땅굴: 겹침 없이 가장 드문 것(고전영화 610명)이 맨 앞
-    expect(summaryOf(USERS.me.interests)[0]).toMatchObject({ sub: 'classic_film', rarest: true, shared: false })
+    // 내 땅굴: 겹침 없이 가장 드문 것(콘솔게임 640명)이 맨 앞
+    expect(summaryOf(USERS.me.interests)[0]).toMatchObject({ sub: 'console_game', rarest: true, shared: false })
   })
-  it('입장 이름표: 카테고리마다 하나, 겹치는 것이 있는 카테고리 먼저', () => {
+  it('입장 이름표: 대분류마다 하나, 겹치는 것이 있는 대분류 먼저', () => {
     const g = rollcallOf(USERS.yerin.interests, USERS.me.interests)
-    expect(g.map((x) => x.cat).slice(0, 3).sort()).toEqual(['craft', 'game', 'outdoor'])
-    expect(g.find((x) => x.cat === 'tea_coffee')).toMatchObject({ subs: ['baking', 'tea_ceremony'], shared: 0 })
-    expect(rollcallText({ cat: 'music', subs: ['city_pop', 'piano', 'jazz'], shared: 0 })).toBe('음악 · 시티팝, 피아노 외 1')
+    expect(g.map((x) => x.cat).slice(0, 3).sort()).toEqual(['art_craft', 'game', 'outdoor'])
+    expect(g.find((x) => x.cat === 'food')).toMatchObject({ subs: ['baking_dessert', 'tea'], shared: 0 })
+    expect(rollcallText({ cat: 'music_dance', subs: ['jpop_ost', 'piano_keys', 'jazz_classical'], shared: 0 })).toBe('음악·댄스 · JPOP/OST, 피아노/건반 외 1')
   })
   it('인사: 겹치면 겹치는 것(최대 3), 없으면 집주인의 가장 드문 것', () => {
     const a = greetTopicsOf(USERS.yerin.interests, USERS.me.interests)
-    expect(a).toEqual({ subs: ['camping', 'watercolor', 'retro_game'], shared: true })
-    expect(greetLine(a)).toBe('“캠핑” 이야기 해 볼까요?')
-    const b = greetTopicsOf(['고양이', '운석수집'], ['캠핑'])
-    expect(b).toEqual({ subs: ['meteorites'], shared: false })
+    expect(a).toEqual({ subs: ['camping', 'drawing_painting', 'console_game'], shared: true })
+    expect(greetLine(a)).toBe('“캠핑/글램핑” 이야기 해 볼까요?')
+    const b = greetTopicsOf(['고양이', '기타언어'], ['캠핑/글램핑'])
+    expect(b).toEqual({ subs: ['other_language'], shared: false })
     expect(greetLine(b)).toContain('궁금하다고')
   })
   it('대화 의향 (목): 예린은 말 걸어도 돼요, 서벅이는 방명록부터, 나머지는 id 로 늘 같은 값', () => {
@@ -158,13 +161,13 @@ describe('들판: 동네 이름 · 등불 · 잘 맞는 이웃', () => {
   it('동네 이름은 "가장 많은" 이 아니라 "평균보다 유난히 많은" 카테고리 (고양이가 모든 동네 이름이 되지 않게)', () => {
     const u = (interests: string[]) => ({ interests })
     const res = [
-      // 1구역: 다 고양이 + 4명이 음악
-      ...[1, 2, 3, 4].map((s) => ({ seat: s, user: u(['고양이', '피아노']) })), { seat: 5, user: u(['고양이']) }, { seat: 6, user: u(['고양이']) },
+      // 1구역: 다 고양이 + 4명이 음악·댄스
+      ...[1, 2, 3, 4].map((s) => ({ seat: s, user: u(['고양이', '피아노/건반']) })), { seat: 5, user: u(['고양이']) }, { seat: 6, user: u(['고양이']) },
       // 2구역: 다 고양이 + 4명이 캠핑
-      ...[26, 27, 28, 29].map((s) => ({ seat: s, user: u(['고양이', '캠핑']) })), { seat: 30, user: u(['고양이']) }, { seat: 31, user: u(['고양이']) },
+      ...[26, 27, 28, 29].map((s) => ({ seat: s, user: u(['고양이', '캠핑/글램핑']) })), { seat: 30, user: u(['고양이']) }, { seat: 31, user: u(['고양이']) },
     ]
     const z = zoneNamesOf(res)
-    expect(z.map((x) => [x.zone, x.cat])).toEqual([[1, 'music'], [2, 'outdoor']])
+    expect(z.map((x) => [x.zone, x.cat])).toEqual([[1, 'music_dance'], [2, 'outdoor']])
     expect(z[0]).toMatchObject({ n: 4, total: 6 })
   })
   it('목 들판에서도 구역마다 이름이 있고 반려동물만 나오지 않음', () => {
@@ -174,12 +177,12 @@ describe('들판: 동네 이름 · 등불 · 잘 맞는 이웃', () => {
   })
   it('등불 고르기: 내 관심사(이웃 수) + 이 들판의 드문 관심사(250명 미만, 내 것 빼고, 최대 4개)', () => {
     const res = [
-      { seat: 1, user: { interests: ['캠핑', '다도'] } }, { seat: 2, user: { interests: ['캠핑', '운석수집'] } },
-      { seat: 3, user: { interests: ['피아노'] }, mine: true },
+      { seat: 1, user: { interests: ['캠핑/글램핑', '차/다도'] } }, { seat: 2, user: { interests: ['캠핑/글램핑', '기타언어'] } },
+      { seat: 3, user: { interests: ['피아노/건반'] }, mine: true },
     ]
-    const c = lanternChoicesOf(res, ['캠핑', '피아노'])
-    expect(c.mine).toEqual([{ sub: 'camping', n: 2 }, { sub: 'piano', n: 0 }])
-    expect(c.rare.map((x) => x.sub)).toEqual(['meteorites', 'tea_ceremony'])
+    const c = lanternChoicesOf(res, ['캠핑/글램핑', '피아노/건반'])
+    expect(c.mine).toEqual([{ sub: 'camping', n: 2 }, { sub: 'piano_keys', n: 0 }])
+    expect(c.rare.map((x) => x.sub)).toEqual(['other_language', 'tea'])
   })
   it('등불은 이펙트를 끄면 null', () => {
     setLantern('camping')
@@ -194,7 +197,7 @@ describe('들판: 동네 이름 · 등불 · 잘 맞는 이웃', () => {
     const anyShared = f.residents.filter((r) => !r.mine && sharedSubs(r.user.interests, USERS.me.interests).length > 0).length
     expect(close.size).toBeGreaterThanOrEqual(Math.min(3, anyShared))
     expect(close.size).toBeLessThan(Math.max(4, anyShared))
-    const r = closeSeatsOf([{ seat: 1, user: { interests: ['캠핑'] } }, { seat: 2, user: { interests: ['다도'] } }, { seat: 3, user: { interests: [] } }], ['캠핑'])
+    const r = closeSeatsOf([{ seat: 1, user: { interests: ['캠핑/글램핑'] } }, { seat: 2, user: { interests: ['차/다도'] } }, { seat: 3, user: { interests: [] } }], ['캠핑/글램핑'])
     expect([...r]).toEqual([1])
   })
 })

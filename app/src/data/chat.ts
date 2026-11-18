@@ -90,7 +90,7 @@ const ALIAS: Record<string, string> = { 'r-book': 'g-m1' }
 function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[]; typing: Record<string, string[]> } {
   const rooms: Room[] = [
     {
-      id: 'r-yerin', kind: 'dm', partnerId: 'yerin', unread: 0, topics: ['캠핑', '레트로게임', '수채화'],
+      id: 'r-yerin', kind: 'dm', partnerId: 'yerin', unread: 0, topics: ['캠핑/글램핑', '콘솔게임', '드로잉/회화'],
       messages: [
         { id: 'y0', authorId: 'system', system: true, text: '예린님이 대화 요청을 수락했어요', at: rel(40) },
         { id: 'y1', authorId: 'me', text: '안녕하세요! 땅굴에 캠핑 가구 있는 거 보고 반가웠어요 ㅎㅎ', at: rel(39) },
@@ -101,7 +101,7 @@ function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[]; typing:
       ],
     },
     {
-      id: 'r-mingu', kind: 'dm', partnerId: 'mingu', unread: 2, topics: ['SF소설', '레트로게임'],
+      id: 'r-mingu', kind: 'dm', partnerId: 'mingu', unread: 2, topics: ['소설', '콘솔게임'],
       messages: [
         { id: 'k0', authorId: 'system', system: true, text: '민구님의 대화 요청을 수락했어요', at: now - 2 * day },
         { id: 'k1', authorId: 'mingu', text: '레트로게임 좋아하신다길래 반가워서 요청했어요!', at: now - 2 * day + 5 * min },
@@ -138,7 +138,7 @@ function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[]; typing:
       ],
     },
     {
-      id: 'r-seoyeon', kind: 'dm', partnerId: 'seoyeon', unread: 0, closed: 'left', topics: ['필름카메라'],
+      id: 'r-seoyeon', kind: 'dm', partnerId: 'seoyeon', unread: 0, closed: 'left', topics: ['필름/컴팩트'],
       messages: [
         { id: 'z0', authorId: 'system', system: true, text: '서연님이 대화 요청을 수락했어요', at: now - 6 * day },
         { id: 'z1', authorId: 'seoyeon', text: '필름카메라 어떤 거 쓰세요?', at: now - 6 * day + 10 * min },

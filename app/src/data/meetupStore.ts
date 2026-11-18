@@ -105,9 +105,9 @@ export function ddayOf(ymd: string) {
 /* ===== 처음 데이터 ===== */
 // 기본 목 데이터(mock.ts MEETUPS)에 없는 필드: 캠퍼스·마감 일시·준비물 등
 const EXTRA: Record<string, Partial<MeetupX>> = {
-  m1: { campus: '서울', prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['SF소설'] },
+  m1: { campus: '서울', prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['시/에세이'] },
   m2: { campus: '서울', prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
-  m3: { campus: '서울', prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['수채화'] },
+  m3: { campus: '서울', prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['필름/컴팩트'] },
   m4: { campus: '서울', prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
   m5: { platform: 'Discord', link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
   m6: { campus: '서울', prep: '재료비 1만 원', likes: 4 },
@@ -120,13 +120,13 @@ const EXTRA: Record<string, Partial<MeetupX>> = {
 const base: Meetup[] = [
   ...MEETUPS,
   // 이 저장소에만 있는 모임: 지난 모임 · 취소된 모임 · 찜한 모임 예시 (채팅 목 데이터에는 없음)
-  { id: 'x1', title: '망원 필름 산책', interest: '필름카메라', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
-  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: '레트로게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
-  { id: 'x3', title: '한강 야간 러닝', interest: '러닝', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
-  { id: 'x4', title: '레트로 게임 같이 해요', interest: '레트로게임', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
-  { id: 'p1', title: '10월 독서 모임', interest: '독서', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
-  { id: 'p2', title: '가을 사진 산책', interest: '사진산책', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
-  { id: 'p3', title: '수채화 첫걸음', interest: '수채화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
+  { id: 'x1', title: '망원 필름 산책', interest: '필름/컴팩트', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
+  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: 'PC게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
+  { id: 'x3', title: '한강 야간 러닝', interest: '러닝/마라톤', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
+  { id: 'x4', title: '레트로 게임 같이 해요', interest: 'VR/아케이드', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
+  { id: 'p1', title: '10월 독서 모임', interest: '소설', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
+  { id: 'p2', title: '가을 사진 산책', interest: '미러리스/DSLR', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
+  { id: 'p3', title: '수채화 첫걸음', interest: '드로잉/회화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
   { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
 ]
 const EXTRA2: Record<string, Partial<MeetupX>> = {

@@ -77,7 +77,7 @@ export const COMMENT_PAGE = 10
 export const HIDE_AT = 3
 const DAY = 86_400_000
 
-/** 관심사 대분류 11개 이름 (카탈로그 순서) */
+/** 관심사 대분류 12개 이름 (2026-11-18 확정본 순서, data/interestTags.ts) */
 export const BIG_INTERESTS = CATEGORIES.map((c) => c.name)
 export const bigOf = (name: string) => CATEGORIES.find((c) => c.name === name)
 
@@ -124,7 +124,7 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   {
-    id: 'p1', cat: '모임 후기', tags: ['운동·아웃도어'], author: 'yerin', min: 70, views: 284, likes: 52, saves: 18, photos: ['sage'], meetup: 'm4', savedMin: 60 * 24 * 7,
+    id: 'p1', cat: '모임 후기', tags: ['아웃도어'], author: 'yerin', min: 70, views: 284, likes: 52, saves: 18, photos: ['sage'], meetup: 'm4', savedMin: 60 * 24 * 7,
     title: '첫 캠핑 모임 다녀왔어요! 두더지 다섯 마리의 1박 2일',
     body: '지난 주말 가평으로 첫 캠핑 모임을 다녀왔어요. 다섯 명 중 세 명이 캠핑이 처음이라 텐트 치는 데만 한 시간이 걸렸지만, 다 같이 헤매는 게 오히려 재밌었어요.\n\n밤에는 불 앞에 둘러앉아서 각자 땅굴에 둔 가구 이야기를 했어요. 다음 달에도 열어볼 생각이라, 관심 있는 분들은 아래 모임에서 신청해주세요!',
     comments: [
@@ -153,7 +153,7 @@ const SEEDS: Seed[] = [
     ],
   },
   {
-    id: 'p3', cat: '자유', tags: ['공예·만들기'], author: 'seobeok', min: 180, views: 342, likes: 30, saves: 5, savedMin: 60 * 24 * 10,
+    id: 'p3', cat: '자유', tags: ['미술·수공예'], author: 'seobeok', min: 180, views: 342, likes: 30, saves: 5, savedMin: 60 * 24 * 10,
     title: '다들 땅굴에 어떤 가구 제일 먼저 두셨어요?',
     body: '저는 이젤부터 놨는데, 다른 분들 땅굴 구경하다 보니 오락기 들인 분이 많더라고요 ㅋㅋ',
     comments: [...chatter(9, 170, 1), c(ME_ID, '저는 책장부터 들였어요 ㅎㅎ', 20, 3), ...chatter(5, 15, 4)],
@@ -165,50 +165,50 @@ const SEEDS: Seed[] = [
     comments: chatter(6, 60 * 25, 3),
   },
   {
-    id: 'p5', cat: '자유', tags: ['게임·놀이'], author: 'mingu', min: 60 * 30, views: 128, likes: 41, saves: 9, photos: ['lilac'], savedMin: 60 * 24 * 11,
+    id: 'p5', cat: '자유', tags: ['게임'], author: 'mingu', min: 60 * 30, views: 128, likes: 41, saves: 9, photos: ['lilac'], savedMin: 60 * 24 * 11,
     title: '보드게임 처음 시작할 때 추천하는 다섯 가지',
     body: '룰이 간단하고 4명 이하로 하기 좋은 게임 위주로 골라봤어요. 모임에서 해본 후기도 같이 적었어요.',
     comments: [...chatter(3, 60 * 29, 6), c(ME_ID, '스플렌더 추천 감사해요. 바로 샀어요', 60 * 20, 2)],
   },
   {
-    id: 'p6', cat: '모임 홍보', tags: ['공예·만들기'], author: ME_ID, min: 60 * 50, views: 88, likes: 11, saves: 3, meetup: 'm3',
+    id: 'p6', cat: '모임 홍보', tags: ['미술·수공예'], author: ME_ID, min: 60 * 50, views: 88, likes: 11, saves: 3, meetup: 'm3',
     title: '일요일 아침 망원에서 같이 그려요',
     body: '연필 한 자루랑 스케치북만 챙겨오세요. 잘 그리는 것보다 같이 그리는 게 목적이에요. 그림을 처음 그려 보는 분도 환영해요.',
     comments: chatter(4, 60 * 49, 7),
   },
   {
-    id: 'p7', cat: '모임 홍보', tags: ['운동·아웃도어'], author: 'ha', min: 60 * 54, views: 120, likes: 9, saves: 2, meetup: 'm7',
+    id: 'p7', cat: '모임 홍보', tags: ['스포츠'], author: 'ha', min: 60 * 54, views: 120, likes: 9, saves: 2, meetup: 'm7',
     title: '역삼 점심 러닝 크루 모집해요',
     body: '점심시간에 3km만 천천히 뛰어요. 샤워실 있는 곳 알려드릴게요.',
     comments: chatter(2, 60 * 53, 8),
   },
   {
-    id: 'p8', cat: '모임 후기', tags: ['영화·애니'], author: 'seobeok', min: 60 * 60, views: 150, likes: 26, saves: 4, photos: ['rose'],
+    id: 'p8', cat: '모임 후기', tags: ['문화생활'], author: 'seobeok', min: 60 * 60, views: 150, likes: 26, saves: 4, photos: ['rose'],
     meetup: 'm9', title: '지브리 같이 보기 후기: 하울은 언제 봐도 좋네요', body: '온라인으로 모였는데 채팅으로 명장면마다 소리 지르는 게 재밌었어요. 다음 편은 센과 치히로!',
     comments: chatter(5, 60 * 59, 9),
   },
   {
-    id: 'p9', cat: '자유', tags: ['차·커피·베이킹'], author: 'yejin', min: 60 * 70, views: 301, likes: 44, saves: 12, photos: ['butter'],
+    id: 'p9', cat: '자유', tags: ['음식·음료'], author: 'yejin', min: 60 * 70, views: 301, likes: 44, saves: 12, photos: ['butter'],
     title: '자취방 오븐 없이 만드는 스콘', body: '에어프라이어로도 충분해요. 버터는 차갑게, 반죽은 덜 치대는 게 핵심이에요. 레시피 공유합니다.',
     comments: chatter(11, 60 * 69, 2),
   },
   {
-    id: 'p10', cat: '자유', tags: ['사진'], author: 'ha', min: 60 * 75, views: 156, likes: 9, saves: 1,
+    id: 'p10', cat: '자유', tags: ['사진·영상'], author: 'ha', min: 60 * 75, views: 156, likes: 9, saves: 1,
     title: '필름카메라 입문용 추천 부탁드려요', body: '땅굴에 카메라 소품만 두고 실제로는 없어요… 첫 필름카메라 뭐가 좋을까요?',
     comments: chatter(4, 60 * 74, 3),
   },
   {
-    id: 'p11', cat: '모임 홍보', tags: ['게임·놀이'], author: 'mingu', min: 60 * 80, views: 97, likes: 13, saves: 2, meetup: 'm2',
+    id: 'p11', cat: '모임 홍보', tags: ['게임'], author: 'mingu', min: 60 * 80, views: 97, likes: 13, saves: 2, meetup: 'm2',
     title: '퇴근 후 보드게임 한 판 하실 분', body: '역삼역 보드게임 카페에서 가벼운 파티 게임 위주로 해요. 룰 설명부터 천천히 해드려요.',
     comments: chatter(3, 60 * 79, 4),
   },
   {
-    id: 'p12', cat: '자유', tags: ['자연·식물'], author: 'choi', min: 60 * 90, views: 64, likes: 7, saves: 1,
+    id: 'p12', cat: '자유', tags: ['반려동물·식물'], author: 'choi', min: 60 * 90, views: 64, likes: 7, saves: 1,
     title: '사무실 창가에서 키우기 쉬운 식물 있을까요?', body: '햇빛이 오전에만 잠깐 드는 자리예요. 물 주는 걸 자주 잊어버려요 ㅠㅠ',
     comments: chatter(2, 60 * 89, 5),
   },
   {
-    id: 'p13', cat: '자유', tags: ['반려동물'], author: 'lee', min: 60 * 100, views: 210, likes: 38, saves: 3, photos: ['clay'],
+    id: 'p13', cat: '자유', tags: ['반려동물·식물'], author: 'lee', min: 60 * 100, views: 210, likes: 38, saves: 3, photos: ['clay'],
     title: '고양이가 키보드 위에서만 자요', body: '코딩하려고 앉으면 꼭 키보드 위로 올라와요. 다들 어떻게 하세요?',
     comments: chatter(8, 60 * 99, 6),
   },
@@ -218,47 +218,47 @@ const SEEDS: Seed[] = [
     comments: chatter(3, 60 * 109, 7),
   },
   {
-    id: 'p15', cat: '자유', tags: ['우주·과학'], author: 'park', min: 60 * 120, views: 59, likes: 8, saves: 1,
+    id: 'p15', cat: '자유', tags: ['아웃도어'], author: 'park', min: 60 * 120, views: 59, likes: 8, saves: 1,
     title: '이번 주말 유성우 보러 갈 만한 곳', body: '서울 근교에서 빛 공해 적은 곳 아시는 분 계실까요? 차 없이 갈 수 있으면 더 좋아요.',
     comments: chatter(2, 60 * 119, 8),
   },
   {
-    id: 'p16', cat: '자유', tags: ['영화·애니'], author: ME_ID, min: 60 * 125, views: 92, likes: 10, saves: 2, edited: 60 * 100,
+    id: 'p16', cat: '자유', tags: ['문화생활'], author: ME_ID, min: 60 * 125, views: 92, likes: 10, saves: 2, edited: 60 * 100,
     title: '비 오는 날 보기 좋은 고전 영화', body: '요즘 비가 자주 와서 옛날 영화를 다시 보고 있어요. 다들 비 오는 날 꺼내 보는 영화가 있나요?',
     comments: chatter(5, 60 * 124, 9),
   },
   {
-    id: 'p17', cat: '모임 홍보', tags: ['차·커피·베이킹'], author: 'yejin', min: 60 * 130, views: 45, likes: 6, saves: 1, meetup: 'm8',
+    id: 'p17', cat: '모임 홍보', tags: ['음식·음료'], author: 'yejin', min: 60 * 130, views: 45, likes: 6, saves: 1, meetup: 'm8',
     title: '홈카페 원두 나눔회 열어요', body: '집에 남는 원두 가져와서 바꿔 마셔요. 드리퍼는 제가 챙길게요.',
     comments: chatter(1, 60 * 129, 1),
   },
   {
-    id: 'p18', cat: '자유', tags: ['게임·놀이'], author: 'mingu', min: 60 * 140, views: 133, likes: 17, saves: 6,
+    id: 'p18', cat: '자유', tags: ['게임'], author: 'mingu', min: 60 * 140, views: 133, likes: 17, saves: 6,
     title: '기계식 키보드 축 고르는 법 정리', body: '적축, 갈축, 청축 차이를 사무실에서 써도 되는지 기준으로 정리했어요.',
     comments: chatter(4, 60 * 139, 2),
   },
   {
-    id: 'p19', cat: '자유', tags: ['음악'], author: 'seoyeon', min: 60 * 150, views: 80, likes: 15, saves: 4,
+    id: 'p19', cat: '자유', tags: ['음악·댄스'], author: 'seoyeon', min: 60 * 150, views: 80, likes: 15, saves: 4,
     title: '퇴근길에 듣는 시티팝 플레이리스트', body: '지하철에서 듣기 좋은 곡 열 곡 골라봤어요. 다들 추천 곡 있으면 댓글로!',
     comments: chatter(6, 60 * 149, 3),
   },
   {
-    id: 'p20', cat: '모임 후기', tags: ['운동·아웃도어'], author: 'ha', min: 60 * 160, views: 70, likes: 11, saves: 1, meetup: 'm10',
+    id: 'p20', cat: '모임 후기', tags: ['스포츠'], author: 'ha', min: 60 * 160, views: 70, likes: 11, saves: 1, meetup: 'm10',
     title: '한강 5km 같이 뛰고 왔어요', body: '페이스가 다 달랐는데 끝까지 같이 뛰었어요. 끝나고 먹은 라면이 제일 맛있었어요.',
     comments: chatter(2, 60 * 159, 4),
   },
   {
-    id: 'p21', cat: '자유', tags: ['공예·만들기'], author: 'yerin', min: 60 * 170, views: 66, likes: 9, saves: 1,
+    id: 'p21', cat: '자유', tags: ['미술·수공예'], author: 'yerin', min: 60 * 170, views: 66, likes: 9, saves: 1,
     title: '뜨개질 처음 시작했는데 코 잡는 게 제일 어렵네요', body: '유튜브 보면서 세 번째 다시 하는 중이에요. 팁 있으면 알려주세요!',
     comments: chatter(3, 60 * 169, 5),
   },
   {
-    id: 'p22', cat: '자유', tags: ['운동·아웃도어'], author: 'kim', min: 60 * 190, views: 520, likes: 61, saves: 22,
+    id: 'p22', cat: '자유', tags: ['아웃도어'], author: 'kim', min: 60 * 190, views: 520, likes: 61, saves: 22,
     title: '초보 캠핑 장비 빌릴 수 있는 곳', body: '장비 대여 업체 세 곳을 가격, 배송, 반납 방법으로 비교해봤어요.',
     comments: chatter(7, 60 * 189, 6),
   },
   {
-    id: 'p23', cat: '모임 홍보', tags: ['자연·식물'], author: 'choi', min: 60 * 200, views: 40, likes: 5, saves: 1, meetup: 'm6',
+    id: 'p23', cat: '모임 홍보', tags: ['반려동물·식물'], author: 'choi', min: 60 * 200, views: 40, likes: 5, saves: 1, meetup: 'm6',
     title: '테라리움 같이 만들어요', body: '재료비 1만 원이에요. 작은 유리병 하나씩 만들어 가요.',
     comments: chatter(1, 60 * 199, 7),
   },
@@ -268,17 +268,17 @@ const SEEDS: Seed[] = [
     comments: chatter(1, 60 * 219, 8),
   },
   {
-    id: 'p25', cat: '자유', tags: ['사진'], author: 'seoyeon', min: 60 * 24 * 10, views: 140, likes: 19, saves: 3, photos: ['mint', 'sky'],
+    id: 'p25', cat: '자유', tags: ['사진·영상'], author: 'seoyeon', min: 60 * 24 * 10, views: 140, likes: 19, saves: 3, photos: ['mint', 'sky'],
     title: '출사 다녀온 사진 몇 장', body: '서울숲에서 필름 한 롤 다 찍고 왔어요. 현상하니까 생각보다 잘 나왔어요.',
     comments: chatter(4, 60 * 24 * 10 - 30, 9),
   },
   {
-    id: 'p26', cat: '자유', tags: ['반려동물'], author: 'lee', min: 60 * 24 * 12, views: 110, likes: 23, saves: 2,
+    id: 'p26', cat: '자유', tags: ['반려동물·식물'], author: 'lee', min: 60 * 24 * 12, views: 110, likes: 23, saves: 2,
     title: '앵무새가 제 알람 소리를 따라 해요', body: '이제 알람이 울린 건지 앵무새가 운 건지 모르겠어요 ㅋㅋ',
     comments: chatter(3, 60 * 24 * 12 - 30, 1),
   },
-  { id: 'p27', cat: '자유', tags: ['게임·놀이'], author: 'lee', min: 60 * 24 * 2, views: 12, likes: 0, saves: 0, status: 'hidden', reports: 3, title: '(신고로 가려진 글)', body: '홍보 글' },
-  { id: 'p28', cat: '자유', tags: ['음악'], author: 'kim', min: 60 * 24 * 3, views: 5, likes: 0, saves: 0, status: 'deleted', title: '(삭제된 글)', body: '' },
+  { id: 'p27', cat: '자유', tags: ['게임'], author: 'lee', min: 60 * 24 * 2, views: 12, likes: 0, saves: 0, status: 'hidden', reports: 3, title: '(신고로 가려진 글)', body: '홍보 글' },
+  { id: 'p28', cat: '자유', tags: ['음악·댄스'], author: 'kim', min: 60 * 24 * 3, views: 5, likes: 0, saves: 0, status: 'deleted', title: '(삭제된 글)', body: '' },
 ]
 
 function fromSeed(s: Seed): BoardPost {
