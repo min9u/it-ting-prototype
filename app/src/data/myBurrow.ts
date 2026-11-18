@@ -103,9 +103,13 @@ export const moodWallpaper = (picks: string[]) => wallpaperForCategory(leadCateg
  * 관심사를 바꾸면 계산 값이 따라 바뀌고, 남이 볼 때도 같은 계산(roomLookOf)을 거침.
  * 예전에는 온보딩·관심사 수정 때 계산한 벽지를 'digul.myWallpaper' 에 저장해서, 그 값이 남이 보는 벽지(다른 규칙)와 어긋났음 (2026-11-18)
  */
-export interface MyRoomPick { wallpaperId: string | null }
+export interface MyRoomPick {
+  wallpaperId: string | null
+  /** 꾸미기에서 고른 색 테마 (null = 대표 관심사 대분류의 묶음, data/roomStyle CATEGORY_THEMES) */
+  themeId: string | null
+}
 const ROOM_KEY = 'digul.myRoom.v1'
-export const getMyRoomPick = (): MyRoomPick => ({ wallpaperId: null, ...load<Partial<MyRoomPick>>(ROOM_KEY, {}) })
+export const getMyRoomPick = (): MyRoomPick => ({ wallpaperId: null, themeId: null, ...load<Partial<MyRoomPick>>(ROOM_KEY, {}) })
 export const setMyRoomPick = (p: Partial<MyRoomPick>) => save(ROOM_KEY, { ...getMyRoomPick(), ...p })
 /** 온보딩을 새로 마치면 꾸민 것을 처음으로 (가구 선택도) */
 export function resetMyRoom() { save(ROOM_KEY, {}); save(FURN_KEY, {}) }

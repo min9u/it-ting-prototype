@@ -138,19 +138,24 @@ const PASSES = [
   { dir: 'raw-wall01', extra: '&nomole=1&wallpaper=wallpaper_01_default' },
 ]
 
+// 찍은 묶음 (2026-11-18 2단계 전·후 비교): out/<set>/raw… . 전 = out/before (11-18 1차 비교 때 찍은 그림, 같은 PC · 같은 앱 코드),
+// 후 = out/after (기본). --look=designer 면 🎨 땅굴 색 다양하게를 끄고(디자이너 원래 색) 찍음 (lib/roomLookLab.ts)
+const SET = String(args.set ?? 'after')
+const LOOK = args.look ? `&look=${args.look}` : ''
+meta.set = SET; meta.look = args.look ?? 'auto'
 if ((!args.check && !args.me) || args.all) {
   for (const pass of PASSES) {
     if (args.pass && args.pass !== pass.dir) continue
     for (const j of jobs) {
       if (only && !j.key.includes(only)) continue
       const t0 = Date.now()
-      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=0`, path.join(OUT, pass.dir, `${j.key}.png`))
+      const r = await shoot(`${base}/lab/rooms?${j.query}${pass.extra}&bare=1&qshot=1&fx=0${LOOK}`, path.join(OUT, SET, pass.dir, `${j.key}.png`))
       const rec = { key: j.key, group: j.group, kind: j.persona?.kind ?? (j.me ? '내 땅굴' : j.group === 'z' ? '기준' : '들판 이웃'), seat: j.seat ?? null, ...r }
-      fs.writeFileSync(path.join(OUT, pass.dir, `${j.key}.json`), JSON.stringify(rec, null, 2))
+      fs.writeFileSync(path.join(OUT, SET, pass.dir, `${j.key}.json`), JSON.stringify(rec, null, 2))
       meta.items.push(j.key)
-      console.log(`${pass.dir}/${j.key}  ${r.lab?.owner?.nickname ?? '?'}  관심사 ${r.lab?.owner?.interests?.length ?? '?'} · 놓인 것 ${r.lab?.summary?.items?.length ?? '?'}  (${((Date.now() - t0) / 1000).toFixed(1)}초)${r.logs.filter((l) => !/HydrateFallback/.test(l)).length ? `  로그: ${r.logs.slice(0, 3).join(' | ')}` : ''}`)
+      console.log(`${SET}/${pass.dir}/${j.key}  ${r.lab?.owner?.nickname ?? '?'}  관심사 ${r.lab?.owner?.interests?.length ?? '?'} · 놓인 것 ${r.lab?.summary?.items?.length ?? '?'} · ${r.lab?.summary?.look?.style?.theme ?? '디자이너 색'}  (${((Date.now() - t0) / 1000).toFixed(1)}초)${r.logs.filter((l) => !/HydrateFallback/.test(l)).length ? `  로그: ${r.logs.slice(0, 3).join(' | ')}` : ''}`)
     }
-    if (!only) fs.writeFileSync(path.join(OUT, pass.dir, '_capture.json'), JSON.stringify(meta, null, 2))
+    if (!only) fs.writeFileSync(path.join(OUT, SET, pass.dir, '_capture.json'), JSON.stringify(meta, null, 2))
   }
 }
 
@@ -177,8 +182,8 @@ if (args.me) {
   // 우체통: 내 땅굴은 "새 방명록" 이면 깃발이 올라가서(방 모습과 상관없는 상태) 읽음으로 맞춰 둠
   await ev(`sessionStorage.setItem('digul.guestbookRead','1')`)
   if (args.me === 'decor') {
-    // 내 관심사 소설(sf_books)의 가구를 두 번째 후보로, 벽지는 07 숲으로 저장해 둠 (sessionStorage, data/myBurrow)
-    await ev(`sessionStorage.setItem('digul.myFurnitureBySub', JSON.stringify({novel:'book_stack'}));sessionStorage.setItem('digul.myRoom.v1', JSON.stringify({wallpaperId:'wallpaper_07_forest'}))`)
+    // 내 관심사 소설(sf_books)의 가구를 두 번째 후보로, 벽지는 07 숲 · 색 테마는 오락실로 저장해 둠 (sessionStorage, data/myBurrow)
+    await ev(`sessionStorage.setItem('digul.myFurnitureBySub', JSON.stringify({novel:'book_stack'}));sessionStorage.setItem('digul.myRoom.v1', JSON.stringify({wallpaperId:'wallpaper_07_forest',themeId:'cat_game'}))`)
   }
   const tag = args.me === 'decor' ? '-decor' : ''
   const mine = await shoot(`${base}/burrow?panel=closed&nomole=1&qshot=1&fx=0`, path.join(dir, `my${tag}.png`), { hideUi: true })

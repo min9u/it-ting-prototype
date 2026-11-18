@@ -64,17 +64,18 @@ describe('같은 사람은 내 땅굴과 방문자 뷰가 같은 방', () => {
   it('꾸민 게 없을 때', async () => {
     expect(await visitLook(ME_ID)).toEqual(myLook())
   })
-  it('꾸미기에서 고른 가구 · 직접 고른 벽지가 방문자 뷰에 그대로', async () => {
+  it('꾸미기에서 고른 가구 · 직접 고른 벽지 · 색 테마가 방문자 뷰에 그대로', async () => {
     const mine = I.getMyInterests(USERS[ME_ID].interests)
     // 내 관심사 중 가구 후보가 둘 이상인 것 하나를 두 번째 후보로 바꿈
     const sub = mine.map((n) => INTEREST_SUBS.find((s) => s.name_ko === n)!).find((s) => M.furnitureCandidates(s.id, mine).length > 1)!
     const alt = M.furnitureCandidates(sub.id, mine)[1].id
     M.setMyFurnChoice({ [sub.id]: alt })
-    M.setMyRoomPick({ wallpaperId: 'wallpaper_02_stars' })
+    M.setMyRoomPick({ wallpaperId: 'wallpaper_02_stars', themeId: 'cat_game' })
     const v = await visitLook(ME_ID)
     expect(v.wallpaper).toBe('wallpaper_02_stars')
     expect(v.from.wallpaper).toBe('saved')
     expect(v.furniture).toEqual({ [sub.id]: alt })
+    expect(v.style?.theme).toBe('cat_game') // 꾸미기 색 탭에서 고른 색 테마 (2단계)
     expect(v).toEqual(myLook())
   })
   it('다른 사람이 저장한 방(서버 room)도 그대로', async () => {

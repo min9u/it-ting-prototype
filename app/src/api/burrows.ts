@@ -70,7 +70,7 @@ export const mockRooms = new Map<string, RoomLayoutDto>()
 function roomOf(memberId: string): RoomLayoutDto | null {
   if (memberId !== ME_ID) return mockRooms.get(memberId) ?? null
   const pick = getMyRoomPick(), furniture = getMyFurnChoice()
-  return pick.wallpaperId || Object.keys(furniture).length ? { schemaVersion: 1, wallpaperId: pick.wallpaperId, furniture } : null
+  return pick.wallpaperId || pick.themeId || Object.keys(furniture).length ? { schemaVersion: 1, wallpaperId: pick.wallpaperId, furniture, themeId: pick.themeId } : null
 }
 
 const mock: BurrowsApi = {

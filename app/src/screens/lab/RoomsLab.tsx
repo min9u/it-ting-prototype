@@ -95,7 +95,7 @@ export default function RoomsLab() {
   const wp = wallpaperOf(forced ?? look.wallpaper)
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} wallpaper={wp.id} furniture={look.furniture}
+      <RoomView ownerId={owner.id} interests={owner.interests} wallpaper={wp.id} furniture={look.furniture} style={look.style}
         hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={0.5}
         label={`${owner.nickname}의 땅굴`} still={params.get('still') !== '0'} fx={fx} />
       {!bare && (

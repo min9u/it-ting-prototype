@@ -23,7 +23,7 @@ import { WALLPAPER_REPEAT, tileUrl, wallpaperOf } from '../data/wallpapers'
 import { applyChoice, moodWallpaper, type FurnChoice } from '../data/myBurrow'
 import { interestCatOf, subOf } from '../data/interests'
 import { createStyler, type Styler } from './roomStyle'
-import type { RoomStyle } from '../data/roomStyle'
+import { STYLE_VERSION, type RoomStyle } from '../data/roomStyle'
 import { createRoomFx, type RoomFx } from './interestFx/roomFx'
 
 /*
@@ -189,7 +189,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const sharpKeyOf = (out: number) => {
     camera.updateMatrixWorld()
     const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
-    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
+    // STYLE_VERSION: 테마 색처럼 코드에 있는 꾸미기 값이 바뀌면 키가 바뀜 → 예전에 구운 방 그림(IndexedDB)이 남지 않음
+    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, `s${STYLE_VERSION}`, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
   }
   const ensureSharpCv = () => {
     if (!sharpCv) {
@@ -499,10 +500,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       const node = roots.get(urlOf(c)!)?.getObjectByName(c.node)
       if (!node) continue
       if (c.type === 'base') { styler.register(c.id, c.name_ko, node, 'base'); baseNodes.push({ c, node }) }
+      // 벽 장식 중 팔레트 재질(나무 선반 3개)만 테마 색을 따라감. 가랜드·액자·매달린 화분은 구운 그림 한 장이라 그대로 (2026-11-18)
+      else if (c.type === 'deco' && c.id !== 'string_lights') styler.register(c.id, c.name_ko, node, 'item')
     }
     for (const r of roots.values()) { const sl = r.getObjectByName('string_lights'); if (sl) styler.register('string_lights', '전구 줄', sl, 'lights') }
     const rugMesh = shellS.getObjectByName('round_rug') as THREE.Mesh | undefined
     if (rugMesh?.isMesh) styler.registerRug(rugMesh)
+    // 껍데기(벽 · 바닥 · 나무 뼈대): 테마에 shell 이 있으면 색을 곱해 물들임 (data/roomStyle CATEGORY_THEMES, 2026-11-18 2단계)
+    styler.registerShell(shellS, wallMat, tile ? wall.avg_color_srgb : wall.solid_color ?? '#F0B47A', !tile)
     if (style) styler.apply(style)
     scene.updateMatrixWorld(true)
     for (const { c, node } of baseNodes) {
@@ -551,7 +556,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       }
       g.userData.furniture = data
       furniture.add(g)
-      styler.register(row.id, row.name_ko, g, 'item')
+      // 동물(고양이·강아지 …)은 테마 색으로 칠하지 않음 (털색이 보라·분홍이 되면 이상함)
+      if (row.type !== 'pet') styler.register(row.id, row.name_ko, g, 'item')
       if (!hung) {
         // 발자리: 회전한 사각형의 축 정렬 경계 + 두더지 반지름
         const c = Math.abs(Math.cos(ry)), sn = Math.abs(Math.sin(ry))
@@ -1217,9 +1223,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
     setStyle(next) {
-      style = next
+      // null = 꾸미기 없이 디자이너 원래 모습 (🎨 땅굴 색 다양하게 끔, lib/roomLookLab.ts)
+      style = next ?? undefined
+      const g = globalThis as unknown as { __roomLook?: Record<string, unknown> }
+      if (g.__roomLook) g.__roomLook = { ...g.__roomLook, style: next ?? null }
       if (!styler) return
-      styler.apply(next)
+      if (next) styler.apply(next); else styler.reset()
       measureBase()
       // 방 그림이 바뀜 → 배경(A)·선명한 방(S) 다시
       backdrop?.invalidate(); sharpOff(); fullNext = true

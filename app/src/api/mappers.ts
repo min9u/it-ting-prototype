@@ -269,8 +269,8 @@ export function toSavedRoom(room: RoomLayoutDto | null | undefined, owner?: Memb
   // 앱의 가구 선택 키는 소분류 코드(cafe_coffee …). 서버 interestId 가 숫자여도 이름으로 찾음
   for (const i of owner?.interests ?? []) if (i.furniture) perInterest[subOf(i.name)?.id ?? toId(i.interestId)] = i.furniture
   const furniture = { ...perInterest, ...(room?.furniture ?? {}) }
-  if (!room?.wallpaperId && !Object.keys(furniture).length) return null
-  return { wallpaperId: room?.wallpaperId ?? null, furniture }
+  if (!room?.wallpaperId && !room?.themeId && !Object.keys(furniture).length) return null
+  return { wallpaperId: room?.wallpaperId ?? null, furniture, themeId: room?.themeId ?? null }
 }
 export function toBurrow(d: BurrowDto): BurrowVM {
   const e = d.entrance

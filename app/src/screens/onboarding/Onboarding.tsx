@@ -465,7 +465,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: st
   useEffect(() => { setMyInterests(picks); setMyWorn(worn) }, [picks, worn])
   return (
     <div className={s.previewStage}>
-      <RoomView ownerId={ME_ID} interests={picks} wallpaper={look.wallpaper} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
+      <RoomView ownerId={ME_ID} interests={picks} wallpaper={look.wallpaper} style={look.style} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
         <span className={s.roomBadge}>관심사 가구 {total}개</span>
       </RoomView>
       <aside className={s.previewSide}>

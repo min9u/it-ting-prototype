@@ -126,7 +126,7 @@ export interface SceneHandle {
   /** H 가볍게 보기: 3D 그리기 멈춤/다시 */
   setFrozen?(on: boolean): void
   /** 땅굴: 가구 칠하기·모양 바꾸기 (data/roomStyle.ts) */
-  setStyle?(style: RoomStyle): void
+  setStyle?(style: RoomStyle | null): void
   /** 땅굴: 칠할 수 있는 가구와 색 자리 (지금 스타일 기준) */
   styleTargets?(): StyleTargetInfo[]
   /** 땅굴: 칠하기 모드. cb 가 있으면 가구를 눌렀을 때 걷지 않고 가구 id 를 알림 (빈 곳 = null) */

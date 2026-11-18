@@ -3,6 +3,7 @@ import { AIM_LABEL, FX_DEFS, applyPreset, fxVersion, getFx, presetOf, setFx, sub
 import { graphicsTier } from '../lib/graphicsTier'
 import { lowTier } from '../lib/deviceTier'
 import { useReducedMotion } from '../lib/useReducedMotion'
+import { lookDiverse, setLookDiverse, subscribeLook } from '../lib/roomLookLab'
 import SceneButton from './SceneButton'
 import s from './FxPanel.module.css'
 
@@ -27,6 +28,7 @@ function modeNote(reduce: boolean): string {
 
 export default function FxPanel({ area, style }: { area: FxArea; style?: CSSProperties }) {
   useSyncExternalStore(subscribeFx, fxVersion)
+  const diverse = useSyncExternalStore(subscribeLook, lookDiverse)
   const fx = getFx()
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
@@ -56,6 +58,16 @@ export default function FxPanel({ area, style }: { area: FxArea; style?: CSSProp
             <button type="button" className={s.close} onClick={() => setOpen(false)} aria-label="이펙트 패널 닫기">✕</button>
           </header>
           <p className={s.lead}>{area === 'room' ? '땅굴 안에서 관심사가 한눈에 보이게' : '들판에서 이웃의 관심사가 멀리서도 보이게'}</p>
+          {area === 'room' && (
+            // 땅굴 색 다양하게 (2026-11-18 2단계 실험, lib/roomLookLab.ts). 이펙트와 따로 기억하고, 묶음 버튼에는 안 들어감
+            <label className={`${s.row} ${s.lookRow}`}>
+              <input type="checkbox" className={s.switch} checked={diverse} onChange={(e) => setLookDiverse(e.target.checked)} />
+              <span className={s.text}>
+                <span className={s.name}>🎨 땅굴 색 다양하게</span>
+                <span className={s.desc}>대표 관심사마다 다른 색 묶음(벽 · 바닥 · 러그 · 가구)에, 사람마다 이불 · 러그 무늬와 가구 모양이 조금씩 달라요. 끄면 디자이너 원래 색</span>
+              </span>
+            </label>
+          )}
           <div className={s.presets} role="group" aria-label="묶음">
             {PRESETS.map((p) => (
               <button key={p.id} type="button" className={preset === p.id ? s.presetOn : s.preset} aria-pressed={preset === p.id} onClick={() => applyPreset(area, p.id)}>

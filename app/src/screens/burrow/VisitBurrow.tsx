@@ -122,7 +122,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
 
   return (
     <main className={s.page}>
-      <RoomView ownerId={owner.id} interests={owner.interests} wallpaper={look.wallpaper} furniture={look.furniture}
+      <RoomView ownerId={owner.id} interests={owner.interests} wallpaper={look.wallpaper} furniture={look.furniture} style={look.style}
         hostName={owner.nickname} hostWorn={owner.worn} worn={getMyWorn()} focusX={panelOpen ? 0.403 : 0.5} label={`${owner.nickname}의 땅굴`}
         mailbox={posted} onMailbox={() => setAllOpen(true)} fx={fx}
         hostBubble={dmRoomId

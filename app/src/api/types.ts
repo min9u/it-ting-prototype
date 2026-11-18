@@ -226,6 +226,11 @@ export interface RoomLayoutDto {
   wallpaperId: string | null
   /** 세부 관심사 id → 가구 id (member_interest.furniture 와 같은 값) */
   furniture: Record<string, string>
+  /**
+   * 꾸미기에서 고른 땅굴 색 테마 (2026-11-18, app/src/data/roomStyle.ts: cat_food … cat_pet_plant, base = 디자이너 원래 색).
+   * 없거나 null 이면 대표 관심사 대분류의 묶음. 나머지 꾸미기 값(이불·러그 무늬 · 기본 가구 모양)은 회원 id 씨앗으로 프론트가 계산
+   */
+  themeId?: string | null
 }
 
 export interface GuestbookEntryDto {
