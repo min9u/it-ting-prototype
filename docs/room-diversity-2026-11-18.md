@@ -98,7 +98,7 @@
 ## 어떻게 찍고 쟀나
 - **찍기** (`tools/room-diversity/capture.mjs`): 헤드리스 크롬, 그래픽 가속 켬(NVIDIA GeForce RTX 5060 Ti, D3D11), 창 1440×900. 앱 실험 경로 `/lab/rooms` 에서 방문자 뷰와 같은 `RoomView` · 헤더 아래 같은 크기 · 방 정보 패널을 접은 구도(focusX 0.5). 입장 연출이 끝난 상태와 같은 "다 차려진 방"(still), 관심사 이펙트 꺼짐(`?fx=0`, 지금 기본값도 꺼짐), 리액션 버튼 줄 숨김, 두더지 자세 고정(`?qshot=1`) + 난수 고정 씨앗. 한 장 약 4초
 - **세 번 찍음**: ① 보이는 그대로(카드 · 크게 보기) ② 두더지만 숨김(`?nomole=1`, 숫자 · 차이 지도 · 둘씩 비교) ③ 두더지 숨김 + 벽지 01 고정(`?wallpaper=wallpaper_01_default`, 관심사 물건만). 처음엔 두더지 사각형을 빼고 쟀는데, 그 사각형(방 넓이의 약 13%)이 피아노 · 영사기를 가려서 두더지를 숨기는 쪽으로 바꿈
-- **같은 방인지 확인** (`capture.mjs --check`): 실험 경로(예린)와 실제 방문자 뷰(`/burrow/yerin`, 입장 연출 6초 뒤 패널 접음)를 같은 크기로 찍어 비교 → 다른 칸 1.07%, 모두 두더지 자세 차이 (아래 왼쪽부터 실험 경로 · 방문자 뷰 · 다른 칸)
+- **같은 방인지 확인** (`capture.mjs --check`): 실험 경로(예린)와 실제 방문자 뷰(`/burrow/yerin`, 입장 연출 6초 뒤 패널 접음)를 같은 크기로 찍어 비교 → 다른 칸 0.99%(RGB 한 채널이라도 16 넘게 다른 픽셀), 두더지 둘레 밖은 4픽셀뿐 → 두더지 자세 차이 (아래 왼쪽부터 실험 경로 · 방문자 뷰 · 다른 칸, 마지막 빌드로 다시 찍음)
 
 ![](screenshots/room-diversity/check-lab-vs-visit.jpg)
 
@@ -113,7 +113,10 @@
 - 제품 화면 · 목 데이터 · 데모 시나리오(예린 등)는 안 바꿈
 
 ## 확인
-- `npm test` · `npm run build` · `npm run smoke -- --port=5361` 결과는 아래 "확인 결과"
+- `npm test`: 10 파일 · 236 통과 (+ todo 3)
+- `npm run build` 통과
+- `npm run smoke -- --port=5361` (가속 켬): **98/98 OK** (232초). 화면 96 → 98개: 실험 경로 `/lab/rooms`(값 없이 → 안내 글) · 화면 목록의 니치형 예시
+- 비교 페이지: 1366px(라이트) · 390px(다크) 헤드리스 크롬으로 찍어 봄. 가로 넘침 없음(scrollWidth = 창 폭), 깨진 사진 없음, 글꼴 로드. 카드 사진이 `height` 속성 때문에 세로로 잘리던 것과 좁은 화면의 고정 거르기 줄을 고침
 
 ## 다시 만드는 법
 [tools/room-diversity/README.md](../tools/room-diversity/README.md): `cd app && npm run build` → `node tools/room-diversity/capture.mjs` → `python -I tools/room-diversity/analyze.py` → `node tools/room-diversity/build.mjs` → `out/room-diversity.html` + `out/files.json` 을 게시
