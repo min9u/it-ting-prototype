@@ -1,7 +1,8 @@
 /*
  * 관심사 이펙트 켜고 끄기 (docs/interest-effects.md, 2026-11-17 실험)
  * - 아티팩트에서는 주소를 못 바꾸므로 화면의 "✨ 이펙트" 패널(components/FxPanel.tsx)로만 바꿈
- * - 처음에는 추천 묶음. 선택은 localStorage 에 기억 (막혀 있으면 이 탭에서만)
+ * - 처음에는 모두 꺼짐 (2026-11-18 main 에 합칠 때 사용자 요청: "처음 들어갔을 때 이펙트는 다 꺼 주고, 이펙트 버튼을 눌러서 켤 수 있게").
+ *   실험 아티팩트 1~2차 때는 추천 묶음이 기본이었음. 선택은 localStorage 에 기억 (막혀 있으면 이 탭에서만)
  * - 장면은 다시 만들지 않음: 이펙트 쪽(three/interestFx)이 구독해서 그리는 것만 바꿈
  * - 측정용 주소 손잡이: ?fx=0 (모두 끔) · ?fx=all (모두 켬) · ?fx=rec (추천). 저장값보다 먼저
  */
@@ -59,7 +60,8 @@ export const AIM_LABEL: Record<1 | 2 | 3, string> = { 1: '말 걸 거리', 2: '�
 
 type FxState = Record<FxId, boolean>
 const KEY = 'digul.fx.v1'
-const recState = (): FxState => Object.fromEntries(FX_DEFS.map((d) => [d.id, d.rec])) as FxState
+/** 처음 들어왔을 때 (저장값 없음): 모두 꺼짐 */
+const offState = (): FxState => Object.fromEntries(FX_DEFS.map((d) => [d.id, false])) as FxState
 
 const forced = (): 'none' | 'all' | 'rec' | null => {
   try {
@@ -69,11 +71,11 @@ const forced = (): 'none' | 'all' | 'rec' | null => {
 }
 
 /**
- * 저장값 + 기본값. 저장값에 없는 이펙트(나중에 새로 생긴 것)는 추천 묶음 값으로 채움 → 예전에 저장한 사람에게도 새 추천 이펙트가 보임.
+ * 저장값 + 기본값. 저장값에 없는 이펙트(나중에 새로 생긴 것)는 기본값(꺼짐)으로 채움 → 처음 들어온 사람과 같은 규칙.
  * 없어진 이펙트 키·잘못된 값은 버림
  */
 export function mergeSaved(raw: string | null): FxState {
-  const base = recState()
+  const base = offState()
   if (!raw) return base
   try {
     const saved = JSON.parse(raw) as Record<string, unknown>
@@ -86,7 +88,7 @@ const read = (): FxState => {
   const f = forced()
   if (f) return Object.fromEntries(FX_DEFS.map((d) => [d.id, f === 'all' ? true : f === 'rec' ? d.rec : false])) as FxState
   try { return mergeSaved(localStorage.getItem(KEY)) } catch { /* 저장소 없음 */ }
-  return recState()
+  return offState()
 }
 
 let state = read()

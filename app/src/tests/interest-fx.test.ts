@@ -71,14 +71,15 @@ describe('탐색 들판 구멍 정보 (holeFxOf)', () => {
 })
 
 describe('이펙트 켜고 끄기 (lib/fxLab)', () => {
-  it('처음엔 추천 묶음', () => {
-    for (const d of FX_DEFS) expect(getFx()[d.id], d.id).toBe(d.rec)
-    expect(presetOf('room')).toBe('rec')
+  it('처음엔 모두 꺼짐 (2026-11-18 main: 이펙트 버튼으로 켬)', () => {
+    for (const d of FX_DEFS) expect(getFx()[d.id], d.id).toBe(false)
+    expect(presetOf('room')).toBe('none')
+    expect(presetOf('field')).toBe('none')
   })
   it('묶음은 그 영역만 바꿈', () => {
-    applyPreset('field', 'none')
-    expect(presetOf('field')).toBe('none')
+    applyPreset('room', 'rec')
     expect(presetOf('room')).toBe('rec')
+    expect(presetOf('field')).toBe('none')
     applyPreset('room', 'all')
     expect(presetOf('room')).toBe('all')
     setFx({ r_card: false })
@@ -110,15 +111,15 @@ describe('드문 기준 한 곳 (data/rarity.ts)', () => {
 })
 
 describe('저장값 합치기 (새 이펙트도 보이게)', () => {
-  it('저장값에 없는 새 이펙트는 추천 값, 있는 것은 그대로, 모르는 키·잘못된 값은 버림', () => {
+  it('저장값에 없는 새 이펙트는 기본(꺼짐), 있는 것은 그대로, 모르는 키·잘못된 값은 버림', () => {
     const m = mergeSaved(JSON.stringify({ r_particles: false, f_bubble: true, old_fx: true, r_card: 'yes' }))
     expect(m.r_particles).toBe(false)
-    expect(m.r_summary).toBe(true) // 새 추천 이펙트
-    expect(m.r_notice).toBe(false) // 새 이펙트지만 추천 아님
-    expect(m.r_card).toBe(true) // 잘못된 값 → 기본
+    expect(m.f_bubble).toBe(true) // 저장한 값 그대로
+    expect(m.r_summary).toBe(false) // 저장값에 없음 → 기본(꺼짐)
+    expect(m.r_card).toBe(false) // 잘못된 값 → 기본
     expect('old_fx' in m).toBe(false)
-    expect(mergeSaved('{깨짐').r_summary).toBe(true)
-    expect(mergeSaved(null).f_lantern).toBe(true)
+    expect(mergeSaved('{깨짐').r_summary).toBe(false)
+    expect(mergeSaved(null).f_lantern).toBe(false)
   })
 })
 
