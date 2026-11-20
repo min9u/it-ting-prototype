@@ -44,9 +44,12 @@ export function parseFloor(id: string): Floor | null {
 
 /**
  * 층 → 작물 (3D 핸드오프 v3.11 themes 9종. 디자이너가 "층→작물 매핑은 개발 쪽에서 정해 달라"고 함 → docs/explore-field-v3-10.md "정한 것")
- * 규칙: 캠퍼스-층 목록(고르기 창 순서 = 캠퍼스 순서, 그 안에서 층 순서) 전체를 차례로 호박 → 사과 → 딸기 → 고구마 → 당근 → 옥수수 → 토마토 → 해바라기 → 빵 돌려 씀
- * - **v3.11 시험(try/explore-v3-11): 9종 매핑은 임시** (사용자 "아직 미정이니 임시로 나눠도 돼"). 지금 층이 9개라 층마다 작물이 다 다르게 나옴
- * - 같은 캠퍼스 층은 목록에서 붙어 있어서 9개 층까지는 늘 작물이 다름 → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
+ * 규칙 (2026-11-20 사용자 결정):
+ * - **빵은 대전 캠퍼스 층에만.** 대전 층이 몇 개든 전부 빵 (목록에 없는 대전 층도 빵)
+ * - 대전이 아닌 층은 나머지 8종(호박 → 사과 → 딸기 → 고구마 → 당근 → 옥수수 → 토마토 → 해바라기)을 캠퍼스-층 목록 순서대로 돌려 씀.
+ *   목록 순서 = 고르기 창 순서(캠퍼스 순서, 그 안에서 층 순서), 대전 층은 세지 않고 건너뜀 → 지금 층이면 서울 2·3·12 = 호박·사과·딸기, 광주 1 = 고구마, 구미 2·3 = 당근·옥수수, 부울경 1 = 토마토
+ *   (대전 아닌 층이 7개라 해바라기는 아직 안 나옴. 8번째 층이 생기면 해바라기)
+ * - 같은 캠퍼스 층은 목록에서 붙어 있어서 8개 층까지는 작물이 다름(대전만 전부 빵) → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
  * - 학기가 바뀌어도 같은 캠퍼스-층은 같은 작물 (목록에 없는 층은 캠퍼스-층 이름으로 고름)
  * - 층 번호를 개수로 나눈 나머지로 고르면 서울 2층·12층이 같은 작물이 될 수 있어서 쓰지 않음
  * - 실서비스는 서버의 캠퍼스-층 설정에 작물 값을 두는 것을 제안 (목록 중간에 층이 생기면 뒤 층 작물이 밀리므로)
@@ -57,10 +60,16 @@ export const CROPS = [
   { id: 'corn', name: '옥수수' }, { id: 'tomato', name: '토마토' }, { id: 'sunflower', name: '해바라기' }, { id: 'bread', name: '빵' },
 ] as const
 export type Crop = (typeof CROPS)[number]
+/** 빵이 나오는 캠퍼스 */
+export const BREAD_CAMPUS = '대전'
+const BREAD = CROPS.find((c) => c.id === 'bread')!
+/** 대전이 아닌 층이 돌려 쓰는 8종 (CROPS 순서 그대로, 빵만 뺌) */
+const ROTATION = CROPS.filter((c) => c.id !== 'bread')
 export function cropOf(f: Pick<Floor, 'campus' | 'floor'>): Crop {
-  const all = CAMPUS_FLOORS.flatMap((c) => c.floors.map((fl) => `${c.campus}|${fl}`))
-  const i = all.indexOf(`${f.campus}|${f.floor}`)
-  return CROPS[(i >= 0 ? i : hash(`${f.campus}|${f.floor}`)) % CROPS.length]
+  if (f.campus === BREAD_CAMPUS) return BREAD
+  const others = CAMPUS_FLOORS.filter((c) => c.campus !== BREAD_CAMPUS).flatMap((c) => c.floors.map((fl) => `${c.campus}|${fl}`))
+  const i = others.indexOf(`${f.campus}|${f.floor}`)
+  return ROTATION[(i >= 0 ? i : hash(`${f.campus}|${f.floor}`)) % ROTATION.length]
 }
 
 /** 내 소속 (내 정보 수정에서 바꾸는 값. 기수는 SSAFY 인증 값) */

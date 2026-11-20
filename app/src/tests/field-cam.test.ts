@@ -169,23 +169,40 @@ describe('전환 · LOD', () => {
   })
 })
 
-describe('층 → 작물 (우리가 정한 규칙: 캠퍼스-층 목록 순서대로 돌려 씀)', () => {
+describe('층 → 작물 (사용자 결정 2026-11-20: 빵은 대전 층만, 나머지 8종은 대전 아닌 층을 목록 순서대로 돌려 씀)', () => {
+  const nonBread = CAMPUS_FLOORS.filter((c) => c.campus !== '대전')
+  const EIGHT = ['pumpkin', 'apple', 'strawberry', 'sweetpotato', 'carrot', 'corn', 'tomato', 'sunflower']
   it('내 들판(서울-2층)은 호박 (디자이너 예시 화면과 같음)', () => {
     expect(cropOf(MY_FLOOR).id).toBe('pumpkin')
   })
-  it('같은 캠퍼스 층끼리는 작물이 다름', () => {
-    for (const c of CAMPUS_FLOORS) {
-      const ids = c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id)
-      expect(new Set(ids).size, c.campus).toBe(ids.length)
-    }
+  it('대전 층은 몇 번 층이든 전부 빵 (목록에 없는 대전 층도)', () => {
+    const daejeon = CAMPUS_FLOORS.find((c) => c.campus === '대전')!
+    expect(daejeon.floors.length).toBeGreaterThan(1) // 대전 층이 여러 개여도 전부 빵인지 보려면 층이 둘 이상이어야 함
+    for (const fl of [...daejeon.floors, 3, 9, 99]) expect(cropOf({ campus: '대전', floor: fl }).id, `대전-${fl}층`).toBe('bread')
   })
-  it('지금 목록(층 9개)이면 9종이 다 나옴 (임시 매핑), 테마 id 는 배치 JSON 에 있음', () => {
-    const all = new Set(CAMPUS_FLOORS.flatMap((c) => c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id)))
-    expect(all.size).toBe(CROPS.length)
-    expect(CROPS).toHaveLength(9)
-    for (const id of all) expect(layout.themes.map((t) => t.id)).toContain(id)
+  it('대전이 아닌 층은 빵이 아님 (목록에 없는 층도)', () => {
+    for (const c of nonBread) for (const fl of c.floors) expect(cropOf({ campus: c.campus, floor: fl }).id, `${c.campus}-${fl}층`).not.toBe('bread')
+    for (const campus of ['서울', '광주', '구미', '부울경', '제주']) expect(cropOf({ campus, floor: 99 }).id).not.toBe('bread')
+  })
+  it('대전 아닌 층은 목록 순서대로 호박 → 사과 → 딸기 → 고구마 → 당근 → 옥수수 → 토마토 → 해바라기 (대전은 세지 않고 건너뜀)', () => {
+    const got = nonBread.flatMap((c) => c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id))
+    expect(got).toEqual(EIGHT.slice(0, got.length)) // 지금 층 7개면 해바라기만 남음
+    expect(cropOf({ campus: '서울', floor: 2 }).id).toBe('pumpkin')
+    expect(cropOf({ campus: '서울', floor: 3 }).id).toBe('apple')
+    expect(cropOf({ campus: '서울', floor: 12 }).id).toBe('strawberry')
+  })
+  it('대전 아닌 층끼리는 작물이 다름 (8개 층까지)', () => {
+    const ids = nonBread.flatMap((c) => c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id))
+    expect(ids.length).toBeLessThanOrEqual(EIGHT.length)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+  it('빵 아닌 8종 id 는 배치 JSON 테마에 있고, 지금 목록에서 안 나오는 작물은 해바라기뿐', () => {
+    const used = new Set(CAMPUS_FLOORS.flatMap((c) => c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id)))
+    for (const id of used) expect(layout.themes.map((t) => t.id)).toContain(id)
+    expect(CROPS.map((c) => c.id).filter((id) => !used.has(id))).toEqual(['sunflower'])
   })
   it('CROPS 표와 배치 JSON themes 가 같은 9종, 같은 순서', () => {
+    expect(CROPS).toHaveLength(9)
     expect(CROPS.map((c) => c.id)).toEqual(layout.themes.map((t) => t.id))
   })
   it('목록에 없는 층도 정해진 작물 하나 (같은 입력 → 같은 결과)', () => {
