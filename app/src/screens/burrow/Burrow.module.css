@@ -93,10 +93,9 @@
 
 /* ---- 탐색 / 방문자 뷰 ---- */
 .roomInfo { composes: panel; top: 40px; }
-/* 탐색 방노트: 머리글(접기)과 맨 아래 "땅굴 놀러가기"는 고정, 가운데(프로필~Q&A)만 스크롤 */
+/* 탐색 방노트: 머리글(접기)은 고정, 아래(프로필 · 자기소개 · 관심사 · 땅굴 놀러가기 · Q&A)는 한 덩어리로 스크롤 */
 .noteAside { overflow: hidden; }
 .noteBody { flex: 1; min-height: 0; margin: 0 -24px; padding: 0 24px 6px; overflow-y: auto; }
-.noteFoot { flex: none; padding-top: 14px; }
 .qna { margin-top: 12px; padding: 16px; background: var(--surface-sunken); border-radius: 4px; display: flex; flex-direction: column; gap: 14px; }
 .qna dt { font-size: 13px; font-weight: 700; color: var(--ink-900); }
 .qna dd { margin: 4px 0 0; font-size: 13px; color: var(--ink-800); line-height: 1.5; }
