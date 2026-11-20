@@ -4,6 +4,7 @@ import Avatar from '../../components/Avatar'
 import Pagination from '../../components/Pagination'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, EmptyMole, ReportDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
+import { ErrorState, SkeletonLines } from '../../components/AsyncState'
 import { userOf } from '../../data/mock'
 import type { GuestbookEntry, User } from '../../data/types'
 import s from './Burrow.module.css'
@@ -16,7 +17,8 @@ import m from './MyBurrow.module.css'
  * - 글마다 삭제 · 신고. 삭제 → 삭제 확인(00 공통 17) → 완료 토스트(16). 신고 → 신고 팝업(F8 과 같은 사유)
  * - 한 페이지 5개, 6개 이상이면 페이지 번호
  * - 작성자(두더지·닉네임)를 누르면 프로필 팝업(00 공통 15)
- * 방문자 뷰(VisitBurrow)도 이 모달을 읽기 전용으로 씀: onDelete 가 없으면 삭제 버튼 없이 신고만
+ * 방문자 뷰(VisitBurrow)도 이 모달을 씀: onDelete 가 없으면 삭제 버튼 없이 신고만. compose 를 주면 맨 위에 쓰기 칸(글자 수 제한 · 남기기)이 생겨
+ * 한 창에서 쓰기와 읽기를 다 함 (Figma 방문자 뷰 510:13663, 방명록은 사이드바가 아니라 우체통 창 안에)
  */
 export const GUESTBOOK_PAGE_SIZE = 5
 
@@ -33,8 +35,13 @@ export function gbTime(iso: string, now = Date.now()) {
   return `${t.getMonth() + 1}월 ${t.getDate()}일`
 }
 
-export default function GuestbookModal({ open, onClose, entries, onDelete }: {
-  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void
+/** 방명록 쓰기 칸 (값은 부르는 쪽이 들고 있음: 실패하면 입력값을 되돌려야 해서) */
+export interface GuestbookCompose { value: string; onChange: (v: string) => void; onSubmit: () => void; max: number; placeholder: string }
+/** 목록을 아직 못 받았을 때 (처음 받는 중 · 받기 실패) */
+export interface GuestbookLoad { loading?: boolean; error?: unknown; onRetry?: () => void; retrying?: boolean }
+
+export default function GuestbookModal({ open, onClose, entries, onDelete, compose, load }: {
+  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void; compose?: GuestbookCompose; load?: GuestbookLoad
 }) {
   const [page, setPage] = useState(1)
   const [confirmId, setConfirmId] = useState<string | null>(null)
@@ -52,7 +59,22 @@ export default function GuestbookModal({ open, onClose, entries, onDelete }: {
       <Modal open={open && !profile} onClose={onClose} width={825} labelledBy="gb-all-title">
         <div className={s.gbModal}>
           <h2 id="gb-all-title" className={`display ${s.gbModalTitle}`}>방명록 <span className="count-badge">{entries.length}</span></h2>
-          {entries.length === 0 ? (
+          {compose && (
+            <div className={s.gbWrite}>
+              <textarea value={compose.value} maxLength={compose.max} onChange={(e) => compose.onChange(e.target.value)} aria-label="방명록 남기기" aria-describedby="gb-count"
+                placeholder={compose.placeholder}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); compose.onSubmit() } }} />
+              <div className={s.gbWriteRow}>
+                <span id="gb-count">{compose.value.length} / {compose.max}</span>
+                <button className="link-accent" onClick={compose.onSubmit} disabled={!compose.value.trim()}>남기기</button>
+              </div>
+            </div>
+          )}
+          {load?.loading ? (
+            <div role="status" aria-busy="true" aria-label="방명록을 불러오는 중" style={{ marginTop: 12 }}><SkeletonLines lines={4} /></div>
+          ) : load?.error && entries.length === 0 ? (
+            <ErrorState compact error={load.error} onRetry={load.onRetry} retrying={load.retrying} title="방명록을 불러오지 못했어요" />
+          ) : entries.length === 0 ? (
             <div className={s.gbEmptyBox}><EmptyMole message="아직 아무도 방명록을 남기지 않았어요" /></div>
           ) : (
             <ul className={s.gbModalList}>
