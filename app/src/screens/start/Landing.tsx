@@ -29,9 +29,8 @@ const NEIGHBORS = [
   { tags: '그림', sub: '방금 방명록이 달렸어요', x: 1120, y: 520, tone: 'leaf' },
 ] as const
 
-const SECTIONS = ['땅 위', '구멍 속으로', '방', '이웃']
-/** 데모 구간(#s1~#s4, ?s=1~4)의 진행도 */
-const DEMO_P = [0, 0.32, 0.6, 0.9]
+/** 데모 구간(#s1 · #s2, ?s=1 · 2)의 진행도 */
+const DEMO_P = [0.2, 0.8]
 
 /**
  * 1440×900 시안 좌표 → 방 상자(pinBox) 안 %. 이름표 좌표는 처음 구도(방 그림 높이 114.5%, 위 -5.4%)에서
@@ -44,26 +43,31 @@ const inRoom = (x: number, y: number) => ({ left: `${(x - 93) / 12.54}%`, top: `
 const px = (x: number, y: number) => ({ left: `${x / 14.4}%`, top: `${y / 9}%` })
 
 /**
- * 시작 v2 – 랜딩 (02 명세 F1 · 랜딩 03 방 · 랜딩 04 이웃 · 스크롤 모션 타임라인, 2026-11-16)
- * "한 화면에 고정(sticky)된 3D 씬을 스크롤 진행도로 움직여요. 텍스트만 위에서 바뀌어요."
- * 02 명세는 4구간: 0% 땅 위 · 30% 구멍 속으로 · 60% 방 · 85–100% 이웃 (03 디자인 2026-11-12 는 방 → 이웃 2구간이었지만 명세 우선)
- *  카메라: 땅 위 → 구멍으로 푸시인 · 다이브: 구멍 통과, 화면 어두워짐 → 방으로 컷 · 방 등장 · 라벨 0.08초 간격 · 풀아웃: 다시 땅 위로 이웃 땅굴
- *  카피: 각 구간 진입 때 아래→위 16px + 페이드
- * 푸시인은 왼쪽 굴로 (앞에 팻말이 없음. 가운데 굴은 두더지가 앞에 서 있어서 확대하면 두더지가 화면을 가림, 2026-11-12 사용자 제보)
- * 방은 다 차려질 때까지 로딩 애니메이션, 그 뒤 연출 없이 한 번에 (docs/landing-loading.md. 명세의 "가구가 하나씩 떨어져 놓임"은 이 결정으로 뺌)
- * 이웃 구간 밭은 확대하지 않음 (2026-11-12). 상단 메뉴는 랜딩 전체에서 로그인 · 시작하기 (Figma 메모: 둘러보기 링크 빼기)
- * 모션 줄이기: 스크롤 연동(확대·어두워짐) 없이 네 장면이 0.3초 크로스페이드
- * Figma 메모 707:11198: "먼저 둘러보기"가 왼쪽 (다른 사람 방을 먼저 구경하는 게 우선)
+ * 시작 v2 – 랜딩 (Figma F1 랜딩 03 방 408:19384 · 랜딩 04 이웃 408:19542, 2026-11-20 확정 디자인으로 바꿈)
+ * 한 화면에 고정(sticky)된 장면을 스크롤 진행도로 바꿈: 0–50% 방 → 50–100% 이웃(가운데 굴의 두더지를 가까이). 텍스트는 구간 진입 때 아래→위 16px + 페이드
+ * 예전 4구간(땅 위 → 구멍 속으로 → 방 → 이웃, 02 명세 스크롤 모션 타임라인)은 확정 디자인에 없어서 뺌. 명세는 따로 고쳐야 함
+ * 방은 다 차려질 때까지 로딩 애니메이션, 그 뒤 연출 없이 한 번에 (docs/landing-loading.md). 상단 메뉴는 랜딩 전체에서 로그인 · 시작하기
+ * 모션 줄이기: 두 장면이 0.3초 크로스페이드
+ * 확정 디자인(Figma 408:19542, 2026-11-20): "내 땅굴 만들기 →"가 왼쪽, "먼저 둘러보기"가 오른쪽 (예전 메모 707:11198은 반대였음)
  */
 export default function Landing() {
   const track = useRef<HTMLDivElement>(null)
-  // 데모·스크린샷용: #s1 ~ #s4 (해시 라우터에서는 ?s=1~4) 면 사용자가 직접 스크롤하기 전까지 그 구간을 보여 준다
-  const demo = useRef(window.location.href.match(/[#?&]s=?([1-4])(?!\d)/)?.[1] ?? null)
+  // 데모·스크린샷용: #s1 · #s2 (해시 라우터에서는 ?s=1 · 2) 면 사용자가 직접 스크롤하기 전까지 그 구간을 보여 준다
+  const demo = useRef(window.location.href.match(/[#?&]s=?([1-2])(?!\d)/)?.[1] ?? null)
   const [p, setP] = useState(() => (demo.current ? DEMO_P[Number(demo.current) - 1] : 0))
-  const [roomMade, setRoomMade] = useState(() => !!demo.current && Number(demo.current) >= 2)
   // 방 3D 가 다 차려졌는지: 그 전에는 로딩 애니메이션, 가구 이름표도 그 뒤에
   const [roomOn, setRoomOn] = useState(false)
   const [reduce] = useState(() => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)
+  // 새로고침하면 브라우저가 스크롤 위치를 나중에 되돌려 놓음 → 그 사이 밭이 0.5초 보였다가 방으로 넘어가던 문제 (2026-11-20).
+  // 사용자가 직접 스크롤(휠·터치·키)하기 전, 또는 처음 1.5초 동안은 구간을 페이드 없이 바로 바꿈
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const on = () => setSettled(true)
+    const id = setTimeout(on, 1500)
+    const evs = ['wheel', 'touchstart', 'keydown'] as const
+    for (const ev of evs) window.addEventListener(ev, on, { passive: true, once: true })
+    return () => { clearTimeout(id); for (const ev of evs) window.removeEventListener(ev, on) }
+  }, [])
 
   useEffect(() => {
     const release = () => { demo.current = null }
@@ -81,37 +85,32 @@ export default function Landing() {
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
   }, [])
 
-  const sec = p < 0.2 ? 0 : p < 0.45 ? 1 : p < 0.75 ? 2 : 3
-  // 투명하게 숨긴 층의 3D 는 그리기 멈춤 (방 구간엔 밭, 나머지 구간엔 방). 그래픽 가속이 꺼진 PC 에서 CPU 를 아낌. 시험용 ?lpause=0
+  // 확정 디자인(Figma F1, 2026-11-20): 랜딩은 2구간. 첫 화면 = 랜딩 03 방, 스크롤하면 랜딩 04 이웃 (예전 땅 위 · 구멍 속 구간은 뺌)
+  // sec 값은 예전 번호(2 = 방, 3 = 이웃)를 그대로 씀
+  const sec = p < 0.5 ? 2 : 3
+  // 투명하게 숨긴 층의 3D 는 그리기 멈춤 (방 구간엔 밭, 이웃 구간엔 방). 그래픽 가속이 꺼진 PC 에서 CPU 를 아낌. 시험용 ?lpause=0
   const pauseHidden = !/[?&]lpause=0/.test(window.location.href)
-  // 방은 무거우니 땅 위 구간을 조금 내려오면 미리 만든다 (한 번 만들면 유지)
-  useEffect(() => { if (p > 0.08 && !roomMade) setRoomMade(true) }, [p, roomMade])
-
-  // 00–02: 왼쪽 굴(화면 18%, 40%)로 푸시인 + 비네트, 다이브 끝에서 어두워짐 → 방으로 컷
-  const push = reduce || sec > 1 ? 0 : Math.min(1, Math.max(0, (p - 0.05) / 0.38))
-  // 굴을 기준점으로 키우면서 화면 가운데로 끌어옴
-  const fieldTf = { transform: `translate(${32 * push}%, ${12 * push}%) scale(${1 + push * push * 3.2})`, transformOrigin: '18% 40%' }
-  const dark = reduce || sec !== 1 ? 0 : Math.min(1, Math.max(0, (p - 0.3) / 0.15))
-  const vignette = reduce ? (sec === 1 ? 0.6 : 0) : sec === 1 ? Math.min(1, push * 1.4) : 0
-  const tone = sec === 0 ? 'light' : sec === 3 ? 'dark' : 'light'
-  const fade = reduce ? { transition: 'opacity .3s ease' } : undefined
+  // 랜딩 04: 가운데 굴의 두더지 쪽으로 조금만 다가감 (Figma 408:19542 보다 먼 시점, 2026-11-20 디자이너 요청)
+  const fieldTf = { transform: 'translate(6%, -4%) scale(1.25)', transformOrigin: '49% 72%' }
+  const tone = sec === 3 ? 'dark' : 'light'
+  const fade = !settled ? { transition: 'none' } : reduce ? { transition: 'opacity .3s ease' } : undefined
 
   return (
     <div ref={track} className={s.track} data-reduce={reduce || undefined}>
       <div className={s.stage} data-sec={sec}>
-        {/* 01 · 02 · 04 밭 */}
-        <div className={s.layer} style={{ opacity: sec === 2 ? 0 : 1, ...fade }}>
-          <div className={s.fieldZoom} style={sec === 3 ? undefined : fieldTf}>
+        {/* 04 밭 */}
+        <div className={s.layer} style={{ opacity: sec === 3 ? 1 : 0, ...fade }}>
+          <div className={s.fieldZoom} style={fieldTf}>
             <FieldView label="두더지가 사는 밭" paused={pauseHidden && sec === 2} />
           </div>
-          <div className={s.vignette} style={{ opacity: vignette }} />
-          <div className={s.darken} style={{ opacity: dark }} />
-          <div className={s.shadeBottom} style={{ opacity: sec === 0 || sec === 3 ? 1 : 0 }} />
+          <div className={s.shadeBottom} />
         </div>
 
         {/* 03 방 */}
-        <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 2 ? 1 : 0, pointerEvents: sec === 2 ? 'auto' : 'none', ...fade }}>
-          {roomMade && <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still loadingStill paused={pauseHidden && sec !== 2} onLoaded={() => setRoomOn(true)} />}
+        {/* 방은 보여 주기만 함: 마우스를 받으면 3D 방의 휠 확대가 스크롤을 막아 다음 구간으로 못 넘어감 (2026-11-20).
+            미리 찍은 방 그림(loadingStill)은 지금 3D 방과 크기·벽지가 달라 바뀌는 순간 방이 움직여 보여서 쓰지 않음 */}
+        <div className={`${s.layer} ${s.roomLayer}`} style={{ opacity: sec === 2 ? 1 : 0, pointerEvents: 'none', ...fade }}>
+          <RoomView ownerId="landing" interests={ROOM_INTERESTS} label="관심사로 꾸민 땅굴 방" still paused={pauseHidden && sec !== 2} onLoaded={() => setRoomOn(true)} />
           <div className={s.shadeLeft} />
           <div className={s.pinBox} style={{ top: `${PIN_BOX.top * 100}%`, height: `${PIN_BOX.h * 100}%` }}>
           {LABELS.map((l, i) => {
@@ -138,39 +137,29 @@ export default function Landing() {
         <StartHeader tone={tone} />
 
         {/* 카피 (구간 진입 때 아래→위 16px + 페이드) */}
-        <div className={`${s.copy} ${sec === 0 || sec === 3 ? s.copyBottom : ''} ${sec === 1 ? s.copyCenter : ''}`} key={sec}>
-          {sec === 0 && (
-            <>
-              <h1>관심사로 꾸민 땅굴에서<br />이웃을 만나요</h1>
-              <p>SSAFY 사람들이 좋아하는 것들로 방을 꾸미고, 서로의 땅굴에 놀러 가요.</p>
-              <span className={s.scrollHint}>스크롤해서 땅굴 안으로 ↓</span>
-            </>
-          )}
-          {sec === 1 && <h2 className={s.diveCopy}>구멍 너머에는<br />누군가의 방이 있어요</h2>}
+        <div className={`${s.copy} ${sec === 3 ? s.copyBottom : ''}`} key={sec}>
           {sec === 2 && (
             <>
-              <h1>고른 관심사가<br />가구가 돼요</h1>
-              <p>책을 좋아하면 책장이, 게임을 좋아하면<br />오락기가 방에 놓여요.</p>
+              <h1>나의 관심사가<br />내 땅굴의 가구가 돼요</h1>
+              <p>책을 좋아하면 책장이,<br />음악을 좋아하면 스피커가 놓여요</p>
+              <span className={s.scrollHint}>스크롤해서 이웃 땅굴 보기 ↓</span>
             </>
           )}
           {sec === 3 && (
             <>
-              <h1>같은 걸 좋아하는 이웃이<br />생각보다 가까이 살아요</h1>
-              <p>땅 위를 걸으며 땅굴을 구경하고, 마음이 맞으면 같이 모여요.</p>
+              <h1>같은 걸 좋아하는 친구를 찾아<br />땅굴로 놀러가봐요</h1>
+              <p>땅 위를 걸으며 땅굴을 탐색하고, 방명록도 남길 수 있어요.</p>
             </>
           )}
         </div>
         {sec === 3 && (
           <div className={s.ctaRow}>
-            <Link to="/look" className={s.ctaSub}>먼저 둘러보기</Link>
             <Link to="/signup" className={s.ctaMain}>내 땅굴 만들기 <span aria-hidden>→</span></Link>
+            <Link to="/look" className={s.ctaSub}>먼저 둘러보기</Link>
           </div>
         )}
 
-        <ol className={s.progress} data-tone={tone} aria-label={`${SECTIONS.length}구간 중 ${sec + 1}번째: ${SECTIONS[sec]}`}>
-          {SECTIONS.map((t, i) => <li key={t} className={i === sec ? s.progOn : ''}><span /></li>)}
-          <li className={s.progLabel} aria-hidden>{SECTIONS[sec]}</li>
-        </ol>
+        {/* 오른쪽 구간 표시(땅 위 · 구멍 속으로 · 방 · 이웃)는 확정 디자인에 없어서 뺌 (2026-11-20) */}
       </div>
     </div>
   )
