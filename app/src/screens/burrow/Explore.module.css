@@ -29,7 +29,17 @@
 .signTags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
 .signBtn { margin-top: 14px; width: 100%; height: 46px; gap: 8px; }
 /* 방노트 맨 아래 "땅굴 놀러가기 Enter" */
-.noteEnter { width: 100%; height: 46px; gap: 8px; }
+/* 공용 .btn 의 height 48 을 이기려고 button 을 붙임 */
+button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
+/* 방노트 관심사 (Figma 477:12524 Interests: 제목 줄 22px · 칩과 10px · 칩 26px 높이 6px 간격) */
+.noteInterests { margin-top: 16px; }
+.noteInterestsHead { display: flex; align-items: center; gap: 6px; height: 22px; margin-bottom: 10px; }
+.noteInterestsTitle { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.noteInterestsCount { font-size: 13px; font-weight: 600; color: var(--ink-500); }
+.noteRule { flex: 1; height: 1px; background: var(--line); }
+.noteLegend { flex: none; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; border: 1px solid var(--ink-300); border-radius: 11px; font-size: 11px; color: var(--ink-500); }
+/* 방노트 Q&A: 질문은 굵게(.qna dt), 답변은 질문보다 안쪽으로 */
+.noteQna dd { padding-left: 12px; }
 .kbd {
   padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .22);
   font: 600 10px/1.3 var(--font-body); letter-spacing: .02em;

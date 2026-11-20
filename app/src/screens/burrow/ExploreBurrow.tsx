@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import Avatar from '../../components/Avatar'
+import InterestChip from '../../components/InterestChip'
 import SceneButton from '../../components/SceneButton'
 import { EmptyMole, Toast } from '../../components/Feedback'
 import { HomeIcon } from '../../components/Icons'
@@ -289,7 +290,7 @@ export default function ExploreBurrow() {
             {owner ? (
               <>
                 <div className={s.profile}>
-                  <Avatar size={64} />
+                  <Avatar size={64} circle />
                   <div>
                     <p className={`display ${s.nick}`}>{owner.nickname} {owner.online && !here?.mine && <small className={s.online}>● 접속 중</small>}</p>
                     <p className={s.aff}>{affOf(owner)}</p>
@@ -299,14 +300,26 @@ export default function ExploreBurrow() {
                   <span className={s.introHead}><strong>자기소개</strong></span>
                   <p className={s.introP}>{owner.intro || '아직 작성한 자기소개가 없어요.'}</p>
                 </div>
-                <dl className={s.details}>
-                  <div><dt>관심 분야</dt><dd>{owner.interests.slice(0, 3).join(', ')}{owner.interests.length > 3 && ` 외 ${owner.interests.length - 3}개`}</dd></div>
-                  {!here?.mine && <div><dt>겹치는 관심사</dt><dd className={x.shared}>{shared.length ? shared.join(', ') : '아직 없어요'}</dd></div>}
-                </dl>
+                {/* Figma 477:12524: 제목 줄(관심사 N · 가는 선 · 범례) + 전부 색 칩. 나와 겹치는 건 칩 테두리 + ✓ (00 공통 5). 내 땅굴이면 겹침 개념이 없어 범례를 뺌 */}
+                <section className={x.noteInterests} aria-label="관심사">
+                  <div className={x.noteInterestsHead}>
+                    <span className={x.noteInterestsTitle}>관심사</span>
+                    <span className={x.noteInterestsCount}>{owner.interests.length}</span>
+                    <span className={x.noteRule} aria-hidden />
+                    {!here?.mine && <span className={x.noteLegend}>나와 같은 관심사</span>}
+                  </div>
+                  <div className={s.chipWrap}>
+                    {owner.interests.map((i) => <InterestChip key={i} label={i} shared={shared.includes(i)} check />)}
+                  </div>
+                </section>
+                {/* 땅굴 놀러가기: 두더지 옆 안내판 대신 여기, 관심사 바로 아래·Q&A 위. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
+                <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
+                  {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>
+                </button>
                 {owner.qna?.length ? (
                   <>
                     <h3 className={`display ${s.qnaTitle}`}>Q&amp;A</h3>
-                    <dl className={s.qna}>{owner.qna.slice(0, 3).map((q) => <div key={q.q}><dt>{q.q}</dt><dd>{q.a}</dd></div>)}</dl>
+                    <dl className={`${s.qna} ${x.noteQna}`}>{owner.qna.slice(0, 3).map((q) => <div key={q.q}><dt>{q.q}</dt><dd>{q.a}</dd></div>)}</dl>
                   </>
                 ) : null}
               </>
@@ -314,14 +327,6 @@ export default function ExploreBurrow() {
               <p className={x.panelEmpty}>이 들판엔 아직 땅굴이 없어요. 사다리를 누르거나 왼쪽 위 캠퍼스-층 버튼으로 다른 들판에 가 보세요.</p>
             )}
           </div>
-          {/* 두더지 옆 안내판 대신 여기. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
-          {owner && (
-            <div className={s.noteFoot}>
-              <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
-                {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>
-              </button>
-            </div>
-          )}
         </aside>
       ) : (
         <button ref={openBtn} className={s.reopen} onClick={(e) => togglePanel(true, e)} aria-expanded="false">
