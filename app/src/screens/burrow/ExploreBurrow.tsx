@@ -11,7 +11,7 @@ import { MY_FLOOR, affOf, cropOf, fieldOf, floorLabel, me, parseFloor, todaysPic
 import type { HoleFieldHandle } from '../../three/holeField'
 import { ZOOM_LEVELS, ZOOM_NAME, type ZoomLevel } from '../../three/fieldCam'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
-import Minimap from './Minimap'
+import Minimap, { type MinimapHandle } from './Minimap'
 import SceneBoundary from '../../components/SceneBoundary'
 import FxPanel from '../../components/FxPanel'
 import LanternPicker from '../../components/LanternPicker'
@@ -76,6 +76,7 @@ export default function ExploreBurrow() {
   // 3D 를 못 만듦 (SceneBoundary): 어두운 막·로딩 글자를 거두고 정지 그림을 보여 줌
   const [failed3d, setFailed3d] = useState(false)
   const handle = useRef<HoleFieldHandle | null>(null)
+  const mapRef = useRef<MinimapHandle | null>(null)
   // 안내판 위치: 장면이 두더지 머리 화면 좌표를 알려 줌. 안내판이 나중에 붙어도 마지막 값을 씀
   const anchor = useRef({ x: 0, y: 0, vis: false })
   const signEl = useRef<HTMLDivElement | null>(null)
@@ -179,6 +180,8 @@ export default function ExploreBurrow() {
     onHover: (n: number | null, hx: number, hy: number) => setHover(n == null ? null : { seat: n, x: hx, y: hy }),
     onLadder: () => setModal('floor'),
     onAnchor: (ax: number, ay: number, vis: boolean) => { anchor.current = { x: ax, y: ay, vis }; placeSign() },
+    // 마우스로 끌어 옮긴 카메라 → 미니맵 "보이는 곳"
+    onCamera: (cx: number, cz: number) => mapRef.current?.setCamera(cx, cz),
     onZoom: (lv: ZoomLevel) => {
       setZoom(lv); setHover(null)
       setParams((p) => { const q = new URLSearchParams(p); if (lv === 'near') q.delete('zoom'); else q.set('zoom', lv); return q }, { replace: true })
@@ -267,7 +270,7 @@ export default function ExploreBurrow() {
         )}
 
         {/* 미니맵 (전체 마을 지도, docs/explore-designs.md). 보이는 범위는 줌 단계를 따라감 */}
-        {ready && <Minimap field={field} floor={floor} seat={seat} moving={moving} view={{ kind: 'camera', focusX, coverRight: panelOpen ? 372 : 0, level: zoom }} onGo={(n) => { handle.current?.goSeat(n) }} onLadder={() => setModal('floor')} />}
+        {ready && <Minimap handleRef={mapRef} field={field} floor={floor} seat={seat} moving={moving} view={{ kind: 'camera', focusX, coverRight: panelOpen ? 372 : 0, level: zoom }} onGo={(n) => { handle.current?.goSeat(n) }} onLadder={() => setModal('floor')} />}
 
         {/* 줌 3단계 (+ 가까이 · 점 = 가까이/중간/멀리 · − 멀리). 이펙트 버튼 위 */}
         {ready && (

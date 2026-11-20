@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import layout from '../data/fieldLayout150.json'
 import {
-  FAR_FOLLOW, K_HALF_FAR, K_TO_FAR, K_TO_NEAR, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, camFootprint, camTargetAt, distAt, easeStd, holeScaleAt, lodAt, moleScaleAt, safeLimits,
+  FAR_FOLLOW, K_HALF_FAR, K_TO_FAR, K_TO_NEAR, OUTER_GRASS, SAFE_MARGIN, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, camFootprint, camTargetAt, distAt, dragLimits, dragTarget, easeStd, holeScaleAt, lodAt, moleScaleAt, safeLimits,
 } from '../three/fieldCam'
 import { CAMPUS_FLOORS, CROPS, MY_FLOOR, cropOf } from '../data/field'
 
@@ -190,5 +190,66 @@ describe('층 → 작물 (우리가 정한 규칙: 캠퍼스-층 목록 순서�
   })
   it('목록에 없는 층도 정해진 작물 하나 (같은 입력 → 같은 결과)', () => {
     expect(cropOf({ campus: '서울', floor: 99 })).toEqual(cropOf({ campus: '서울', floor: 99 }))
+  })
+})
+
+describe('끌어 옮기기 (마우스로 땅 잡고 끌기, 모든 줌 단계)', () => {
+  it('dragLimits: 16:9 · 가운데면 안전 한계(safeLimits)와 같음', () => {
+    for (const lv of ZOOM_LEVELS) {
+      const a = dragLimits(ZOOM_DIST[lv]), b = safeLimits(ZOOM_DIST[lv])
+      near(a.x[0], b.x[0]); near(a.x[1], b.x[1]); near(a.z[0], b.z[0]); near(a.z[1], b.z[1])
+    }
+  })
+  it('한계 위치에서 화면에 보이는 땅이 바깥 잔디 경계 + 2m 여유에 정확히 닿음 (비율·카드 위치가 달라도)', () => {
+    const cases: [number, number][] = [[16 / 9, 0.5], [16 / 9, 0.403], [21 / 9, 0.5], [4 / 3, 0.403]]
+    for (const lv of ZOOM_LEVELS) for (const [aspect, fx] of cases) {
+      const L = dragLimits(ZOOM_DIST[lv], aspect, fx)
+      const at = (tx: number, tz: number) => camFootprint(tx, tz, aspect, fx, 1, ZOOM_DIST[lv])
+      const lo = at(L.x[0], L.z[0]), hi = at(L.x[1], L.z[1])
+      near(Math.min(...lo.map((p) => p[0])), -OUTER_GRASS.x + SAFE_MARGIN, 1e-6)
+      near(Math.max(...hi.map((p) => p[0])), OUTER_GRASS.x - SAFE_MARGIN, 1e-6)
+      near(Math.min(...lo.map((p) => p[1])), -(OUTER_GRASS.y1 - SAFE_MARGIN), 1e-6) // 먼 변 (three z, 북쪽)
+      near(Math.max(...hi.map((p) => p[1])), -(OUTER_GRASS.y0 + SAFE_MARGIN), 1e-6) // 가까운 변 (남쪽)
+    }
+  })
+  it('화면이 넓을수록 · 오른쪽 카드가 열려 왼쪽으로 치우칠수록 좌우 한계가 좁아짐', () => {
+    const base = dragLimits(ZOOM_DIST.far)
+    const wide = dragLimits(ZOOM_DIST.far, 21 / 9)
+    expect(wide.x[1] - wide.x[0]).toBeLessThan(base.x[1] - base.x[0])
+    const shifted = dragLimits(ZOOM_DIST.far, 16 / 9, 0.403) // 타깃이 왼쪽에 있어 오른쪽으로 더 보임
+    expect(shifted.x[1]).toBeLessThan(base.x[1])
+    expect(shifted.x[0]).toBeLessThan(base.x[0])
+    expect(shifted.x[1] - shifted.x[0]).toBeCloseTo(base.x[1] - base.x[0], 9) // 폭은 같고 옮겨질 뿐
+  })
+  it('구멍 150개를 따라가는 자리는 모든 단계에서 끄는 한계 안 (따라가기와 끌기가 서로 부딪히지 않음)', () => {
+    for (const lv of ZOOM_LEVELS) {
+      const L = dragLimits(ZOOM_DIST[lv])
+      for (const z of layout.zones) for (const h of z.holes) {
+        const [tx, tz] = camTargetAt(lv, zones, h[1], h[2])
+        expect(tx).toBeGreaterThanOrEqual(L.x[0] - 0.06); expect(tx).toBeLessThanOrEqual(L.x[1] + 0.06)
+        expect(tz).toBeGreaterThanOrEqual(L.z[0] - 0.06); expect(tz).toBeLessThanOrEqual(L.z[1] + 0.06)
+      }
+    }
+  })
+  it('dragTarget: 포인터를 오른쪽 · 아래로 끌면 땅이 같이 움직임 = 카메라 타깃은 왼쪽 · 위로', () => {
+    const L = dragLimits(ZOOM_DIST.mid)
+    // 포인터가 가리키는 땅 점이 g0 (0, 0) → g1 (+3, +2) 로 바뀜 = 포인터가 오른쪽·아래(남쪽)로 움직임
+    const [x, z] = dragTarget([10, -20], [0, 0], [3, 2], L)
+    expect(x).toBeCloseTo(7, 9)
+    expect(z).toBeCloseTo(-22, 9)
+  })
+  it('dragTarget: 한계에서 멈춤 (바깥 잔디 경계 안쪽까지만)', () => {
+    for (const lv of ZOOM_LEVELS) {
+      const L = dragLimits(ZOOM_DIST[lv])
+      // 포인터가 땅 점 (-500, -500) 쪽을 가리킴 → 타깃은 (+500, +470): 오른쪽 · 남쪽 한계에서 멈춤
+      const [x, z] = dragTarget([0, -30], [0, 0], [-500, -500], L)
+      expect(x).toBe(L.x[1]); expect(z).toBe(L.z[1])
+      // 반대: 타깃은 (-500, -530): 왼쪽 · 북쪽 한계에서 멈춤
+      const [x2, z2] = dragTarget([0, -30], [0, 0], [500, 500], L)
+      expect(x2).toBe(L.x[0]); expect(z2).toBe(L.z[0])
+    }
+  })
+  it('dragTarget: 움직이지 않으면 그대로', () => {
+    expect(dragTarget([4, -9], [1, 1], [1, 1], dragLimits(ZOOM_DIST.near))).toEqual([4, -9])
   })
 })
