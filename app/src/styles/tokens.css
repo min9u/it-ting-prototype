@@ -51,6 +51,8 @@
 
   /* 서체 — TODO: 디자이너에게 실제 서체 확인 */
   --font-display: 'Do Hyeon', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  /* 본문 글(Figma S-Core Dream). 아직 폰트 파일을 프로젝트에 넣지 않아서, 이 글꼴이 설치된 컴퓨터에서만 보이고 없으면 Pretendard 로 보임 */
+  --font-text: 'S-Core Dream', 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif;
   --font-body: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
 
   /* 크기 */
