@@ -1,13 +1,13 @@
 /**
- * 탐색 들판 카메라 3단계 · 층별 작물 (3D 핸드오프 v3.10, docs/explore-field-v3-10.md)
- * 근거: design/digul_3d_handoff_v3_10/docs/camera_zoom_spec_v1_1.md (거리 12/24/46, 보이는 땅, 타깃 한계, far 맞춤 타깃, LOD, 히스테리시스, 전환 곡선)
- *      explore_field_handoff_v3_10.md 3 (층마다 작물 1종, 층→작물은 개발 쪽이 정함)
+ * 탐색 들판 카메라 3단계 · 층별 작물 (3D 핸드오프 v3.11, 시험 브랜치 try/explore-v3-11. v3.10 은 docs/explore-field-v3-10.md)
+ * 근거: design/digul_3d_handoff_v3_11/docs/camera_zoom_spec_v1_2.md (거리 12/24/46, 보이는 땅, 구멍 따라가기 + 바깥 잔디 안전 한계, far 구역 1개 ±9m, LOD, 히스테리시스, 전환 곡선, 크기 연속)
+ *      explore_field_handoff_v3_11.md 2·3 (작물 9종, 층마다 작물 1종, 층→작물은 개발 쪽이 정함)
  * three/fieldCam.ts 는 3D(holeField)와 미니맵(fieldGeo)이 같이 쓰는 계산이라 여기서 핸드오프 숫자와 맞는지 확인
  */
 import { describe, expect, it } from 'vitest'
 import layout from '../data/fieldLayout150.json'
 import {
-  K_HALF_FAR, K_TO_FAR, K_TO_NEAR, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, camFootprint, camTargetAt, distAt, easeStd, farLimits, lodAt, moleScaleAt,
+  FAR_FOLLOW, K_HALF_FAR, K_TO_FAR, K_TO_NEAR, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, camFootprint, camTargetAt, distAt, easeStd, holeScaleAt, lodAt, moleScaleAt, safeLimits,
 } from '../three/fieldCam'
 import { CAMPUS_FLOORS, CROPS, MY_FLOOR, cropOf } from '../data/field'
 
@@ -41,28 +41,76 @@ describe('카메라 단계 수치 = 배치 JSON camera.levels', () => {
   })
 })
 
-describe('타깃 한계 (camera_zoom_spec 2)', () => {
-  it('far 6구역 전체: x ±20.7, y 14.6~45.5 (three z = −y)', () => {
-    const L = farLimits(zones)
-    near(L.x[0], -20.7, .1); near(L.x[1], 20.7, .1)
-    near(-L.z[1], 14.6, .1); near(-L.z[0], 45.5, .1)
-  })
-  it('far 구역 1만: 맞춤 타깃 (구역 가운데 x, 구역 y0 + 11.1) 고정 = 구멍 중앙 정렬 막음', () => {
-    const one = zones.slice(0, 1)
-    for (const [x, z] of [[-14, -6], [14, -32], [0, -20]]) {
-      const [tx, tz] = camTargetAt('far', one, x, z)
-      near(tx, 0, 1e-6); near(-tz, 11.1, 1e-6)
+describe('타깃: 구멍 따라가기 + 안전 한계 (camera_zoom_spec_v1_2)', () => {
+  const holes = layout.zones.flatMap((z) => z.holes.map((h) => ({ seat: h[0], x: h[1], z: h[2] })))
+  /** 화면 사다리꼴 ∩ 구역 1(x ±18, z −36~0) 넓이 ÷ 화면 넓이 (0.25m 격자) */
+  const activeShare = (tx: number, tz: number) => {
+    const poly = camFootprint(tx, tz, 16 / 9, 0.5, 1, 46)
+    const inside = ([x, z]: [number, number]) => {
+      let c = false
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, zi] = poly[i], [xj, zj] = poly[j]
+        if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c
+      }
+      return c
+    }
+    let area = 0
+    for (let i = 0; i < poly.length; i++) { const [x1, z1] = poly[i], [x2, z2] = poly[(i + 1) % poly.length]; area += x1 * z2 - x2 * z1 }
+    area = Math.abs(area) / 2
+    let hit = 0
+    for (let x = -17.875; x < 18; x += 0.25) for (let z = -35.875; z < 0; z += 0.25) if (inside([x, z])) hit++
+    return (hit * 0.0625) / area
+  }
+
+  it('안전 한계 = 바깥 잔디 안쪽 2m: near x ±79.3 · y −30.2~99.1, mid ±70.6 · −26.4~92.2, far ±54.7 · −19.4~79.5 (three z = −y, JSON 과 같음)', () => {
+    for (const lv of ZOOM_LEVELS) {
+      const L = safeLimits(ZOOM_DIST[lv]), j = layout.camera.levels[lv].safe
+      near(L.x[0], j.x[0]); near(L.x[1], j.x[1])
+      near(-L.z[1], j.y[0]); near(-L.z[0], j.y[1])
     }
   })
-  it('near·mid: 구멍 중앙 정렬 허용 (켜진 구역 camRect 합집합 안, v3.9 그대로) — 구역 1 의 구멍은 들판 남쪽 끝 가까이만 빼고 그대로 가운데', () => {
+  it('구멍 150개는 어느 단계에서도 한계에 안 걸림: 켠 구역 여러 개면 타깃 = 구멍 그대로 (far 포함)', () => {
+    expect(holes).toHaveLength(150)
+    for (const lv of ZOOM_LEVELS) for (const h of holes) {
+      const [tx, tz] = camTargetAt(lv, zones, h.x, h.z)
+      expect(tx, `${lv} ${h.seat}`).toBeCloseTo(h.x, 9); expect(tz, `${lv} ${h.seat}`).toBeCloseTo(h.z, 9)
+    }
+    for (const lv of ZOOM_LEVELS) { // 구역 2개(1·2)
+      const [tx, tz] = camTargetAt(lv, zones.slice(0, 2), -14, -60)
+      expect([tx, tz]).toEqual([-14, -60])
+    }
+  })
+  it('near·mid 는 구역이 1개여도 구멍 그대로 (v3.10 의 구역 안 가운데로 끌어오기·남쪽 끝 3.8m 멈춤은 없어짐)', () => {
     const one = zones.slice(0, 1)
     for (const lv of ['near', 'mid'] as const) {
       expect(camTargetAt(lv, one, -14, -20)).toEqual([-14, -20])
-      expect(camTargetAt(lv, one, 0, -2)).toEqual([0, -3.8]) // 남쪽 끝은 3.8m 에서 멈춤
+      expect(camTargetAt(lv, one, 0, -2)).toEqual([0, -2])
     }
   })
+  it('far · 구역 1개: 맞춤 타깃(구역 가운데 x, 구역 남쪽 + 11.1)에서 구멍 쪽으로 ±9m 까지만 따라감', () => {
+    const one = zones.slice(0, 1)
+    const [cx, cz] = camTargetAt('far', one, 0, -18) // 구역 가운데 구멍 → 맞춤 타깃 그대로
+    near(cx, 0, 1e-9); near(-cz, 11.1, 1e-9)
+    const [ax, az] = camTargetAt('far', one, -14, -3) // 서쪽 −14 → −9, 남쪽 Blender y 3 (가운데 −15) → −9
+    near(ax, -9, 1e-9); near(-az, 11.1 - 9, 1e-9)
+    const [bx, bz] = camTargetAt('far', one, 14, -33) // 동쪽 +14 → +9, 북쪽 y 33 (가운데 +15) → +9
+    near(bx, 9, 1e-9); near(-bz, 11.1 + 9, 1e-9)
+    const [dx] = camTargetAt('far', one, 5, -18) // ±9 안쪽은 구멍 따라 그대로 (구역 가운데에서 5)
+    near(dx, 5, 1e-9)
+    expect(FAR_FOLLOW).toBe(9)
+  })
+  it('far · 구역 1개의 활성 구역 점유율(화면 중 켠 구역): ±9m 규칙이면 최소 46% · 평균 51% (핸드오프 값), 완전히 따라가면 최소 22% 까지 내려감', () => {
+    const one = zones.slice(0, 1)
+    const z1 = holes.filter((h) => h.seat <= 25)
+    expect(z1).toHaveLength(25)
+    const share = z1.map((h) => { const [tx, tz] = camTargetAt('far', one, h.x, h.z); return activeShare(tx, tz) })
+    const free = z1.map((h) => activeShare(h.x, h.z))
+    expect(Math.min(...share)).toBeGreaterThan(0.45)
+    near(share.reduce((a, b) => a + b, 0) / share.length, 0.513, 0.02)
+    expect(Math.min(...free)).toBeLessThan(0.3)
+  })
   it('far 구역 1 맞춤 타깃이면 16:9 화면 사다리꼴이 구역 네 모서리를 다 덮음 (한 구역이 한 화면에)', () => {
-    const [tx, tz] = camTargetAt('far', zones.slice(0, 1), 0, -20)
+    const [tx, tz] = camTargetAt('far', zones.slice(0, 1), 0, -18)
     const poly = camFootprint(tx, tz, 16 / 9, 0.5, 1, 46)
     const inside = ([x, z]: [number, number]) => {
       let c = false
@@ -74,11 +122,19 @@ describe('타깃 한계 (camera_zoom_spec 2)', () => {
     }
     for (const p of [[-18, 0], [18, 0], [-18, -36], [18, -36]] as [number, number][]) expect(inside(p), `${p}`).toBe(true)
   })
-  it('far 구역 2개(1·2, 세로): x 는 가운데 고정, y 는 움직임', () => {
-    const two = zones.slice(0, 2)
-    const L = farLimits(two)
-    expect(L.x[0]).toBe(L.x[1])
-    expect(L.z[1] - L.z[0]).toBeGreaterThan(20)
+  it('구멍이 아닌 곳(자유 패닝)을 가리키면 안전 한계에서 멈춤', () => {
+    const [x, z] = camTargetAt('far', zones, 200, -300)
+    near(x, 54.67, 0.01); near(z, -(108 - 0.5766 * 46 - 2), 0.01)
+    const [x2, z2] = camTargetAt('near', zones, -200, 100)
+    near(x2, -(90 - 0.7246 * 12 - 2), 0.01); near(z2, -(-36 + 0.3176 * 12 + 2), 0.01)
+  })
+  it('화면이 바깥 잔디(x ±90, y −36~108)를 넘지 않음: 가장자리 구멍(서 54번 · 동 104번 · 남 24번 · 북 49번)을 가운데 두고 세 단계 모두', () => {
+    for (const lv of ZOOM_LEVELS) for (const seat of [54, 104, 24, 49]) {
+      const h = holes.find((q) => q.seat === seat)!
+      const [tx, tz] = camTargetAt(lv, zones, h.x, h.z)
+      const poly = camFootprint(tx, tz, 16 / 9, 0.5, 1, ZOOM_DIST[lv])
+      for (const [px, pz] of poly) { expect(Math.abs(px), `${lv} ${seat}`).toBeLessThanOrEqual(90.05); expect(-pz, `${lv} ${seat}`).toBeGreaterThanOrEqual(-36.05); expect(-pz, `${lv} ${seat}`).toBeLessThanOrEqual(108.05) }
+    }
   })
 })
 
@@ -103,6 +159,14 @@ describe('전환 · LOD', () => {
     const m = moleScaleAt(34)
     expect(m > 1.15 && m < 1.5).toBe(true)
   })
+  it('구멍·후광·작물 배율 (v3.11 연속): 24m 까지 1, 46m 에서 1.25 (표 값), 사이는 log D 선형, 12m 아래도 1', () => {
+    near(holeScaleAt(8), 1, 1e-9); near(holeScaleAt(12), 1, 1e-9); near(holeScaleAt(24), 1, 1e-9)
+    near(holeScaleAt(46), ZOOM_LOD.far.hole, 1e-9)
+    expect(ZOOM_LOD.far.crop).toBe(ZOOM_LOD.far.hole) // 한 함수로 두 가지에 씀
+    near(holeScaleAt(Math.sqrt(24 * 46)), 1.125, 1e-9) // 로그 가운데 = 절반
+    let prev = 1
+    for (let d = 24; d <= 46; d += 1) { const k = holeScaleAt(d); expect(k).toBeGreaterThanOrEqual(prev - 1e-12); prev = k }
+  })
 })
 
 describe('층 → 작물 (우리가 정한 규칙: 캠퍼스-층 목록 순서대로 돌려 씀)', () => {
@@ -115,10 +179,14 @@ describe('층 → 작물 (우리가 정한 규칙: 캠퍼스-층 목록 순서�
       expect(new Set(ids).size, c.campus).toBe(ids.length)
     }
   })
-  it('지금 목록이면 5종이 다 나옴, 테마 id 는 배치 JSON 에 있음', () => {
+  it('지금 목록(층 9개)이면 9종이 다 나옴 (임시 매핑), 테마 id 는 배치 JSON 에 있음', () => {
     const all = new Set(CAMPUS_FLOORS.flatMap((c) => c.floors.map((fl) => cropOf({ campus: c.campus, floor: fl }).id)))
     expect(all.size).toBe(CROPS.length)
+    expect(CROPS).toHaveLength(9)
     for (const id of all) expect(layout.themes.map((t) => t.id)).toContain(id)
+  })
+  it('CROPS 표와 배치 JSON themes 가 같은 9종, 같은 순서', () => {
+    expect(CROPS.map((c) => c.id)).toEqual(layout.themes.map((t) => t.id))
   })
   it('목록에 없는 층도 정해진 작물 하나 (같은 입력 → 같은 결과)', () => {
     expect(cropOf({ campus: '서울', floor: 99 })).toEqual(cropOf({ campus: '서울', floor: 99 }))

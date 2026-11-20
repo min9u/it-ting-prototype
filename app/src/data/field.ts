@@ -48,16 +48,18 @@ export function parseFloor(id: string): Floor | null {
 }
 
 /**
- * 층 → 작물 (3D 핸드오프 v3.10 themes 5종. 디자이너가 "층→작물 매핑은 개발 쪽에서 정해 달라"고 함 → docs/explore-field-v3-10.md "정한 것")
- * 규칙: 캠퍼스-층 목록(고르기 창 순서 = 캠퍼스 순서, 그 안에서 층 순서) 전체를 차례로 호박 → 사과 → 딸기 → 고구마 → 당근 돌려 씀
- * - 같은 캠퍼스 층은 목록에서 붙어 있어서 5개 층까지는 늘 작물이 다름 → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
+ * 층 → 작물 (3D 핸드오프 v3.11 themes 9종. 디자이너가 "층→작물 매핑은 개발 쪽에서 정해 달라"고 함 → docs/explore-field-v3-10.md "정한 것")
+ * 규칙: 캠퍼스-층 목록(고르기 창 순서 = 캠퍼스 순서, 그 안에서 층 순서) 전체를 차례로 호박 → 사과 → 딸기 → 고구마 → 당근 → 옥수수 → 토마토 → 해바라기 → 빵 돌려 씀
+ * - **v3.11 시험(try/explore-v3-11): 9종 매핑은 임시** (사용자 "아직 미정이니 임시로 나눠도 돼"). 지금 층이 9개라 층마다 작물이 다 다르게 나옴
+ * - 같은 캠퍼스 층은 목록에서 붙어 있어서 9개 층까지는 늘 작물이 다름 → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
  * - 학기가 바뀌어도 같은 캠퍼스-층은 같은 작물 (목록에 없는 층은 캠퍼스-층 이름으로 고름)
- * - 층 번호를 5로 나눈 나머지로 고르면 서울 2층·12층이 같은 작물이 돼서 쓰지 않음
+ * - 층 번호를 개수로 나눈 나머지로 고르면 서울 2층·12층이 같은 작물이 될 수 있어서 쓰지 않음
  * - 실서비스는 서버의 캠퍼스-층 설정에 작물 값을 두는 것을 제안 (목록 중간에 층이 생기면 뒤 층 작물이 밀리므로)
  */
 export const CROPS = [
   { id: 'pumpkin', name: '호박' }, { id: 'apple', name: '사과' }, { id: 'strawberry', name: '딸기' },
   { id: 'sweetpotato', name: '고구마' }, { id: 'carrot', name: '당근' },
+  { id: 'corn', name: '옥수수' }, { id: 'tomato', name: '토마토' }, { id: 'sunflower', name: '해바라기' }, { id: 'bread', name: '빵' },
 ] as const
 export type Crop = (typeof CROPS)[number]
 export function cropOf(f: Pick<Floor, 'campus' | 'floor'>): Crop {
