@@ -53,10 +53,11 @@ export const MAP_COLORS = {
   pumpkin: '#EE8A3A',
   flower: '#FFF6E8',
 }
-/** 작물 점 색 (마을 지도). 3D 재질 색을 화면 톤으로: 호박 주황 · 사과 빨강 · 딸기 진빨강 · 고구마 보라 · 당근 주황 */
+/** 작물 점 색 (마을 지도). 3D 재질 색을 화면 톤으로: 호박 주황 · 사과 빨강 · 딸기 진빨강 · 고구마 보라 · 당근 주황 · 옥수수 노랑 · 토마토 빨강 · 해바라기 진노랑 · 빵 황갈색 (v3.11 4종은 임시 색) */
 export const CROP_COLORS: Record<string, [fill: string, edge: string]> = {
   pumpkin: ['#EE8A3A', '#C8642A'], apple: ['#D9473E', '#8E3A20'], strawberry: ['#EC3B4C', '#A22233'],
   sweetpotato: ['#9B6FC8', '#5E3E86'], carrot: ['#FF7A1F', '#C25410'],
+  corn: ['#F2D24B', '#B8942A'], tomato: ['#E5452F', '#9A2A18'], sunflower: ['#F7B500', '#9C6B00'], bread: ['#D9A066', '#8F5E2E'],
 }
 
 export const FIELD_BOUNDS = { x0: -54, x1: 54, z0: -72, z1: 0 }
@@ -101,7 +102,7 @@ export const cellOf = (x: number, z: number) => cellKey(Math.round(x / 2), Math.
 export const cellPos = (k: string): [number, number] => { const [a, b] = k.split(','); return [+a * 2, +b * 2] }
 const villageCache = new Map<string, Village>()
 
-/** crop: 이 층 작물 테마 id (v3.10 themes). 작물 점은 마을 지도(디자인 B)만 그림 */
+/** crop: 이 층 작물 테마 id (v3.11 themes 9종). 작물 점은 마을 지도(디자인 B)만 그림 */
 export function buildVillage(L: Layout, zones: number, occupied: number[], mySeat: number | null, crop = 'pumpkin'): Village {
   const key = `${zones}|${mySeat}|${crop}|${occupied.join(',')}`
   const hit = villageCache.get(key)
@@ -213,7 +214,7 @@ export function nearestInDir(holes: { seat: number; x: number; z: number }[], fr
 
 /* ---------- 카메라 (디자인 A 3D 들판이 지금 보여 주는 범위, 계산은 three/fieldCam.ts) ---------- */
 
-/** 카메라 목표점: near·mid 는 켜진 구역 camRect 합집합 안, far 는 한계 공식 (구멍 중앙 정렬 막음) */
+/** 카메라 목표점: 구멍을 그대로 따라감 (v3.11). far 에서 켠 구역이 1개면 맞춤 ±9m (three/fieldCam.ts camTargetAt) */
 export function camTarget(v: Village, x: number, z: number, level: ZoomLevel = 'near'): [number, number] {
   return camTargetAt(level, v.zonesOn, x, z)
 }
