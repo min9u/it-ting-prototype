@@ -143,8 +143,8 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
       </RoomView>
 
       {/* 방노트 (탐색과 같은 부품: RoomNote). 땅굴 놀러가기 버튼은 없음(이미 이 땅굴 안), 방명록은 우체통 창 안으로 */}
-      <NotePanel panel={note} title={`${owner.nickname}님의 땅굴`}>
-        <RoomNoteBody owner={owner} shared={shared} />
+      <NotePanel panel={note} title={`${owner.nickname}님 땅굴`}>
+        <RoomNoteBody owner={owner} shared={shared} onReport={() => setRegToast('신고 기능은 준비 중이에요')} />
       </NotePanel>
 
       {/* 우체통: 쓰기와 읽기를 한 창에서. 남기면 목록 맨 위에 바로 들어가고 우체통 깃발이 올라감 */}
