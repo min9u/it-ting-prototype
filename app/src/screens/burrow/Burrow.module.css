@@ -56,8 +56,6 @@
 .sectionLabel span { margin-left: 4px; font-weight: 400; }
 
 .guestbook { margin-top: 14px; display: flex; flex-direction: column; }
-.gbTitle { display: flex; align-items: center; gap: 7px; font-size: 21px; color: #1f1510; padding-left: 4px; }
-.gbList { margin-top: 11px; display: flex; flex-direction: column; gap: 10px; }
 .more { align-self: flex-end; margin-top: 6px; margin-right: 4px; }
 .gbEmpty {
   margin-top: 18px; padding: 0 16px;
@@ -100,6 +98,15 @@
 .qna dt { font-size: 13px; font-weight: 700; color: var(--ink-900); }
 .qna dd { margin: 4px 0 0; font-size: 13px; color: var(--ink-800); line-height: 1.5; }
 .qnaTitle { margin-top: 14px; font-size: 20px; }
+/* 방노트 관심사 (Figma 477:12524 Interests: 제목 줄 22px · 칩과 10px · 칩 26px 높이 6px 간격) */
+.noteInterests { margin-top: 16px; }
+.noteInterestsHead { display: flex; align-items: center; gap: 6px; height: 22px; margin-bottom: 10px; }
+.noteInterestsTitle { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.noteInterestsCount { font-size: 13px; font-weight: 600; color: var(--ink-500); }
+.noteRule { flex: 1; height: 1px; background: var(--line); }
+.noteLegend { flex: none; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; border: 1px solid var(--ink-300); border-radius: 11px; font-size: 11px; color: var(--ink-500); }
+/* 방노트 Q&A: 질문은 굵게(.qna dt), 답변은 질문보다 안쪽으로 */
+.noteQna dd { padding-left: 12px; }
 .details { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 .details div { display: flex; }
 .details dt { width: 84px; color: var(--ink-400); }
@@ -123,14 +130,6 @@
 .speech:hover { background: #fff; }
 .speech:hover::after { border-top-color: #fff; }
 @keyframes bob { 50% { transform: translate(-50%, -3px); } }
-
-.ownerTag {
-  position: absolute; top: 48px; left: 35px; z-index: 5;
-  height: 50px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px;
-  background: var(--scene-btn-cream); border-radius: 10px;
-  border: 1.5px solid rgba(116, 74, 50, 0.55);
-  font-family: var(--font-display); font-size: 18px; color: var(--brown-600);
-}
 
 .gbWrite { margin-top: 10px; padding: 10px 14px; background: var(--surface-item); border-radius: var(--radius-md); }
 .gbWrite textarea { width: 100%; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; height: 40px; }
@@ -169,8 +168,6 @@
 .online { color: var(--green); font-size: 12px; font-family: var(--font-body); }
 .introRead { height: auto; min-height: 104px; cursor: default; }
 .introP { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--ink-800); }
-.sharedLegend { float: right; font-size: 11px; }
-.sharedLegend::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 4px; border: 1.5px solid var(--ink-500); border-radius: 2px; vertical-align: -1px; }
 .chipWrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .enter { margin-top: auto; flex: none; }
 .qna + .enter, .details + .enter { margin-top: 18px; }

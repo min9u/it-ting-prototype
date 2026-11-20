@@ -1,17 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import RoomModeToggle from '../../components/RoomModeToggle'
-import Avatar from '../../components/Avatar'
-import InterestChip from '../../components/InterestChip'
 import SceneButton from '../../components/SceneButton'
 import { EmptyMole, Toast } from '../../components/Feedback'
 import { HomeIcon } from '../../components/Icons'
 import { getMyWorn } from '../../data/moleItems'
-import { MY_FLOOR, affOf, cropOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
+import { MY_FLOOR, cropOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
 import type { HoleFieldHandle } from '../../three/holeField'
 import { ZOOM_LEVELS, ZOOM_NAME, type ZoomLevel } from '../../three/fieldCam'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
 import Minimap, { type MinimapHandle } from './Minimap'
+import { NotePanel, RoomNoteBody, useNotePanel } from './RoomNote'
 import SceneBoundary from '../../components/SceneBoundary'
 import FxPanel from '../../components/FxPanel'
 import LanternPicker from '../../components/LanternPicker'
@@ -67,22 +66,9 @@ export default function ExploreBurrow() {
 
   const [seat, setSeat] = useState(startSeat)
   const [moving, setMoving] = useState(false)
-  // 방노트: 들어오면 접혀 있음 (?panel=open 이면 펼친 채로)
-  const [panelOpen, setPanelOpen] = useState(params.get('panel') === 'open')
-  // 키보드로 접고 펼친 뒤에만 서로 맞은편 버튼으로 초점을 옮김 (마우스로 눌렀을 땐 그대로 둬서 Enter 가 곧바로 땅굴 들어가기로 감)
-  const noteFocus = useRef<'fold' | 'open' | null>(null)
-  const foldBtn = useRef<HTMLButtonElement | null>(null)
-  const openBtn = useRef<HTMLButtonElement | null>(null)
-  const togglePanel = (open: boolean, e: React.MouseEvent) => {
-    noteFocus.current = e.detail === 0 ? (open ? 'fold' : 'open') : null // 키보드로 누른 클릭은 detail 0
-    setPanelOpen(open)
-  }
-  useEffect(() => {
-    const want = noteFocus.current
-    noteFocus.current = null
-    if (want === 'fold') foldBtn.current?.focus()
-    else if (want === 'open') openBtn.current?.focus()
-  }, [panelOpen])
+  // 방노트: 들어오면 접혀 있음 (?panel=open 이면 펼친 채로). 접고 펼치기·초점 이동은 RoomNote 의 useNotePanel (방문자 뷰와 같음)
+  const note = useNotePanel(params.get('panel') === 'open')
+  const panelOpen = note.open
   const [modal, setModal] = useState<null | 'regulars' | 'recommend' | 'floor'>(() => {
     const m = params.get('modal'); return m === 'regulars' || m === 'recommend' || m === 'floor' ? m : null
   })
@@ -280,60 +266,18 @@ export default function ExploreBurrow() {
       </div>
 
       {/* 방노트: 가장 가까운(서 있는) 땅굴 주인 정보 + 땅굴 놀러가기. 접힌 동안은 오른쪽 위 "방노트" 버튼만 (MyBurrow 와 같은 모양) */}
-      {panelOpen ? (
-        <aside className={`${s.roomInfo} ${s.noteAside}`} aria-label="방노트">
-          <div className={s.panelHead}>
-            <h2 className="display">{!owner ? '빈 들판' : here?.mine ? '내 땅굴' : `${owner.nickname}님의 땅굴`}</h2>
-            <button ref={foldBtn} className="link-accent" onClick={(e) => togglePanel(false, e)} aria-expanded="true">접기 ›</button>
-          </div>
-          <div className={s.noteBody}>
-            {owner ? (
-              <>
-                <div className={s.profile}>
-                  <Avatar size={64} circle />
-                  <div>
-                    <p className={`display ${s.nick}`}>{owner.nickname} {owner.online && !here?.mine && <small className={s.online}>● 접속 중</small>}</p>
-                    <p className={s.aff}>{affOf(owner)}</p>
-                  </div>
-                </div>
-                <div className={`${s.introBox} ${s.introRead}`}>
-                  <span className={s.introHead}><strong>자기소개</strong></span>
-                  <p className={s.introP}>{owner.intro || '아직 작성한 자기소개가 없어요.'}</p>
-                </div>
-                {/* Figma 477:12524: 제목 줄(관심사 N · 가는 선 · 범례) + 전부 색 칩. 나와 겹치는 건 칩 테두리 + ✓ (00 공통 5). 내 땅굴이면 겹침 개념이 없어 범례를 뺌 */}
-                <section className={x.noteInterests} aria-label="관심사">
-                  <div className={x.noteInterestsHead}>
-                    <span className={x.noteInterestsTitle}>관심사</span>
-                    <span className={x.noteInterestsCount}>{owner.interests.length}</span>
-                    <span className={x.noteRule} aria-hidden />
-                    {!here?.mine && <span className={x.noteLegend}>나와 같은 관심사</span>}
-                  </div>
-                  <div className={s.chipWrap}>
-                    {owner.interests.map((i) => <InterestChip key={i} label={i} shared={shared.includes(i)} check />)}
-                  </div>
-                </section>
-                {/* 땅굴 놀러가기: 두더지 옆 안내판 대신 여기, 관심사 바로 아래·Q&A 위. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
-                <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
-                  {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>
-                </button>
-                {owner.qna?.length ? (
-                  <>
-                    <h3 className={`display ${s.qnaTitle}`}>Q&amp;A</h3>
-                    <dl className={`${s.qna} ${x.noteQna}`}>{owner.qna.slice(0, 3).map((q) => <div key={q.q}><dt>{q.q}</dt><dd>{q.a}</dd></div>)}</dl>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <p className={x.panelEmpty}>이 들판엔 아직 땅굴이 없어요. 사다리를 누르거나 왼쪽 위 캠퍼스-층 버튼으로 다른 들판에 가 보세요.</p>
-            )}
-          </div>
-        </aside>
-      ) : (
-        <button ref={openBtn} className={s.reopen} onClick={(e) => togglePanel(true, e)} aria-expanded="false">
-          <span className="display">방노트</span>
-          <Avatar size={22} />
-        </button>
-      )}
+      <NotePanel panel={note} title={!owner ? '빈 들판' : here?.mine ? '내 땅굴' : `${owner.nickname}님의 땅굴`}>
+        {owner ? (
+          <RoomNoteBody owner={owner} shared={shared} mine={!!here?.mine}>
+            {/* 땅굴 놀러가기: 두더지 옆 안내판 대신 여기, 관심사 바로 아래·Q&A 위. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
+            <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
+              {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>
+            </button>
+          </RoomNoteBody>
+        ) : (
+          <p className={x.panelEmpty}>이 들판엔 아직 땅굴이 없어요. 사다리를 누르거나 왼쪽 위 캠퍼스-층 버튼으로 다른 들판에 가 보세요.</p>
+        )}
+      </NotePanel>
 
       <RegularsModal open={modal === 'regulars'} onClose={() => setModal(null)} onRemoved={(n) => setToast(`${n}님을 단골에서 뺐어요`)} />
       <RecommendModal open={modal === 'recommend'} onClose={() => { setModal(null); setRecTick((n) => n + 1) }} />

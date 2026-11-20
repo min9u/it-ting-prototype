@@ -5,17 +5,16 @@ import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWorn } from '../../data/moleItems'
 import RoomModeToggle from '../../components/RoomModeToggle'
-import InterestChip from '../../components/InterestChip'
-import GuestbookItem from '../../components/GuestbookItem'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import { TOAST, Toast } from '../../components/Feedback'
 import { ME_ID, USERS, overlapCount } from '../../data/mock'
 import type { GuestbookEntry } from '../../data/types'
 import GuestbookModal from './GuestbookModal'
+import { NotePanel, RoomNoteBody, useNotePanel } from './RoomNote'
 import SceneButton from '../../components/SceneButton'
 import { Link } from 'react-router-dom'
-import { affOf, exploreHref } from '../../data/field'
+import { exploreHref } from '../../data/field'
 import { toIso } from '../../lib/time'
 import { api } from '../../api'
 import type { BurrowVM } from '../../api/mappers'
@@ -34,6 +33,7 @@ const QUICK = ['땅굴 구경 잘했어요!', '같이 게임 한 판 해요', '�
 
 /**
  * 땅굴 – 방문자 뷰 (예린이의 땅굴) 510:13663 외 3변형 · 대화 요청 팝업 495:13898
+ * 2026-11-21: 495:13840(방노트 접힘) · 510:13152(방노트 펼침) · 510:13663(방명록)에 맞춤 — 접힌 채 시작, 제목 칩 없음, 사이드바는 탐색과 같은 방노트, 방명록은 우체통 창 안
  * 대화 요청 완료 토스트 612:7718 (2026-11-11 추가, 스크린샷 대조): 보내면 팝업을 닫고 아래쪽에 토스트
  * 메타데이터 기반 — 스크린샷 대조 필요
  * 데모용 쿼리: ?modal=request
@@ -78,7 +78,9 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const run = useOptimistic()
   const gb = useGuestbook(owner.id)
   const entries: GuestbookEntry[] = gb.data ?? []
-  const [panelOpen, setPanelOpen] = useState(true)
+  // 방노트: 들어오면 접혀 있음 (?panel=open 이면 펼친 채로)
+  const note = useNotePanel(params.get('panel') === 'open')
+  const panelOpen = note.open
   const [draft, setDraft] = useState('')
   const [allOpen, setAllOpen] = useState(false)
   const [reqOpen, setReqOpen] = useState(params.get('modal') === 'request')
@@ -130,9 +132,8 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
           : pendingReq
             ? <Link className={s.speech} to="/chat/requests?dir=sent">⏳ 답변 기다리는 중</Link>
             : <button className={s.speech} onClick={() => setReqOpen(true)}>💬 대화 요청하기</button>}>
-        <span className={s.ownerTag}>🏠 {owner.nickname}이의 땅굴</span>
         {/* 단골 추가 (02 F5 방문자 뷰 2번): 상대 수락 없이 내 단골 목록에 들어감. 다시 누르면 해제(알리지 않음) */}
-        <div className={s.sceneTools} style={{ top: 112 }}>
+        <div className={s.sceneTools}>
           <SceneButton tone={regular ? 'mint' : 'paper'} aria-pressed={regular} onClick={toggleRegular}>
             {regular ? '✓ 단골' : '+ 단골 추가'}
           </SceneButton>
@@ -141,62 +142,15 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
         <FxPanel area="room" style={{ right: panelOpen ? 388 : 33 }} />
       </RoomView>
 
-      {panelOpen ? (
-        <aside className={s.roomInfo} aria-label="방 정보">
-          <div className={s.panelHead}>
-            <h2 className="display">{owner.nickname}이의 땅굴</h2>
-            <button className="link-accent" onClick={() => setPanelOpen(false)}>접기 ›</button>
-          </div>
-          <div className={s.profile}>
-            <Avatar size={64} />
-            <div>
-              <p className={`display ${s.nick}`}>
-                {owner.nickname} {owner.online && <small className={s.online}>● 접속 중</small>}
-              </p>
-              <p className={s.aff}>{affOf(owner)}</p>
-            </div>
-          </div>
-          <div className={`${s.introBox} ${s.introRead}`}>
-            <span className={s.introHead}><strong>자기소개</strong></span>
-            <p className={s.introP}>{owner.intro || '아직 작성한 자기소개가 없어요.'}</p>
-          </div>
-          <section className={s.interests}>
-            <p className={s.sectionLabel}>
-              관심사 <span>{owner.interests.length}</span>
-              <span className={s.sharedLegend}>나와 같은 관심사 {shared.length}</span>
-            </p>
-            <div className={s.chipWrap}>
-              {owner.interests.map((i) => <InterestChip key={i} label={i} shared={shared.includes(i)} />)}
-            </div>
-          </section>
-          <section className={s.guestbook}>
-            <h3 className={`display ${s.gbTitle}`}>방명록 <span className="count-badge">{entries.length}</span></h3>
-            <div className={s.gbWrite}>
-              <textarea value={draft} maxLength={GB_MAX} onChange={(e) => setDraft(e.target.value)} aria-label="방명록 남기기" aria-describedby="gb-count"
-                placeholder={`${owner.nickname}님의 땅굴에 다녀간 흔적을 남겨주세요`}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitGb() } }} />
-              <div className={s.gbWriteRow}>
-                <span id="gb-count">{draft.length} / {GB_MAX}</span>
-                <button className="link-accent" onClick={submitGb} disabled={!draft.trim()}>남기기</button>
-              </div>
-            </div>
-            {gb.isPending ? (
-              <div role="status" aria-busy="true" aria-label="방명록을 불러오는 중" style={{ marginTop: 12 }}><SkeletonLines lines={4} /></div>
-            ) : gb.isError && !gb.data ? (
-              <ErrorState compact error={gb.error} onRetry={() => void gb.refetch()} retrying={gb.isFetching} title="방명록을 불러오지 못했어요" />
-            ) : (
-              <>
-                <ul className={s.gbList}>{entries.slice(0, 2).map((g) => <GuestbookItem key={g.id} entry={g} />)}</ul>
-                {entries.length > 0 && <button className={`link-accent ${s.more}`} onClick={() => setAllOpen(true)}>전체 보기</button>}
-              </>
-            )}
-          </section>
-        </aside>
-      ) : (
-        <button className={s.reopen} onClick={() => setPanelOpen(true)}><span className="display">방 정보</span><Avatar size={22} /></button>
-      )}
+      {/* 방노트 (탐색과 같은 부품: RoomNote). 땅굴 놀러가기 버튼은 없음(이미 이 땅굴 안), 방명록은 우체통 창 안으로 */}
+      <NotePanel panel={note} title={`${owner.nickname}님의 땅굴`}>
+        <RoomNoteBody owner={owner} shared={shared} />
+      </NotePanel>
 
-      <GuestbookModal open={allOpen} onClose={() => setAllOpen(false)} entries={entries} />
+      {/* 우체통: 쓰기와 읽기를 한 창에서. 남기면 목록 맨 위에 바로 들어가고 우체통 깃발이 올라감 */}
+      <GuestbookModal open={allOpen} onClose={() => setAllOpen(false)} entries={entries}
+        load={{ loading: gb.isPending, error: gb.isError && !gb.data ? gb.error : undefined, onRetry: () => void gb.refetch(), retrying: gb.isFetching }}
+        compose={{ value: draft, onChange: setDraft, onSubmit: submitGb, max: GB_MAX, placeholder: `${owner.nickname}님의 땅굴에 다녀간 흔적을 남겨주세요` }} />
 
       <Modal open={reqOpen} onClose={() => setReqOpen(false)} width={460} labelledBy="req-title">
         <div className={s.requestModal}>
