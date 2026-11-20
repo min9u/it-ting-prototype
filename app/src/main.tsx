@@ -13,6 +13,8 @@ import { installChunkReload } from './lib/chunkReload'
 import { handleUnauthorized, registerNavigator } from './lib/authFlow'
 // Pretendard는 CDN 대신 번들에 포함 (아티팩트 배포는 외부 CSS를 막음)
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css'
+// S-Core Dream (본문 글, --font-text): 파일을 번들에 포함. 라이선스상 OTF 원본 그대로 (src/assets/fonts/README.md)
+import './styles/fonts.css'
 import './styles/global.css'
 
 // 재배포 뒤 옛 탭: 새 버전 파일을 못 받으면 한 번만 새로고침 (docs/dev-deploy-risks.md D2)

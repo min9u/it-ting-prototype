@@ -1,0 +1,21 @@
+/*
+ * S-Core Dream (Figma 본문 글, --font-text 토큰이 씀). 쓰는 굵기는 5 Medium · 6 Bold 둘뿐
+ * 라이선스 3항: 폰트 파일을 수정·변환(woff2·서브셋 등)하지 말고 받은 OTF 그대로 쓸 것 → src/assets/fonts/README.md
+ * 6 Bold 의 굵기 값은 폰트 자체 표기(OS/2 usWeightClass)가 600 이라 600 (7 ExtraBold 가 700).
+ * font-weight: bold(700) 요청도 가장 가까운 이 Bold 로 연결되고 가짜 굵게는 안 생김
+ * 같은 굵기 규칙이라 font-weight 400 은 Medium 으로 나옴 (정의한 가장 가까운 굵기)
+ */
+@font-face {
+  font-family: 'S-Core Dream';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/SCDream5.otf') format('opentype');
+}
+@font-face {
+  font-family: 'S-Core Dream';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/SCDream6.otf') format('opentype');
+}
