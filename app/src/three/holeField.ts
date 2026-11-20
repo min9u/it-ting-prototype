@@ -15,6 +15,7 @@ import { onLowTierChange } from '../lib/deviceTier'
 import { createFieldFx, type FieldFx } from './interestFx/fieldFx'
 import type { HoleFx } from '../data/interestFx'
 import { CAM_FOV, CAM_PITCH, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, ZOOM_SEC, camTargetAt, distAt, dragLimits, dragTarget, easeStd, holeScaleAt, lodAt, moleScaleAt, type ZoomLevel } from './fieldCam'
+import { clipRingPiece, closurePieces, ringOf } from './fieldFence'
 import groundUrl from '../assets/models/field/explore_ground_150_v3.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
 import haloUrl from '../assets/models/field/hole_mine_halo.glb?url'
@@ -472,7 +473,16 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       if (!hide.has('crops')) (theme.crops ? theme.crops[z.zone - 1] ?? [] : z.crops).forEach((it) => put(it, q.shadows, 'crop'))
       if (!hide.has('flowers')) z.flowers.forEach((it, i) => put(it, false, 'flower', i % 2 === 1))
     }
-    if (!hide.has('fence')) L.fence.forEach((it) => { if (inOn(it[1], it[3])) put(it, q.shadows) })
+    if (!hide.has('fence')) {
+      if (testParam('fence') === '0') L.fence.forEach((it) => { if (inOn(it[1], it[3])) put(it, q.shadows) }) // 예전(켠 구역 안 조각만, 경계에서 끊김) 시험용
+      else {
+        // 켠 구역 둘레를 따라 닫음 (fieldFence.ts): 둘레 조각은 켠 구역을 1.5m 넓힌 범위 안만 (걸친 조각은 잘라서), 안 켠 쪽 경계엔 새 길을 세움
+        const ring = ringOf(L.fence.map((it) => ({ x: it[1], z: it[3] })))
+        const f0 = L.fence[0]
+        for (const it of L.fence) for (const c of clipRingPiece({ x: it[1], z: it[3], ry: it[4], sx: it[5] }, on, ring)) put([it[0], c.x, it[2], c.z, c.ry, c.sx, it[6], it[7]], q.shadows)
+        for (const c of closurePieces(on, ring)) put([f0[0], c.x, f0[2], c.z, c.ry, c.sx, f0[6], f0[7]], q.shadows)
+      }
+    }
     put(L.ladder, q.shadows)
 
     const addInst = (pp: Part[], mats: THREE.Matrix4[], cast: boolean, colors?: THREE.Color[], group?: LodGroup, even = 0) => {
@@ -1131,10 +1141,10 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   for (const n of opts.occupied) occHash = (occHash * 31 + n) | 0
   /**
    * v3.10: 작물·줌 단계도 키에 (자리마다 단계별 타깃이 정해져 있어서 자리 + 단계면 같은 그림). 들어오기 전(배치를 읽기 전)에도 키를 알 수 있게 자리 기준 그대로.
-   * 'f11': v3.10 때 저장한 그림(카메라 타깃 규칙·딸기 모델이 달랐음)을 다시 쓰지 않게 (f10 ← v3.9 의 흙 바닥)
+   * 'f11f': 울타리를 켠 구역 둘레로 닫음(f11 의 그림은 끊긴 울타리). 'f11': v3.10 때 저장한 그림(카메라 타깃 규칙·딸기 모델이 달랐음)을 다시 쓰지 않게 (f10 ← v3.9 의 흙 바닥)
    */
   const seatKey = (seat: number, f = focus, lv: ZoomLevel = level) =>
-    stillKey('hole', ['f11', opts.crop ?? 'pumpkin', lv, opts.zones, occHash, opts.mySeat, seat], W, H, f)
+    stillKey('hole', ['f11f', opts.crop ?? 'pumpkin', lv, opts.zones, occHash, opts.mySeat, seat], W, H, f)
   /** 그림 한 장을 선명한 배경으로 */
   const showSharp = (img: CanvasImageSource & { width: number; height: number }) => {
     const cv = makeSharpCv()
