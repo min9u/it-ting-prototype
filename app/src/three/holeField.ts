@@ -14,7 +14,7 @@ import { approach, createRenderer, destroyRenderer, frameCamera, quality, startL
 import { onLowTierChange } from '../lib/deviceTier'
 import { createFieldFx, type FieldFx } from './interestFx/fieldFx'
 import type { HoleFx } from '../data/interestFx'
-import { CAM_FOV, CAM_PITCH, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, ZOOM_SEC, camTargetAt, distAt, easeStd, holeScaleAt, lodAt, moleScaleAt, type ZoomLevel } from './fieldCam'
+import { CAM_FOV, CAM_PITCH, ZOOM_DIST, ZOOM_LEVELS, ZOOM_LOD, ZOOM_SEC, camTargetAt, distAt, dragLimits, dragTarget, easeStd, holeScaleAt, lodAt, moleScaleAt, type ZoomLevel } from './fieldCam'
 import groundUrl from '../assets/models/field/explore_ground_150_v3.glb?url'
 import holeUrl from '../assets/models/field/hole_v2.glb?url'
 import haloUrl from '../assets/models/field/hole_mine_halo.glb?url'
@@ -94,6 +94,8 @@ export interface HoleFieldEvents {
   onAnchor?(x: number, y: number, visible: boolean): void
   /** 줌 단계가 바뀜 (전환 시작 때. 전환 0.5초) */
   onZoom?(level: ZoomLevel): void
+  /** 마우스로 끌어 카메라 타깃이 구멍에서 떨어졌을 때 지금 타깃 (three x·z, 끄는 동안 계속). 점프·줌이 시작되면 구멍으로 돌아가며 따로 알리지 않음 */
+  onCamera?(x: number, z: number): void
 }
 
 export interface HoleFieldOptions {
@@ -311,6 +313,12 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   let zonesOn: Zone[] = []
   let curSeat = opts.startSeat
   /** 점프 이동. phase: down(두더지 들어감) → dig(M: 도착 그림을 기다림) → cam(카메라 이동) → up. slide = 카메라 이동을 띠 밀기로(M) */
+  /** 마우스로 끌어 카메라가 구멍을 따라가는 타깃에서 떨어져 있음. 점프·줌이 시작되면 풀림 (그 뒤 camTarget 이 구멍 타깃으로 보간). 구운 배경 캐시를 읽고 쓰지 않는 조건 */
+  let panned = false
+  /** 끄는 중 (포인터를 잡은 때부터). active = 6px 넘게 움직여 실제로 끌기 시작. cam = 잡았을 때 카메라 복제(땅 위 점을 늘 같은 카메라로 계산), t0 = 그때 타깃, g0 = 잡은 땅 점 */
+  let drag: { id: number; sx: number; sy: number; active: boolean; cam: THREE.PerspectiveCamera; t0: THREE.Vector3; g0: THREE.Vector3 } | null = null
+  /** 끌어서 이번 프레임에 카메라가 움직임 (루프가 camMoved 로 다룸) */
+  let panDirty = false
   let anim: { from: number; to: number; t: number; phase: 'down' | 'dig' | 'cam' | 'up'; dur: number; camFrom: THREE.Vector3; camTo: THREE.Vector3; camDur: number; still: boolean; slide?: boolean; k?: number } | null = null
 
   /** 줌 전환 (거리 d0 → d1, 타깃 t0 → t1). slide = 저사양 M: 지금 그림을 옮기며 도착 구도를 미리 굽는 중 */
@@ -648,7 +656,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     if (!holes.has(curSeat) && !mole) return
     const p = mole ? mole.object.position.clone().setY(anchorY() + 1.12 * mole.object.scale.y) : holeVec(curSeat, 1.2)
     const s = toScreen(p)
-    const vis = !anim && !zoomAnim && !!mole?.object.visible
+    // 끌어서 두더지가 화면 밖에 있으면 안내판도 숨김 (위치가 화면 밖 좌표로 가서 가장자리에 걸쳐 보이는 것을 막음)
+    const onScreen = s.x > -24 && s.x < W + 24 && s.y > -24 && s.y < H + 24
+    const vis = !anim && !zoomAnim && !!mole?.object.visible && onScreen
     const key = `${s.x.toFixed(1)},${s.y.toFixed(1)},${vis}`
     if (key === lastAnchor) return
     lastAnchor = key
@@ -664,6 +674,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const ease = (t: number) => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
   function jump(to: number): boolean {
     if (anim || zoomAnim || zoomWait || !mole || to === curSeat || !holes.has(to)) return false
+    endDrag(); panned = false // 끌어 둔 카메라는 아래 camFrom(지금 타깃) → camTo(구멍 타깃) 보간으로 돌아옴
     const from = curSeat
     const dur = mole.hop('down')
     const camTo = clampTarget(holeVec(to))
@@ -766,6 +777,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const zoomHold = +(testParam('zoomhold') ?? String(ZOOM_HOLD)).replace('_', '.')
   function zoomTo(lv: ZoomLevel): boolean {
     if (anim || zoomAnim || zoomWait || !mole || lv === level || !ZOOM_LEVELS.includes(lv)) return false
+    endDrag(); panned = false // 줌도 지금 타깃 → 구멍 타깃 보간이라 끌어 둔 카메라가 두더지 쪽으로 돌아옴
     const d1 = ZOOM_DIST[lv]
     const t1 = holes.has(curSeat) ? clampTarget(holeVec(curSeat), lv) : clampTarget(target.clone(), lv)
     zoomAnim = { d0: dist, d1, t0: target.clone(), t1, t: 0, slide: false, k: 0, hold: 0, holdMax: 0 }
@@ -838,19 +850,78 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
     return {}
   }
   let down: { x: number; y: number } | null = null
-  const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY } }
+  /* ---------- 마우스로 땅 잡고 끌기 (모든 줌 단계) ---------- */
+  /*
+   * 잡은 땅 위의 점이 포인터 밑에 그대로 있게 타깃을 옮김 (잡았을 때 카메라 복제로 포인터 → 땅 점을 계산해서 되먹임이 없음).
+   * 한계는 fieldCam dragLimits (바깥 잔디 안, 화면 비율·카드 위치 반영). 6px 넘게 움직이기 전에는 그냥 클릭 (구멍 점프·사다리).
+   * 돌아오기는 따로 없음: 점프·줌은 지금 타깃에서 구멍 타깃으로 보간하니까 두더지를 움직이면 자연스럽게 돌아옴
+   */
+  const DRAG_PX = 6
+  // 측정용 ?camdbg=1: 지금 카메라 타깃·거리·끈 상태를 창에서 읽음 (cdp 시험)
+  if (testParam('camdbg') === '1') {
+    ;(window as unknown as { __holeCam?: (seat?: number) => unknown }).__holeCam = (seat) => {
+      const r = el.getBoundingClientRect()
+      const at = seat != null && holes.has(seat) ? toScreen(holeVec(seat)) : null
+      return { x: target.x, z: target.z, dist, level, panned, dragging: !!drag?.active, seat: curSeat, W, H, focus, at: at && { x: r.left + at.x, y: r.top + at.y } }
+    }
+  }
+  const groundPlane = new THREE.Plane(UP, 0), dragHit = new THREE.Vector3()
+  const dragPoint = (cx: number, cy: number, cam: THREE.PerspectiveCamera, out: THREE.Vector3) => {
+    const r = el.getBoundingClientRect()
+    ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height * 2 - 1))
+    ray.setFromCamera(ndc, cam)
+    return !!ray.ray.intersectPlane(groundPlane, out)
+  }
+  const canDrag = () => !anim && !zoomAnim && !zoomWait && !prep && focus === focusTarget && !!mole && !warming
+  function endDrag() {
+    if (!drag) return
+    const d = drag
+    drag = null
+    try { el.releasePointerCapture(d.id) } catch { /* 이미 놓음 */ }
+    if (d.active) el.style.cursor = 'grab'
+  }
+  const onDragMove = (e: PointerEvent) => {
+    const d = drag!
+    if (!d.active) {
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) <= DRAG_PX) return
+      // 끌기 시작: 지금 포인터 밑 땅 점을 잡은 점으로 (6px 만큼 튀지 않게)
+      if (!dragPoint(e.clientX, e.clientY, d.cam, d.g0)) return
+      d.active = true
+      el.style.cursor = 'grabbing'
+      hoverSeat = null; hoverRing.visible = false; ev.onHover?.(null, 0, 0)
+    }
+    if (!dragPoint(e.clientX, e.clientY, d.cam, dragHit)) return
+    const [x, z] = dragTarget([d.t0.x, d.t0.z], [d.g0.x, d.g0.z], [dragHit.x, dragHit.z], dragLimits(dist, W / H, focus))
+    if (x === target.x && z === target.z) return
+    target.set(x, 0, z)
+    placeCamera(); followSun()
+    panned = true; panDirty = true
+    ev.onCamera?.(x, z)
+    loop.wake()
+  }
+  const onDown = (e: PointerEvent) => {
+    down = { x: e.clientX, y: e.clientY }
+    if (e.button === 0 && e.isPrimary && canDrag()) {
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, active: false, cam: camera.clone(), t0: target.clone(), g0: new THREE.Vector3() }
+      try { el.setPointerCapture(e.pointerId) } catch { /* 잡을 수 없는 포인터 */ }
+    }
+  }
   const onUp = (e: PointerEvent) => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
+    const wasDrag = !!drag?.active
+    endDrag()
+    if (wasDrag || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return }
     down = null
     const p = pickAt(e.clientX, e.clientY)
     if (p.ladder) ev.onLadder?.()
     else if (p.seat != null) jump(p.seat)
   }
+  const onCancel = () => { down = null; endDrag() }
   const onMoveP = (e: PointerEvent) => {
+    if (drag && e.pointerId === drag.id) { onDragMove(e); return }
     if (e.buttons) return
     const p = pickAt(e.clientX, e.clientY)
     const seat = p.seat ?? null
-    el.style.cursor = seat != null && seat !== curSeat ? 'pointer' : p.ladder ? 'pointer' : 'default'
+    el.style.cursor = seat != null && seat !== curSeat ? 'pointer' : p.ladder ? 'pointer' : canDrag() ? 'grab' : 'default'
     if (seat === hoverSeat) return
     hoverSeat = seat
     if (seat != null && seat !== curSeat) {
@@ -866,6 +937,8 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
   const onLeave = () => { if (hoverSeat != null) { hoverSeat = null; hoverRing.visible = false; ev.onHover?.(null, 0, 0); loop.wake() } }
   el.addEventListener('pointerdown', onDown)
   el.addEventListener('pointerup', onUp)
+  el.addEventListener('pointercancel', onCancel)
+  el.style.touchAction = 'none' // 터치로도 끌 수 있게 (페이지 스크롤로 안 넘어가게)
   el.addEventListener('pointermove', onMoveP)
   el.addEventListener('pointerleave', onLeave)
 
@@ -1090,9 +1163,9 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       return true
     }
     if (st === 'idle' && sharpField && !sharpOk && quiet && mole && !baker.broken) {
-      const saved = holes.has(curSeat) ? peekCachedStill(seatKey(curSeat)) : null
+      const saved = holes.has(curSeat) && !panned ? peekCachedStill(seatKey(curSeat)) : null
       if (saved) { showSharp(saved); sharpOk = true; noteCapture('sharpSaved', performance.now()); return true }
-      bakeSeat = holes.has(curSeat) ? curSeat : null
+      bakeSeat = holes.has(curSeat) && !panned ? curSeat : null // 끌어 둔 구도는 그 자리의 배경이 아님 → 저장 안 함
       const out = Math.min(window.devicePixelRatio || 1, 2)
       const t0 = performance.now()
       baker.start(scene, camera, Math.max(1, Math.round(W * out)), Math.max(1, Math.round(H * out)), makeSharpCv())
@@ -1415,6 +1488,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       }
       if (focus !== focusTarget) { focus = approach(focus, focusTarget, dt); applyFrame(); lastAnchor = ''; camMoved = true }
       if (stepAnim(dt)) camMoved = true
+      if (panDirty) { camMoved = true; panDirty = false }
       // 줌: 이번 프레임이 옮겨 그리기(M)인지는 끝나기 전 값으로 (끝나는 프레임도 도착 그림으로 그림)
       const zSlide = !!zoomAnim?.slide
       const zoomed = stepZoom(dt)
@@ -1474,6 +1548,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       mole?.dispose(); fieldFx?.dispose()
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointercancel', onCancel)
       el.removeEventListener('pointermove', onMoveP)
       el.removeEventListener('pointerleave', onLeave)
       // glb 원본(캐시)의 지오메트리·재질은 다른 장면이 다시 쓰므로 여기서 만든 것만 정리

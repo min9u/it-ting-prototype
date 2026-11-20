@@ -11,6 +11,8 @@
  *         완전히 따라가면 구역 가장자리 구멍에서 화면의 78% 가 빈 잔디라서 (채택 규칙은 활성 구역이 화면의 46% 이상). 구역 2개 이상이면 안전 한계만
  * - 전환 0.5초 cubic-bezier(0.4, 0, 0.2, 1), 거리는 로그 보간, 타깃은 시작 → 끝 타깃 사이를 같은 비율로
  *   (스펙은 한계 보정량만 임계감쇠 스프링 ω=10 으로 평활하라고 함. 앱은 저사양이 미리 굽는 도착 구도와 끝 구도가 정확히 같아야 해서 같은 곡선으로 보간 — 구멍 따라가기에서는 두 끝 타깃이 같아 차이 없음)
+ * - 끌어 옮기기 (시험 브랜치, 모든 줌 단계): 마우스로 땅을 잡고 끌면 타깃이 구멍에서 떨어져 dragLimits(바깥 잔디 2m 안쪽) 안에서 자유롭게 움직임.
+ *   두더지가 점프하거나 줌이 바뀌면 위 보간이 지금 타깃에서 구멍 타깃으로 알아서 되돌림 (별도 복귀 코드 없음)
  * - 단계별 표시(LOD): 꽃 전부 / 짝수 번째만 / 끔, 풀 뭉치 near 만, 작물·구멍 far ×1.25, 두더지 1 / 1.15 / 1.5
  *   LOD 를 바꾸는 거리: D < 17 near, 17~34 mid, > 34 far, ±10% 히스테리시스 (올라갈 때 18.7 / 37.4, 내려갈 때 15.3 / 30.6)
  * - 크기(두더지·구멍·후광·작물)는 단계 경계에서 튀지 않게 거리에 연속으로 (v3.11 camera.follow.scale_by_distance)
@@ -101,6 +103,28 @@ export function safeLimits(D: number) {
     x: [-OUTER_GRASS.x + hx + SAFE_MARGIN, OUTER_GRASS.x - hx - SAFE_MARGIN] as [number, number],
     z: [-(OUTER_GRASS.y1 - fy - SAFE_MARGIN), -(OUTER_GRASS.y0 + ny + SAFE_MARGIN)] as [number, number],
   }
+}
+
+/**
+ * 마우스로 끌어 옮길 때의 타깃 한계 (three 좌표). safeLimits 와 같은 규칙(화면 전체가 바깥 잔디에서 2m 안쪽)을
+ * 화면 비율과 가로 위치(오른쪽 카드가 열리면 0.403)까지 반영해서 계산함. 16:9 · 0.5 면 safeLimits 와 같음(계수 반올림 차이 0.05m 안쪽).
+ * 구역 1개 far 의 ±9m 맞춤은 "따라가기" 전용이라 여기엔 안 걸림 (끄는 동안은 바깥 잔디 안이면 어디든)
+ */
+export function dragLimits(D: number, aspect = 16 / 9, focusX = 0.5) {
+  const f = camFootprint(0, 0, aspect, focusX, 1, D) // 타깃 기준 화면에 보이는 땅 네 점
+  const xs = f.map((p) => p[0]), zs = f.map((p) => p[1])
+  return {
+    x: [-OUTER_GRASS.x + SAFE_MARGIN - Math.min(...xs), OUTER_GRASS.x - SAFE_MARGIN - Math.max(...xs)] as [number, number],
+    z: [-(OUTER_GRASS.y1 - SAFE_MARGIN) - Math.min(...zs), -(OUTER_GRASS.y0 + SAFE_MARGIN) - Math.max(...zs)] as [number, number],
+  }
+}
+
+/**
+ * 땅을 잡고 끌기: 처음 잡은 땅 위 점 g0 가 포인터 밑에 그대로 있도록, 포인터가 지금 가리키는 땅 점 g1 (시작 때 카메라로 계산)만큼 반대로 타깃을 옮김.
+ * 포인터를 오른쪽으로 끌면 g1 이 g0 보다 오른쪽이라 카메라는 왼쪽으로 가고 지도는 포인터를 따라 오른쪽으로 움직임. 결과는 한계 안으로 자름
+ */
+export function dragTarget(t0: [number, number], g0: [number, number], g1: [number, number], lim: ReturnType<typeof dragLimits>): [number, number] {
+  return [clamp(t0[0] + g0[0] - g1[0], lim.x[0], lim.x[1]), clamp(t0[1] + g0[1] - g1[1], lim.z[0], lim.z[1])]
 }
 
 /** far · 켠 구역 1개: 구역 맞춤 타깃에서 구멍 쪽으로 ±9m 까지만 따라감 (three 좌표) */

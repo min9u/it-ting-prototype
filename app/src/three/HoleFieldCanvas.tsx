@@ -44,6 +44,7 @@ export default function HoleFieldCanvas({ fieldKey, occupied, zones, mySeat, sta
           onLadder: () => ev.current.onLadder?.(),
           onAnchor: (x, y, v) => ev.current.onAnchor?.(x, y, v),
           onZoom: (lv) => ev.current.onZoom?.(lv),
+          onCamera: (x, z) => ev.current.onCamera?.(x, z),
         },
       })}
       focusX={focusX}
