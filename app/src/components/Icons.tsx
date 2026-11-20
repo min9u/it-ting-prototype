@@ -8,6 +8,9 @@ const base = (size = 20): SVGProps<SVGSVGElement> => ({
   'aria-hidden': true,
 })
 
+export const FlagIcon = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
+)
 export const BellIcon = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg>
 )
