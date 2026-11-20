@@ -13,16 +13,8 @@
 .redDot { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); display: inline-block; }
 .caret { font-size: 11px; margin-left: -4px; }
 
-/* 안내판: 두더지 머리 왼쪽 위. left/top 은 장면이 매 프레임 넣음 (두더지 머리 화면 좌표) */
-.sign {
-  position: absolute; z-index: 4; left: -9999px; top: 0;
-  transform: translate(calc(-100% - 34px), calc(-100% + 24px));
-  pointer-events: none;
-}
-.sign[data-hidden='1'] { visibility: hidden; }
-/* 두더지가 화면 왼쪽 끝 가까이면(줌 far·패널 열림에서 왼쪽 구멍) 안내판을 머리 오른쪽 위로 (화면 밖으로 잘리지 않게) */
-.sign[data-side='right'] { transform: translate(34px, calc(-100% + 24px)); }
-.sign[data-side='right'] .signCard { border-radius: 14px 14px 4px 14px; }
+/* 안내판 카드(.signCard 아래)는 탐색 시안 A~D(explore-designs/common.tsx)가 씀. 땅굴 탐색 본 화면은 2026-11-20 부터 방노트 안 버튼으로 바뀜 */
+.signCard { border-radius: 14px 14px 4px 14px; }
 .signCard {
   pointer-events: auto;
   width: 248px; padding: 18px 18px 16px;
@@ -36,6 +28,8 @@
 .signOwner small { font-size: 12px; color: var(--ink-400); }
 .signTags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
 .signBtn { margin-top: 14px; width: 100%; height: 46px; gap: 8px; }
+/* 방노트 맨 아래 "땅굴 놀러가기 Enter" */
+.noteEnter { width: 100%; height: 46px; gap: 8px; }
 .kbd {
   padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .22);
   font: 600 10px/1.3 var(--font-body); letter-spacing: .02em;
