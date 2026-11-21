@@ -107,6 +107,46 @@ describe('소속 표기 (00 공통 4: 캠퍼스 · 기수 · 층, 반 없음)', 
   })
 })
 
+describe('추천 조건: 답이 궁금한 질문 여러 개 (Figma 863:133 설정 · 1265:35509 질문 고르기)', () => {
+  const OLD = { interests: [], question: '하루 동안 투명 인간이 된다면 뭐 해볼래요?', sameQuestionFirst: true, sameCampus: true, sameGen: true, sameFloor: false }
+  beforeEach(() => { vi.resetModules(); localStorage.clear() })
+  afterEach(() => { localStorage.clear() })
+
+  it('처음엔 TMI "투명 인간" 질문 하나가 골라져 있음 (질문 목록 id)', async () => {
+    const f = await import('../data/field')
+    expect(f.getRecommendSettings().questions).toEqual(['tmi-1'])
+    const { questionOf } = await import('../data/questions')
+    expect(questionOf('tmi-1')?.text).toBe('하루 동안 투명 인간이 된다면 뭐 해볼래요?')
+  })
+  it('예전에 저장된 질문 하나(문장, 2026-11-21 전)는 질문 id 목록으로 옮겨 읽음', async () => {
+    localStorage.setItem('digul.recommend', JSON.stringify({ settings: OLD, date: null, picks: [] }))
+    const f = await import('../data/field')
+    expect(f.getRecommendSettings().questions).toEqual(['tmi-1'])
+    expect('question' in f.getRecommendSettings()).toBe(false)
+  })
+  it('질문 목록에 없는 예전 문장이거나 질문이 없었으면 빈 목록', async () => {
+    localStorage.setItem('digul.recommend', JSON.stringify({ settings: { ...OLD, question: '없어진 질문?' }, date: null, picks: [] }))
+    expect((await import('../data/field')).getRecommendSettings().questions).toEqual([])
+    vi.resetModules()
+    localStorage.setItem('digul.recommend', JSON.stringify({ settings: { ...OLD, question: null }, date: null, picks: [] }))
+    expect((await import('../data/field')).getRecommendSettings().questions).toEqual([])
+  })
+  it('질문은 몇 개든 고르고 저장됨', async () => {
+    const f = await import('../data/field')
+    f.setRecommendSettings({ ...f.getRecommendSettings(), questions: ['tmi-1', 'tmi-2', 'music-1'] })
+    expect(JSON.parse(localStorage.getItem('digul.recommend')!).settings.questions).toEqual(['tmi-1', 'tmi-2', 'music-1'])
+  })
+  it('만들어 낸 들판 이웃들이 답한 질문은 모두 질문 목록에 있음 (그래야 "같은 질문에 답한 사람"이 맞춰 봐짐. 이름 있는 목 사용자 USERS 는 자기 질문을 가짐)', async () => {
+    const f = await import('../data/field')
+    const { QUESTIONS } = await import('../data/questions')
+    const named = new Set(Object.keys(USERS))
+    const texts = new Set(QUESTIONS.map((q) => q.text))
+    for (const fl of f.allCurrentFloors()) for (const r of f.fieldOf(fl).residents) for (const q of named.has(r.user.id) ? [] : r.user.qna ?? []) {
+      expect(texts.has(q.q.replace(/^Q\d+\.\s*/, '')), q.q).toBe(true)
+    }
+  })
+})
+
 describe('오늘의 추천 친구 (F5 5 · 추천 친구 설정 2)', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
@@ -133,7 +173,7 @@ describe('오늘의 추천 친구 (F5 5 · 추천 친구 설정 2)', () => {
   it('걸러 내지 않고 우선순위: 고른 관심사를 가진 사람이 위로', () => {
     const s = getRecommendSettings()
     const target = me().interests[0]
-    setRecommendSettings({ ...s, interests: [target], question: null, sameCampus: false, sameGen: false, sameFloor: false })
+    setRecommendSettings({ ...s, interests: [target], questions: [], sameCampus: false, sameGen: false, sameFloor: false })
     const pool = allCurrentFloors().flatMap((f) => fieldOf(f).residents).filter((r) => !r.mine).map((r) => r.user)
     const having = pool.filter((u) => u.interests.includes(target)).length
     const picks = drawRecommendations().map((id) => pool.find((u) => u.id === id)!)

@@ -12,6 +12,7 @@
 import { CATEGORIES, ME_ID, USERS } from './mock'
 import { getMyInterests } from './interests'
 import { CAMPUS_FLOORS } from './campusFloors'
+import { QUESTIONS as QUESTION_CATALOG, questionOf } from './questions'
 import type { QnA, User } from './types'
 
 export interface FieldUser extends User {
@@ -104,12 +105,12 @@ const INTROS = [
   '느리게 친해지는 편이에요. 방명록부터 남겨 주세요', '주말마다 새로운 걸 해 보려고 해요', '', '맛있는 거 추천해 주세요!', '',
 ]
 const QUESTIONS = [
-  '가장 좋아하는 음식은 뭐예요?', '요즘 가장 자주 듣는 노래는?', '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', '가방 속에 늘 들어 있는 물건은?',
+  '가장 좋아하는 음식은 뭐예요?', '요즘 가장 자주 듣는 노래 한 곡은?', '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', '가방 속에 늘 들어 있는 물건은?',
   '하루 동안 투명 인간이 된다면 뭐 해볼래요?', '비 오는 날 꼭 하고 싶은 일은?',
 ]
 const ANSWERS: Record<string, string[]> = {
   '가장 좋아하는 음식은 뭐예요?': ['마라탕 3단계요. 매운데 못 끊어요', '엄마표 된장찌개', '편의점 삼각김밥 참치마요'],
-  '요즘 가장 자주 듣는 노래는?': ['출근길 시티팝 플레이리스트', '게임 OST만 돌려 들어요', '잔잔한 피아노 곡'],
+  '요즘 가장 자주 듣는 노래 한 곡은?': ['출근길 시티팝 플레이리스트', '게임 OST만 돌려 들어요', '잔잔한 피아노 곡'],
   '주말 아침, 눈 뜨면 가장 먼저 하는 일은?': ['고양이 밥부터 줘요', '이불 속에서 한참 뒹굴기', '커피 내리기'],
   '가방 속에 늘 들어 있는 물건은?': ['필름카메라', '보조배터리 두 개', '작은 스케치북'],
   '하루 동안 투명 인간이 된다면 뭐 해볼래요?': ['맛집 주방 몰래 구경하기', '도서관에서 밤새 책 읽기', '공연장 맨 앞줄 가기'],
@@ -254,22 +255,34 @@ export const subscribeRegulars = (f: () => void) => { regSubs.add(f); return () 
 /* 오늘의 추천 친구: 하루 한 번. 설정은 저장돼 다음 날에도 그대로 */
 export interface RecommendSettings {
   interests: string[]
-  question: string | null
+  /** 답이 궁금한 질문 (질문 목록 data/questions 의 id, 몇 개든 고를 수 있음). 예전엔 질문 하나(문장)였음 */
+  questions: string[]
   sameQuestionFirst: boolean
   sameCampus: boolean
   sameGen: boolean
   sameFloor: boolean
 }
-export const RECOMMEND_QUESTIONS = QUESTIONS
+/** 들판 이웃 Q&A 의 질문은 "Q1. 문장" 꼴 → 문장만 */
+const qText = (q: string) => q.replace(/^Q\d+\.\s*/, '')
+/** 처음 골라 둔 질문 (TMI "하루 동안 투명 인간이 된다면…") */
+const DEFAULT_REC_Q = ['tmi-1']
 const REC_KEY = 'digul.recommend'
 interface RecState { settings: RecommendSettings; date: string | null; picks: string[] }
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` }
 function recState(): RecState {
   const myInt = me().interests
-  return load<RecState>(REC_KEY, {
-    settings: { interests: myInt.slice(0, 3), question: QUESTIONS[4], sameQuestionFirst: true, sameCampus: true, sameGen: true, sameFloor: false },
+  const st = load<RecState>(REC_KEY, {
+    settings: { interests: myInt.slice(0, 3), questions: DEFAULT_REC_Q, sameQuestionFirst: true, sameCampus: true, sameGen: true, sameFloor: false },
     date: null, picks: [],
   })
+  // 2026-11-21 전에 저장된 설정은 질문이 문장 하나(question)였음 → 질문 id 목록으로 옮김 (찾지 못하면 비움)
+  const old = st.settings as RecommendSettings & { question?: string | null }
+  if (!Array.isArray(old.questions)) {
+    const id = old.question ? QUESTION_CATALOG.find((q) => q.text === old.question)?.id : undefined
+    st.settings = { ...old, questions: id ? [id] : [] }
+    delete (st.settings as { question?: unknown }).question
+  }
+  return st
 }
 let rec = recState()
 export const getRecommendSettings = () => rec.settings
@@ -288,10 +301,11 @@ export function drawRecommendations(): string[] {
   const mine = me()
   const pool = allCurrentFloors().flatMap((f) => fieldOf(f).residents).filter((r) => !r.mine).map((r) => r.user)
   const r = rng(`rec#${today()}`)
+  const picked = s.questions.map((id) => questionOf(id)?.text).filter((t): t is string => !!t)
   const score = (u: FieldUser) => {
     let v = u.interests.filter((i) => s.interests.includes(i)).length * 3
     v += u.interests.filter((i) => mine.interests.includes(i)).length
-    if (s.question && s.sameQuestionFirst && u.qna?.some((x) => x.q.endsWith(s.question!))) v += 4
+    if (s.sameQuestionFirst && picked.length && u.qna?.some((x) => picked.includes(qText(x.q)))) v += 4
     if (s.sameCampus && u.campus === mine.campus) v += 2
     if (s.sameGen && u.gen === mine.gen) v += 1.5
     if (s.sameFloor && u.campus === mine.campus && u.floor === mine.floor) v += 2

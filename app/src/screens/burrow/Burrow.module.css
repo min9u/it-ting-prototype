@@ -165,9 +165,10 @@
 .neighbor:hover .neighborCard { background: #fff; transform: translateY(-2px); }
 .neighbor .neighborCard { transition: transform .15s; }
 
-.requestModal { padding: 23px 28px 21px; text-align: center; }
+/* 두더지 그림과 제목은 왼쪽 정렬 (Figma 495:13898: 두더지 x 28, 제목 그 아래) */
+.requestModal { padding: 23px 28px 21px; text-align: left; }
 .requestModal h2 { margin-top: 2px; font-size: 26px; }
-.reqMole { display: block; margin: 0 auto; }
+.reqMole { display: block; margin: 0; }
 .phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .phrase { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--surface-item); font-size: 13px; color: var(--ink-700); }
 .phrase:hover { background: #f1dfcd; }

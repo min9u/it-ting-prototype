@@ -33,7 +33,7 @@ const WHEEL_STEP = 80, WHEEL_QUIET = 250
  * - 들판 = 학기 하나의 캠퍼스-층 하나 (00 공통 19). 주소 ?floor=<학기|캠퍼스|층>&seat=<자리> 로 보던 자리를 기억 (뒤로 가기 하면 그대로)
  * - 두더지는 늘 구멍 하나에 서 있음. 방향키 = 그 방향 ±45° 가장 가까운 구멍, 구멍 누르기 = 바로 그 구멍, 이동 중엔 입력 잠금
  * - Enter / 방노트 안 "땅굴 놀러가기" = 화면이 어두워진 뒤 그 땅굴로 (내 구멍이면 내 땅굴). 땅굴에서 탐색으로 나오면 어두운 화면에서 밝아짐. 두더지 옆 안내판 카드는 없앰(2026-11-20)
- * - 왼쪽 위: 단골 땅굴 · 오늘의 추천 친구(오늘 아직 안 받았으면 빨간 점) · 캠퍼스-층. 사다리를 눌러도 캠퍼스-층 고르기
+ * - 왼쪽 위: 단골 땅굴 · 추천 친구(= 오늘의 추천 친구 팝업, 오늘 아직 안 받았으면 빨간 점) · 캠퍼스-층. 사다리를 눌러도 캠퍼스-층 고르기
  * - 오른쪽 사이드바 "방노트" (2026-11-20, Figma 03 "사이드바 접힌 버전"): 들어오면 접혀 있고 오른쪽 위에 "방노트" 버튼만. 누르면 펼쳐져 가장 가까운(서 있는) 땅굴 주인 정보
  *   (닉네임·소속·자기소개·관심사·Q&A)와 "땅굴 놀러가기"가 들어 있고, "접기"로 다시 버튼만. 펼친 채 다른 구멍으로 가면 그 주인 정보로 바뀜
  *   아래 가운데: 내 땅굴 / 탐색, 왼쪽 아래: 내 땅굴로 돌아가기
@@ -219,7 +219,7 @@ export default function ExploreBurrow() {
         <div className={x.leftTools} data-fx-avoid="">
           <SceneButton tone="paper" onClick={() => setModal('regulars')}>단골 땅굴</SceneButton>
           <SceneButton tone="paper" onClick={() => setModal('recommend')}>
-            오늘의 추천 친구 {!recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
+            추천 친구 {!recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
           </SceneButton>
           <SceneButton tone="paper" onClick={() => setModal('floor')} aria-label={`지금 들판 ${floorLabel(floor)}. 캠퍼스-층 고르기`}>
             {floorLabel(floor)} <span aria-hidden className={x.caret}>▾</span>
