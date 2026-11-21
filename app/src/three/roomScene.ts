@@ -384,6 +384,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     for (const { c, node } of baseNodes) {
       const box = new THREE.Box3().setFromObject(node)
       if (box.min.y > 1) continue
+      if (box.max.y < 0.05) continue // 러그(높이 1.8cm)처럼 납작한 것은 걸어서 넘음 (v3.8.1 HANDOFF 3번: 발자리는 수납장·조명·큰 화분만)
       const data = node.userData.furniture as FurnitureData | undefined
       if (data?.seat && data.sitAt) data.seat.h = data.sitAt.getWorldPosition(new THREE.Vector3()).y
       // 방석처럼 앉는 낮은 가구는 발자리를 조금 작게 (앞까지 걸어와야 해서)

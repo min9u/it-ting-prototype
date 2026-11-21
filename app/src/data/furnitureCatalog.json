@@ -2,7 +2,7 @@
   {
     "id": "cushion_yellow",
     "name_ko": "노란 방석",
-    "glb": "room_base_v3.glb",
+    "glb": "room_base_v3_1.glb",
     "node": "cushion_yellow",
     "size_m": {
       "w": 0.54,
@@ -32,12 +32,12 @@
     "slot": null,
     "status": "built",
     "rz_deg": 90,
-    "glb_compressed": "room_base_v3_draco_webp.glb"
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
   },
   {
     "id": "cushion_sky",
     "name_ko": "하늘색 방석",
-    "glb": "room_base_v3.glb",
+    "glb": "room_base_v3_1.glb",
     "node": "cushion_sky",
     "size_m": {
       "w": 0.54,
@@ -66,12 +66,12 @@
     "sub_interest": null,
     "slot": null,
     "status": "built",
-    "glb_compressed": "room_base_v3_draco_webp.glb"
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
   },
   {
     "id": "ceiling_lamp",
     "name_ko": "천장 버섯 램프",
-    "glb": "room_base_v3.glb",
+    "glb": "room_base_v3_1.glb",
     "node": "ceiling_lamp",
     "size_m": {
       "w": 0.75,
@@ -94,12 +94,12 @@
     "sub_interest": null,
     "slot": null,
     "status": "built",
-    "glb_compressed": "room_base_v3_draco_webp.glb"
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
   },
   {
     "id": "round_table",
     "name_ko": "원탁 + 찻주전자·컵",
-    "glb": "room_base_v3.glb",
+    "glb": "room_base_v3_1.glb",
     "node": "round_table",
     "size_m": {
       "w": 0.72,
@@ -143,7 +143,127 @@
     "sub_interest": null,
     "slot": null,
     "status": "built",
-    "glb_compressed": "room_base_v3_draco_webp.glb"
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
+  },
+  {
+    "id": "cabinet_low",
+    "name_ko": "낮은 수납장 (위 작은 화분·책)",
+    "glb": "room_base_v3_1.glb",
+    "node": "cabinet_low",
+    "size_m": {
+      "w": 0.94,
+      "d": 0.42,
+      "h": 0.62
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.89,
+      -0.049,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "floor_lamp",
+    "name_ko": "스탠드 조명",
+    "glb": "room_base_v3_1.glb",
+    "node": "floor_lamp",
+    "size_m": {
+      "w": 0.52,
+      "d": 0.52,
+      "h": 1.4
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.85,
+      -0.88,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "floor_plant_big",
+    "name_ko": "큰 바닥 화분",
+    "glb": "room_base_v3_1.glb",
+    "node": "floor_plant_big",
+    "size_m": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 1.0
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.3,
+      0.28,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "rug_front_oval",
+    "name_ko": "앞쪽 작은 타원 러그",
+    "glb": "room_base_v3_1.glb",
+    "node": "rug_front_oval",
+    "size_m": {
+      "w": 0.9,
+      "d": 0.6,
+      "h": 0.018
+    },
+    "sit_point": null,
+    "pos_blender": [
+      0.0,
+      -1.85,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "rug_right_small",
+    "name_ko": "오른쪽 앞 작은 러그",
+    "glb": "room_base_v3_1.glb",
+    "node": "rug_right_small",
+    "size_m": {
+      "w": 0.5,
+      "d": 0.35,
+      "h": 0.018
+    },
+    "sit_point": null,
+    "pos_blender": [
+      1.92,
+      -2.3,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
   },
   {
     "id": "string_lights",

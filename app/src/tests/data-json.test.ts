@@ -149,10 +149,10 @@ describe('관심사 3D 연결 · furnitureCatalog · slots (3D 핸드오프 v3, 
     expect(new Set(SLOTS.map((s) => s.name)).size).toBe(SLOTS.length)
     expect(new Set([...CATS, ...SUBS].map((r) => r.id)).size).toBe(CATS.length + SUBS.length)
   })
-  it('v3.8: 카탈로그에는 기본 가구 · 장식 · 우체통만 있고(관심사 모델은 interest_words_v3_8.json), 침대 · 협탁은 없음', () => {
+  it('v3.8.1: 카탈로그에는 기본 가구(고정 장식 5개 포함) · 장식 · 우체통만 있고(관심사 모델은 interest_words_v3_8.json), 침대 · 협탁은 없음', () => {
     for (const r of CATALOG) expect(['base', 'deco', 'prop'], r.id).toContain(r.type)
-    expect(CATALOG.filter((r) => r.type === 'base').map((r) => r.id).sort()).toEqual(['ceiling_lamp', 'cushion_sky', 'cushion_yellow', 'round_table'])
-    for (const r of CATALOG.filter((r) => r.type === 'base')) expect(r.glb_compressed, r.id).toBe('room_base_v3_draco_webp.glb')
+    expect(CATALOG.filter((r) => r.type === 'base').map((r) => r.id).sort()).toEqual(['cabinet_low', 'ceiling_lamp', 'cushion_sky', 'cushion_yellow', 'floor_lamp', 'floor_plant_big', 'round_table', 'rug_front_oval', 'rug_right_small'])
+    for (const r of CATALOG.filter((r) => r.type === 'base')) expect(r.glb_compressed, r.id).toBe('room_base_v3_1_draco_webp.glb')
   })
   it('대분류 12개 최대 10개, 3D 세트(kit)는 벽지 · 블록 색용으로 남음', () => {
     for (const c of CATS) { expect(c.max_pick, c.id).toBe(10); expect(c.kit, c.id).toBeTruthy(); expect(c.furniture, c.id).toEqual([]) }
@@ -196,5 +196,32 @@ describe('wallpapers.json (v3.5.1)', () => {
   it('mood_map 의 카테고리 키는 3D 세트 id (관심사 대분류가 쓰는 kit, 차·커피만 "tea" 로 적혀 있어 앱이 따로 받음)', () => {
     const kits = CATS.map((c) => c.kit)
     for (const k of Object.keys(w.mood_map.by_category_id)) expect([...kits, 'tea'], k).toContain(k)
+  })
+})
+
+describe('room_base_v3_1 (3D 핸드오프 v3.8.1): 고정 장식 5개', () => {
+  const FIXED = ['cabinet_low', 'floor_lamp', 'floor_plant_big', 'rug_front_oval', 'rug_right_small']
+  const FS = 'node:fs'
+  it('고정 장식 5개가 base 행으로 있고 glb 노드 이름과 같음', () => {
+    for (const id of FIXED) {
+      const r = CATALOG.find((x) => x.id === id)
+      expect(r, id).toBeDefined()
+      expect(r!.type, id).toBe('base'); expect((r as unknown as { node: string }).node, id).toBe(id); expect(r!.status, id).toBe('built')
+      expect(r!.glb_compressed, id).toBe('room_base_v3_1_draco_webp.glb')
+    }
+  })
+  it('glb 파일 안에 5개 노드(fixed)와 조명 갓의 KHR_materials_emissive_strength 가 있고 옛 room_base_v3 파일은 없음', async () => {
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string): Uint8Array; existsSync(p: string): boolean }
+    const buf = fs.readFileSync('src/assets/models/room/room_base_v3_1_draco_webp.glb')
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+    const json = JSON.parse(new TextDecoder().decode(buf.subarray(20, 20 + dv.getUint32(12, true)))) as {
+      nodes: { name: string; extras?: { fixed?: boolean } }[]; scenes: { nodes: number[] }[]
+      materials: { name: string; extensions?: Record<string, { emissiveStrength?: number }> }[]; extensionsUsed: string[]
+    }
+    const roots = json.scenes[0].nodes.map((i) => json.nodes[i])
+    for (const id of FIXED) expect(roots.find((n) => n.name === id)?.extras?.fixed, id).toBe(true)
+    expect(json.extensionsUsed).toContain('KHR_materials_emissive_strength')
+    expect(json.materials.find((m) => m.name === 'M_lamp_shade')?.extensions?.KHR_materials_emissive_strength?.emissiveStrength).toBeGreaterThan(1)
+    expect(fs.existsSync('src/assets/models/room/room_base_v3_draco_webp.glb')).toBe(false)
   })
 })
