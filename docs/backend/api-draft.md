@@ -198,7 +198,7 @@ HTTP/1.1 409 Conflict
 | DELETE | `/chat/rooms/{roomId}/members/me` | — | 204 (대화 나가기) | 409 LEAVE_TOO_LATE (모임 방 = 참여 취소 규칙) | (실시간 작업) | |
 | PUT · DELETE | `/chat/rooms/{roomId}/notice` | `{ notice }` | 204 (주최자만) | 403 | (실시간 작업) | 모임 공지 |
 | GET | `/chat/requests` | `?status=PENDING` | `ChatRequestDto[]` (받은·보낸, 5일 안) | — | `requests` | 요청 탭 ✅ |
-| POST | `/chat/requests` | `{ receiverId, message(≤50), context }` | `ChatRequestDto` | 409 REQUEST_EXISTS·ROOM_EXISTS, 403 BLOCKED_USER | `sendRequest` | 방문자 뷰 ✅ |
+| POST | `/chat/requests` | `{ receiverId, message(≤50), context }` | `ChatRequestDto` | 409 REQUEST_EXISTS·ROOM_EXISTS·REQUEST_FROM_PEER, 403 BLOCKED_USER | `sendRequest` | 방문자 뷰 ✅ |
 | POST | `/chat/requests/{id}/accept` | — | `{ chatRoomId }` | 404, 410 REQUEST_EXPIRED | `acceptRequest` | 요청 탭 ✅ |
 | POST | `/chat/requests/{id}/decline` | — | 204 (상대에게 알리지 않음) | 404 | `declineRequest` | 요청 탭 ✅ |
 | DELETE | `/chat/requests/{id}` | — | 204 (보낸 요청 취소) | 404 | `cancelRequest` | 요청 탭 ✅ |
@@ -392,6 +392,7 @@ HTTP/1.1 404 Not Found
 | LEAVE_TOO_LATE · EDIT_TOO_LATE · MEETUP_STARTED · HOST_CANNOT_LEAVE · HAS_MEMBERS | 409 | 시간·역할 규칙 | 토스트 |
 | ALREADY_REPORTED | 409 | 같은 대상 두 번 신고 | "이미 신고했어요" |
 | REQUEST_EXISTS · ROOM_EXISTS | 409 | 대화 요청 중복 | "답변 기다리는 중" 으로 바꿈 |
+| REQUEST_FROM_PEER | 409 | 상대가 먼저 보낸 요청에 내가 아직 답하지 않음 (F6 11-20) | 토스트 "이 분이 먼저 대화를 요청했어요. 채팅 › 요청에서 답해 주세요." |
 | BLOCKED_USER | 403 | 차단 관계 | 토스트 |
 | ALREADY_DRAWN · NOT_DRAWN | 409 · 404 | 오늘의 추천 | 결과 화면 / 설정 화면 |
 

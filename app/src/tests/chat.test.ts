@@ -68,6 +68,25 @@ describe('대화 요청 (F6 요청 탭)', () => {
     C.sendRequest('yerin', '이미 대화 중') // r-yerin 방이 있음
     expect(C.sentRequestTo('yerin')).toBeUndefined()
   })
+  it('보낸 요청은 언제든 취소돼 목록에서 사라지고 다시 보낼 수 있음 (상대 거절 여부와 무관, 11-20)', () => {
+    C.sendRequest('park', '안녕하세요')
+    const q = C.sentRequestTo('park')!
+    expect(q).toBeDefined()
+    C.dropRequest(q.id)
+    expect(C.sentRequestTo('park')).toBeUndefined()
+    C.sendRequest('park', '다시 안녕하세요')
+    expect(C.sentRequestTo('park')?.message).toBe('다시 안녕하세요')
+  })
+  it('상대가 먼저 보낸 요청에 아직 답하지 않았으면 새 요청을 만들지 않음 (내가 거절해 없어진 뒤엔 가능)', () => {
+    const rcv = C.liveRequests().find((r) => r.direction === 'received')!
+    expect(C.receivedFrom(rcv.userId)?.id).toBe(rcv.id)
+    C.sendRequest(rcv.userId, '저도 인사해요')
+    expect(C.sentRequestTo(rcv.userId)).toBeUndefined()
+    C.dropRequest(rcv.id) // 내가 거절
+    expect(C.receivedFrom(rcv.userId)).toBeUndefined()
+    C.sendRequest(rcv.userId, '저도 인사해요')
+    expect(C.sentRequestTo(rcv.userId)?.message).toBe('저도 인사해요')
+  })
 })
 
 describe('대화방 (F6 1:1 · 모임 대화)', () => {
