@@ -103,7 +103,7 @@
 - 0개면 "전체 보기" 없이 안내 문구만: "작성된 방명록이 없어요. 돌아다니며 먼저 방명록을 남겨보세요. 다른 두더지가 찾아올지도 몰라요."
 - 6개부터 페이징, 한 페이지 최대 5개
 - 페이지가 6쪽 이상이면 한 칸씩 이동 버튼 + 맨 끝으로 가는 버튼 (페이지 번호는 5개씩 보임)
-- 7일 지나면 자동 삭제 (목 데이터에서는 7일 지난 글을 걸러서 흉내)
+- 7일 지나면 자동 삭제 (목 데이터에서는 7일 지난 글을 걸러서 흉내) ← 2026-11-21 명세로 없어짐 (자동 삭제 없음, 3명 신고하면 가려짐)
 - 모달의 각 줄에 "삭제 | 신고"
 - 미정: 프로필 사진을 누르면 그 사람 땅굴로 가는지
 
@@ -186,7 +186,7 @@ type Tone = 'sage'|'clay'|'butter'|'sky'|'lilac'|'rose'|'mint'|'sand'
 interface Category { id: string; name: string; emoji: string; tags: Tag[] }   // 11개
 interface Tag { id: string; name: string; count: number; categoryId: string }   // count 적을수록 니치
 interface User { id; nickname; affiliation /* SSAFY 16기 · 지역 · 0반 */; intro; interests: string[]; qna?: {q,a}[]; online?: boolean; visitorsNow?: number }
-interface GuestbookEntry { id; authorId; text; createdAt: string }   // 7일 지나면 숨김
+interface GuestbookEntry { id; authorId; text; createdAt: string }   // 7일 지나면 숨김 // 2026-11-21: 7일 숨김 없어짐. reporters 가 3명이면 숨김
 interface Post { id; category: '자유'|'정보'|'질문'|'모임 후기'; title; preview; body; authorId; createdAt; views; likes; comments: Comment[]; thumb? }
 interface Meetup { id; title; interest; date; startTime; endTime; place; mode: '오프라인'|'온라인'; capacity; members: string[]; hostId; status: '모집 중'|'마감'; intro; myStatus?: '참여 확정'|'신청 대기'|'내가 주최'|'찜' }
 interface ChatRoom { id; kind: 'dm'|'group'; partnerId?; meetupId?; state: 'pending'|'open'; messages: Message[]; unread }

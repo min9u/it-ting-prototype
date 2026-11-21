@@ -42,6 +42,8 @@ export interface GuestbookEntry {
   text: string
   /** ISO 8601 + 오프셋 ("2026-11-16T17:40:05+09:00"). 표시는 lib/time.ts */
   createdAt: string
+  /** 이 글을 신고한 서로 다른 사람들 (목 데이터. 3명이면 가려져 목록·글 수에서 빠짐 — 04 내 땅굴 "방명록 글이 만들어지고 없어지는 때") */
+  reporters?: string[]
 }
 
 /** 커뮤니티 글 카테고리 (Figma 02 F8: 모임 홍보 · 모임 후기 · 자유) */

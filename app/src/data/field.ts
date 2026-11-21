@@ -11,7 +11,6 @@
  */
 import { CATEGORIES, ME_ID, USERS } from './mock'
 import { getMyInterests } from './interests'
-import { QUESTIONS as QUESTION_CATALOG, questionOf } from './questions'
 import type { QnA, User } from './types'
 
 export interface FieldUser extends User {
@@ -257,71 +256,53 @@ export function setRegular(id: string, on: boolean) {
 }
 export const subscribeRegulars = (f: () => void) => { regSubs.add(f); return () => { regSubs.delete(f) } }
 
-/* 오늘의 추천 친구: 하루 한 번. 설정은 저장돼 다음 날에도 그대로 */
-/** 답이 궁금한 질문은 최대 3개 (2026-11-21 사용자 결정) */
-export const MAX_REC_QUESTIONS = 3
-export interface RecommendSettings {
-  interests: string[]
-  /** 답이 궁금한 질문 (질문 목록 data/questions 의 id, 최대 MAX_REC_QUESTIONS 개). 예전엔 질문 하나(문장)였음 */
-  questions: string[]
-  sameQuestionFirst: boolean
-  sameCampus: boolean
-  sameGen: boolean
-  sameFloor: boolean
-}
-/** 들판 이웃 Q&A 의 질문은 "Q1. 문장" 꼴 → 문장만 */
-const qText = (q: string) => q.replace(/^Q\d+\.\s*/, '')
-/** 처음 골라 둔 질문 (TMI "하루 동안 투명 인간이 된다면…") */
-const DEFAULT_REC_Q = ['tmi-1']
+/**
+ * 오늘의 추천 친구 (02 F5 "추천 친구 설정" 2 · 4, 2026-11-21 명세):
+ * 조건은 캠퍼스 · 층과 기수뿐이고 **고른 값은 저장하지 않음**(받을 때마다 다시 고름). 관심사 · 질문 같은 다른 조건은 없음.
+ * 뽑는 규칙: 고른 캠퍼스 · 층의 이번 학기 들판에 땅굴이 있고 기수가 같은 사람, 내가 단골로 담은 땅굴 주인은 뺌,
+ * 나에게 추천된 횟수가 적은 사람 먼저 (같으면 무작위), 최대 3명. 지금 보고 있는 들판과 관계없음. 추천은 하루 한 번
+ */
+export interface RecommendPick { campus: string; floor: number; gen: number }
 const REC_KEY = 'digul.recommend'
-interface RecState { settings: RecommendSettings; date: string | null; picks: string[] }
+interface RecState {
+  /** 오늘 받았으면 그 날짜 */
+  date: string | null
+  picks: string[]
+  /** 사람마다 나에게 추천된 횟수 (서버의 daily_recommendation_member 줄 수). 지난 날 결과도 지우지 않고 셈 */
+  counts: Record<string, number>
+}
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` }
 function recState(): RecState {
-  const myInt = me().interests
-  const st = load<RecState>(REC_KEY, {
-    settings: { interests: myInt.slice(0, 3), questions: DEFAULT_REC_Q, sameQuestionFirst: true, sameCampus: true, sameGen: true, sameFloor: false },
-    date: null, picks: [],
-  })
-  // 2026-11-21 전에 저장된 설정은 질문이 문장 하나(question)였음 → 질문 id 목록으로 옮김 (찾지 못하면 비움)
-  const old = st.settings as RecommendSettings & { question?: string | null }
-  if (!Array.isArray(old.questions)) {
-    const id = old.question ? QUESTION_CATALOG.find((q) => q.text === old.question)?.id : undefined
-    st.settings = { ...old, questions: id ? [id] : [] }
-    delete (st.settings as { question?: unknown }).question
-  }
-  // 3개로 정하기 전에 저장된 설정이 더 많이 골라 뒀으면 앞의 3개만
-  if (st.settings.questions.length > MAX_REC_QUESTIONS) st.settings = { ...st.settings, questions: st.settings.questions.slice(0, MAX_REC_QUESTIONS) }
-  return st
+  // 2026-11-21 전에 저장된 값에는 settings(관심사·질문·같은 캠퍼스…)가 들어 있었음 → 쓰지 않고, 다음에 저장할 때 사라짐
+  const st = load<Partial<RecState>>(REC_KEY, {})
+  return { date: st.date ?? null, picks: st.picks ?? [], counts: st.counts ?? {} }
 }
 let rec = recState()
-export const getRecommendSettings = () => rec.settings
-export function setRecommendSettings(s: RecommendSettings) { rec = { ...rec, settings: s }; save(REC_KEY, rec) }
 /** 오늘 이미 받았으면 그 3명 (id), 아니면 null */
 export const todaysPicks = (): string[] | null => (rec.date === today() ? rec.picks : null)
-/** 개발용: 오늘 받은 추천을 지움 (?recommend=reset) */
+/** 개발용: 오늘 받은 추천을 지움 (?recommend=reset). 추천 횟수는 그대로 */
 export function resetToday() { rec = { ...rec, date: null, picks: [] }; save(REC_KEY, rec) }
 
-/**
- * 추천 받기: 걸러 내지 않고 우선순위로 줄 세움 (02 F5 "추천 친구 설정" 2번)
- * 대상은 이번 학기 들판에 땅굴이 있는 사람 전부 (지금 보는 들판과 관계없음)
- */
-export function drawRecommendations(): string[] {
-  const s = rec.settings
-  const mine = me()
-  const pool = allCurrentFloors().flatMap((f) => fieldOf(f).residents).filter((r) => !r.mine).map((r) => r.user)
-  const r = rng(`rec#${today()}`)
-  const picked = s.questions.map((id) => questionOf(id)?.text).filter((t): t is string => !!t)
-  const score = (u: FieldUser) => {
-    let v = u.interests.filter((i) => s.interests.includes(i)).length * 3
-    v += u.interests.filter((i) => mine.interests.includes(i)).length
-    if (s.sameQuestionFirst && picked.length && u.qna?.some((x) => picked.includes(qText(x.q)))) v += 4
-    if (s.sameCampus && u.campus === mine.campus) v += 2
-    if (s.sameGen && u.gen === mine.gen) v += 1.5
-    if (s.sameFloor && u.campus === mine.campus && u.floor === mine.floor) v += 2
-    return v + r() * 1.5 // 같은 점수끼리는 날마다 섞임
-  }
-  const picks = pool.map((u) => ({ u, v: score(u) })).sort((a, b) => b.v - a.v).slice(0, 3).map((x) => x.u.id)
-  rec = { ...rec, date: today(), picks }
+/** 이 조건에 맞는 후보 (추천 순서는 정하기 전) */
+export function recommendPool(sel: RecommendPick): FieldUser[] {
+  const f: Floor = { id: floorId(CURRENT_TERM, sel.campus, sel.floor), term: CURRENT_TERM, campus: sel.campus, floor: sel.floor }
+  if (!CAMPUS_FLOORS.some((c) => c.campus === sel.campus && c.floors.includes(sel.floor))) return []
+  const regular = new Set(getRegulars())
+  return fieldOf(f).residents.filter((r) => !r.mine && r.user.gen === sel.gen && !regular.has(r.user.id)).map((r) => r.user)
+}
+
+/** 추천 받기. 오늘 이미 받았으면 그 결과를 그대로 (새로 뽑지 않음, 조건을 바꿔 다시 보내도 처음 결과) */
+export function drawRecommendations(sel: RecommendPick): string[] {
+  const done = todaysPicks()
+  if (done) return done
+  const r = rng(`rec#${today()}#${sel.campus}${sel.floor}#${sel.gen}`)
+  const picks = recommendPool(sel)
+    .map((u) => ({ id: u.id, n: rec.counts[u.id] ?? 0, tie: r() }))
+    .sort((a, b) => a.n - b.n || a.tie - b.tie)
+    .slice(0, 3).map((x) => x.id)
+  const counts = { ...rec.counts }
+  for (const id of picks) counts[id] = (counts[id] ?? 0) + 1
+  rec = { date: today(), picks, counts }
   save(REC_KEY, rec)
   return picks
 }

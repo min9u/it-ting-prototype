@@ -16,7 +16,7 @@ import {
 } from '../../data/myBurrow'
 import { roomLookOf } from '../../data/roomLook'
 import { USERS, ME_ID } from '../../data/mock'
-import { liveGuestbook } from '../../lib/format'
+import { visibleGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
 import MyInfoEdit, { INTRO_MAX, type EditDraft } from './MyInfoEdit'
 import DecorPanel, { type DecorTab } from './DecorPanel'
@@ -57,7 +57,7 @@ export default function MyBurrow() {
   const [focusSub, setFocusSub] = useState<string | null>(null)
   const [hintOn, setHintOn] = useState(params.get('hint') === '1')
   const [focusIntro, setFocusIntro] = useState(false)
-  const [entries, setEntries] = useState(() => (params.get('guestbook') === '0' ? [] : liveGuestbook(GUESTBOOK)))
+  const [entries, setEntries] = useState(() => (params.get('guestbook') === '0' ? [] : visibleGuestbook(GUESTBOOK)))
   const [allOpen, setAllOpen] = useState(params.get('modal') === 'guestbook')
   const [toast, setToast] = useState<ToastSpec | null>(null)
   /*
@@ -194,6 +194,8 @@ export default function MyBurrow() {
         onClose={() => setAllOpen(false)}
         entries={entries}
         onDelete={(id) => setEntries((list) => list.filter((g) => g.id !== id))}
+        // 내가 신고하면 신고한 사람에 내가 들어감 (같은 사람은 한 번). 서로 다른 3명이 되면 가려져 목록·글 수에서 빠짐
+        onReport={(id) => setEntries((list) => visibleGuestbook(list.map((g) => (g.id === id ? { ...g, reporters: [...new Set([...(g.reporters ?? []), ME_ID])] } : g))))}
       />
 
       <Toast open={!!toast} title={toast?.title ?? ''} desc={toast?.desc} onClose={() => setToast(null)} />

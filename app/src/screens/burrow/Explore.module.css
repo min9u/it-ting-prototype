@@ -135,51 +135,18 @@ button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
 .regOff:hover { background: rgba(138, 105, 74, .12); }
 
 /* 추천 설정 (863:133) */
-.recBox { margin-top: 18px; padding: 18px 20px; border-radius: 12px; background: var(--surface-item); display: flex; flex-direction: column; gap: 12px; }
-.recBox h3 { font-size: 17px; font-weight: 400; }
-.recRow { display: grid; grid-template-columns: 190px 1fr; align-items: start; gap: 8px; }
-.recRow > span { padding-top: 6px; font-size: 13px; color: var(--ink-700); }
-.recSwitchRow { align-items: center; }
-.recSwitchRow > span { padding-top: 0; }
-.opts { position: relative; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
-.opt, .optOn {
-  height: 28px; padding: 0 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
-  border: 1px solid transparent; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* 추천 친구 설정 (Figma 863:133): 라벨 + 칩 줄. 칩은 고르면 갈색 + ✓, 안 고르면 흰 바탕 테두리 (캠퍼스 · 층 · 기수, 한 줄에서 하나만) */
+.recSec { margin-top: 20px; }
+.recSec h3 { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.chip, .chipOn {
+  height: 32px; padding: 0 14px; border-radius: 16px; font-size: 13px; font-weight: 600; white-space: nowrap;
+  border: 1px solid var(--line-strong); background: #fffaf5; color: var(--ink-700);
 }
-.opt { background: #ece3f2; color: #5b4370; }
-.opt:hover { background: #e3d7ec; }
-.optOn { background: var(--brown-700); color: var(--on-brown); }
-/* "+ 질문 고르기": 테두리만 있는 칩 */
-.addQ { height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--cta); background: transparent; font-size: 12px; font-weight: 600; color: var(--cta); }
-.addQ:hover { background: rgba(200, 100, 55, .08); }
-/* 주황 켜고 끄기 스위치 */
-.switch, .switchOn { position: relative; width: 42px; height: 24px; border-radius: 12px; background: #d9c9b8; transition: background .15s; flex: none; }
-.switchOn { background: var(--cta); }
-.switch i, .switchOn i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(60, 35, 15, .25); transition: transform .15s; }
-.switchOn i { transform: translateX(18px); }
-@media (prefers-reduced-motion: reduce) { .switch, .switchOn, .switch i, .switchOn i { transition: none; } }
-.recNotice { margin-top: 12px; padding: 11px 14px; border-radius: 8px; background: #f4e6d8; font-size: 12px; line-height: 1.6; color: var(--ink-700); }
+.chip:hover { background: #f6ebdf; }
+.chipOn { background: var(--brown-700); border-color: var(--brown-700); color: var(--on-brown); }
+.recNotice { margin-top: 22px; padding: 11px 14px; border-radius: 8px; background: #f4e6d8; font-size: 12px; line-height: 1.6; color: var(--ink-700); }
 .recDraw { margin-top: 14px; height: 46px; font-size: 15px; }
-
-/* 질문 고르기 (1265:35509) */
-.qTabs { margin-top: 16px; display: flex; gap: 6px; }
-.qTab, .qTabOn { height: 30px; padding: 0 14px; border-radius: 15px; border: 1px solid var(--line-strong); background: #fffaf5; font-family: var(--font-display); font-size: 13px; color: var(--ink-700); }
-.qTabOn { background: var(--brown-700); border-color: var(--brown-700); color: var(--on-brown); }
-.qPick { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 330px; overflow-y: auto; padding: 2px; }
-.qRow, .qRowOn {
-  width: 100%; min-height: 54px; padding: 8px 14px; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-align: left;
-  background: #f6ebdf; border: 1.5px solid transparent; color: var(--ink-900);
-}
-.qRow:hover { background: #f1e1d0; }
-.qRowOn { background: #fffaf5; border-color: var(--cta); }
-.qText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.qText small { font-size: 11px; color: var(--ink-500); }
-.qText strong { font-size: 14px; font-weight: 600; line-height: 1.4; }
-.qState, .qStateOn { flex: none; height: 26px; padding: 0 10px; border-radius: 13px; display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; }
-.qState { color: var(--cta); }
-.qStateOn { background: var(--cta); color: #fff8f0; }
-.qFoot { margin-top: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-700); }
-.qFoot :global(.btn) { height: 42px; padding: 0 22px; }
 
 /* 추천 결과 카드 (761:3795, 뒤집기 765:3619) */
 .cardHint { margin-top: 12px; display: inline-block; padding: 4px 10px; border-radius: 6px; background: #f4e6d8; font-size: 12px; color: var(--ink-700); }
