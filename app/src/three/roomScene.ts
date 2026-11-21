@@ -21,7 +21,7 @@ import { getCachedStill, peekCachedStill, putCachedStill } from './stills'
 import { waitGpu, warmScene } from './warm'
 import { ROOM_FRAME } from './roomFrame'
 import { WALLPAPER_REPEAT, tileUrl, wallpaperOf } from '../data/wallpapers'
-import { applyChoice, moodWallpaper, type FurnChoice } from '../data/myBurrow'
+import { moodWallpaper, type FurnChoice } from '../data/myBurrow'
 import { interestCatOf, subOf } from '../data/interests'
 import { createStyler, type Styler } from './roomStyle'
 import { STYLE_VERSION, type RoomStyle } from '../data/roomStyle'
@@ -447,7 +447,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
 
   // 관심사 → 가구 배치 (data/roomPlan.ts). 진짜 모델이 있는 행의 glb 만 받음
   let furnChoice: FurnChoice = { ...(opts.furniture ?? {}) }
-  const plan = applyChoice(planRoom(opts.interests ?? []), furnChoice)
+  const plan = planRoom(opts.interests ?? [], furnChoice) // v3.8: 소분류마다 단어 하나 (고른 값 furnChoice 는 단어, 모르는 값은 첫 단어)
   // 벽지: 화면이 정해 넘긴 값(data/roomLook.ts roomLookOf). 안 넘긴 화면(시작 화면 등)은 같은 규칙(대표 관심사의 대분류)으로
   const wall = wallpaperOf(opts.wallpaper ?? moodWallpaper(opts.interests ?? []))
   // 시험·비교 도구가 읽는 값 (tools/room-diversity: 내 땅굴과 방문자 뷰가 같은 방 모습인지). Worker(D)에는 window 가 없어서 globalThis
@@ -633,7 +633,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       host = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(.75, FLOOR_Y, .7), yaw: -.45, drop: false, lookEvery: [5, 11], floorY: FLOOR_Y, acc, worn: opts.hostWorn, simple: simpleMole })
       scene.add(host.object)
     }
-    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, 0), clamp: clampRoom, nav, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
+    mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, .85), clamp: clampRoom, nav, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     // 땅굴 비교 찍기용 (?nomole=1, tools/room-diversity, docs/room-diversity-2026-11-18.md): 두더지 두 마리를 숨기고 방만. 발밑 그림자는 루프가 따라 숨김.

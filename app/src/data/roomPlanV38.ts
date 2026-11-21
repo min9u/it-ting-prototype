@@ -13,7 +13,7 @@
  * 낙하(5번): 바닥 공용은 모델 키 h 이상인 첫 max_h 줄의 mode · H · S · dust. 선반 · 벽 · 동물은 슬롯의 drop(pop)
  */
 import bigRaw from './big_model_sizes_v3_8.json'
-import slotsRaw from './slots_v3_8.json'
+import slotsRaw from './slots.json'
 import { defaultWord, wordsOfSub, type WordDef } from './interestWords'
 import type { DropSpec, Size, Slot } from './roomPlan'
 

@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import wordsRaw from '../data/interest_words_v3_8.json'
-import slotsNew from '../data/slots_v3_8.json'
+import slotsNew from '../data/slots.json'
 import { TAG_TREE } from '../data/interestTags'
 import { JSON_TO_APP_CATEGORY, SUB_WORDS, WORD_MAX_PICK, WORD_MODEL_FILES, defaultWord, isPickable, wordModelFile, wordsOfSub } from '../data/interestWords'
 import { MAX_PICK } from '../data/interestTags'
@@ -95,7 +95,7 @@ describe('관심사 v3.8 단어 데이터', () => {
   })
 })
 
-describe('slots_v3_8.json (옆에 둔 새 슬롯, 아직 앱에서 안 씀)', () => {
+describe('slots.json (v3.8 슬롯 49개)', () => {
   const rows = slotsNew as unknown as { name: string; slot_type: string; kind: string; drop_by_height?: unknown[] }[]
   it('49개: 바닥 공용 20 + 벽 공용 4 + 선반 12 + 동물 5 + 용품 5 + 앞 구석 2 + 우체통 1', () => {
     expect(rows).toHaveLength(49)

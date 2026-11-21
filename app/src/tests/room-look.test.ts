@@ -65,10 +65,10 @@ describe('같은 사람은 내 땅굴과 방문자 뷰가 같은 방', () => {
     expect(await visitLook(ME_ID)).toEqual(myLook())
   })
   it('꾸미기에서 고른 가구 · 직접 고른 벽지 · 색 테마가 방문자 뷰에 그대로', async () => {
-    const mine = I.getMyInterests(USERS[ME_ID].interests)
-    // 내 관심사 중 가구 후보가 둘 이상인 것 하나를 두 번째 후보로 바꿈
-    const sub = mine.map((n) => INTEREST_SUBS.find((s) => s.name_ko === n)!).find((s) => M.furnitureCandidates(s.id, mine).length > 1)!
-    const alt = M.furnitureCandidates(sub.id, mine)[1].id
+    // v3.8: "/"로 묶인 소분류는 단어 중 하나를 고름. 그 소분류 하나를 두 번째 단어로 바꿈
+    I.setMyInterests(['카페/커피', '주류/와인/위스키', '영화'])
+    const sub = INTEREST_SUBS.find((s) => s.name_ko === '카페/커피')!
+    const alt = M.wordChoices(sub.id)[1]
     M.setMyFurnChoice({ [sub.id]: alt })
     M.setMyRoomPick({ wallpaperId: 'wallpaper_02_stars', themeId: 'cat_game' })
     const v = await visitLook(ME_ID)
@@ -88,7 +88,7 @@ describe('같은 사람은 내 땅굴과 방문자 뷰가 같은 방', () => {
     expect(auto.wallpaper).toBe(wallpaperForCategory(L.leadCategoryOf(USERS.yerin.interests) ?? undefined))
   })
   it('관심사를 바꾸면 계산 값이 따라가고(저장 안 함), 뺀 관심사의 가구는 사라짐', async () => {
-    const book = subsOf('book').filter((s) => s.prop).slice(0, 3).map((s) => s.name_ko)
+    const book = subsOf('book').slice(0, 3).map((s) => s.name_ko)
     M.setMyFurnChoice({ [INTEREST_SUBS.find((s) => s.name_ko === I.getMyInterests(USERS[ME_ID].interests)[1])!.id]: 'whatever' })
     I.setMyInterests(book)
     const v = await visitLook(ME_ID)
@@ -108,28 +108,29 @@ describe('저장한 방 값 검사 (api/mappers toSavedRoom → roomLookOf)', ()
   const dto = (room: RoomLayoutDto | null, names: string[]) => ({
     id: 'b-u1', owner: owner(names), entrance: null, regular: false, regularCount: 0, visitorsNow: 0, chatRoomId: null, pendingRequestId: null, room,
   }) as unknown as BurrowDto
-  const names = subsOf('game').filter((s) => s.slot_kind === 'shelf').slice(0, 3).map((s) => s.name_ko)
+  const names = ['카페/커피', '영화', '축구'] // 카페/커피 = 단어 고르기(카페 · 커피)
 
   it('저장한 게 없으면 null → 계산', () => {
     expect(P.toBurrow(dto(null, names)).room).toBeNull()
   })
   it('모르는 벽지 id 는 버리고 계산 값', () => {
     const b = P.toBurrow(dto({ schemaVersion: 1, wallpaperId: 'wallpaper_99_none', furniture: {} }, names))
-    expect(L.roomLookOf(b.owner.id, b.owner.interests, b.room).wallpaper).toBe(wallpaperForCategory('game'))
+    expect(L.roomLookOf(b.owner.id, b.owner.interests, b.room).wallpaper).toBe(wallpaperForCategory('food'))
   })
-  it('관심사에 없는 가구 선택 · 후보가 아닌 가구는 버림, 후보는 남김', () => {
+  it('관심사에 없는 선택 · 고를 수 없는 단어는 버림, 고를 수 있는 단어는 남김 (v3.8)', () => {
     const first = INTEREST_SUBS.find((s) => s.name_ko === names[0])!
-    const cand = M.furnitureCandidates(first.id, names)
-    const b = P.toBurrow(dto({ schemaVersion: 1, wallpaperId: null, furniture: { [first.id]: cand.at(-1)!.id, cafe_coffee: 'drip_kettle', [INTEREST_SUBS.find((s) => s.name_ko === names[1])!.id]: 'piano' } }, names))
+    const cand = M.wordChoices(first.id)
+    // 영화는 한 단어(고정)라 고를 게 없음, 모르는 단어 · 관심사에 없는 소분류도 버림
+    const b = P.toBurrow(dto({ schemaVersion: 1, wallpaperId: null, furniture: { [first.id]: cand.at(-1)!, [INTEREST_SUBS.find((s) => s.name_ko === names[1])!.id]: '영화', baseball: '야구' } }, names))
     const look = L.roomLookOf(b.owner.id, b.owner.interests, b.room)
-    expect(look.furniture).toEqual(cand.length > 1 ? { [first.id]: cand.at(-1)!.id } : {})
+    expect(look.furniture).toEqual({ [first.id]: cand.at(-1)! })
   })
   it('관심사마다 온 member_interest.furniture 도 받음 (interestId 가 숫자여도 이름으로 찾음)', () => {
     const first = INTEREST_SUBS.find((s) => s.name_ko === names[0])!
-    const cand = M.furnitureCandidates(first.id, names)
+    const cand = M.wordChoices(first.id)
     const d = dto(null, names)
-    d.owner.interests[0].furniture = cand.at(-1)!.id
+    d.owner.interests[0].furniture = cand.at(-1)!
     const b = P.toBurrow(d)
-    expect(b.room?.furniture).toEqual({ [first.id]: cand.at(-1)!.id })
+    expect(b.room?.furniture).toEqual({ [first.id]: cand.at(-1)! })
   })
 })
