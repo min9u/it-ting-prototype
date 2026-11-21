@@ -9,7 +9,7 @@ import { conflict, mockRead, mockWrite, notFound } from './mock/server'
 import { chatRequestDto, chatRoomSummary } from './mock/serialize'
 import { accountStore } from '../data/account'
 import {
-  acceptRequest, dmRoomWith, dropRequest, getChatState, liveRequests, roomTitle, sendRequest, sentRequestTo,
+  acceptRequest, dmRoomWith, dropRequest, getChatState, liveRequests, receivedFrom, roomTitle, sendRequest, sentRequestTo,
 } from '../data/chat'
 import type { AcceptChatRequestResponse, ChatRequestDto, ChatRoomSummaryDto, ChatRoomType, Id } from './types'
 
@@ -53,6 +53,8 @@ const mock: ChatApi = {
   sendRequest: (receiverId, message, context) => mockWrite(() => {
     if (dmRoomWith(receiverId)) throw conflict('ROOM_EXISTS', '이미 대화방이 있어요.')
     if (sentRequestTo(receiverId)) throw conflict('REQUEST_EXISTS', '이미 대화를 요청했어요.')
+    // 상대가 먼저 보낸 요청에 아직 답하지 않았으면 새 요청을 만들지 않고 알림(토스트)으로 안내
+    if (receivedFrom(receiverId)) throw conflict('REQUEST_FROM_PEER', '이 분이 먼저 대화를 요청했어요. 채팅 › 요청에서 답해 주세요.')
     sendRequest(receiverId, message, context === 'BURROW_VISIT' ? '땅굴에 다녀갔어요' : context === 'SAME_MEETUP' ? '같은 모임 참여 예정' : undefined)
     return chatRequestDto(sentRequestTo(receiverId)!)
   }),
