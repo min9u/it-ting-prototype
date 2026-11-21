@@ -1,0 +1,1876 @@
+{
+ "max_pick": 10,
+ "categories": [
+  {
+   "id": "food",
+   "emoji": "🍽️",
+   "name": "음식·음료",
+   "subs": [
+    {
+     "tag": "맛집탐방",
+     "words": [
+      {
+       "word": "맛집탐방",
+       "node": "ramen_bowl",
+       "pet": null,
+       "name": "라멘 그릇",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "카페/커피",
+     "words": [
+      {
+       "word": "카페",
+       "node": "espresso_machine",
+       "pet": null,
+       "name": "에스프레소 머신",
+       "size": "작은",
+       "status": "되살림"
+      },
+      {
+       "word": "커피",
+       "node": "drip_kettle",
+       "pet": null,
+       "name": "핸드드립 세트",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "주류/와인/위스키",
+     "words": [
+      {
+       "word": "주류",
+       "node": "beer_set",
+       "pet": null,
+       "name": "맥주병과 잔",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "와인",
+       "node": "wine_set",
+       "pet": null,
+       "name": "와인 세트",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "위스키",
+       "node": "whiskey_set",
+       "pet": null,
+       "name": "위스키와 온더록 잔",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "다이어트/건강식",
+     "words": [
+      {
+       "word": "다이어트",
+       "node": "bathroom_scale",
+       "pet": null,
+       "name": "체중계와 줄자",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "건강식",
+       "node": "salad_bowl",
+       "pet": null,
+       "name": "샐러드 볼",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "요리/레시피",
+     "words": [
+      {
+       "word": "요리",
+       "node": "kitchen_counter",
+       "pet": null,
+       "name": "주방 조리대",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "레시피",
+       "node": "recipe_book",
+       "pet": null,
+       "name": "레시피 책",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "베이킹/디저트",
+     "words": [
+      {
+       "word": "베이킹",
+       "node": "baking_set",
+       "pet": null,
+       "name": "베이킹 세트",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "디저트",
+       "node": "cake_stand",
+       "pet": null,
+       "name": "케이크 스탠드",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "차/다도",
+     "words": [
+      {
+       "word": "차",
+       "node": "tea_tins",
+       "pet": null,
+       "name": "홍차 틴",
+       "size": "작은",
+       "status": "되살림"
+      },
+      {
+       "word": "다도",
+       "node": "tea_bowl_set",
+       "pet": null,
+       "name": "다도 세트",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_food_v3_8.glb",
+   "glb_compressed": "models/interest_food_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "sports",
+   "emoji": "🏃",
+   "name": "스포츠",
+   "subs": [
+    {
+     "tag": "헬스/필라테스/요가",
+     "words": [
+      {
+       "word": "헬스",
+       "node": "dumbbell_tower",
+       "pet": null,
+       "name": "덤벨 타워",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "필라테스",
+       "node": "gym_ball",
+       "pet": null,
+       "name": "짐볼",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "요가",
+       "node": "yoga_mat",
+       "pet": null,
+       "name": "요가 매트",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "러닝/마라톤",
+     "words": [
+      {
+       "word": "러닝",
+       "node": "running_shoes",
+       "pet": null,
+       "name": "러닝화",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "마라톤",
+       "node": "marathon_medal",
+       "pet": null,
+       "name": "완주 메달과 배번",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "클라이밍",
+     "words": [
+      {
+       "word": "클라이밍",
+       "node": "chalk_bag",
+       "pet": null,
+       "name": "초크 가방",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "축구",
+     "words": [
+      {
+       "word": "축구",
+       "node": "soccer_ball",
+       "pet": null,
+       "name": "축구공",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "야구",
+     "words": [
+      {
+       "word": "야구",
+       "node": "baseball_glove",
+       "pet": null,
+       "name": "야구 글러브",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "농구/배구/구기",
+     "words": [
+      {
+       "word": "농구",
+       "node": "basketball",
+       "pet": null,
+       "name": "농구공",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "배구",
+       "node": "volleyball",
+       "pet": null,
+       "name": "배구공",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "구기",
+       "node": "ball_basket",
+       "pet": null,
+       "name": "공 바구니",
+       "size": "큰",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "탁구/테니스/배드민턴",
+     "words": [
+      {
+       "word": "탁구",
+       "node": "pingpong_set",
+       "pet": null,
+       "name": "탁구 라켓과 공",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "테니스",
+       "node": "tennis_racket",
+       "pet": null,
+       "name": "테니스 라켓",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "배드민턴",
+       "node": "badminton_set",
+       "pet": null,
+       "name": "배드민턴 라켓과 셔틀콕",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "당구/포켓볼/볼링",
+     "words": [
+      {
+       "word": "당구",
+       "node": "billiard_set",
+       "pet": null,
+       "name": "큐와 당구공 3개",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "포켓볼",
+       "node": "pool_rack",
+       "pet": null,
+       "name": "번호공과 삼각 틀",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "볼링",
+       "node": "bowling_pin",
+       "pet": null,
+       "name": "볼링핀과 공",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "스키/보드",
+     "words": [
+      {
+       "word": "스키",
+       "node": "ski_set",
+       "pet": null,
+       "name": "스키와 폴",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "보드",
+       "node": "snowboard",
+       "pet": null,
+       "name": "스노보드",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "격투기/무술",
+     "words": [
+      {
+       "word": "격투기",
+       "node": "boxing_gloves",
+       "pet": null,
+       "name": "권투 글러브",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "무술",
+       "node": "martial_belt",
+       "pet": null,
+       "name": "도복과 검은 띠",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "수상레저",
+     "words": [
+      {
+       "word": "수상레저",
+       "node": "swim_ring",
+       "pet": null,
+       "name": "튜브",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_sports_v3_8.glb",
+   "glb_compressed": "models/interest_sports_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "culture",
+   "emoji": "🎬",
+   "name": "문화생활",
+   "subs": [
+    {
+     "tag": "영화",
+     "words": [
+      {
+       "word": "영화",
+       "node": "projector",
+       "pet": null,
+       "name": "영사기",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "드라마/예능",
+     "words": [
+      {
+       "word": "드라마",
+       "node": "vhs_tapes",
+       "pet": null,
+       "name": "VHS 테이프",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "예능",
+       "node": "tv",
+       "pet": null,
+       "name": "TV와 벽 선반",
+       "size": "벽",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "애니메이션",
+     "words": [
+      {
+       "word": "애니메이션",
+       "node": "clapperboard",
+       "pet": null,
+       "name": "클래퍼보드",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "콘서트/페스티벌",
+     "words": [
+      {
+       "word": "콘서트",
+       "node": "light_stick",
+       "pet": null,
+       "name": "응원봉",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "페스티벌",
+       "node": "festival_band",
+       "pet": null,
+       "name": "페스티벌 팔찌와 깃발",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "미술관/전시",
+     "words": [
+      {
+       "word": "미술관",
+       "node": "gallery_rope",
+       "pet": null,
+       "name": "전시 차단봉",
+       "size": "큰",
+       "status": "새로"
+      },
+      {
+       "word": "전시",
+       "node": "art_frame_stand",
+       "pet": null,
+       "name": "액자 스탠드",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "연극/뮤지컬",
+     "words": [
+      {
+       "word": "연극",
+       "node": "theater_mask",
+       "pet": null,
+       "name": "연극 가면",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "뮤지컬",
+       "node": "playbill",
+       "pet": null,
+       "name": "뮤지컬 프로그램북과 티켓",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "사주/타로",
+     "words": [
+      {
+       "word": "사주",
+       "node": "saju_book",
+       "pet": null,
+       "name": "사주 책과 만세력",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "타로",
+       "node": "tarot_set",
+       "pet": null,
+       "name": "타로 카드와 수정구",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_culture_v3_8.glb",
+   "glb_compressed": "models/interest_culture_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "game",
+   "emoji": "🎮",
+   "name": "게임",
+   "subs": [
+    {
+     "tag": "PC게임",
+     "words": [
+      {
+       "word": "PC게임",
+       "node": "mech_keyboard",
+       "pet": null,
+       "name": "기계식 키보드",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "모바일게임",
+     "words": [
+      {
+       "word": "모바일게임",
+       "node": "mobile_game",
+       "pet": null,
+       "name": "게임 중인 폰",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "보드게임",
+     "words": [
+      {
+       "word": "보드게임",
+       "node": "board_game_box",
+       "pet": null,
+       "name": "보드게임",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "방탈출/추리",
+     "words": [
+      {
+       "word": "방탈출",
+       "node": "escape_box",
+       "pet": null,
+       "name": "자물쇠 상자",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "추리",
+       "node": "magnifier_lock",
+       "pet": null,
+       "name": "돋보기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "콘솔게임",
+     "words": [
+      {
+       "word": "콘솔게임",
+       "node": "game_console",
+       "pet": null,
+       "name": "게임기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "VR/아케이드",
+     "words": [
+      {
+       "word": "VR",
+       "node": "vr_headset",
+       "pet": null,
+       "name": "VR 헤드셋",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "아케이드",
+       "node": "arcade",
+       "pet": null,
+       "name": "오락기",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "큐브/퍼즐/두뇌",
+     "words": [
+      {
+       "word": "큐브",
+       "node": "speed_cube",
+       "pet": null,
+       "name": "스피드큐브",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "퍼즐",
+       "node": "jigsaw_puzzle",
+       "pet": null,
+       "name": "직소 퍼즐",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "두뇌",
+       "node": "sudoku_book",
+       "pet": null,
+       "name": "스도쿠 책",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "바둑/장기/체스",
+     "words": [
+      {
+       "word": "바둑",
+       "node": "baduk_set",
+       "pet": null,
+       "name": "바둑판과 돌",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "장기",
+       "node": "janggi_set",
+       "pet": null,
+       "name": "장기판과 알",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "체스",
+       "node": "chess_set",
+       "pet": null,
+       "name": "체스",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_game_v3_8.glb",
+   "glb_compressed": "models/interest_game_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "music",
+   "emoji": "🎵",
+   "name": "음악·댄스",
+   "subs": [
+    {
+     "tag": "K-POP",
+     "words": [
+      {
+       "word": "K-POP",
+       "node": "kpop_album",
+       "pet": null,
+       "name": "K-POP 앨범",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "팝송/해외음악",
+     "words": [
+      {
+       "word": "팝송",
+       "node": "vintage_radio",
+       "pet": null,
+       "name": "빈티지 라디오",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "해외음악",
+       "node": "speaker",
+       "pet": null,
+       "name": "스피커",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "JPOP/OST",
+     "words": [
+      {
+       "word": "JPOP",
+       "node": "cassette_walkman",
+       "pet": null,
+       "name": "카세트 워크맨",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "OST",
+       "node": "ost_cd",
+       "pet": null,
+       "name": "OST CD와 헤드폰",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "힙합/락",
+     "words": [
+      {
+       "word": "힙합",
+       "node": "boombox",
+       "pet": null,
+       "name": "붐박스",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "락",
+       "node": "mini_amp",
+       "pet": null,
+       "name": "미니 앰프",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "재즈/클래식",
+     "words": [
+      {
+       "word": "재즈",
+       "node": "trumpet",
+       "pet": null,
+       "name": "트럼펫",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "클래식",
+       "node": "metronome",
+       "pet": null,
+       "name": "메트로놈",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "댄스/무용",
+     "words": [
+      {
+       "word": "댄스",
+       "node": "disco_ball",
+       "pet": null,
+       "name": "미러볼",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "무용",
+       "node": "dance_shoes",
+       "pet": null,
+       "name": "댄스화",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "보컬",
+     "words": [
+      {
+       "word": "보컬",
+       "node": "microphone",
+       "pet": null,
+       "name": "스탠드 마이크",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "기타/베이스/일렉",
+     "words": [
+      {
+       "word": "기타",
+       "node": "guitar",
+       "pet": null,
+       "name": "어쿠스틱 기타",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "베이스",
+       "node": "bass_guitar",
+       "pet": null,
+       "name": "베이스 기타",
+       "size": "큰",
+       "status": "새로"
+      },
+      {
+       "word": "일렉",
+       "node": "electric_guitar",
+       "pet": null,
+       "name": "일렉 기타",
+       "size": "큰",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "피아노/건반",
+     "words": [
+      {
+       "word": "피아노",
+       "node": "piano",
+       "pet": null,
+       "name": "피아노",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "건반",
+       "node": "mini_synth",
+       "pet": null,
+       "name": "미니 신디사이저",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "드럼/관현악기",
+     "words": [
+      {
+       "word": "드럼",
+       "node": "snare_drum",
+       "pet": null,
+       "name": "스네어 드럼",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "관현악기",
+       "node": "violin",
+       "pet": null,
+       "name": "바이올린",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "작곡/미디/DJ",
+     "words": [
+      {
+       "word": "작곡",
+       "node": "music_stand",
+       "pet": null,
+       "name": "보면대와 악보",
+       "size": "큰",
+       "status": "새로"
+      },
+      {
+       "word": "미디",
+       "node": "midi_pad",
+       "pet": null,
+       "name": "미디 패드",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "DJ",
+       "node": "dj_controller",
+       "pet": null,
+       "name": "DJ 컨트롤러",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_music_v3_8.glb",
+   "glb_compressed": "models/interest_music_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "outdoor",
+   "emoji": "🏕️",
+   "name": "아웃도어",
+   "subs": [
+    {
+     "tag": "국내여행",
+     "words": [
+      {
+       "word": "국내여행",
+       "node": "travel_map",
+       "pet": null,
+       "name": "접는 지도",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "해외여행",
+     "words": [
+      {
+       "word": "해외여행",
+       "node": "suitcase",
+       "pet": null,
+       "name": "캐리어",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "등산/트레킹",
+     "words": [
+      {
+       "word": "등산",
+       "node": "backpack",
+       "pet": null,
+       "name": "배낭",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "트레킹",
+       "node": "trekking_poles",
+       "pet": null,
+       "name": "트레킹 폴",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "캠핑/글램핑",
+     "words": [
+      {
+       "word": "캠핑",
+       "node": "camp_chair",
+       "pet": null,
+       "name": "캠핑 의자",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "글램핑",
+       "node": "camping_lantern",
+       "pet": null,
+       "name": "캠핑 랜턴",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "자전거/바이크/드라이브",
+     "words": [
+      {
+       "word": "자전거",
+       "node": "bike_rack_wall",
+       "pet": null,
+       "name": "벽걸이 자전거",
+       "size": "벽",
+       "status": "기존"
+      },
+      {
+       "word": "바이크",
+       "node": "bike_helmet",
+       "pet": null,
+       "name": "헬멧",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "드라이브",
+       "node": "toy_car",
+       "pet": null,
+       "name": "장난감 자동차",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "낚시",
+     "words": [
+      {
+       "word": "낚시",
+       "node": "fishing_rod",
+       "pet": null,
+       "name": "낚싯대와 태클박스",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_outdoor_v3_8.glb",
+   "glb_compressed": "models/interest_outdoor_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "self_dev",
+   "emoji": "📚",
+   "name": "외국어·자기계발",
+   "subs": [
+    {
+     "tag": "영어",
+     "words": [
+      {
+       "word": "영어",
+       "node": "flag_book_en",
+       "pet": null,
+       "name": "영어 책과 국기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "일본어",
+     "words": [
+      {
+       "word": "일본어",
+       "node": "flag_book_ja",
+       "pet": null,
+       "name": "일본어 책과 국기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "중국어",
+     "words": [
+      {
+       "word": "중국어",
+       "node": "flag_book_zh",
+       "pet": null,
+       "name": "중국어 책과 국기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "스페인어",
+     "words": [
+      {
+       "word": "스페인어",
+       "node": "flag_book_es",
+       "pet": null,
+       "name": "스페인어 책과 국기",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "기타언어",
+     "words": [
+      {
+       "word": "기타언어",
+       "node": "globe",
+       "pet": null,
+       "name": "지구본",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "금융/투자/재테크",
+     "words": [
+      {
+       "word": "금융",
+       "node": "calculator_ledger",
+       "pet": null,
+       "name": "계산기와 장부",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "투자",
+       "node": "stock_chart",
+       "pet": null,
+       "name": "주식 차트 액자",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "재테크",
+       "node": "piggy_bank",
+       "pet": null,
+       "name": "돼지 저금통",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "봉사",
+     "words": [
+      {
+       "word": "봉사",
+       "node": "volunteer_box",
+       "pet": null,
+       "name": "하트 기부함",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_self_dev_v3_8.glb",
+   "glb_compressed": "models/interest_self_dev_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "book",
+   "emoji": "📖",
+   "name": "책·글",
+   "subs": [
+    {
+     "tag": "소설",
+     "words": [
+      {
+       "word": "소설",
+       "node": "sf_books",
+       "pet": null,
+       "name": "소설책",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "시/에세이",
+     "words": [
+      {
+       "word": "시",
+       "node": "poetry_book",
+       "pet": null,
+       "name": "시집과 깃펜",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "에세이",
+       "node": "book_stack",
+       "pet": null,
+       "name": "책 더미",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "웹툰/만화",
+     "words": [
+      {
+       "word": "웹툰",
+       "node": "webtoon_phone",
+       "pet": null,
+       "name": "웹툰 보는 폰",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "만화",
+       "node": "comic_stack",
+       "pet": null,
+       "name": "만화책",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "웹소설",
+     "words": [
+      {
+       "word": "웹소설",
+       "node": "ebook_tablet",
+       "pet": null,
+       "name": "전자책 태블릿",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "시사/경제",
+     "words": [
+      {
+       "word": "시사",
+       "node": "newspaper",
+       "pet": null,
+       "name": "신문",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "경제",
+       "node": "economy_magazine",
+       "pet": null,
+       "name": "경제 잡지",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "역사/철학/인문",
+     "words": [
+      {
+       "word": "역사",
+       "node": "old_scroll",
+       "pet": null,
+       "name": "고문서 두루마리",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "철학",
+       "node": "bust_statue",
+       "pet": null,
+       "name": "석고 흉상",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "인문",
+       "node": "bookshelf",
+       "pet": null,
+       "name": "책장",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "글쓰기/필사/블로그",
+     "words": [
+      {
+       "word": "글쓰기",
+       "node": "typewriter",
+       "pet": null,
+       "name": "타자기",
+       "size": "작은",
+       "status": "되살림"
+      },
+      {
+       "word": "필사",
+       "node": "writing_notebook",
+       "pet": null,
+       "name": "필사 노트",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "블로그",
+       "node": "laptop_blog",
+       "pet": null,
+       "name": "블로그 띄운 노트북",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_book_v3_8.glb",
+   "glb_compressed": "models/interest_book_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "photo",
+   "emoji": "📷",
+   "name": "사진·영상",
+   "subs": [
+    {
+     "tag": "스마트폰촬영",
+     "words": [
+      {
+       "word": "스마트폰촬영",
+       "node": "phone_gimbal",
+       "pet": null,
+       "name": "짐벌과 폰",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "영상제작/편집",
+     "words": [
+      {
+       "word": "영상제작",
+       "node": "video_camera",
+       "pet": null,
+       "name": "캠코더",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "편집",
+       "node": "editing_monitor",
+       "pet": null,
+       "name": "영상 편집 모니터",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "보정/포토샵",
+     "words": [
+      {
+       "word": "보정",
+       "node": "pen_tablet",
+       "pet": null,
+       "name": "펜 태블릿",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "포토샵",
+       "node": "photoshop_monitor",
+       "pet": null,
+       "name": "사진 편집 모니터",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "미러리스/DSLR",
+     "words": [
+      {
+       "word": "미러리스",
+       "node": "mirrorless_camera",
+       "pet": null,
+       "name": "미러리스 카메라",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "DSLR",
+       "node": "tripod_camera",
+       "pet": null,
+       "name": "삼각대 카메라",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "필름/컴팩트",
+     "words": [
+      {
+       "word": "필름",
+       "node": "film_camera",
+       "pet": null,
+       "name": "필름 카메라",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "컴팩트",
+       "node": "compact_camera",
+       "pet": null,
+       "name": "컴팩트 카메라",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "액션캠/드론",
+     "words": [
+      {
+       "word": "액션캠",
+       "node": "action_cam",
+       "pet": null,
+       "name": "액션캠",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "드론",
+       "node": "drone",
+       "pet": null,
+       "name": "드론",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_photo_v3_8.glb",
+   "glb_compressed": "models/interest_photo_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "craft",
+   "emoji": "🎨",
+   "name": "미술·수공예",
+   "subs": [
+    {
+     "tag": "드로잉/회화",
+     "words": [
+      {
+       "word": "드로잉",
+       "node": "paint_box",
+       "pet": null,
+       "name": "물감 상자",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "회화",
+       "node": "easel",
+       "pet": null,
+       "name": "이젤",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "자수/뜨개/패브릭",
+     "words": [
+      {
+       "word": "자수",
+       "node": "embroidery_hoop",
+       "pet": null,
+       "name": "자수 수틀",
+       "size": "작은",
+       "status": "되살림"
+      },
+      {
+       "word": "뜨개",
+       "node": "yarn_basket",
+       "pet": null,
+       "name": "털실 바구니",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "패브릭",
+       "node": "sewing_kit",
+       "pet": null,
+       "name": "재봉 상자",
+       "size": "작은",
+       "status": "되살림"
+      }
+     ]
+    },
+    {
+     "tag": "캔들/디퓨저/석고",
+     "words": [
+      {
+       "word": "캔들",
+       "node": "candle_set",
+       "pet": null,
+       "name": "캔들",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "디퓨저",
+       "node": "diffuser",
+       "pet": null,
+       "name": "디퓨저",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "석고",
+       "node": "plaster_cast",
+       "pet": null,
+       "name": "석고 방향제",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "가죽/도예/목공",
+     "words": [
+      {
+       "word": "가죽",
+       "node": "leather_kit",
+       "pet": null,
+       "name": "가죽 지갑과 공구",
+       "size": "작은",
+       "status": "새로"
+      },
+      {
+       "word": "도예",
+       "node": "pottery_vase",
+       "pet": null,
+       "name": "도자기",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "목공",
+       "node": "woodwork_tools",
+       "pet": null,
+       "name": "망치와 나무 블록",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "캘리그라피",
+     "words": [
+      {
+       "word": "캘리그라피",
+       "node": "brush_ink",
+       "pet": null,
+       "name": "붓과 먹",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "플라워아트",
+     "words": [
+      {
+       "word": "플라워아트",
+       "node": "flower_vase",
+       "pet": null,
+       "name": "꽃병",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "액세서리/기타",
+     "words": [
+      {
+       "word": "액세서리",
+       "node": "bead_tray",
+       "pet": null,
+       "name": "비즈 쟁반",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_craft_v3_8.glb",
+   "glb_compressed": "models/interest_craft_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "fandom",
+   "emoji": "🧸",
+   "name": "덕질·수집",
+   "subs": [
+    {
+     "tag": "굿즈/포토카드",
+     "words": [
+      {
+       "word": "굿즈",
+       "node": "fan_poster",
+       "pet": null,
+       "name": "포스터 액자",
+       "size": "벽",
+       "status": "기존"
+      },
+      {
+       "word": "포토카드",
+       "node": "photocard_binder",
+       "pet": null,
+       "name": "포카 바인더",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "키링/인형",
+     "words": [
+      {
+       "word": "키링",
+       "node": "plush_keyring",
+       "pet": null,
+       "name": "인형 키링",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "인형",
+       "node": "teddy_bear",
+       "pet": null,
+       "name": "큰 곰 인형",
+       "size": "큰",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "다꾸/소품/문구",
+     "words": [
+      {
+       "word": "다꾸",
+       "node": "sticker_diary",
+       "pet": null,
+       "name": "스티커 다이어리",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "소품",
+       "node": "display_cabinet",
+       "pet": null,
+       "name": "아크릴 진열장",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "문구",
+       "node": "stationery_set",
+       "pet": null,
+       "name": "연필꽂이와 문구",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "피규어",
+     "words": [
+      {
+       "word": "피규어",
+       "node": "figure_pair",
+       "pet": null,
+       "name": "피규어",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "프라모델/레고",
+     "words": [
+      {
+       "word": "프라모델",
+       "node": "gunpla_robot",
+       "pet": null,
+       "name": "건프라",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "레고",
+       "node": "lego_bricks",
+       "pet": null,
+       "name": "레고 블록",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "LP/음반",
+     "words": [
+      {
+       "word": "LP",
+       "node": "record_player",
+       "pet": null,
+       "name": "LP 턴테이블",
+       "size": "작은",
+       "status": "기존"
+      },
+      {
+       "word": "음반",
+       "node": "cd_stack",
+       "pet": null,
+       "name": "CD 더미",
+       "size": "작은",
+       "status": "새로"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_fandom_v3_8.glb",
+   "glb_compressed": "models/interest_fandom_v3_8_draco_webp.glb"
+  },
+  {
+   "id": "pet_plant",
+   "emoji": "🐾",
+   "name": "반려동물·식물",
+   "subs": [
+    {
+     "tag": "강아지",
+     "words": [
+      {
+       "word": "강아지",
+       "node": "dog_house",
+       "pet": "pet_dog",
+       "name": "강아지와 강아지 집",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "고양이",
+     "words": [
+      {
+       "word": "고양이",
+       "node": "cat_bed",
+       "pet": "pet_cat",
+       "name": "고양이와 고양이 방석",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "설치류/소동물",
+     "words": [
+      {
+       "word": "설치류",
+       "node": "hamster_cage",
+       "pet": "pet_hamster",
+       "name": "햄스터와 햄스터 집",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "소동물",
+       "node": "rabbit_hutch",
+       "pet": "pet_rabbit",
+       "name": "토끼와 토끼집",
+       "size": "큰",
+       "status": "새로"
+      }
+     ]
+    },
+    {
+     "tag": "물고기",
+     "words": [
+      {
+       "word": "물고기",
+       "node": "fish_bowl",
+       "pet": null,
+       "name": "어항",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "새",
+     "words": [
+      {
+       "word": "새",
+       "node": "parrot_perch",
+       "pet": "pet_parrot",
+       "name": "앵무새와 앵무새 횃대",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "곤충/파충류/기타",
+     "words": [
+      {
+       "word": "곤충",
+       "node": "ant_farm_case",
+       "pet": "pet_ant",
+       "name": "개미와 개미집",
+       "size": "큰",
+       "status": "되살림"
+      },
+      {
+       "word": "파충류",
+       "node": "lizard_tank",
+       "pet": "pet_lizard",
+       "name": "도마뱀와 도마뱀 사육장",
+       "size": "큰",
+       "status": "기존"
+      }
+     ]
+    },
+    {
+     "tag": "식물/테라리움",
+     "words": [
+      {
+       "word": "식물",
+       "node": "plant_stand",
+       "pet": null,
+       "name": "화분 받침대",
+       "size": "큰",
+       "status": "기존"
+      },
+      {
+       "word": "테라리움",
+       "node": "terrarium_jar",
+       "pet": null,
+       "name": "테라리움 병",
+       "size": "작은",
+       "status": "기존"
+      }
+     ]
+    }
+   ],
+   "glb": "models/interest_pet_plant_v3_8.glb",
+   "glb_compressed": "models/interest_pet_plant_v3_8_draco_webp.glb"
+  }
+ ],
+ "note": "소분류 tag를 '/'로 나눈 단어마다 모델 1개. 소분류를 고르면 첫 단어부터 자리가 있는 모델 1개를 놓음 (PLACEMENT_v3_8.md 2번). node = glb 안의 루트 노드 이름(원점 바닥 중심, 위치·회전 0, 크기 1). pet이 있으면 동물 노드도 같이 놓음."
+}

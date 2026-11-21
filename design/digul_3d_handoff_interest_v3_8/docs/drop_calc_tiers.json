@@ -1,0 +1,208 @@
+{
+ "furniture_slot_01": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.2,
+   "S": 0.9
+  },
+  "h<=1.00": {
+   "mode": "pop"
+  },
+  "h<=1.25": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_02": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  },
+  "h<=0.80": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0.2
+  }
+ },
+ "furniture_slot_03": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0
+  }
+ },
+ "furniture_slot_05": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  },
+  "h<=1.00": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0.2
+  },
+  "h<=1.40": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0.5
+  }
+ },
+ "furniture_slot_06": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 0.8,
+   "S": 0.7
+  },
+  "h<=1.00": {
+   "mode": "pop"
+  },
+  "h<=1.25": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_07": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0
+  }
+ },
+ "furniture_slot_08": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.2,
+   "S": 0.7
+  },
+  "h<=1.00": {
+   "mode": "fall",
+   "H": 0.8,
+   "S": 0.9
+  },
+  "h<=1.50": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_09": {
+  "h<=0.45": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_10": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0.9
+  },
+  "h<=1.00": {
+   "mode": "fall",
+   "H": 0.8,
+   "S": 0.9
+  },
+  "h<=1.45": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_11": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_12": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.0,
+   "S": 0.9
+  },
+  "h<=1.00": {
+   "mode": "pop"
+  },
+  "h<=1.60": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_13": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0
+  },
+  "h<=1.00": {
+   "mode": "fall",
+   "H": 1.2,
+   "S": 0.35
+  },
+  "h<=1.15": {
+   "mode": "fall",
+   "H": 1.0,
+   "S": 0.35
+  }
+ },
+ "furniture_slot_14": {
+  "h<=0.50": {
+   "mode": "pop"
+  },
+  "h<=1.00": {
+   "mode": "pop"
+  },
+  "h<=1.20": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_15": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0.7
+  }
+ },
+ "furniture_slot_16": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 0.8,
+   "S": 0.9
+  },
+  "h<=0.98": {
+   "mode": "pop"
+  }
+ },
+ "furniture_slot_17": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_19": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_21": {
+  "h<=0.40": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_22": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ },
+ "furniture_slot_23": {
+  "h<=0.50": {
+   "mode": "fall",
+   "H": 2.0,
+   "S": 0
+  }
+ }
+}
