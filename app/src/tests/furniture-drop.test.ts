@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { DROP_DURATION, DUST_AT, furnitureDrop } from '../three/furnitureDrop'
-import { planRoom } from '../data/roomPlan'
+import { diffPlans, planRoom } from '../data/roomPlan'
 import { SUB_WORDS } from '../data/interestWords'
 
 describe('furnitureDrop 곡선 (spec 2번)', () => {
@@ -66,5 +66,50 @@ describe('낙하 계획 (슬롯 drop 표)', () => {
     const a = planRoom([sw.subId], { [sw.subId]: sw.words[0].word }).items.map((i) => i.row.id)
     const b = planRoom([sw.subId], { [sw.subId]: sw.words[1].word }).items.map((i) => i.row.id)
     expect(a).not.toEqual(b)
+  })
+})
+
+describe('방 배치가 바뀔 때 diffPlans (새 관심사만 낙하, 단어만 바꾼 건 pop, 빠진 건 사라짐)', () => {
+  const subs = SUB_WORDS.filter((s) => s.pickable).slice(0, 6)
+  const [a, b, c] = subs
+  const key = (it: { slot: { name: string }; row: { id: string } }) => `${it.slot.name}|${it.row.id}`
+
+  it('관심사를 하나 더 고르면 그 관심사의 소품만 drop, 이미 있던 것은 그대로', () => {
+    const prev = planRoom([a.subId, b.subId]).items
+    const next = planRoom([a.subId, b.subId, c.subId]).items
+    const d = diffPlans(prev, next)
+    expect(d.drop.length).toBeGreaterThan(0)
+    expect(d.drop.every((i) => i.sub === c.subId)).toBe(true)
+    expect(d.pop.every((i) => i.sub !== c.subId)).toBe(true)
+    // 이미 있던 관심사의 소품 중 자리가 안 밀린 것은 removed · drop · pop 어디에도 안 들어감
+    const touched = new Set([...d.removed, ...d.drop, ...d.pop].map(key))
+    const stay = prev.filter((i) => next.some((n) => key(n) === key(i)))
+    expect(stay.length).toBeGreaterThan(0)
+    expect(stay.every((i) => !touched.has(key(i)))).toBe(true)
+  })
+  it('관심사를 빼면 그 관심사의 소품이 removed, 새로 놓는 건 없음', () => {
+    const prev = planRoom([a.subId, b.subId, c.subId]).items
+    const d = diffPlans(prev, planRoom([a.subId, b.subId]).items)
+    expect(d.removed.length).toBeGreaterThan(0)
+    expect(d.removed.every((i) => i.sub === c.subId)).toBe(true)
+    expect(d.drop.length).toBe(0)
+  })
+  it('관심사 하나를 다른 것으로 바꾸면: 빠진 것 removed, 새 관심사 것 drop', () => {
+    const prev = planRoom([a.subId, b.subId]).items
+    const d = diffPlans(prev, planRoom([a.subId, c.subId]).items)
+    expect(d.removed.some((i) => i.sub === b.subId)).toBe(true)
+    expect(d.drop.every((i) => i.sub === c.subId)).toBe(true)
+    expect(d.drop.length).toBeGreaterThan(0)
+  })
+  it('같은 관심사에서 단어만 바꾸면 drop 은 없고 pop(또는 removed)만', () => {
+    const prev = planRoom([a.subId], { [a.subId]: a.words[0].word }).items
+    const d = diffPlans(prev, planRoom([a.subId], { [a.subId]: a.words[1].word }).items)
+    expect(d.drop.length).toBe(0)
+    expect(d.pop.length).toBeGreaterThan(0)
+    expect(d.removed.length).toBeGreaterThan(0)
+  })
+  it('바뀐 게 없으면 아무것도 없음', () => {
+    const items = planRoom([a.subId, b.subId]).items
+    expect(diffPlans(items, planRoom([a.subId, b.subId]).items)).toEqual({ removed: [], drop: [], pop: [] })
   })
 })

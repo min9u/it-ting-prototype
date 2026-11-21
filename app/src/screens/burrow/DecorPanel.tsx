@@ -150,7 +150,7 @@ function PropTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: strin
                   <button className={on ? s.furnCardOn : s.furnCard} aria-pressed={on} onClick={() => pickWord(w.word)}>
                     {i === 0 && <em className={m.furnBase}>기본</em>}
                     {src
-                      ? <img className={s.furnThumb} src={src} alt="" aria-hidden />
+                      ? <img className={s.furnThumb} src={src} alt="" aria-hidden style={{ objectFit: 'contain', borderRadius: 0, boxShadow: 'none' }} />
                       : <span className={s.furnThumb} style={{ background: BLOCK_COLORS[sub?.category ?? ''] ?? '#F7E6C8', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display)', fontSize: 13, lineHeight: 1.1, textAlign: 'center', wordBreak: 'keep-all', color: 'rgba(62,42,31,.55)' }} aria-hidden>{w.word}</span>}
                     {w.name}
                   </button>
@@ -158,7 +158,7 @@ function PropTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: strin
               )
             })}
           </ul>
-          {placed && chosen && placed !== chosen && <p className={s.formNote}>지금은 "{chosen}" 소품이 놓일 자리가 없어서 "{placed}" 소품이 놓여요.</p>}
+          {placed && chosen && placed !== chosen && <p className={s.formNote}>자리가 없어서 "{placed}" 소품이 대신 놓여요.</p>}
           <p className={s.formNote}>소품 자리는 정해져 있어서 옮기거나 뺄 수 없어요.</p>
         </>
       )}

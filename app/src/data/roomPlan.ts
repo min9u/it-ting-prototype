@@ -144,3 +144,22 @@ export const BLOCK_COLORS: Record<string, string> = {
   food: '#F7E6C8', sports: '#8CC56A', culture: '#E8743B', game: '#F5C452', music_dance: '#E8743B', outdoor: '#8CC56A',
   language_selfdev: '#A86B45', book: '#A86B45', photo_video: '#A8D4EE', art_craft: '#C98A5A', fandom_collect: '#A8D4EE', pet_plant: '#8CC56A',
 }
+
+const keyOf = (it: PlannedItem) => `${it.slot.name}|${it.row.id}`
+/**
+ * 방 배치가 바뀔 때(관심사 변경 · 소품 탭에서 단어 변경) 지금 방(prev)과 새 계획(next)을 견줌 (같은 자리 + 같은 모델이면 그대로)
+ * - removed: 빠질 것 (빠진 관심사의 소품, 또는 단어를 바꿔 다른 것으로 대체된 것)
+ * - drop: 새로 들어온 관심사의 소품 → 낙하 연출 (이미 방에 있던 관심사가 아닌 것)
+ * - pop: 이미 있던 관심사인데 달라진 것 (단어만 바꿈, 자리가 밀림) → 제자리 등장
+ */
+export function diffPlans(prev: PlannedItem[], next: PlannedItem[]) {
+  const nextKeys = new Set(next.map(keyOf)), prevKeys = new Set(prev.map(keyOf))
+  const oldSubs = new Set(prev.map((i) => i.sub).filter((x): x is string => !!x))
+  const added = next.filter((i) => !prevKeys.has(keyOf(i)))
+  const isNew = (i: PlannedItem) => !!i.sub && !oldSubs.has(i.sub)
+  return {
+    removed: prev.filter((i) => !nextKeys.has(keyOf(i))),
+    drop: added.filter(isNew),
+    pop: added.filter((i) => !isNew(i)),
+  }
+}

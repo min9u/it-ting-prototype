@@ -5,7 +5,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import shellUrl from '../assets/models/room_shell_v3_draco_webp.glb?url'
 import holeUrl from '../assets/models/room_ceiling_hole.glb?url'
 import dustUrl from '../assets/models/dust_puff_v1.glb?url'
-import { BLOCK_COLORS, FURNITURE_CATALOG, SLOTS, planRoom, type FurnitureRow, type PlannedItem } from '../data/roomPlan'
+import { BLOCK_COLORS, FURNITURE_CATALOG, SLOTS, diffPlans, planRoom, type FurnitureRow, type PlannedItem } from '../data/roomPlan'
 import { createMailbox, type Mailbox } from './mailbox'
 import { loadGlb } from './glb'
 import { DROP_DURATION, DUST_AT, dustOpacity, furnitureDrop } from './furnitureDrop'
@@ -72,6 +72,11 @@ export interface RoomSceneHandle extends SceneHandle {
   setMailbox?(hasNew: boolean): void
   /** 고른 가구를 그 자리에서 갈아 끼움 (장면을 다시 만들지 않음, 02 F4 꾸미기 가구 탭 5번) */
   setFurniture?(choice: FurnChoice): void
+  /**
+   * 관심사가 바뀜 (내 정보 수정 저장): 장면을 다시 만들지 않고 방 배치를 다시 계산해, 새로 들어온 관심사의 소품만 떨어뜨림
+   * (이미 있던 건 제자리, 빠진 관심사의 소품은 사라짐). 벽지가 바뀌면 장면을 새로 만들어야 해서 RoomCanvas 가 deps 로 처리
+   */
+  setInterests?(interests: string[]): void
   /** 지금 고르는 가구를 점선 상자와 "관심사 · 가구 이름" 꼬리표로 표시 (세부 관심사 id, null 이면 끔. F4 꾸미기 가구 탭 6번) */
   setHighlight?(subId: string | null): void
 }
@@ -187,6 +192,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   let settle = 0
   /** 고른 가구 (선명한 방 캐시 키에 넣음) */
   let furnKey = Object.entries(opts.furniture ?? {}).sort().join(',')
+  /** 지금 방의 관심사 (꾸미기·내 정보 수정에서 바뀌면 handle.setInterests) */
+  let curInterests = opts.interests ?? []
   const useBaker = testParam('rbake') !== '0'
   let baker: SharpBaker | null = null
   /** 굽고 있는 그림의 캐시 키 */
@@ -197,7 +204,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     camera.updateMatrixWorld()
     const r = (a: ArrayLike<number>) => Array.from(a, (v) => v.toFixed(4)).join(',')
     // STYLE_VERSION: 테마 색처럼 코드에 있는 꾸미기 값이 바뀌면 키가 바뀜 → 예전에 구운 방 그림(IndexedDB)이 남지 않음
-    return [opts.ownerId, (opts.interests ?? []).join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, `s${STYLE_VERSION}${stylePatterns ? 'p' : 'c'}`, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
+    return [opts.ownerId, curInterests.join('+'), furnKey, opts.wallpaper ?? '', opts.still ? 1 : 0, `s${STYLE_VERSION}${stylePatterns ? 'p' : 'c'}`, JSON.stringify(style ?? ''), W, H, out, r(camera.matrixWorld.elements), r(camera.projectionMatrix.elements)].join('|')
   }
   const ensureSharpCv = () => {
     if (!sharpCv) {
@@ -511,13 +518,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     foot?: Foot
     /** 꾸미기에서 단어를 바꿔 새로 놓인 것: 자기 시계(초). 있으면 방 전체 낙하 시간표와 상관없이 제자리 등장(pop)으로 */
     own?: number
+    /** own 일 때: true = 단어만 바꿈(제자리 pop), false = 새 관심사(슬롯 drop 값대로 떨어짐, own 이 음수면 그만큼 기다림) */
+    ownPop?: boolean
   }
   const drops: Drop[] = []
   /** 방 전체 가구 낙하가 아니라, 꾸미기에서 단어를 바꿔 새로 놓인 것만 제자리에서 등장하는 중인 수 */
   let popping = 0
   let addItem: ((it: PlannedItem, own: boolean, srcRoot: THREE.Object3D | null) => Drop) | null = null
   let planRootsRef: Map<string, THREE.Object3D | null> | null = null
-  let pendingChoice: FurnChoice | null = null
   let seqT = -1                      // 가구 낙하 연출 경과 (−1 = 안 함)
   let lookT = -1, lastPuff = -1      // 두더지 두리번 대기 경과 (−1 = 안 함) / 마지막 먼지를 튼 seqT
   const blockGeos: THREE.BufferGeometry[] = [], blockMats: THREE.Material[] = []
@@ -628,7 +636,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     }
     for (const it of plan.items) addItem(it, false, planRoots.get(urlOf(it.row)!) ?? null)
     planRootsRef = planRoots
-    if (pendingChoice) { const c = pendingChoice; pendingChoice = null; queueMicrotask(() => applyFurniture(c)) }
+    if (pendingSync) { pendingSync = false; queueMicrotask(reconcile) }
 
     // 방명록 우체통
     if (mailboxG && mailboxSlot) {
@@ -741,7 +749,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       let t: number
       let spec = d.it.slot.drop
       if (d.own !== undefined) {
-        // 꾸미기에서 새로 놓인 것: 방 전체 시간표 밖, 자기 시계로 제자리 등장 (벽걸이·선반 소품과 같은 pop)
+        // 꾸미기·내 정보 수정에서 새로 놓인 것: 방 전체 시간표 밖, 자기 시계로 (단어만 바꾼 건 제자리 pop, 새 관심사는 슬롯 값대로 낙하)
         d.own += dt
         if (d.own >= DROP_DURATION) {
           d.own = undefined
@@ -749,7 +757,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
           d.g.traverse((o) => o.layers.set(0)); backdrop?.invalidate()
           continue
         }
-        t = d.own; pop++; spec = { ...spec, mode: 'pop' }
+        t = d.own; pop++
+        if (d.ownPop) spec = { ...spec, mode: 'pop' }
       } else if (seqT < 0) continue
       else t = seqT - t0 - d.it.start
       const [x, y, z] = d.pos
@@ -981,43 +990,48 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     hlTag.textContent = `${subOf(d.it.sub!)?.name_ko ?? ''} · ${d.it.row.name_ko}`
   }
   /**
-   * 꾸미기 소품 탭에서 고른 단어 바꾸기 (v3.8): 새 선택으로 방 배치를 다시 계산해(planRoom) 지금 방과 견줌.
-   * 같은 자리 · 같은 모델은 그대로 두고, 달라진 것만 빼고 새로 놓음 (새로 놓인 것은 제자리에서 pop 으로 등장, 먼지는 슬롯 값)
-   * 단어를 바꾸면 선반 → 바닥처럼 자리 종류가 달라질 수 있어서 "모델만 바꿔 끼우기"로는 안 됨
+   * 관심사·고른 단어가 바뀜 (v3.8): 새 선택으로 방 배치를 다시 계산해(planRoom) 지금 방과 견줌.
+   * 같은 자리 · 같은 모델은 그대로 두고, 달라진 것만 빼고 새로 놓음.
+   * - 새로 들어온 관심사의 소품: 슬롯 drop 값대로 떨어짐 (새 것끼리 계획의 순서·간격, 먼지 포함)
+   * - 이미 있던 관심사에서 단어만 바꾼 소품(자리 종류가 달라질 수 있음: 선반 ↔ 바닥): 제자리 pop
+   * - 빠진 관심사의 소품: 사라짐
    */
   const swapSeq = new Map<string, number>()
-  const applyFurniture = (choice: FurnChoice) => {
-    furnChoice = { ...choice }
-    furnKey = Object.entries(furnChoice).sort().join(',')
+  let pendingSync = false
+  const reconcile = () => {
     const add = addItem, roots = planRootsRef
-    if (!add || !roots) { pendingChoice = { ...choice }; return } // 아직 가구를 다 놓기 전: 다 놓은 뒤 적용
-    const next = planRoom(opts.interests ?? [], furnChoice).items
+    if (!add || !roots) { pendingSync = true; return } // 아직 가구를 다 놓기 전: 다 놓은 뒤 적용
+    const { removed, drop: dropNew, pop: popNew } = diffPlans(drops.map((d) => d.it), planRoom(curInterests, furnChoice).items)
     const keyOf = (it: PlannedItem) => `${it.slot.name}|${it.row.id}`
-    const have = new Set(drops.map((d) => keyOf(d.it)))
-    const want = new Set(next.map(keyOf))
+    const gone = new Set(removed.map(keyOf))
     let changed = false
     // 빠질 것
     for (let i = drops.length - 1; i >= 0; i--) {
       const d = drops[i]
-      if (want.has(keyOf(d.it))) continue
+      if (!gone.has(keyOf(d.it))) continue
       furniture.remove(d.g); styler?.unregister(d.g)
       if (d.foot) { const j = itemFeet.indexOf(d.foot); if (j >= 0) itemFeet.splice(j, 1) }
       drops.splice(i, 1); changed = true
     }
     // 새로 놓을 것 (모델 파일은 같은 대분류라 대개 이미 받아 둠. 아니면 받고 나서)
-    for (const it of next) {
-      if (have.has(keyOf(it))) continue
+    const fresh = [...dropNew, ...popNew]
+    const isNew = (it: PlannedItem) => dropNew.includes(it)
+    // 새 관심사 소품끼리는 계획의 시작 시각 차이만 유지 (가장 빠른 것이 바로 시작)
+    const firstStart = Math.min(...dropNew.map((it) => it.start))
+    for (const it of fresh) {
       changed = true
       const u = it.built ? urlOf(it.row) : undefined
       const seq = (swapSeq.get(it.slot.name) ?? 0) + 1
       swapSeq.set(it.slot.name, seq)
+      const asNew = isNew(it)
       const place = (src: THREE.Object3D | null) => {
         if (disposed || swapSeq.get(it.slot.name) !== seq || drops.some((d) => keyOf(d.it) === keyOf(it))) return
-        // 그 사이 선택이 또 바뀌어 이 자리에 다른 것이 놓였으면 그쪽이 이김 (아래 정리 루프가 맞춤)
         const dr = add(it, true, src)
+        dr.ownPop = !asNew
+        dr.own = asNew ? -(it.start - firstStart) : 0
         if (style) styler?.apply(style)
         syncFeet()
-        dr.g.visible = false; popping = Math.max(popping, 1) // 첫 프레임에 stepDrops 가 0 크기에서 키움
+        dr.g.visible = false; popping = Math.max(popping, 1) // 첫 프레임에 stepDrops 가 0 크기(pop) 또는 시작 높이(낙하)로 보임
         backdrop?.invalidate(); sharpOff(); fullNext = true
         loop.wake()
       }
@@ -1026,6 +1040,16 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       else softLoad(u).then((gl) => { roots.set(u, gl?.scene ?? null); place(gl?.scene.getObjectByName(it.row.node) ?? null) })
     }
     if (changed) { syncFeet(); backdrop?.invalidate(); sharpOff(); fullNext = true; placeHighlight(); loop.wake() }
+  }
+  const applyFurniture = (choice: FurnChoice) => {
+    furnChoice = { ...choice }
+    furnKey = Object.entries(furnChoice).sort().join(',')
+    reconcile()
+  }
+  const applyInterests = (list: string[]) => {
+    if (list.join('|') === curInterests.join('|')) return
+    curInterests = [...list]
+    reconcile()
   }
 
   let down: { x: number; y: number } | null = null
@@ -1316,6 +1340,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       loop.wake()
     },
     setFurniture: (c) => applyFurniture(c),
+    setInterests: (l) => applyInterests(l),
     setHighlight(sub) { hlSub = sub; placeHighlight() },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
