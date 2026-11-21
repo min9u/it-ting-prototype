@@ -111,7 +111,7 @@ HTTP/1.1 409 Conflict
 ### 2.1 인증 (F1 · F2) — `api.auth`
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 인증 | 코드 |
 |---|---|---|---|---|---|---|
-| POST | `/auth/login` | `{ email, password }` | `LoginResponseDto { member: MeDto, next: SSAFY_VERIFY·ONBOARDING·HOME }` | 401 INVALID_CREDENTIALS, 403 ACCOUNT_SUSPENDED (`detail: { reason, endsAt }`) | 🔓 | `login` |
+| POST | `/auth/login` | `{ email, password }` | `LoginResponseDto { member: MeDto, next: ONBOARDING·HOME }` | 401 INVALID_CREDENTIALS, 403 ACCOUNT_SUSPENDED (`detail: { reason, endsAt }`) | 🔓 | `login` |
 | GET | `/oauth2/authorization/google` | (이동) | 콜백 → `/oauth/callback?next=` | — | 🔓 | `googleUrl` |
 | POST | `/auth/logout` | — | 204 | — | 🔒 | `logout` |
 | POST | `/auth/refresh` | (쿠키) | 204 | 401 | 🔓 | `refresh` |

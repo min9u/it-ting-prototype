@@ -5,7 +5,6 @@
  * 시연용 계정 (docs/spec-f1-f2.md 에도 적어 둠)
  *  - wrong@ssafy.com           → "이메일 또는 비밀번호가 맞지 않아요"
  *  - banned@ssafy.com          → 정지된 계정 팝업 (신고로 인해 7일 동안 로그인할 수 없어요)
- *  - nossafy@ssafy.com         → SSAFY 인증을 안 마친 계정 → 회원가입 3
  *  - new@ssafy.com             → 온보딩을 안 마친 계정 → 온보딩 1
  *  - 이 탭에서 가입한 이메일   → 가입 때 정한 비밀번호가 아니면 실패
  *  - 그 밖의 형식이 맞는 이메일 → 로그인 성공 → 내 땅굴
@@ -47,16 +46,8 @@ export const CODE_EXPIRED = '인증 시간이 지났어요. 코드를 다시 받
 /** 목 서버의 코드 확인: 000000 만 틀림 */
 export const verifyCode = (code: string) => code !== '000000'
 
-/* ===== 00 공통 19 캠퍼스 · 층 (임시 목록, 관리 화면 없음) ===== */
+/* ===== 00 공통 19 기수 (캠퍼스 · 층 목록은 data/campusFloors.ts 한 곳) ===== */
 export const GENERATIONS = ['16기', '15기', '14기', '13기', '12기']
-export const CAMPUS_FLOORS: Record<string, string[]> = {
-  서울: ['2층', '10층', '12층', '13층'],
-  대전: ['1층', '2층', '3층'],
-  광주: ['1층', '2층'],
-  구미: ['2층', '3층'],
-  부울경: ['1층', '2층'],
-}
-export const CAMPUSES = Object.keys(CAMPUS_FLOORS)
 
 /* ===== 로그인 상태 (00 공통 11) ===== */
 /**
@@ -123,7 +114,6 @@ export async function login(email: string, pw: string): Promise<LoginResult> {
   if (e === 'wrong@ssafy.com') return { ok: false, kind: 'mismatch' }
   if (accounts.has(e) && accounts.get(e) !== pw) return { ok: false, kind: 'mismatch' }
   if (e === 'banned@ssafy.com') return { ok: false, kind: 'suspended', reason: '신고 누적', days: 7, until: addDays(7) }
-  if (e === 'nossafy@ssafy.com') return { ok: true, next: '/signup/ssafy?resume=1' }
   setAuthState('member')
   if (e === 'new@ssafy.com') return { ok: true, next: '/onboarding/name' }
   return { ok: true, next: '/burrow' }

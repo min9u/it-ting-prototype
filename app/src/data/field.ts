@@ -11,6 +11,7 @@
  */
 import { CATEGORIES, ME_ID, USERS } from './mock'
 import { getMyInterests } from './interests'
+import { CAMPUS_FLOORS } from './campusFloors'
 import type { QnA, User } from './types'
 
 export interface FieldUser extends User {
@@ -28,14 +29,8 @@ export interface Floor {
 }
 
 export const CURRENT_TERM = '2026 하반기'
-/** 캠퍼스마다 층 목록이 다름 (임시. 관리 화면은 두지 않음 — 00 공통 19) */
-export const CAMPUS_FLOORS: { campus: string; floors: number[] }[] = [
-  { campus: '서울', floors: [2, 3, 12] },
-  { campus: '대전', floors: [1, 2] },
-  { campus: '광주', floors: [1] },
-  { campus: '구미', floors: [2, 3] },
-  { campus: '부울경', floors: [1] },
-]
+/** 캠퍼스 · 층 목록은 data/campusFloors.ts 한 곳 (회원가입 3 · 내 정보 수정과 같이 씀) */
+export { CAMPUS_FLOORS } from './campusFloors'
 
 export const floorId = (term: string, campus: string, floor: number) => `${term}|${campus}|${floor}`
 export const floorName = (f: Pick<Floor, 'campus' | 'floor'>) => `${f.campus}-${f.floor}층`

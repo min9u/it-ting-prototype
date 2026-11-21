@@ -5,11 +5,12 @@ import Modal from '../../components/Modal'
 import { Toast } from '../../components/Feedback'
 import {
   LOGIN_FREE,
-  CAMPUSES, CAMPUS_FLOORS, CODE_EXPIRED, CODE_LEN, CODE_NOT_DIGIT, CODE_TTL, CODE_WRONG, EMAIL_BAD, GENERATIONS,
+  CODE_EXPIRED, CODE_LEN, CODE_NOT_DIGIT, CODE_TTL, CODE_WRONG, EMAIL_BAD, GENERATIONS,
   PW_BAD_CHAR, PW_MISMATCH, PW_RULE_TEXT, RESEND_GAP, checkPassword, confirmMismatch, consumeResetToken, emailHasBadChar,
   emailValid, googleLogin, lastResetToken, login, registerAccount, requestReset, resetTokenValid, setAuthState, signupDraft,
   verifyCode, type LoginResult,
 } from '../../data/auth'
+import { CAMPUSES, floorsOf } from '../../data/campusFloors'
 import { takeReturnTo } from '../../lib/authFlow'
 import chevronDown from '../../assets/auth/chevron-down.svg?no-inline'
 import iconClock from '../../assets/auth/clock.svg?no-inline'
@@ -115,7 +116,7 @@ function Spinner() { return <span className={s.spinner} aria-hidden /> }
  * 1 "다시 오셨군요!" · 2 이메일 형식 검사(칸을 벗어날 때) · 3 가려서 표시, Enter 로 제출
  * 4 두 칸이 차면 활성, 요청 중 로딩, 실패 "이메일 또는 비밀번호가 맞지 않아요", 정지 계정은 사유·기간 팝업
  * 5 Google 로 계속하기 · 6 비밀번호 찾기 · 7 회원가입(입력한 이메일을 넘김)
- * 성공 → 내 땅굴 (SSAFY 인증 전이면 회원가입 3, 온보딩 전이면 온보딩 1)
+ * 성공 → 내 땅굴 (온보딩 전이면 온보딩 1). 가입을 마치지 않은 계정은 없음(계정은 회원가입 3 "땅굴 파기"에서 만들어짐)
  */
 export function Login() {
   const nav = useNavigate()
@@ -234,7 +235,7 @@ export function SignupEmail() {
     <AuthFrame step={1}>
       <div className={s.head}>
         <h1 className={s.panelTitle}>땅굴 주소를 만들어요</h1>
-        <p className={s.panelLead}>SSAFY 이메일로 인증해요.</p>
+        <p className={s.panelLead}>가입할 이메일을 인증해요.</p>
       </div>
       <form className={s.form} noValidate onSubmit={(e) => {
         e.preventDefault()
@@ -337,14 +338,14 @@ function Select({ id, label, value, options, onChange, placeholder, disabled }: 
 
 /**
  * 시작 v2 – 회원가입 3 · SSAFY 인증 (3/3)
- * 1 진행 표시 (Google 가입·로그인했는데 인증 전이면 이 화면 하나뿐이라 숨김) · 2 "SSAFY 인증을 해요"
+ * 1 진행 표시 (Google 가입이면 이 화면 하나뿐이라 숨김) · 2 "SSAFY 인증을 해요"
  * 3 기수 · 캠퍼스 · 층 목록에서 고름(캠퍼스를 고르면 그 캠퍼스의 층) · 4 Mattermost ID + 코드 받기(다시 누르면 재전송, 30초 간격)
  * 5 6자리 숫자 + 남은 시간 · 6 안내 문구 · 7 약관 동의(필수 2개) · 8 다 마치면 땅굴 파기 → 온보딩 1
  */
 export function SignupSsafy() {
   const nav = useNavigate()
   const [params] = useSearchParams()
-  const single = params.get('via') === 'google' || params.get('resume') === '1'
+  const single = params.get('via') === 'google'
   const [gen, setGen] = useState('')
   const [campus, setCampus] = useState('')
   const [floor, setFloor] = useState('')
@@ -385,7 +386,7 @@ export function SignupSsafy() {
           <Select id="ss-gen" label="기수" value={gen} options={GENERATIONS} onChange={setGen} placeholder="기수를 골라 주세요" />
           <div className={s.row2}>
             <Select id="ss-campus" label="캠퍼스" value={campus} options={CAMPUSES} onChange={(v) => { setCampus(v); setFloor('') }} placeholder="캠퍼스" />
-            <Select id="ss-floor" label="층" value={floor} options={campus ? CAMPUS_FLOORS[campus] : []} onChange={setFloor} placeholder={campus ? '층' : '캠퍼스 먼저'} disabled={!campus} />
+            <Select id="ss-floor" label="층" value={floor} options={floorsOf(campus).map((f) => `${f}층`)} onChange={setFloor} placeholder={campus ? '층' : '캠퍼스 먼저'} disabled={!campus} />
           </div>
           <div className={s.field}>
             <label htmlFor="ss-mm">Mattermost ID</label>
@@ -446,7 +447,7 @@ export function PasswordReset() {
               : <span className={s.help}>이 이메일로 비밀번호 재설정 링크를 보내드려요</span>}
           </div>
         </div>
-        <button className={`${s.primary} ${s.aBtn}`} disabled={!email.value}>재설정 링크 보내기</button>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!email.value}>링크 보내기</button>
       </form>
       <div className={s.links}><Link to="/login">← 로그인으로 돌아가기</Link></div>
     </AuthFrame>

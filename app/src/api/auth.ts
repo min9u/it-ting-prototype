@@ -43,7 +43,7 @@ const meDto = (): MeDto => {
   const a = accountStore.get()
   return { ...memberProfile(ME_ID), email: 'me@ssafy.com', role: a.admin ? 'ADMIN' : 'USER', ssafyVerifiedAt: toIso(Date.now() - 30 * 86_400_000), onboardedAt: toIso(Date.now() - 29 * 86_400_000), termsAgreedAt: toIso(Date.now() - 30 * 86_400_000), googleLinked: !!a.googleEmail, hasPassword: a.signup === 'email' }
 }
-const NEXT = (to: string): LoginResponseDto['next'] => (to.startsWith('/signup/ssafy') ? 'SSAFY_VERIFY' : to.startsWith('/onboarding') ? 'ONBOARDING' : 'HOME')
+const NEXT = (to: string): LoginResponseDto['next'] => (to.startsWith('/onboarding') ? 'ONBOARDING' : 'HOME')
 
 const mock: AuthApi = {
   login: async (req) => {
@@ -59,7 +59,7 @@ const mock: AuthApi = {
   me: (signal) => mockRead(meDto, { signal }),
   sendEmailCode: () => mockWrite(() => ({ expiresAt: toIso(Date.now() + 5 * 60_000) })),
   verifyEmailCode: (_email, code) => mockWrite(() => { if (!verifyCode(code)) throw badRequest('CODE_MISMATCH', CODE_WRONG); return { verificationToken: 'mock-token' } }),
-  signup: (_token, password) => mockWrite(() => { registerAccount('me@ssafy.com', password); setAuthState('member'); return { member: meDto(), next: 'SSAFY_VERIFY' as const } }),
+  signup: (_token, password) => mockWrite(() => { registerAccount('me@ssafy.com', password); setAuthState('member'); return { member: meDto(), next: 'ONBOARDING' as const } }),
   sendSsafyCode: () => mockWrite(() => undefined),
   verifySsafyCode: (code) => mockWrite(() => { if (!verifyCode(code)) throw badRequest('CODE_MISMATCH', CODE_WRONG); return meDto() }),
   requestPasswordReset: (email) => mockWrite(() => { requestReset(email) }),

@@ -9,6 +9,7 @@ import {
   CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, RECOMMEND_QUESTIONS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId, floorLabel,
   getRecommendSettings, getRegulars, me, setRecommendSettings, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendSettings,
 } from '../../data/field'
+import { campusesInOrder } from '../../data/campusFloors'
 import type { User } from '../../data/types'
 import x from './Explore.module.css'
 
@@ -183,7 +184,7 @@ export function FloorPickerModal({ open, current, onClose, onPick }: { open: boo
         </div>
         <p className={x.pickLabel}>캠퍼스</p>
         <div className={x.opts}>
-          {CAMPUS_FLOORS.map((c) => <button key={c.campus} type="button" className={c.campus === campus ? x.optOn : x.opt} onClick={() => setCampus(c.campus)}>{c.campus}</button>)}
+          {campusesInOrder().map((c) => <button key={c.campus} type="button" className={c.campus === campus ? x.optOn : x.opt} onClick={() => setCampus(c.campus)}>{c.campus}</button>)}
         </div>
         <p className={x.pickLabel}>층</p>
         <ul className={x.floorList}>
