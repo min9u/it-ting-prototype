@@ -368,7 +368,7 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
   }
 
   const SHAPERS: Record<string, (t: Target, s: RoomStyle) => void> = {
-    // v3.8: room_base_v3 에서 침대 · 협탁이 빠져서 그 둘의 모양 손질은 지움 (저장된 값은 대상이 없어 그냥 무시됨)
+    // v3.8: room_base_v3(_1) 에서 침대 · 협탁이 빠져서 그 둘의 모양 손질은 지움 (저장된 값은 대상이 없어 그냥 무시됨)
     round_table: shapeTable, cushion_sky: shapeCushion, cushion_yellow: shapeCushion, ceiling_lamp: shapeCeilingLamp,
   }
 
