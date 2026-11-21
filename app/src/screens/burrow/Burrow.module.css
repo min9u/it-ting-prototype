@@ -79,6 +79,13 @@
 .gbModal { padding: 23px 34px 22px 33px; min-height: 511px; display: flex; flex-direction: column; }
 .gbModalTitle { display: flex; align-items: center; gap: 8px; font-size: 28px; color: #1f1510; }
 .gbModalTitle :global(.count-badge) { height: 22px; font-size: 14px; }
+/* 방명록 쓰기: 한 줄 입력 + 오른쪽 갈색 채운 "➤ 남기기", 글자 수는 아래 */
+.gbCompose { margin-top: 14px; }
+.gbComposeRow { display: flex; gap: 10px; }
+.gbComposeRow input { flex: 1; min-width: 0; height: 44px; padding: 0 16px; border: 0; outline: none; border-radius: var(--radius-md); background: var(--surface-item); font-size: 14px; color: var(--ink-900); }
+.gbComposeRow input:focus { box-shadow: inset 0 0 0 1.5px rgba(116, 74, 50, 0.35); }
+.gbSend { flex: none; height: 44px; padding: 0 20px; gap: 6px; font-size: 15px; }
+.gbCount { display: block; margin: 6px 0 0 4px; font-size: 11px; color: var(--ink-400); }
 .gbModalList { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .gbPager { margin-top: auto; padding-top: 12px; }
 .gbNote { margin-top: 6px; text-align: center; font-size: 11px; color: var(--ink-300); }
@@ -133,9 +140,6 @@
 .speech:hover::after { border-top-color: #fff; }
 @keyframes bob { 50% { transform: translate(-50%, -3px); } }
 
-.gbWrite { margin-top: 10px; padding: 10px 14px; background: var(--surface-item); border-radius: var(--radius-md); }
-.gbWrite textarea { width: 100%; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; height: 40px; }
-.gbWriteRow { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--ink-400); }
 
 .exploreHint {
   position: absolute; left: 50%; top: 40px; transform: translateX(-50%); z-index: 5;
@@ -161,8 +165,9 @@
 .neighbor:hover .neighborCard { background: #fff; transform: translateY(-2px); }
 .neighbor .neighborCard { transition: transform .15s; }
 
-.requestModal { padding: 23px 28px 21px; }
-.requestModal h2 { margin-top: 12px; font-size: 26px; }
+.requestModal { padding: 23px 28px 21px; text-align: center; }
+.requestModal h2 { margin-top: 2px; font-size: 26px; }
+.reqMole { display: block; margin: 0 auto; }
 .phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .phrase { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--surface-item); font-size: 13px; color: var(--ink-700); }
 .phrase:hover { background: #f1dfcd; }
@@ -181,9 +186,13 @@
 .walk:hover { background: #fff; }
 .walkL { left: 24px; }
 .reqSent { margin: 10px 0 20px; color: var(--ink-500); }
-.reqField { margin-top: 14px; }
-.quickLabel { margin-top: 16px; font-size: 12px; color: var(--ink-500); }
-.reqSend { margin-top: 18px; }
+/* 입력칸 (Figma 404×106: 글 + 아래쪽 글자 수) */
+.reqField { margin-top: 16px; padding: 14px 16px 10px; background: var(--surface-item); border-radius: var(--radius-md); text-align: left; }
+.reqField textarea { display: block; width: 100%; height: 58px; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; line-height: 1.55; color: var(--ink-900); }
+.reqField:focus-within { box-shadow: inset 0 0 0 1.5px rgba(116, 74, 50, 0.35); }
+.reqFieldFoot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--ink-400); }
+.quickLabel { margin-top: 16px; text-align: left; font-size: 12px; color: var(--ink-500); }
+.reqSend { margin-top: 18px; gap: 8px; }
 
 /* ---- 2026-11-11 Figma 반영 ---- */
 /* 내 정보 헤더 링크: 수정 · 접기 (454:6900 Links) */
