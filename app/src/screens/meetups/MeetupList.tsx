@@ -8,7 +8,7 @@ import { ChevronLeft, SearchIcon } from '../../components/Icons'
 import { CATEGORIES, TODAY } from '../../data/mock'
 import { groupRoomId, roomOf, useChat } from '../../data/chat'
 import {
-  CAMPUSES, type MeetupX, applicantsOf, canReapply, confirmedOf, ddayOf, hourLabel, leftOf, mineGroups, myOf, placeLine,
+  type MeetupX, applicantsOf, canReapply, confirmedOf, ddayOf, hourLabel, leftOf, mineGroups, myOf, placeLine,
   recruitOf, toggleAlert, toggleWish, useMeetups, withdraw,
 } from '../../data/meetupStore'
 import { ActionToast, Dropdown, ManageModal, type MToast, MY_LABEL, RangePicker, dot, fullDate } from './parts'
@@ -25,7 +25,6 @@ const SORTS = ['가까운 날짜순', '최신등록순', '인기순', '인원순
 const SORT_CODE: Record<(typeof SORTS)[number], NonNullable<MeetupListQuery['sort']>> = { '가까운 날짜순': 'STARTS_AT', 최신등록순: 'NEWEST', 인기순: 'POPULAR', 인원순: 'MEMBERS' }
 const DATES = ['전체', '오늘', '이번 주', '이번 주말'] as const
 const MODES = ['전체', '오프라인', '온라인'] as const
-const CAMPUS_OPTS = ['전체', ...CAMPUSES] as const
 
 /** 이번 주 = 오늘부터 이번 주 일요일까지, 이번 주말 = 이번 주 토요일과 일요일 */
 function weekRange(kind: '이번 주' | '이번 주말'): [string, string] {
@@ -42,7 +41,7 @@ function weekRange(kind: '이번 주' | '이번 주말'): [string, string] {
  * 모임 – 리스트 (Figma 02 F7 1071:9749 · 날짜 필터 1074:9747 · 직접 설정 1074:10147 · 정렬 열림 · 개수 보기 열림)
  * 2 검색: 모임 이름·소개 글에서만, 입력하면 바로 (M12)
  * 3 관심사 필터: 전체 / 여러 개 골라 좁힘 (M15: 대표 관심사의 분야로 거름)
- * 4 캠퍼스 · 날짜 · 방식 · 정렬: 모두 AND. 캠퍼스를 고르면 그 캠퍼스의 오프라인 + 모든 온라인 모임
+ * 4 날짜 · 방식 · 정렬: 모두 AND. 캠퍼스로는 거르지 않음(팀 명세 11-20: 모임에 캠퍼스 없음)
  * 5 카드: 상태 배지(모집 중 / 모집 완료), 모집 완료는 흐리게 맨 뒤, 지난·취소된 모임은 안 보임, 인원 = 주최자 포함 확정 / 정원
  * 6 N개씩 보기 6(기본) / 12 / 24 + 페이지 번호
  * 데모용 쿼리: ?cat=<분야 id>
@@ -51,7 +50,6 @@ export function MeetupList() {
   const [params] = useSearchParams()
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<string[]>(() => (params.get('cat') ? [params.get('cat')!] : []))
-  const [campus, setCampus] = useState<(typeof CAMPUS_OPTS)[number]>('전체')
   const [date, setDate] = useState<(typeof DATES)[number]>('전체')
   const [range, setRange] = useState<[string, string] | null>(null)
   const [rangeOpen, setRangeOpen] = useState(params.get('modal') === 'range')
@@ -65,7 +63,7 @@ export function MeetupList() {
   // 거르기 · 정렬 · 페이지는 서버가 함 (api/meetups.ts, 목 서버도 같은 규칙). 바꾸면 이전 목록을 보여 주다가 바꿔 낌
   const r = range ?? (date === '오늘' ? [TODAY, TODAY] : date === '이번 주' || date === '이번 주말' ? weekRange(date) : null)
   const query: MeetupListQuery = {
-    q: q.trim() || undefined, categoryIds: cats.length ? cats : undefined, campus: campus === '전체' ? undefined : campus,
+    q: q.trim() || undefined, categoryIds: cats.length ? cats : undefined,
     from: r?.[0], to: r?.[1], mode: mode === '전체' ? undefined : mode === '온라인' ? 'ONLINE' : 'OFFLINE',
     sort: SORT_CODE[sort], page, size,
   }
@@ -91,7 +89,6 @@ export function MeetupList() {
       <div className={s.listTools}>
         <label className={s.search}><SearchIcon size={18} /><input value={q} onChange={(e) => { setQ(e.target.value); reset() }} placeholder="모임 이름, 소개 검색" aria-label="모임 검색" /></label>
         <div className={s.ddRow}>
-          <Dropdown label="캠퍼스" prefix="캠퍼스" value={campus} options={CAMPUS_OPTS} onChange={(v) => { setCampus(v); reset() }} />
           <div className={s.ddWrap}>
             <Dropdown label="날짜" prefix="날짜" value={date} options={DATES} onChange={(v) => { setDate(v); setRange(null); reset() }}
               extra={{ label: range ? `${dot(range[0])} ~ ${dot(range[1])}` : '직접 설정 ›', on: !!range, onClick: () => setRangeOpen(true) }} />

@@ -218,7 +218,8 @@ export const canCancel = (m: MeetupX) => !isPast(m) && !m.cancelled
 export const catNameOf = (interest: string) => categoryOf(interest)?.name ?? interest
 export const toneOfMeetup = (m: Meetup): Tone => toneOf(m.interest)
 /** 장소 표시: 오프라인은 캠퍼스를 앞에 */
-export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.campus ? `${m.campus} · ` : ''}${m.area} · 오프라인`)
+/** 카드 · 일정의 장소 줄. 캠퍼스는 앞에 붙이지 않음(팀 명세 11-20) */
+export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.area} · 오프라인`)
 
 /** 내 모임 분류 */
 export function mineGroups(s = state) {
