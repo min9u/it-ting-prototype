@@ -56,6 +56,10 @@ export interface Slot {
   /** v3.8: 동물 자리는 동물 이름(cat 등), 용품 자리와 짝(pair_slot) */
   pet?: string
   pair_slot?: string
+  /** v3.8.1: 작은 소품을 이 배율로 키워(바닥 1.4) 줄여(원탁 0.45) 놓음. max_m 은 배율을 곱한 뒤의 상자 */
+  model_scale?: number
+  /** v3.8.1: 되살린 바닥 자리(prop_slot_13·14)의 배율 */
+  small_prop_rule?: { used_in_v3_8_1?: boolean; model_scale: number }
   /** v3.8: 자리에 원래 놓이던 것(동물은 pet_cat 등, 용품은 cat_bed 등). 같은 종 짝 고르기에 씀 */
   occupant?: string | null
 }
@@ -120,7 +124,7 @@ export function planRoom(picksIn: string[], choice: Record<string, string> = {})
   for (const p of placed) {
     const category = subOf(p.sub)!.category
     // 낙하 값은 자리마다 다름(공용 바닥은 모델 키 단계별) → 슬롯 복사본에 넣어 둠
-    const item = (row: FurnitureRow, slot: Slot): Omit<PlannedItem, 'start'> => ({ row, slot: { ...slot, drop: p.drop }, category, built: true, sub: p.sub })
+    const item = (row: FurnitureRow, slot: Slot): Omit<PlannedItem, 'start'> => ({ row, slot: { ...slot, drop: p.drop, model_scale: p.scale }, category, built: true, sub: p.sub })
     const g = [item(rowOfWord(p, false), p.slot)]
     if (p.petSlot) g.push(item(rowOfWord(p, true), p.petSlot))
     groups.push(g)

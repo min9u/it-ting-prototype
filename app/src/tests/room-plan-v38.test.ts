@@ -37,11 +37,45 @@ describe('배치 규칙 v3.8', () => {
     expect(wordOrder(s, '커피').map((w) => w.word)).toEqual(['커피', '카페'])
   })
 
-  it('작은 → 선반 prop_slot_01~12 를 고른 순서대로', () => {
-    const smalls = SUB_WORDS.filter((x) => x.words[0].size === '작은' && !x.words[0].pet).slice(0, 5).map((x) => x.subId)
+  it('작은 소품 배정 순서 v3.8.1: 선반, 선반, 원탁, 선반, 바닥, 선반, 원탁, 바닥, 선반, 바닥 (칸은 종류별 정해진 순서)', () => {
+    const smalls = SUB_WORDS.filter((x) => x.words[0].size === '작은' && !x.words[0].pet).slice(0, 10).map((x) => x.subId)
     const r = placeWords(smalls)
-    expect(r.placed.map((p) => p.slot.name)).toEqual(['prop_slot_01', 'prop_slot_02', 'prop_slot_03', 'prop_slot_04', 'prop_slot_05'])
-    expect(r.placed.every((p) => p.kind === 'shelf' && p.drop.mode === 'pop')).toBe(true)
+    expect(r.unplaced).toEqual([])
+    expect(r.placed.map((p) => p.slot.name)).toEqual([
+      'prop_slot_01', 'prop_slot_02', 'prop_slot_23', 'prop_slot_03', 'prop_slot_20',
+      'prop_slot_04', 'prop_slot_24', 'prop_slot_21', 'prop_slot_05', 'prop_slot_22',
+    ])
+    expect(r.placed.map((p) => p.kind)).toEqual(['shelf', 'shelf', 'table_top', 'shelf', 'floor_prop', 'shelf', 'table_top', 'floor_prop', 'shelf', 'floor_prop'])
+    // 바닥 칸 1.4배 · 원탁 위 0.45배 · 선반 1배
+    expect(r.placed.map((p) => p.scale)).toEqual([1, 1, 0.45, 1, 1.4, 1, 0.45, 1.4, 1, 1.4])
+    // 새 칸은 모두 제자리 등장, 원탁 위는 먼지 없음, 바닥 칸 먼지 0.6
+    for (const p of r.placed) expect(p.drop.mode, p.slot.name).toBe('pop')
+    expect(r.placed.filter((p) => p.kind === 'table_top').every((p) => p.drop.dust == null)).toBe(true)
+    expect(r.placed.filter((p) => p.kind === 'floor_prop').every((p) => p.drop.dust === 0.6)).toBe(true)
+  })
+
+  it('작은 소품 19개(선반 12 + 바닥 5 + 원탁 2)까지 놓이고, 바닥은 20 → 21 → 22 → 13 → 14 · 원탁은 23 → 24 순서 (그 종류가 차면 빈 선반으로)', () => {
+    const smalls = SUB_WORDS.filter((x) => x.words[0].size === '작은' && !x.words[0].pet).slice(0, 20).map((x) => x.subId)
+    const r = placeWords(smalls)
+    expect(r.placed).toHaveLength(19)
+    expect(r.unplaced).toHaveLength(1)
+    expect(new Set(r.placed.map((p) => p.slot.name)).size).toBe(19)
+    const floor = r.placed.filter((p) => p.kind === 'floor_prop').map((p) => p.slot.name)
+    expect(floor).toEqual(['prop_slot_20', 'prop_slot_21', 'prop_slot_22', 'prop_slot_13', 'prop_slot_14'])
+    expect(r.placed.filter((p) => p.kind === 'table_top').map((p) => p.slot.name)).toEqual(['prop_slot_23', 'prop_slot_24'])
+    // 되살린 13 · 14 도 1.4배
+    for (const p of r.placed.filter((x) => x.slot.name === 'prop_slot_13' || x.slot.name === 'prop_slot_14')) expect(p.scale).toBe(1.4)
+  })
+
+  it('원탁 위 칸은 높이 0.39 · 크기 0.14 상자, 바닥 칸은 0.45 상자 (배율을 곱한 뒤의 상자)', () => {
+    for (const n of ['prop_slot_23', 'prop_slot_24']) { expect(slot(n).pos_three[1]).toBeCloseTo(0.39); expect(slot(n).max_m).toEqual({ w: 0.14, d: 0.14, h: 0.18 }) }
+    for (const n of ['prop_slot_20', 'prop_slot_21', 'prop_slot_22']) expect(slot(n).max_m).toEqual({ w: 0.45, d: 0.45, h: 0.5 })
+  })
+
+  it('큰 모델 · 벽 · 동물 짝은 v3.8 그대로 (작은 소품이 섞여도 같은 자리)', () => {
+    const big = sid('요리/레시피'), small = SUB_WORDS.filter((x) => x.words[0].size === '작은' && !x.words[0].pet)[0].subId
+    expect(placeWords([big]).placed[0].slot.name).toBe(placeWords([small, big]).placed[1].slot.name)
+    expect(placeWords([sid('강아지')]).placed[0].petSlot!.name).toBe(placeWords([small, sid('강아지')]).placed[1].petSlot!.name)
   })
 
   it('큰 → 회전 없이 max_m 안에 드는 빈칸 중 바닥 면적이 가장 작은 칸', () => {

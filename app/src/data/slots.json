@@ -1341,6 +1341,11 @@
    "S": 0.35,
    "dust": 0.6,
    "basis": "model"
+  },
+  "small_prop_rule": {
+   "used_in_v3_8_1": true,
+   "model_scale": 1.4,
+   "note": "v3.8 에 있었지만 규칙이 안 쓰던 바닥 자리를 작은 소품 자리로 되살림. 좌표·상자 그대로"
   }
  },
  {
@@ -1371,6 +1376,11 @@
    "S": 0.2,
    "dust": 0.6,
    "basis": "box"
+  },
+  "small_prop_rule": {
+   "used_in_v3_8_1": true,
+   "model_scale": 1.4,
+   "note": "v3.8 에 있었지만 규칙이 안 쓰던 바닥 자리를 작은 소품 자리로 되살림. 좌표·상자 그대로"
   }
  },
  {
@@ -2009,5 +2019,175 @@
    "mode": "pop"
   },
   "note": "v3.8 추가"
+ },
+ {
+  "name": "prop_slot_20",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   -0.82,
+   -1.74,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -0.82,
+   0.0,
+   1.74
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_21",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   0.85,
+   -1.5,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   0.85,
+   0.0,
+   1.5
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_22",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   -1.62,
+   0.45,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -1.62,
+   0.0,
+   -0.45
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_23",
+  "slot_type": "prop",
+  "kind": "table_top",
+  "category": null,
+  "pos_blender": [
+   0.25,
+   0.14,
+   0.39
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   0.25,
+   0.39,
+   -0.14
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.14,
+   "d": 0.14,
+   "h": 0.18
+  },
+  "model_scale": 0.45,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_24",
+  "slot_type": "prop",
+  "kind": "table_top",
+  "category": null,
+  "pos_blender": [
+   -0.28,
+   0.05,
+   0.39
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -0.28,
+   0.39,
+   -0.05
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.14,
+   "d": 0.14,
+   "h": 0.18
+  },
+  "model_scale": 0.45,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
  }
 ]
