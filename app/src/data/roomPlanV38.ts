@@ -25,12 +25,12 @@ const FLOOR_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'shared_big' && s.ki
 const WALL_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'shared_big' && s.kind === 'wall')
 const SHELF_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'prop' && s.kind === 'shelf').sort((a, b) => a.name.localeCompare(b.name))
 /**
- * v3.8.1 작은 소품 자리: 바닥 5칸(20 → 21 → 22 → 13 → 14 순서) · 원탁 위 2칸(23 → 24). 선반은 번호가 앞선 빈 칸
+ * v3.8.1 작은 소품 자리: 바닥 5칸(20 → 21 → 22 → 13 → 14 순서). 원탁 위 2칸(23·24)은 안 씀. 선반은 번호가 앞선 빈 칸
  * 작은 소품 배정 순서(PLACEMENT_v3_8_1.md): 작은 단어를 고른 순서대로 세어 i = 1, 2, 3 …
  */
 const FLOOR_PROP_SLOTS = ['prop_slot_20', 'prop_slot_21', 'prop_slot_22', 'prop_slot_13', 'prop_slot_14'].map((n) => SLOTS_V38.find((s) => s.name === n)!)
-const TABLE_SLOTS = ['prop_slot_23', 'prop_slot_24'].map((n) => SLOTS_V38.find((s) => s.name === n)!)
-export const SMALL_ORDER = ['shelf', 'shelf', 'table', 'shelf', 'floor', 'shelf', 'table', 'floor', 'shelf', 'floor'] as const
+/** 원탁 위 칸(prop_slot_23·24)은 앱에서 쓰지 않음(2026-11-21 결정) → 원탁 자리는 바닥으로 */
+export const SMALL_ORDER = ['shelf', 'shelf', 'floor', 'shelf', 'floor', 'shelf', 'floor', 'floor', 'shelf', 'floor'] as const
 /** 자리 모델 배율: 바닥 칸 1.4배 · 원탁 칸 0.45배 (새 칸은 slot.model_scale, 13 · 14 는 small_prop_rule.model_scale) */
 export const scaleOfSlot = (s: Slot) => s.model_scale ?? s.small_prop_rule?.model_scale ?? 1
 const PET_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'pet')
@@ -104,7 +104,7 @@ export function placeWords(subIds: readonly string[], choice: Readonly<Record<st
       // v3.8.1: i 번째 작은 소품의 자리 종류(선반·원탁·바닥)를 표대로 고르고, 그 종류가 다 찼으면 빈 선반 → 남은 바닥·원탁
       const want = SMALL_ORDER[smallN] ?? 'shelf'
       const free = (list: Slot[]) => list.find((x) => !used.has(x.name))
-      const s = free(want === 'table' ? TABLE_SLOTS : want === 'floor' ? FLOOR_PROP_SLOTS : SHELF_SLOTS) ?? free(SHELF_SLOTS) ?? free(FLOOR_PROP_SLOTS) ?? free(TABLE_SLOTS)
+      const s = free(want === 'floor' ? FLOOR_PROP_SLOTS : SHELF_SLOTS) ?? free(SHELF_SLOTS) ?? free(FLOOR_PROP_SLOTS)
       if (!s) return null
       used.add(s.name); smallN++
       const kind = s.kind === 'shelf' ? 'shelf' : s.kind === 'table_top' ? 'table_top' : 'floor_prop'

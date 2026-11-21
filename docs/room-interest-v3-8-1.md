@@ -8,7 +8,7 @@
 |---|---|
 | 1 원본 | zip 을 `design/digul_3d_handoff_interest_v3_8_1/` 에 풂(README 한 줄). `design/_incoming/` 와 zip 은 커밋 안 함 |
 | 2 방 | `room_base_v3` → `room_base_v3_1_draco_webp.glb`(옛 파일 삭제). 카탈로그 base 행 5개 추가(`cabinet_low` `floor_lamp` `floor_plant_big` `rug_front_oval` `rug_right_small`, `fixed: true`). 두더지 발자리는 기존 `measureBase` 가 base 노드의 실제 경계 상자 + 몸 반지름으로 자동 계산하므로 수납장 · 스탠드 · 큰 화분이 장애물에 들어감 |
-| 3 자리 | `data/slots.json` = `slots_v3_8_1.json`(54칸, 기존 49칸 좌표·상자 그대로). `roomPlanV38.placeWords` 의 작은 소품 배정을 순서표로: 선반, 선반, 원탁, 선반, 바닥, 선반, 원탁, 바닥, 선반, 바닥(바닥 칸 20→21→22→13→14, 원탁 23→24, 그 종류가 차면 빈 선반 → 남은 칸). `Placed.scale`(바닥 1.4 · 원탁 0.45)를 슬롯 복사본 `model_scale` 로 넘겨 `roomScene.fillSlot` 이 모델에 곱함. 원탁 위 소품은 발자리 없음(원탁 발자리가 막음). 새 칸은 pop(원탁 위는 먼지 없음, 바닥 칸 먼지 0.6) |
+| 3 자리 | `data/slots.json` = `slots_v3_8_1.json`(54칸, 기존 49칸 좌표·상자 그대로). `roomPlanV38.placeWords` 의 작은 소품 배정을 순서표로(처음 적용은 원탁 포함이었다가 아래 "마무리" 에서 원탁을 바닥으로 바꿈). `Placed.scale`(바닥 1.4 · 원탁 0.45)를 슬롯 복사본 `model_scale` 로 넘겨 `roomScene.fillSlot` 이 모델에 곱함. 원탁 위 소품은 발자리 없음(원탁 발자리가 막음). 새 칸은 pop(원탁 위는 먼지 없음, 바닥 칸 먼지 0.6) |
 | 4 썸네일 | `thumbs/` 131개를 `app/src/assets/prop-thumbs/` 로. 소품 탭이 임시 카드 대신 썸네일을 그림(캡처 `tab-prop.png`) |
 
 ## 확인한 것
@@ -27,3 +27,10 @@
 ## 남은 것
 - 썸네일 131개가 다 들어옴 → step4-5 문서의 "필요한 썸네일" 목록은 끝남. 렌더가 방 안 모습(구운 조명)과 같은 톤인지는 디자이너 확인
 - 온보딩 4 미리보기 "관심사 가구 N개" 목록이 아직 옛 소품 카탈로그를 읽음(6단계 후보, step4-5 문서 참고)
+
+## 마무리 결정 (2026-11-21, 캡처 확인 뒤)
+1. **원탁 위 소품 칸 `prop_slot_23`·`prop_slot_24` 는 앱에서 안 쓴다.** `data/slots.json` 에는 지우지 않고 그대로 둠(= v3.8.1 원본 54칸 유지, `kind: table_top`, 모델 배율 0.45). 3D 쪽이 나중에 다시 쓰자고 하면 `roomPlanV38.ts` 의 순서표만 되돌리면 됨. **앱에서 안 씀** 상태: 코드는 `roomScene.ts` 의 `table_top` 처리(발자리 없음)와 `Placed.kind 'table_top'` 만 남겨 둠
+2. **작은 소품 배정 순서**: 선반, 선반, 바닥, 선반, 바닥, 선반, 바닥, 바닥, 선반, 바닥. 바닥 칸은 20 → 21 → 22 → 13 → 14 순서(1.4배), 바닥 5칸이 차면 빈 선반으로. 작은 소품은 최대 **17개**(선반 12 + 바닥 5). 새 칸 20~22 와 선반은 제자리 등장(pop), 되살린 13·14 는 원래 낙하(fall)
+3. 러그 2개를 발자리에서 뺀 것은 그대로(확인됨)
+4. 테스트: `room-plan-v38.test.ts` 의 작은 소품 순서·17개 한도·"23·24 는 한 번도 안 씀"·"slots.json 에 23·24 가 남아 있음", `data-json`·`interest-words` 의 54칸 수는 그대로
+- 위 "판단한 것 2번"(원탁 위 칸을 뺄지)은 이 결정으로 닫힘. A-small 캡처(`_shots/v381/A-small.png`)는 원탁 둘레 바닥(방석 옆 신발 · 병 · 절구)에 작은 소품이 놓임
