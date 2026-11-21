@@ -449,6 +449,12 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
       root.userData.styleId = id
       targets.push(t)
     },
+    /** 묶음(root)이 방에서 빠짐 (꾸미기 소품 탭에서 단어를 바꿔 자리가 달라짐) → 그 가구 재질을 버림 */
+    unregister(root: THREE.Object3D) {
+      const i = targets.findIndex((t) => t.root === root)
+      if (i < 0) return
+      const old = targets[i]; restore(old); for (const ms of old.mats.values()) ms.mat.dispose(); targets.splice(i, 1)
+    },
     /** 같은 묶음(root) 안의 가구가 바뀜 (꾸미기 가구 탭에서 갈아 끼움) → 그 가구 재질을 버리고 다시 등록 */
     replace(root: THREE.Object3D, id: string, label: string, kind: StyleKind) {
       const i = targets.findIndex((t) => t.root === root)
