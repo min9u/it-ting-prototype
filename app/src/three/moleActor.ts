@@ -105,6 +105,17 @@ export interface MoleActor {
    * up = 구멍에서 뿅 → mole_idle. 제자리·회전 없음·1배속. 돌려주는 값 = 클립 길이(초)
    */
   hop(phase: 'down' | 'up'): number
+  /**
+   * 기본 자리 (v3.8, 3단계): 땅굴 방에서 앉아 있는 방석(sit_point 가 있는 가구 노드).
+   * 정하면 서 있는 채 가만히 있다가 잠시 뒤 스스로 돌아와 앉고, 동작 버튼(인사·두리번·헛발질)은 일어나 방석 앞에서 한 뒤 다시 앉음
+   */
+  setHome(g: THREE.Object3D | null): void
+  /** 기본 자리로 걸어가 앉기 (이미 앉아 있으면 아무것도 안 함) */
+  sitHome(): void
+  /** 걷기·낙하 없이 바로 기본 자리에 앉은 자세로 (정지 그림 · 동작 줄이기) */
+  sitHomeNow(): void
+  /** 지금 앉아 있는지 */
+  isSeated(): boolean
   isIdle(): boolean
   /** 조종·걷기·동작이 하나도 없음 (제자리 숨쉬기만). 저사양 모드에서 그리기를 멈춰도 되는지 */
   isResting(): boolean
@@ -454,7 +465,32 @@ export function createMoleActor(gltf: GLTF, opts: {
   const W = opts.wander
   let userFor = W ? 4 : 0   // 직접 조종한 뒤 지난 시간이 아니라 "쉬어야 할 남은 시간" (처음에도 잠깐 쉼)
   let wanderAfter = W ? W.rest[0] + Math.random() * (W.rest[1] - W.rest[0]) : Infinity
-  const userAct = () => { userFor = 6; idleFor = 0 }
+  const userAct = () => { userFor = 6; idleFor = 0; homeAfter = HOME_WAIT }
+
+  /* ---------- 기본 자리 (v3.8 3단계) ---------- */
+  let home: THREE.Object3D | null = null
+  /** 방석 같은 앉는 가구 → 엉덩이 자리 · 앉는 방향 · 도착점(앞 0.7m) */
+  function seatPlace(g: THREE.Object3D) {
+    const f = g.userData.furniture as FurnitureData | undefined
+    if (!f?.seat) return null
+    const gp = (f.sitAt ?? g).getWorldPosition(new THREE.Vector3())
+    const yaw = f.sitAt ? new THREE.Euler().setFromQuaternion(f.sitAt.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y : g.rotation.y
+    const arrive = new THREE.Vector3(gp.x + Math.sin(yaw) * ARRIVE * S, FY, gp.z + Math.cos(yaw) * ARRIVE * S)
+    return { f, seat: f.seat, pos: new THREE.Vector3(gp.x, 0, gp.z), yaw, arrive }
+  }
+  /** 앞까지 걸어가 → 방석을 보고 → 앉기 */
+  function seatSteps(g: THREE.Object3D): Step[] {
+    const p = seatPlace(g)!
+    return [walkStep(p.arrive), turnStep(() => p.yaw + Math.PI), sitStep(p.pos, p.yaw, p.seat)]
+  }
+  const atHome = () => {
+    if (!home || pose !== 'sit' || !seatAt) return false
+    const p = seatPlace(home)
+    return !!p && seatAt.pos.distanceTo(new THREE.Vector3(p.pos.x, seatAt.pos.y, p.pos.z)) < .01
+  }
+  /** 서 있다가 이만큼 가만히 있으면 방석으로 돌아옴 (처음 들어왔을 때는 더 빨리) */
+  let homeAfter = 1.4
+  const HOME_WAIT = 5
 
   /* ---------- 밖에서 부르는 것 ---------- */
   function walkTo(p: THREE.Vector3, o: { scratch?: boolean } = {}) {
@@ -467,10 +503,8 @@ export function createMoleActor(gltf: GLTF, opts: {
     if (!f) return false
     const gp = (f.sitAt ?? g).getWorldPosition(new THREE.Vector3())
     if (f.seat) {
-      const yaw = f.sitAt ? new THREE.Euler().setFromQuaternion(f.sitAt.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y : g.rotation.y
       if (pose === 'sit' && seatAt && seatAt.pos.distanceTo(new THREE.Vector3(gp.x, seatAt.pos.y, gp.z)) < .01) return true
-      const arrive = new THREE.Vector3(gp.x + Math.sin(yaw) * ARRIVE * S, FY, gp.z + Math.cos(yaw) * ARRIVE * S)
-      setPlan([...standUp(), walkStep(arrive), turnStep(() => yaw + Math.PI), sitStep(new THREE.Vector3(gp.x, 0, gp.z), yaw, f.seat)])
+      setPlan([...standUp(), ...seatSteps(g)])
       return true
     }
     if (f.noWalk) return true
@@ -492,6 +526,13 @@ export function createMoleActor(gltf: GLTF, opts: {
       return
     }
     const name = kind === 'greet' ? 'mole_greet' : kind === 'look' ? 'mole_look_around' : 'mole_ground_scratch'
+    // 기본 자리에 앉아 있었다면: 일어나 방석 앞으로 나와 카메라를 보고 동작 → 다시 앉기
+    if (atHome()) {
+      userAct()
+      const p = seatPlace(home!)!
+      setPlan([...standUp(), walkStep(p.arrive), turnStep(camYaw), clipStep(name), ...seatSteps(home!)])
+      return
+    }
     setPlan([...standUp(), turnStep(camYaw), clipStep(name)])
   }
 
@@ -656,7 +697,8 @@ export function createMoleActor(gltf: GLTF, opts: {
       if (!cur && !plan.length && pose === 'stand' && !hidden) {
         idleFor += dt
         userFor = Math.max(0, userFor - dt)
-        if (W && userFor <= 0 && idleFor > wanderAfter) {
+        if (home && idleFor > homeAfter) { idleFor = 0; homeAfter = HOME_WAIT; plan = seatSteps(home) }
+        else if (W && userFor <= 0 && idleFor > wanderAfter) {
           idleFor = 0; wanderAfter = W.rest[0] + Math.random() * (W.rest[1] - W.rest[0])
           if (Math.random() < .3 && !reduce) { cur = clipStep('mole_look_around'); cur.begin() }
           else { plan = [walkStep(wanderPoint())] }
@@ -703,8 +745,21 @@ export function createMoleActor(gltf: GLTF, opts: {
       if (cur?.hold) { cur = null } // 앞 점프가 끝나기 전에 불려도 바로 바꿈
       return dur
     },
+    setHome(g) { home = g },
+    sitHome() { if (home && !atHome()) { userAct(); homeAfter = HOME_WAIT; setPlan([...standUp(), ...seatSteps(home)]) } },
+    sitHomeNow() {
+      if (!home) return
+      const p = seatPlace(home)
+      if (!p) return
+      cur = null; plan = []
+      object.position.set(p.pos.x, p.seat.h * S, p.pos.z); object.rotation.y = p.yaw
+      play(SIT[p.seat.kind].idle, { fade: 0 })
+      pose = 'sit'; seatAt = { pos: p.pos.clone(), yaw: p.yaw, seat: p.seat }
+    },
+    isSeated: () => pose === 'sit',
     isIdle: () => !cur && !plan.length,
-    isResting: () => !cur && !plan.length && !driving && driveDir.lengthSq() === 0,
+    // 서서 방석으로 돌아올 차례를 기다리는 중에는 쉬는 게 아님 (저사양에서 그리기를 멈추면 돌아오지 못함)
+    isResting: () => !cur && !plan.length && !driving && driveDir.lengthSq() === 0 && !(home && pose === 'stand'),
     isGreeting: () => current === act('mole_greet') && current.isRunning(),
     headTop(out) { return out.set(object.position.x, object.position.y + 1.2 * S, object.position.z) },
     setWorn(ids) { dress?.setWorn(ids) },
