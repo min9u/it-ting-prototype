@@ -5,6 +5,7 @@
  * - 땅굴 무드: 대표 관심사(내 관심사 목록 맨 앞)의 대분류로 정함 (00 공통 5, F3 3a 3번, F4 꾸미기 가구 탭 3번)
  * - 방 모습(벽지·가구 선택)은 내 땅굴과 남이 보는 내 땅굴이 같은 함수로 정함 → data/roomLook.ts roomLookOf
  */
+import { wordsOfSub } from './interestWords'
 import { ME_ID, USERS } from './mock'
 import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
 import { FURNITURE_CATALOG, type FurnitureRow, type RoomPlan } from './roomPlan'
@@ -134,6 +135,8 @@ export function furnitureCandidates(subId: string, picks: string[]): FurnitureRo
   const others = [...siblings.slice(i + 1), ...siblings.slice(0, i)].filter((s) => !mine.has(s.id)).map((s) => rowOf(s.prop)).filter((r): r is FurnitureRow => !!r)
   return [base, ...others.slice(0, 2)]
 }
+/** v3.8: 소분류에서 고를 수 있는 단어 ("/"로 묶인 소분류만. 한 단어는 고정이라 빈 목록). 고른 값 FurnChoice[subId] = 단어 */
+export const wordChoices = (subId: string): string[] => { const w = wordsOfSub(subId); return w?.pickable ? w.words.map((x) => x.word) : [] }
 export type FurnChoice = Record<string, string>
 const FURN_KEY = 'digul.myFurnitureBySub'
 /** 예전(관심사 v2) 소분류 id 로 저장된 선택은 새 id 로 옮김 (옮길 곳이 없으면 버림, data/interests migrateSubId) */

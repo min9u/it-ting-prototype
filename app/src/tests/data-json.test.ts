@@ -19,11 +19,7 @@ const SLOTS = slotsRaw as unknown as Slot[]
 /** 관심사는 2026-11-18 확정본(data/interestTags.ts + 3D 연결 data/interest3d.ts). 예전 interestCatalog.json 복사본은 지움 */
 const CATS = INTEREST_CATS
 const SUBS = INTEREST_SUBS
-const row = (id: string) => CATALOG.find((r) => r.id === id)
 const slot = (name: string) => SLOTS.find((s) => s.name === name)
-/** 가구 크기 허용 오차 1cm (디자이너 값에 1~2mm 넘치는 것이 있음: reading_lamp 0.301 > 0.3, yoga_mat 0.302 > 0.3) */
-const TOL = 0.01
-const fits = (a: Row['size_m'], b: Slot['max_m']) => a.w <= b.w + TOL && a.d <= b.d + TOL && a.h <= b.h + TOL
 
 describe('fieldLayout150.json (3D 핸드오프 v3.10 들판)', () => {
   const [x0, x1] = [...layout.field.x_range].sort((a, b) => a - b)
@@ -143,60 +139,22 @@ describe('관심사 3D 연결 · furnitureCatalog · slots (3D 핸드오프 v3, 
     expect(new Set(SLOTS.map((s) => s.name)).size).toBe(SLOTS.length)
     expect(new Set([...CATS, ...SUBS].map((r) => r.id)).size).toBe(CATS.length + SUBS.length)
   })
-  it('대분류 가구: 가구 수 = 슬롯 수, 가구 행·슬롯이 있고 같은 3D 세트, 슬롯 크기 안', () => {
-    for (const c of CATS) {
-      expect(c.furniture.length, c.id).toBe(c.furniture_slots.length)
-      expect(c.max_pick, c.id).toBe(10)
-      c.furniture.forEach((fid, i) => {
-        const r = row(fid), s = slot(c.furniture_slots[i])
-        expect(r, fid).toBeDefined()
-        expect(s, c.furniture_slots[i]).toBeDefined()
-        expect(r!.type, fid).toBe('category_furniture')
-        expect(r!.category, fid).toBe(c.kit)
-        expect(s!.category, s!.name).toBe(c.kit)
-        expect(fits(r!.size_m, s!.max_m), `${fid} ${JSON.stringify(r!.size_m)} > ${s!.name} ${JSON.stringify(s!.max_m)}`).toBe(true)
-      })
-    }
+  it('v3.8.1: 카탈로그에는 기본 가구(고정 장식 5개 포함) · 장식 · 우체통만 있고(관심사 모델은 interest_words_v3_8.json), 침대 · 협탁은 없음', () => {
+    for (const r of CATALOG) expect(['base', 'deco', 'prop'], r.id).toContain(r.type)
+    expect(CATALOG.filter((r) => r.type === 'base').map((r) => r.id).sort()).toEqual(['cabinet_low', 'ceiling_lamp', 'cushion_sky', 'cushion_yellow', 'floor_lamp', 'floor_plant_big', 'round_table', 'rug_front_oval', 'rug_right_small'])
+    for (const r of CATALOG.filter((r) => r.type === 'base')) expect(r.glb_compressed, r.id).toBe('room_base_v3_1_draco_webp.glb')
   })
-  it('대분류 가구 슬롯이 겹치는 건 같은 3D 세트를 빌려 쓰는 대분류끼리뿐 (같은 슬롯 = 같은 가구)', () => {
-    const bySlot = new Map<string, string>()
-    for (const c of CATS) c.furniture_slots.forEach((sl, i) => {
-      const f = c.furniture[i]
-      if (bySlot.has(sl)) expect(bySlot.get(sl), sl).toBe(f)
-      bySlot.set(sl, f)
-    })
+  it('대분류 12개 최대 10개, 3D 세트(kit)는 벽지 · 블록 색용으로 남음', () => {
+    for (const c of CATS) { expect(c.max_pick, c.id).toBe(10); expect(c.kit, c.id).toBeTruthy(); expect(c.furniture, c.id).toEqual([]) }
+    for (const s of SUBS) { expect(s.prop, s.id).toBeNull(); expect(s.slot_kind, s.id).toBeNull() }
   })
-  it('소분류 소품: 있으면 행이 있고 소품 행, 자리 종류가 같음', () => {
-    for (const s of SUBS) {
-      if (!s.prop) { expect(s.slot_kind, s.id).toBeNull(); continue }
-      const p = row(s.prop)
-      expect(p, s.id).toBeDefined()
-      expect(p!.type, s.id).toBe('sub_prop')
-      expect(p!.slot?.kind, s.id).toBe(s.slot_kind)
-    }
-  })
-  it('선반 소품은 어느 선반 칸에도 들어감, 바닥 소품은 자기 슬롯 크기 안', () => {
-    const shelves = SLOTS.filter((s) => s.kind === 'shelf')
-    expect(shelves).toHaveLength(12)
-    for (const s of SUBS) {
-      if (!s.prop) continue
-      const p = row(s.prop)!
-      if (s.slot_kind === 'shelf') for (const sh of shelves) expect(fits(p.size_m, sh.max_m), `${p.id} → ${sh.name}`).toBe(true)
-      else {
-        const sl = slot(p.slot!.name!)
-        expect(sl, `${p.id} → ${p.slot!.name}`).toBeDefined()
-        expect(fits(p.size_m, sl!.max_m), `${p.id} → ${sl!.name}`).toBe(true)
-      }
-    }
-  })
-  it('반려동물: 용품을 고르면 짝 동물이 있고, 동물·용품 슬롯이 모두 반려동물 자리', () => {
-    for (const s of SUBS.filter((x) => x.slot_kind === 'pet_floor')) {
-      expect(s.pet, s.id).toBeTruthy()
-      const pet = row(s.pet!)
-      expect(pet?.type, s.pet!).toBe('pet')
-      expect(slot(pet!.slot!.name!)?.kind).toBe('pet_floor')
-      expect(slot(row(s.prop!)!.slot!.name!)?.kind).toBe('pet_floor')
-    }
+  it('슬롯 54개 v3.8.1: 바닥 공용 20 · 벽 공용 4 · 선반 12 · 동물 5 + 용품 5 · 앞 구석 2 · 우체통 1 · 작은 소품 바닥 3 + 원탁 위 2', () => {
+    expect(SLOTS).toHaveLength(54)
+    expect(SLOTS.filter((s) => s.kind === 'shelf')).toHaveLength(12)
+    expect(SLOTS.filter((s) => s.kind === 'floor_prop')).toHaveLength(3)
+    expect(SLOTS.filter((s) => s.kind === 'table_top')).toHaveLength(2)
+    expect(SLOTS.filter((s) => s.kind === 'pet_floor')).toHaveLength(10)
+    expect(SLOTS.filter((s) => s.name === 'mailbox_slot')).toHaveLength(1)
   })
   it('행이 가리키는 슬롯 이름은 모두 slots.json 에 있음', () => {
     for (const r of CATALOG) if (r.slot?.name) expect(slot(r.slot.name), `${r.id} → ${r.slot.name}`).toBeDefined()
@@ -207,7 +165,10 @@ describe('관심사 3D 연결 · furnitureCatalog · slots (3D 핸드오프 v3, 
   it('슬롯: 좌표 3개 · 낙하 방식이 정해진 값', () => {
     for (const s of SLOTS) {
       expect(s.pos_three, s.name).toHaveLength(3)
-      expect(['fall', 'pop', 'none'], s.name).toContain(s.drop.mode)
+      // v3.8: 바닥 공용 자리는 drop.mode 대신 키 단계별 drop_by_height 줄을 씀
+      const rows = (s as unknown as { drop_by_height?: { mode: string }[] }).drop_by_height
+      if (rows) expect(rows.every((r) => ['fall', 'pop'].includes(r.mode)), s.name).toBe(true)
+      else expect(['fall', 'pop', 'none'], s.name).toContain(s.drop.mode)
     }
   })
   it('행 type 은 앱이 아는 값 (roomPlan.ts FurnitureRow)', () => {
@@ -227,5 +188,32 @@ describe('wallpapers.json (v3.5.1)', () => {
   it('mood_map 의 카테고리 키는 3D 세트 id (관심사 대분류가 쓰는 kit, 차·커피만 "tea" 로 적혀 있어 앱이 따로 받음)', () => {
     const kits = CATS.map((c) => c.kit)
     for (const k of Object.keys(w.mood_map.by_category_id)) expect([...kits, 'tea'], k).toContain(k)
+  })
+})
+
+describe('room_base_v3_1 (3D 핸드오프 v3.8.1): 고정 장식 5개', () => {
+  const FIXED = ['cabinet_low', 'floor_lamp', 'floor_plant_big', 'rug_front_oval', 'rug_right_small']
+  const FS = 'node:fs'
+  it('고정 장식 5개가 base 행으로 있고 glb 노드 이름과 같음', () => {
+    for (const id of FIXED) {
+      const r = CATALOG.find((x) => x.id === id)
+      expect(r, id).toBeDefined()
+      expect(r!.type, id).toBe('base'); expect((r as unknown as { node: string }).node, id).toBe(id); expect(r!.status, id).toBe('built')
+      expect(r!.glb_compressed, id).toBe('room_base_v3_1_draco_webp.glb')
+    }
+  })
+  it('glb 파일 안에 5개 노드(fixed)와 조명 갓의 KHR_materials_emissive_strength 가 있고 옛 room_base_v3 파일은 없음', async () => {
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string): Uint8Array; existsSync(p: string): boolean }
+    const buf = fs.readFileSync('src/assets/models/room/room_base_v3_1_draco_webp.glb')
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+    const json = JSON.parse(new TextDecoder().decode(buf.subarray(20, 20 + dv.getUint32(12, true)))) as {
+      nodes: { name: string; extras?: { fixed?: boolean } }[]; scenes: { nodes: number[] }[]
+      materials: { name: string; extensions?: Record<string, { emissiveStrength?: number }> }[]; extensionsUsed: string[]
+    }
+    const roots = json.scenes[0].nodes.map((i) => json.nodes[i])
+    for (const id of FIXED) expect(roots.find((n) => n.name === id)?.extras?.fixed, id).toBe(true)
+    expect(json.extensionsUsed).toContain('KHR_materials_emissive_strength')
+    expect(json.materials.find((m) => m.name === 'M_lamp_shade')?.extensions?.KHR_materials_emissive_strength?.emissiveStrength).toBeGreaterThan(1)
+    expect(fs.existsSync('src/assets/models/room/room_base_v3_draco_webp.glb')).toBe(false)
   })
 })

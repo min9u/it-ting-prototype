@@ -43,3 +43,6 @@ explore/gpu/results/scene/*.cpuprofile
 tools/guide-page/out/
 tools/effects-guide/out/
 tools/room-diversity/out/
+
+# 작업 중 캡처 모음 (커밋 안 함)
+_shots/

@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import SceneCanvas from './SceneCanvas'
-import { mountRoomScene } from './roomScene'
+import { mountRoomScene, type RoomSceneHandle } from './roomScene'
 import { quality, type SceneHandle } from './engine'
 import { mountRoomWorker, workerRenderSupported } from './worker/roomWorkerHost'
 import type { FurnChoice } from '../data/myBurrow'
@@ -41,9 +41,14 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
   /** 관심사 이펙트 (roomScene fx, docs/interest-effects.md) */
   fx?: { viewer?: string[]; talk?: 'open' | 'slow' | null }
 }) {
+  // 관심사가 바뀌어도 장면을 다시 만들지 않고 방 배치만 다시 계산 (새 관심사의 소품만 떨어짐). Worker 시험판은 손잡이가 없어 예전처럼 다시 만듦.
+  // 벽지가 바뀌면(대표 관심사 대분류가 달라짐) 방 전체 모습이 바뀌므로 deps 의 wallpaper 로 다시 만듦
+  const live = !useWorker()
+  const handleRef = useRef<RoomSceneHandle | null>(null)
+  useEffect(() => { handleRef.current?.setInterests?.(interests ?? []) }, [interests?.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <SceneCanvas
-      deps={`${ownerId}|${hostName ?? ''}|${(interests ?? []).join(',')}|${wallpaper ?? ''}|${still ? 1 : 0}`}
+      deps={`${ownerId}|${hostName ?? ''}|${live ? '' : (interests ?? []).join(',')}|${wallpaper ?? ''}|${still ? 1 : 0}`}
       mount={(el, fx0) => {
         const o = { ownerId, interests, wallpaper, hostName, hostWorn, worn, still, mailbox, onMailbox, focusX: fx0, furniture, fx, style: getStyle?.() ?? undefined }
         return useWorker() ? mountRoomWorker(el, o, () => mountRoomScene(el, o)) : mountRoomScene(el, o)
@@ -51,7 +56,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
       focusX={focusX}
       className={className}
       label={label}
-      onReady={onReady}
+      onReady={(h) => { handleRef.current = h as RoomSceneHandle; onReady?.(h) }}
       overlay={overlay}
       paused={paused}
     />
