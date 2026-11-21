@@ -198,15 +198,6 @@ export const EMPTY_STYLE: RoomStyle = { theme: 'base', parts: {}, shape: {} }
 export interface ShapeChoice { id: string; name: string }
 export interface ShapeGroup { id: string; name: string; choices: ShapeChoice[] }
 export const SHAPE_OPTIONS: Record<string, ShapeGroup[]> = {
-  bed: [
-    { id: 'size', name: '크기', choices: [{ id: 'base', name: '기본' }, { id: 'low', name: '낮게' }, { id: 'big', name: '크게' }] },
-    { id: 'head', name: '머리판', choices: [{ id: 'none', name: '없음' }, { id: 'round', name: '둥근' }, { id: 'arch', name: '아치' }, { id: 'cloud', name: '구름' }, { id: 'bumps', name: '봉긋' }] },
-    { id: 'pillow', name: '베개', choices: [{ id: 'one', name: '하나' }, { id: 'two', name: '둘' }, { id: 'none', name: '없음' }] },
-  ],
-  nightstand: [
-    { id: 'cap', name: '버섯 갓', choices: [{ id: 'base', name: '기본' }, { id: 'flat', name: '납작 표고' }, { id: 'cone', name: '고깔' }, { id: 'tiny', name: '아기 버섯' }] },
-    { id: 'body', name: '협탁', choices: [{ id: 'base', name: '기본' }, { id: 'tall', name: '높게' }, { id: 'wide', name: '넓게' }] },
-  ],
   round_table: [
     { id: 'cloth', name: '테이블보', choices: [{ id: 'none', name: '없음' }, { id: 'plain', name: '민무늬' }, { id: 'gingham', name: '깅엄' }, { id: 'lace', name: '레이스' }] },
     { id: 'set', name: '찻잔', choices: [{ id: 'all', name: '주전자+컵' }, { id: 'cups', name: '컵만' }, { id: 'none', name: '비우기' }] },
@@ -247,8 +238,8 @@ export function rng(seed: number) {
 }
 
 /**
- * 씨앗 하나로 테마 + 기본 가구 모양 + 이불·방석·러그 무늬를 고름.
- * 색은 고른 테마 안의 색만 써서(어울림 보장) 이불처럼 넓은 면만 한두 군데 다른 자리 색으로 바꿈.
+ * 씨앗 하나로 테마 + 기본 가구 모양 + 방석·러그 무늬를 고름.
+ * 색은 고른 테마 안의 색만 써서(어울림 보장) 러그·방석처럼 넓은 면만 다른 자리 색으로 바꿈.
  * themeId 를 주면 그 테마로 (2026-11-18: 대분류 묶음 CATEGORY_THEMES), 안 주면 씨앗으로 고름 (실험실 /lab/style)
  * 저사양 PC 를 생각해 도자기·금속 마감(방 환경맵을 따로 만듦)은 자동에서 안 씀. 벨벳은 방석에만 가끔
  */
@@ -269,10 +260,6 @@ export function autoStyle(seed: number, themeId?: string): RoomStyle {
     }
   }
   const pat = (kind: PatternKind, color: string): PatternStyle => ({ kind, color, size: pick(['S', 'M', 'L'] as const) })
-  const fabric: PatternKind[] = ['stripe', 'dot', 'check', 'gingham', 'zigzag', 'flower']
-  // 이불(초록 자리): 다른 강조색으로 바꾸고, 반쯤은 무늬
-  const quilt = pick(accents)
-  s.parts.bed = { green: { color: c[quilt], ...(r() < .6 ? { pattern: pat(pick(fabric), c.cream) } : {}) } }
   // 방석: 각자 강조색 하나, 가끔 무늬·벨벳
   for (const [id, slot] of [['cushion_sky', 'sky'], ['cushion_yellow', 'yellow']] as const) {
     const ps: PartStyle = { color: c[pick(accents)] }
@@ -280,8 +267,6 @@ export function autoStyle(seed: number, themeId?: string): RoomStyle {
     if (r() < .25) ps.finish = 'velvet'
     s.parts[id] = { [slot]: ps }
   }
-  // 버섯 갓(협탁 주황 자리): 강조색
-  s.parts.nightstand = { orange: { color: c[pick(['orange', 'yellow', 'sky', 'green'] as const)] } }
   // 러그: 테마 러그 색(있으면 반쯤) 또는 강조색, 반쯤 무늬
   const rugColor = theme.rug && r() < .55 ? theme.rug : c[pick(accents)]
   s.rug = { color: rugColor, ...(r() < .5 ? { pattern: pat(pick(['stripe', 'check', 'dot', 'zigzag'] as const), c.cream) } : {}) }
@@ -294,7 +279,7 @@ export function autoStyle(seed: number, themeId?: string): RoomStyle {
 
 /**
  * 집주인 자동 꾸미기 (2026-11-18 2단계, data/roomLook.ts 가 부름): 대표 관심사 대분류의 색 묶음 + 집주인 id 씨앗.
- * 같은 사람은 늘 같은 방, 대분류가 같아도 사람마다 이불·러그·방석·모양·바닥이 조금씩 다름. 대표 관심사가 없으면 null (디자이너 원래 모습)
+ * 같은 사람은 늘 같은 방, 대분류가 같아도 사람마다 러그·방석·모양·바닥이 조금씩 다름. 대표 관심사가 없으면 null (디자이너 원래 모습)
  */
 export function autoStyleFor(ownerId: string, lead: string | null | undefined): RoomStyle | null {
   const t = categoryTheme(lead)

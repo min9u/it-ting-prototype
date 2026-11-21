@@ -361,6 +361,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     ;(window as unknown as { __roomNav?: unknown }).__roomNav = {
       pos: () => (mole ? { x: mole.object.position.x, z: mole.object.position.z, idle: mole.isIdle() } : null),
       rects: () => navRects(),
+      seated: () => !!mole?.isSeated(),
       walkTo: (x: number, z: number) => { mole?.walkTo(new THREE.Vector3(x, FLOOR_Y, z)); loop.wake() },
       screen: (x: number, z: number) => {
         const v = new THREE.Vector3(x, FLOOR_Y, z).project(camera), r = renderer.domElement.getBoundingClientRect()
@@ -380,6 +381,14 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (data?.seat && data.sitAt) data.seat.h = data.sitAt.getWorldPosition(new THREE.Vector3()).y
       // 방석처럼 앉는 낮은 가구는 발자리를 조금 작게 (앞까지 걸어와야 해서)
       const pad = c.sit_point ? MOLE_R * .6 : MOLE_R
+      if (c.id === 'round_table') {
+        // 둥근 원탁은 네모로 막으면 모서리 쪽(방석 앞 걸어오는 시작점 (±0.68, 0.65))이 막힌 곳이 되어 두더지가 못 들어감 →
+        // 가로 · 세로로 긴 네모 둘을 겹친 십자 모양 (모서리를 잘라 둥근 모양에 가깝게. 몸 반지름만큼 부푼 원 밖으로 다님)
+        const cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2
+        const hx = (box.max.x - box.min.x) / 2 + pad, hz = (box.max.z - box.min.z) / 2 + pad
+        baseFeet.push({ x0: cx - hx, x1: cx + hx, z0: cz - hz * .7, z1: cz + hz * .7 }, { x0: cx - hx * .7, x1: cx + hx * .7, z0: cz - hz, z1: cz + hz })
+        continue
+      }
       baseFeet.push({ x0: box.min.x - pad, x1: box.max.x + pad, z0: box.min.z - pad, z1: box.max.z + pad })
     }
     syncFeet()
@@ -635,6 +644,12 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     }
     mole = createMoleActor(moleG, { scale: 1, start: new THREE.Vector3(0, FLOOR_Y, .85), clamp: clampRoom, nav, drop, dropDelay: HOLE_OPEN, floorY: FLOOR_Y, acc, worn, simple: simpleMole })
     scene.add(mole.object)
+    // 기본 자리 (3D 핸드오프 v3.8, 3단계): 내 땅굴은 노랑 방석, 방문자 뷰는 집주인 노랑 · 손님 하늘색. 둘 다 카메라 쪽을 보고 앉음.
+    // 낙하 연출이 있으면 떨어져 한 번 두리번한 뒤 걸어가 앉고, 연출이 없으면(정지 그림 · 동작 줄이기) 처음부터 앉은 채
+    const cushion = (id: string) => baseNodes.find((b) => b.c.id === id)?.node ?? null
+    mole.setHome(cushion(host ? 'cushion_sky' : 'cushion_yellow'))
+    if (host) { host.setHome(cushion('cushion_yellow')); host.sitHomeNow() }
+    if (!drop) mole.sitHomeNow()
     for (const a of [host, mole]) if (a) { const sh = blobShadow(.9); scene.add(sh); shadows.set(a, sh); toDynamicLayer(a.object); toDynamicLayer(sh) }
     // 땅굴 비교 찍기용 (?nomole=1, tools/room-diversity, docs/room-diversity-2026-11-18.md): 두더지 두 마리를 숨기고 방만. 발밑 그림자는 루프가 따라 숨김.
     // 연출 없는 방(still)에서만 맞음 (떨어지는 연출은 두더지를 다시 보이게 함)

@@ -57,7 +57,7 @@ export function stillFor(kind: StillKind, opts: { host?: boolean } = {}): Still 
 }
 
 /** ROOM_FRAME (three/roomFrame.ts) 과 같은 값. 이 파일이 three 를 불러오지 않게 따로 적음 (바꾸면 같이) */
-const ROOM_TOP = -0.06, ROOM_H = 1.0
+const ROOM_TOP = -0.053, ROOM_H = 0.89
 
 /** 장면 컨테이너 안에서 그림을 놓는 CSS (React style 로 그대로). focusX = 장면 가운데 가로 위치(0–1) */
 export function stillStyle(s: Pick<Still, 'fit'>, focusX = 0.5): Record<string, string | number> {
