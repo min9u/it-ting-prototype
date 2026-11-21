@@ -1,0 +1,29 @@
+# 관심사 v3.8.1 적용: 고정 장식 5개 · 작은 소품 자리 54칸 · 썸네일 131개 (2026-11-21)
+
+- 브랜치 `feat/room-interest-v3-8` (push 안 함). 원본 `design/digul_3d_handoff_interest_v3_8_1/` (`docs/HANDOFF_v3_8_1.md` · `PLACEMENT_v3_8_1.md`), 앞 단계 [step3](room-interest-v3-8-step3.md) · [step4-5](room-interest-v3-8-step4-5.md)
+- 요청: 3D 패치 v3.8.1 을 단계별 커밋으로 적용 (원본 보관 → 방 → 자리 → 썸네일 → 확인)
+
+## 한 것
+| 단계 | 내용 |
+|---|---|
+| 1 원본 | zip 을 `design/digul_3d_handoff_interest_v3_8_1/` 에 풂(README 한 줄). `design/_incoming/` 와 zip 은 커밋 안 함 |
+| 2 방 | `room_base_v3` → `room_base_v3_1_draco_webp.glb`(옛 파일 삭제). 카탈로그 base 행 5개 추가(`cabinet_low` `floor_lamp` `floor_plant_big` `rug_front_oval` `rug_right_small`, `fixed: true`). 두더지 발자리는 기존 `measureBase` 가 base 노드의 실제 경계 상자 + 몸 반지름으로 자동 계산하므로 수납장 · 스탠드 · 큰 화분이 장애물에 들어감 |
+| 3 자리 | `data/slots.json` = `slots_v3_8_1.json`(54칸, 기존 49칸 좌표·상자 그대로). `roomPlanV38.placeWords` 의 작은 소품 배정을 순서표로: 선반, 선반, 원탁, 선반, 바닥, 선반, 원탁, 바닥, 선반, 바닥(바닥 칸 20→21→22→13→14, 원탁 23→24, 그 종류가 차면 빈 선반 → 남은 칸). `Placed.scale`(바닥 1.4 · 원탁 0.45)를 슬롯 복사본 `model_scale` 로 넘겨 `roomScene.fillSlot` 이 모델에 곱함. 원탁 위 소품은 발자리 없음(원탁 발자리가 막음). 새 칸은 pop(원탁 위는 먼지 없음, 바닥 칸 먼지 0.6) |
+| 4 썸네일 | `thumbs/` 131개를 `app/src/assets/prop-thumbs/` 로. 소품 탭이 임시 카드 대신 썸네일을 그림(캡처 `tab-prop.png`) |
+
+## 확인한 것
+- **조명 갓 emissive**: `M_lamp_shade` 의 `KHR_materials_emissive_strength`(1.21)가 앱에서 읽혀 갓이 은은히 빛나는 크림색으로 보임(확대 `2-lamp-zoom.png`, 디자이너 렌더 `room_v3_8_1_small.png` 와 같은 느낌). three r165 GLTFLoader 기본 지원이라 코드를 안 고침. glb 안에 이 확장이 있는지는 테스트로 박음
+- 걷기 시험(`tools/room-path/walk-check-v38.mjs`, 새 장식 둘레 6점 추가): A · B · C 세 방 모두 **박힘 0 · 경로 실패 0**, 처음 앉음, 걷다 멈춘 뒤 방석 복귀. 러그 위 점(0, 1.85)도 걸어서 감
+- 단위 테스트 313개 + 썸네일 2개, `tsc -b` 통과
+- 캡처 `_shots/v381/`: `A-small.png` · `A-small-zoom.png`(원탁 위 확대) · `B-big.png` · `C-pet.png` · `V-visit.png`(방문자 뷰) · `tab-prop.png`(소품 탭) · `tab-prop-camping.png` · `2-lamp-zoom.png`. (같은 폴더의 `v381_*` 는 디자이너 쪽 파일이라 그대로 둠)
+
+## 판단한 것 · 확인받을 것
+1. **러그 2개는 두더지 발자리에서 뺐다.** 요청 문구에는 5개 모두 "장애물"이었지만 HANDOFF 3번이 "수납장·조명·큰 화분 발자리(러그 제외)", 러그는 높이 1.8cm 라 걸어서 넘는 것이라 해서 따름(러그에 막혀 돌아가면 어색함). 코드는 일반 규칙: 경계 상자 높이가 5cm 미만이면 발자리 없음(`measureBase`). 러그도 막고 싶으면 그 줄 한 줄을 지우면 됨
+2. **원탁 위 소품(0.45배, 약 13cm)은 작지만 알아볼 수 있다**: A-small 확대에서 원탁 위 둘레에 작은 머그 · 통 두 개가 찻주전자 옆에 놓임. 다만 한눈에 "무슨 소품"인지는 안 읽히고 큰 화면(1440)에서도 20px 안팎. HANDOFF 6번처럼 더 키울 수는 없고(윗면 반지름 0.36m 에 찻주전자 · 컵), 보여 주고 싶은 소품은 선반 · 바닥에 두는 편이 좋음. **원탁 위 칸을 빼고 바닥만 쓸지** 기획 확인
+3. 오른쪽 앞 러그 가운데(1.92, 2.3)는 방 가장자리 밖(`ROOM_R − 0.5`)이라 두더지가 정확히 가운데에는 못 섬(가까운 가장자리까지는 감). 박힘 아님
+4. 테스트 중 `tests/data-json.test.ts`(#3 이 고친 파일)를 고쳤음: base 행 목록 · 슬롯 수 · 고정 장식 5개 확인. #3 머지 때 이 부분만 충돌 가능
+5. 바닥 칸의 작은 소품은 방 가운데 쪽(앞)에 놓여 두더지 길 위에 있음 → 걷기 시험은 통과(박힘 0, 소품 둘레를 돌아감: 바닥 칸 소품 발자리 = 상자 0.45 + 몸 반지름)
+
+## 남은 것
+- 썸네일 131개가 다 들어옴 → step4-5 문서의 "필요한 썸네일" 목록은 끝남. 렌더가 방 안 모습(구운 조명)과 같은 톤인지는 디자이너 확인
+- 온보딩 4 미리보기 "관심사 가구 N개" 목록이 아직 옛 소품 카탈로그를 읽음(6단계 후보, step4-5 문서 참고)
