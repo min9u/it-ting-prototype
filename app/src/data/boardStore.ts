@@ -376,7 +376,13 @@ export function createPost(d: PostDraft): string {
   commit([{ id, ...d, authorId: ME_ID, at: Date.now(), views: 0, likes: 0, saves: 0, status: 'public', reports: 0, comments: [] }, ...posts])
   return id
 }
-export function updatePost(id: string, d: PostDraft) { patch(id, (p) => ({ ...p, ...d, editedAt: Date.now() })) }
+/**
+ * 글 수정. "수정됨"(editedAt)은 **제목이나 본문을 고쳤을 때만** 붙인다 (F8 글 상세 6, 11-20).
+ * 카테고리 · 태그 · 사진 · 모임 연결만 바꾸면 안 붙이고, 이미 붙어 있던 것도 그대로 둔다
+ */
+export function updatePost(id: string, d: PostDraft) {
+  patch(id, (p) => ({ ...p, ...d, editedAt: d.title !== p.title || d.body !== p.body ? Date.now() : p.editedAt }))
+}
 /** 글 삭제: 댓글·답글도 함께 사라짐 */
 export function deletePost(id: string) { patch(id, (p) => ({ ...p, status: 'deleted', comments: [], savedAt: undefined })) }
 
