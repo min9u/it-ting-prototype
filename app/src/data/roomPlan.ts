@@ -56,6 +56,8 @@ export interface Slot {
   /** v3.8: 동물 자리는 동물 이름(cat 등), 용품 자리와 짝(pair_slot) */
   pet?: string
   pair_slot?: string
+  /** v3.8: 자리에 원래 놓이던 것(동물은 pet_cat 등, 용품은 cat_bed 등). 같은 종 짝 고르기에 씀 */
+  occupant?: string | null
 }
 
 export const FURNITURE_CATALOG = catalogRaw as unknown as FurnitureRow[]
