@@ -8,7 +8,7 @@ import RoomModeToggle from '../../components/RoomModeToggle'
 import Modal from '../../components/Modal'
 import { ReportDialog, TOAST, Toast } from '../../components/Feedback'
 import { ChatIcon, SendIcon } from '../../components/Icons'
-import mound from '../../assets/mole-mound.png'
+import MoundMole from '../../components/MoundMole'
 import { ME_ID, USERS, overlapCount } from '../../data/mock'
 import type { GuestbookEntry } from '../../data/types'
 import GuestbookModal from './GuestbookModal'
@@ -167,7 +167,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
       {/* 대화 요청 팝업 (Figma 495:13898): 두더지 · 제목 · 50자 입력칸(글자 수) · 빠른 멘트 3개 · 주황 "요청 보내기" */}
       <Modal open={reqOpen} onClose={() => setReqOpen(false)} width={460} labelledBy="req-title">
         <div className={s.requestModal}>
-          <img className={s.reqMole} src={mound} alt="" width={84} height={84} draggable={false} />
+          <MoundMole className={s.reqMole} width={84} height={67} />
           <h2 id="req-title" className="display">대화 요청하기</h2>
           <div className={s.reqField}>
             <textarea value={reqMsg} maxLength={CHAT_REQUEST_MAX} onChange={(e) => setReqMsg(e.target.value)} aria-label="첫 인사" aria-describedby="req-count"

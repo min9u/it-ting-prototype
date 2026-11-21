@@ -6,9 +6,10 @@ import { EmptyMole } from '../../components/Feedback'
 import { toneOf } from '../../data/mock'
 import { migrateInterests } from '../../data/interests'
 import {
-  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, RECOMMEND_QUESTIONS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId, floorLabel,
+  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId, floorLabel,
   getRecommendSettings, getRegulars, me, setRecommendSettings, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendSettings,
 } from '../../data/field'
+import { QUESTIONS, questionOf, questionTag } from '../../data/questions'
 import type { User } from '../../data/types'
 import x from './Explore.module.css'
 
@@ -41,35 +42,49 @@ export function RegularsModal({ open, onClose, onRemoved }: { open: boolean; onC
   )
 }
 
-/* ===================== 오늘의 추천 친구 (787:3888 · 787:4348 · 787:4762) ===================== */
+/* ===================== 오늘의 추천 친구 (설정 863:133 · 질문 고르기 1265:35509 · 결과 761:3795 · 카드 뒤집기 765:3619) ===================== */
 /**
- * 오늘 아직 안 받았으면 추천 친구 설정(조건 고르기) → 추천 받기 → 결과. 이미 받았으면 오늘 받은 3명.
- * 탐색에 들어올 때 자동으로 띄우지 않음 (02 F5 5번). 결과 화면에는 설정을 두지 않음
+ * 오늘 아직 안 받았으면 추천 조건 설정 → (질문 고르기) → 추천 받기 → 결과. 이미 받았으면 오늘 받은 3명.
+ * 탐색에 들어올 때 자동으로 띄우지 않음 (02 F5 5번). 결과 화면에는 설정을 두지 않음.
+ * 질문 고르기는 같은 팝업 안에서 화면만 바뀜 (팝업 위에 또 팝업을 띄우지 않아 초점 가두기가 꼬이지 않음)
  */
+type RecView = 'settings' | 'question' | 'result'
 export function RecommendModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [picks, setPicks] = useState<string[] | null>(null)
-  useEffect(() => { if (open) setPicks(todaysPicks()) }, [open])
+  const [view, setView] = useState<RecView>('settings')
+  useEffect(() => { if (open) { const p = todaysPicks(); setPicks(p); setView(p ? 'result' : 'settings') } }, [open])
   return (
-    <Modal open={open} onClose={onClose} width={720} labelledBy="rec-title">
-      {picks ? <RecommendResult ids={picks} onGo={onClose} /> : <RecommendSettingsView onDraw={() => setPicks(drawRecommendations())} />}
+    <Modal open={open} onClose={onClose} width={view === 'question' ? 560 : 720} labelledBy="rec-title">
+      {view === 'result' && picks
+        ? <RecommendResult ids={picks} onGo={onClose} />
+        : view === 'question'
+          ? <QuestionPicker onDone={() => setView('settings')} />
+          : <RecommendSettingsView onPickQuestion={() => setView('question')} onDraw={() => { setPicks(drawRecommendations()); setView('result') }} />}
     </Modal>
   )
 }
 
-function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" className={on ? x.optOn : x.opt} aria-pressed={on} onClick={onClick}>{on && '✓ '}{children}</button>
+function Toggle({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+  return <button type="button" className={on ? x.optOn : x.opt} aria-pressed={on} onClick={onClick} title={title}>{on && '✓ '}{children}</button>
 }
 
-function RecommendSettingsView({ onDraw }: { onDraw: () => void }) {
+/** 주황 켜고 끄기 스위치 */
+function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return <button type="button" role="switch" aria-checked={on} aria-label={label} className={on ? x.switchOn : x.switch} onClick={onClick}><i aria-hidden /></button>
+}
+
+/** 질문 문장 앞 "Q." (질문 목록 문장은 그대로, 칩에서만 앞에 붙임) */
+const qLabel = (id: string) => { const q = questionOf(id); return q ? `Q. ${q.text}` : null }
+
+function RecommendSettingsView({ onDraw, onPickQuestion }: { onDraw: () => void; onPickQuestion: () => void }) {
   // 2026-11-18 전에 저장된 설정은 예전 관심사 이름(시티팝 …)일 수 있어서 새 이름으로 옮겨서 보여 줌 (data/interests migrateInterests)
   const [st, setSt] = useState<RecommendSettings>(() => { const s = getRecommendSettings(); return { ...s, interests: migrateInterests(s.interests) } })
-  const [qOpen, setQOpen] = useState(false)
   const set = (p: Partial<RecommendSettings>) => { const v = { ...st, ...p }; setSt(v); setRecommendSettings(v) }
   const myInt = me().interests
   return (
     <div className={x.modal}>
       <h2 id="rec-title" className="display">오늘의 추천 친구</h2>
-      <p className={x.lead}>추천 조건을 정하고 오늘의 친구 3명을 받아 보세요</p>
+      <p className={x.lead}>추천 조건을 정하고 오늘의 추천 친구 3명을 받아 보세요.</p>
       <section className={x.recBox} aria-label="추천 친구 설정">
         <h3 className="display">추천 친구 설정</h3>
         <div className={x.recRow}>
@@ -81,65 +96,104 @@ function RecommendSettingsView({ onDraw }: { onDraw: () => void }) {
         <div className={x.recRow}>
           <span>답이 궁금한 질문</span>
           <div className={x.opts}>
-            {st.question && <Toggle on onClick={() => set({ question: null })}>Q. {st.question}</Toggle>}
-            <button type="button" className={x.addQ} onClick={() => setQOpen((v) => !v)} aria-expanded={qOpen}>+ 질문 고르기</button>
-            {qOpen && (
-              <ul className={x.qList}>
-                {RECOMMEND_QUESTIONS.map((q) => (
-                  <li key={q}><button type="button" className={q === st.question ? x.qOn : undefined} onClick={() => { set({ question: q }); setQOpen(false) }}>Q. {q}</button></li>
-                ))}
-              </ul>
-            )}
+            {st.questions.map((id) => { const t = qLabel(id); return t && <Toggle key={id} on title={t} onClick={() => set({ questions: st.questions.filter((v) => v !== id) })}>{t}</Toggle> })}
+            <button type="button" className={x.addQ} onClick={onPickQuestion}>+ 질문 고르기</button>
           </div>
         </div>
-        <div className={x.recRow}>
-          <span>같은 질문에 답한 사람</span>
-          <div className={x.opts}><Toggle on={st.sameQuestionFirst} onClick={() => set({ sameQuestionFirst: !st.sameQuestionFirst })}>우선 추천</Toggle></div>
+        <div className={`${x.recRow} ${x.recSwitchRow}`}>
+          <span id="rec-same-q">같은 질문에 답한 사람 먼저 추천</span>
+          <Switch on={st.sameQuestionFirst} onClick={() => set({ sameQuestionFirst: !st.sameQuestionFirst })} label="같은 질문에 답한 사람 먼저 추천" />
         </div>
         <div className={x.recRow}>
-          <span>캠퍼스·기수·층</span>
+          <span>캠퍼스 · 기수 · 반</span>
           <div className={x.opts}>
             <Toggle on={st.sameCampus} onClick={() => set({ sameCampus: !st.sameCampus })}>같은 캠퍼스</Toggle>
             <Toggle on={st.sameGen} onClick={() => set({ sameGen: !st.sameGen })}>같은 기수</Toggle>
-            <Toggle on={st.sameFloor} onClick={() => set({ sameFloor: !st.sameFloor })}>같은 층</Toggle>
+            <Toggle on={st.sameFloor} onClick={() => set({ sameFloor: !st.sameFloor })}>같은 반</Toggle>
           </div>
         </div>
-        <p className={x.recNote}>조건은 걸러 내는 게 아니라 우선순위예요. 많이 맞는 사람부터 고르고, 모자라면 덜 맞는 사람으로 채워요.</p>
       </section>
-      <div className={x.recFoot}>
-        <span>추천은 하루 한 번 받을 수 있어요</span>
-        <button className="btn btn-cta" onClick={onDraw}>추천 받기</button>
+      <p className={x.recNotice}>추천은 하루 한 번 받을 수 있어요. 추천을 받은 뒤 조건을 바꾸면 다음 날부터 적용돼요.</p>
+      <button className={`btn btn-cta btn-block ${x.recDraw}`} onClick={onDraw}>추천 받기</button>
+    </div>
+  )
+}
+
+/** 답이 궁금한 질문 고르기 (1265:35509): 전체 · 관심사 · TMI 탭, 몇 개든 고를 수 있음. 고르는 즉시 저장 */
+type QFilter = 'all' | 'interest' | 'tmi'
+const Q_FILTERS: [QFilter, string][] = [['all', '전체'], ['interest', '관심사'], ['tmi', 'TMI']]
+function QuestionPicker({ onDone }: { onDone: () => void }) {
+  const [ids, setIds] = useState<string[]>(() => getRecommendSettings().questions)
+  const [filter, setFilter] = useState<QFilter>('all')
+  const list = QUESTIONS.filter((q) => filter === 'all' || q.kind === filter)
+  const toggle = (id: string) => {
+    const next = ids.includes(id) ? ids.filter((v) => v !== id) : [...ids, id]
+    setIds(next)
+    setRecommendSettings({ ...getRecommendSettings(), questions: next })
+  }
+  return (
+    <div className={x.modal}>
+      <h2 id="rec-title" className="display">답이 궁금한 질문 고르기</h2>
+      <p className={x.lead}>고른 질문에 답한 친구를 추천해 드려요</p>
+      <div className={x.qTabs} role="tablist" aria-label="질문 종류">
+        {Q_FILTERS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={filter === k} className={filter === k ? x.qTabOn : x.qTab} onClick={() => setFilter(k)}>{label}</button>)}
+      </div>
+      <ul className={x.qPick}>
+        {list.map((q) => {
+          const on = ids.includes(q.id)
+          return (
+            <li key={q.id}>
+              <button type="button" className={on ? x.qRowOn : x.qRow} aria-pressed={on} onClick={() => toggle(q.id)}>
+                <span className={x.qText}><small>{questionTag(q)}</small><strong>{q.text}</strong></span>
+                <span className={on ? x.qStateOn : x.qState}>{on ? '✓ 골랐어요' : '+ 고르기'}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      <div className={x.qFoot}>
+        <span aria-live="polite">{ids.length}개 골랐어요</span>
+        <button type="button" className="btn btn-cta" onClick={onDone}>고르기 완료</button>
       </div>
     </div>
   )
 }
 
+/** 카드 아바타 배경 (파스텔: 라일락 · 하늘 · 버터) */
+const CARD_BG = ['#e6ddeb', '#d9e6ec', '#f3e6be']
+/** "Q1. 문장" → "Q. 문장" */
+const dotQ = (q: string) => q.replace(/^Q\d+\./, 'Q.')
+
 function RecommendResult({ ids, onGo }: { ids: string[]; onGo: () => void }) {
-  const [flipped, setFlipped] = useState<string | null>(null)
   const users = ids.map((id) => fieldUserOf(id)).filter((u): u is User => !!u)
+  const [flipped, setFlipped] = useState<string | null>(null)
+  /** 지금 고른(올려 둔 · 누른) 카드. 처음엔 첫 번째. 주황 테두리 + 주황 버튼 */
+  const [active, setActive] = useState<string | null>(users[0]?.id ?? null)
   const mine = me().interests
   return (
     <div className={x.modal}>
       <h2 id="rec-title" className="display">오늘의 추천 친구가 도착했어요</h2>
-      <p className={x.lead}>추천 친구 설정에 맞는 SSAFY 친구 {users.length}명을 골라왔어요</p>
+      <p className={x.lead}>관심사가 비슷한 SSAFY 친구 {users.length}명입니다</p>
+      <p className={x.cardHint}>카드를 누르면 친구의 답변을 볼 수 있어요</p>
       {users.length ? (
         <ul className={x.recCards}>
-          {users.map((u) => {
+          {users.map((u, n) => {
             const shared = u.interests.filter((i) => mine.includes(i))
             const chips = [...shared, ...u.interests.filter((i) => !shared.includes(i))].slice(0, 3)
             const back = flipped === u.id
+            const bg = CARD_BG[n % CARD_BG.length]
             return (
-              <li key={u.id} className={back ? x.cardBack : x.card}>
+              <li key={u.id} className={`${back ? x.cardBack : x.card} ${active === u.id ? x.cardActive : ''}`}
+                onMouseEnter={() => setActive(u.id)} onFocus={() => setActive(u.id)}>
                 {back ? (
-                  <>
-                    <div className={x.backHead}><Avatar size={36} /><div><strong>{u.nickname}</strong><em>겹치는 관심사 {shared.length}개</em></div></div>
-                    <dl className={x.backQna}>{(u.qna ?? []).slice(0, 3).map((q) => <div key={q.q}><dt>{q.q}</dt><dd>{q.a}</dd></div>)}</dl>
-                    <button className={x.backBtn} onClick={() => setFlipped(null)}>← 프로필로 돌아가기</button>
-                  </>
+                  <button className={x.backFace} onClick={() => setFlipped(null)} aria-label={`${u.nickname} 프로필로 돌아가기`}>
+                    <span className={x.backHead}><Avatar circle size={40} bg={bg} /><strong>{u.nickname}</strong></span>
+                    <dl className={x.backQna}>{(u.qna ?? []).slice(0, 2).map((q) => <div key={q.q}><dt>{dotQ(q.q)}</dt><dd>{q.a}</dd></div>)}</dl>
+                  </button>
                 ) : (
-                  <button className={x.cardFront} onClick={() => setFlipped(u.id)} aria-label={`${u.nickname} 답변 보기`}>
+                  <button className={x.cardFront} onClick={() => { setActive(u.id); setFlipped(u.id) }} aria-label={`${u.nickname} 답변 보기`}>
                     <span className={x.fold} aria-hidden />
-                    <Avatar size={68} />
+                    <Avatar circle size={72} bg={bg} />
                     <strong>{u.nickname}</strong>
                     <small>{affOf(u)}</small>
                     <span className={x.cardChips}>
@@ -149,7 +203,7 @@ function RecommendResult({ ids, onGo }: { ids: string[]; onGo: () => void }) {
                     </span>
                   </button>
                 )}
-                <Link to={`/burrow/${u.id}`} className={`btn ${back ? 'btn-cta' : 'btn-line'} btn-block ${x.cardGo}`} onClick={onGo}>땅굴 방문하기</Link>
+                <Link to={`/burrow/${u.id}`} className={`btn ${active === u.id || back ? 'btn-cta' : 'btn-line'} btn-block ${x.cardGo}`} onClick={onGo}>땅굴 방문하기</Link>
               </li>
             )
           })}

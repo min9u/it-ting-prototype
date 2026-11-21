@@ -103,13 +103,13 @@ export function useExploreKeys(on: boolean, h: { dir?: (d: 'up' | 'down' | 'left
   })
 }
 
-/** 왼쪽 위: 단골 땅굴 · 오늘의 추천 친구(빨간 점) · 캠퍼스-층 */
+/** 왼쪽 위: 단골 땅굴 · 추천 친구(빨간 점) · 캠퍼스-층 */
 export function ExploreTools({ base, children }: { base: ExploreBase; children?: ReactNode }) {
   return (
     <div className={x.leftTools}>
       <SceneButton tone="paper" onClick={() => base.setModal('regulars')}>단골 땅굴</SceneButton>
       <SceneButton tone="paper" onClick={() => base.setModal('recommend')}>
-        오늘의 추천 친구 {!base.recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
+        추천 친구 {!base.recDone && <><i className={x.redDot} aria-hidden /><span className="sr-only">(오늘 아직 안 받음)</span></>}
       </SceneButton>
       <SceneButton tone="paper" onClick={() => base.setModal('floor')} aria-label={`지금 들판 ${floorLabel(base.floor)}. 캠퍼스-층 고르기`}>
         {floorLabel(base.floor)} <span aria-hidden className={x.caret}>▾</span>

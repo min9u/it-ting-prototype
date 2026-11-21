@@ -62,7 +62,7 @@ const recSetting = (): RecommendSettingDto => {
   const s = getRecommendSettings()
   return {
     useInterest: s.interests.length > 0, interestIds: s.interests.map((n) => subOf(n)?.id ?? n),
-    useSameQuestion: s.sameQuestionFirst, questionIds: s.question ? [s.question] : [],
+    useSameQuestion: s.sameQuestionFirst, questionIds: s.questions,
     useAffiliation: s.sameCampus || s.sameGen || s.sameFloor, sameCampus: s.sameCampus, sameGeneration: s.sameGen, sameFloor: s.sameFloor,
   }
 }
@@ -105,7 +105,7 @@ const mock: MembersApi = {
   updateRecommendSetting: (s) => mockWrite(() => {
     const cur = getRecommendSettings()
     setRecommendSettings({
-      ...cur, interests: s.interestIds.map((id) => INTEREST_SUBS.find((x) => x.id === id)?.name_ko ?? id), question: s.questionIds[0] ?? null,
+      ...cur, interests: s.interestIds.map((id) => INTEREST_SUBS.find((x) => x.id === id)?.name_ko ?? id), questions: s.questionIds,
       sameQuestionFirst: s.useSameQuestion, sameCampus: s.sameCampus, sameGen: s.sameGeneration, sameFloor: s.sameFloor,
     })
     return recSetting()
