@@ -91,7 +91,6 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['설정 – Google로만 가입한 계정으로 보기', '/settings?account=google', 'F10'],
     ['설정 – 이메일 계정으로 되돌리기', '/settings?account=email', 'F10'],
     ['설정 – 알림 설정', '/settings/notifications', 'F10', true],
-    ['설정 – 차단 관리 · 차단 해제 확인', '/settings/blocked', 'F10 (11-13 메타데이터)'],
     ['설정 – 공지사항 · 상세', '/settings/notices', 'F10', true],
     ['설정 – 회원 탈퇴 (내가 연 모임 있음)', '/settings/leave', 'F10', true],
     ['설정 – 회원 탈퇴 (모임 없음 → 탈퇴 확인)', '/settings/leave?hosting=0', 'F10', true],

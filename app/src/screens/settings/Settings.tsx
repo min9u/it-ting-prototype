@@ -13,8 +13,9 @@ export { NotifSettingsPage, BlockedPage, NoticeListPage, NoticeDetailPage } from
 export { LeavePage } from './SettingsLeave'
 
 /**
- * 설정 (Desktop) — Figma 02 F10 (2026-11-16 명세 스크린샷 + 차단 관리는 11-13 메타데이터)
- * 왼쪽 메뉴: 계정(비밀번호 변경 · Google 연동하기) / 알림 · 차단(알림 설정 · 차단 관리) / 정보(공지사항 · 버전 정보)
+ * 설정 (Desktop) — Figma 02 F10 (2026-11-16 명세 스크린샷)
+ * 왼쪽 메뉴: 계정(비밀번호 변경 · Google 연동하기) / 알림(알림 설정) / 정보(공지사항 · 버전 정보 · 3D 모델 크레딧)
+ * 차단 기능은 팀 명세에 없어(2026-11-20, README "이번 범위에 없는 것") 메뉴에서 뺌. 차단 화면 · 프로필 팝업의 차단은 아직 남아 있음(docs/f6-f10-gaps F10-B1)
  * 맨 아래 로그아웃(확인 팝업) · 회원 탈퇴. 지금 보는 항목 강조. 버전 정보는 숫자만, 누를 수 없음.
  * "비밀번호 변경"은 이메일로 가입한 계정에만. Google로만 가입한 계정은 "Google 연동하기"가 첫 화면.
  * 언어 설정 · 다크 모드는 이번 범위에 없음.
@@ -53,9 +54,8 @@ export default function Settings() {
             {item('/settings/google', 'Google 연동하기')}
           </div>
           <div className={s.menuGroup}>
-            <h2>알림 · 차단</h2>
+            <h2>알림</h2>
             {item('/settings/notifications', '알림 설정')}
-            {item('/settings/blocked', '차단 관리')}
           </div>
           <div className={s.menuGroup}>
             <h2>정보</h2>
