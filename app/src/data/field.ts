@@ -258,9 +258,11 @@ export function setRegular(id: string, on: boolean) {
 export const subscribeRegulars = (f: () => void) => { regSubs.add(f); return () => { regSubs.delete(f) } }
 
 /* 오늘의 추천 친구: 하루 한 번. 설정은 저장돼 다음 날에도 그대로 */
+/** 답이 궁금한 질문은 최대 3개 (2026-11-21 사용자 결정) */
+export const MAX_REC_QUESTIONS = 3
 export interface RecommendSettings {
   interests: string[]
-  /** 답이 궁금한 질문 (질문 목록 data/questions 의 id, 몇 개든 고를 수 있음). 예전엔 질문 하나(문장)였음 */
+  /** 답이 궁금한 질문 (질문 목록 data/questions 의 id, 최대 MAX_REC_QUESTIONS 개). 예전엔 질문 하나(문장)였음 */
   questions: string[]
   sameQuestionFirst: boolean
   sameCampus: boolean
@@ -287,6 +289,8 @@ function recState(): RecState {
     st.settings = { ...old, questions: id ? [id] : [] }
     delete (st.settings as { question?: unknown }).question
   }
+  // 3개로 정하기 전에 저장된 설정이 더 많이 골라 뒀으면 앞의 3개만
+  if (st.settings.questions.length > MAX_REC_QUESTIONS) st.settings = { ...st.settings, questions: st.settings.questions.slice(0, MAX_REC_QUESTIONS) }
   return st
 }
 let rec = recState()

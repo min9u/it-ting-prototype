@@ -109,13 +109,30 @@ button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
 .modal h2 { font-size: 26px; font-weight: 400; color: var(--ink-900); }
 .lead { margin-top: 8px; font-size: 14px; color: var(--ink-500); }
 
-/* 단골 땅굴 */
-.regList { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
-.regList li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--surface-item); }
-.regWho { flex: 1; display: flex; flex-direction: column; }
-.regWho strong { font-family: var(--font-display); font-weight: 400; font-size: 17px; color: var(--ink-900); }
-.regWho small { font-size: 12px; color: var(--ink-400); }
-.regGo, .regOff { height: 34px; padding: 0 12px; font-size: 13px; }
+/* 단골 땅굴 · 캠퍼스-층 고르기 공통: 제목 줄 + 닫기 (Figma 1294:12207 · 1296:12207) */
+.popHead { display: flex; align-items: center; justify-content: space-between; }
+.popHead h2 { font-weight: 400; }
+.popClose { width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; color: #6e5444; }
+.popClose:hover { background: rgba(110, 84, 68, .1); }
+
+/* 단골 땅굴 (Figma 1127:13203 → 팝업 1294:12206 "친구 카드형", 680폭) */
+.regModal { padding: 24px; background: #fff9f2; border: 1px solid #e8d3bf; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: 20px; }
+.regModal .popHead h2 { font-size: 28px; line-height: 34px; color: #3e2a1f; }
+.regGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-height: 540px; overflow-y: auto; }
+.regCard {
+  height: 256px; padding: 20px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: #fbf4ec; border: 1px solid #e8d3bf; border-radius: 5px;
+}
+.regWho { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.regWho strong { font-family: var(--font-display); font-weight: 400; font-size: 20px; line-height: 34px; color: #5c3b25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regWho small { font-size: 11px; font-weight: 500; line-height: 18px; color: #8b6c50; }
+.regGo {
+  width: 100%; height: 38px; flex: none; padding: 6px 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: var(--cta); color: #fff0d5; font-family: var(--font-display); font-size: 16px; line-height: 24px; text-decoration: none;
+}
+.regGo:hover { background: var(--cta-hover); }
+.regOff { height: 24px; flex: none; padding: 2px 6px; border-radius: 11px; font-size: 13px; font-weight: 500; line-height: 18px; color: #8a694a; }
+.regOff:hover { background: rgba(138, 105, 74, .12); }
 
 /* 추천 설정 (863:133) */
 .recBox { margin-top: 18px; padding: 18px 20px; border-radius: 12px; background: var(--surface-item); display: flex; flex-direction: column; gap: 12px; }
@@ -201,17 +218,60 @@ button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
 .backQna dd { margin: 3px 0 0; font-size: 14px; font-weight: 700; color: var(--ink-900); line-height: 1.45; }
 .recNext { margin-top: 14px; font-size: 12px; color: var(--ink-500); }
 
-/* 캠퍼스-층 고르기 */
-.seg { margin-top: 16px; display: inline-flex; padding: 3px; border-radius: 9px; background: var(--toggle-bg); }
+/* 캠퍼스-층 고르기 (Figma 1265:35323 → 팝업 1296:12206 "검색·스크롤 비교안", 520폭) */
+.floorModal { padding: 28px 28px 24px; background: #fff9f2; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: 20px; }
+.floorTitle { font-size: 26px; line-height: 34px; color: #3a261a; }
+/* 현재 위치 줄 */
+.curBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 5px; background: #f6ebdd; color: #6e5444; }
+.curWhere { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.curWhere svg { flex: none; }
+.curWhere small { font-family: var(--font-display); font-size: 13px; line-height: 20px; }
+.curWhere strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; line-height: 24px; }
+.curBack { font-family: var(--font-display); font-size: 13px; line-height: 20px; color: #6e5444; white-space: nowrap; }
+.curBack:hover { text-decoration: underline; }
+/* 학기 (Figma 에 없음. 지난 학기가 있을 때만) */
+.seg { align-self: flex-start; display: inline-flex; padding: 3px; border-radius: 9px; background: var(--toggle-bg); }
 .segBtn, .segOn { height: 32px; padding: 0 14px; border-radius: 7px; font-size: 13px; color: var(--ink-700); }
 .segOn { background: var(--brown-650); color: var(--on-brown); }
-.pickLabel { margin: 16px 0 8px; font-size: 12px; font-weight: 600; color: var(--ink-500); }
-.floorList { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.floorBtn, .floorOn {
-  width: 100%; padding: 12px 14px; border-radius: 10px; text-align: left;
-  display: flex; flex-direction: column; gap: 3px; background: var(--surface-item); border: 1.5px solid transparent;
+.pfBlock { display: flex; flex-direction: column; gap: 10px; }
+.pfLabel { font-family: var(--font-display); font-size: 14px; line-height: 20px; color: #8a7466; }
+/* 캠퍼스 5칸 */
+.campusRow { display: flex; gap: 8px; }
+.campusBtn, .campusOn {
+  flex: 1 1 0; min-width: 0; height: 38px; border-radius: 10px; border: 1px solid #b8937c;
+  font-family: var(--font-display); font-size: 16px; line-height: 24px; color: #6e5444; white-space: nowrap;
 }
-.floorBtn:hover { border-color: var(--brown-600); background: #fff; }
-.floorOn { border-color: var(--brown-700); background: #fff; cursor: default; }
-.floorBtn strong, .floorOn strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--ink-900); }
-.floorBtn small, .floorOn small { font-size: 11px; color: var(--ink-400); }
+.campusBtn:hover { background: rgba(194, 100, 58, .08); }
+.campusOn { background: var(--cta); border-color: var(--cta); color: #fff9f2; }
+/* 층 번호 검색 */
+.floorSearch { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 5px; border: 1px solid #ddc6b2; background: #fffcf8; color: #8a7466; cursor: text; }
+.floorSearch:focus-within { border-color: var(--cta); }
+.floorSearch svg { flex: none; }
+.floorSearch input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-family: var(--font-display); font-size: 14px; color: #3a261a; }
+.floorSearch input::placeholder { color: #9b8575; }
+.floorSearch input::-webkit-search-cancel-button { appearance: none; }
+/* 층 목록: 높이 256 까지 보이고 넘으면 세로 스크롤 (레일 #ece1d5 · 손잡이 #c9ae95, 폭 4) */
+.floorScroll {
+  max-height: 256px; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid #e5d3c2; border-radius: 5px; background: #fffdf9;
+  scrollbar-width: thin; scrollbar-color: #c9ae95 #ece1d5;
+}
+.floorScroll::-webkit-scrollbar { width: 4px; }
+.floorScroll::-webkit-scrollbar-track { background: #ece1d5; border-radius: 2px; }
+.floorScroll::-webkit-scrollbar-thumb { background: #c9ae95; border-radius: 2px; }
+.floorRow, .floorRowOn { width: 100%; height: 44px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; background: #fffdf9; color: #3a261a; }
+.floorRow:hover { background: #faf1e6; }
+.floorRowOn { background: #f6ebdd; }
+.floorName { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 17px; line-height: 24px; }
+.floorBadge { padding: 1px 7px; border-radius: 5px; background: #f6ebdd; font-style: normal; font-size: 11px; line-height: 20px; color: #6e5444; }
+.floorRowOn .floorBadge { background: #fffdf9; }
+.floorCount { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 14px; line-height: 20px; color: #8a7466; white-space: nowrap; }
+.floorCheck { flex: none; color: var(--cta); }
+.floorNone { padding: 18px 12px; text-align: center; font-size: 13px; color: #8a7466; }
+/* 아래: 고른 곳 + 들어가기 */
+.pfFoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pfFoot > span { font-family: var(--font-display); font-size: 17px; line-height: 24px; color: #6e5444; }
+.pfFootNone { color: #9b8575 !important; }
+.pfGo { width: 112px; height: 40px; border-radius: 10px; background: var(--cta); color: #fff9f2; font-family: var(--font-display); font-size: 17px; line-height: 24px; }
+.pfGo:hover:not(:disabled) { background: var(--cta-hover); }
+.pfGo:disabled { opacity: .45; cursor: default; }
