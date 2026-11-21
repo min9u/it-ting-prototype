@@ -81,14 +81,14 @@ export function ReportDialog({ open, target = '게시물', onConfirm, onClose }:
 }
 
 /** 토스트 내용 (title·desc·action) */
-export interface ToastSpec { title: string; desc?: string; action?: { label: string; to: string } }
+export interface ToastSpec { title: string; desc?: string; action?: { label: string; to: string }; /** 안내성이면 'info' (ⓘ 아이콘) */ tone?: 'info' }
 
 /**
  * Toast 컴포넌트 6종 (2026-11-12 Figma 754:13592): 대화 요청 · 참여 신청 · 게시글 등록 · 수정 · 삭제 · 신고
  * 문구는 여기 한 곳에서 씀. 대화 요청은 상대 닉네임이 들어가서 함수
  */
 export const TOAST = {
-  chatRequest: (nick: string): ToastSpec => ({ title: '대화 요청이 완료되었어요', desc: `${nick}님이 수락하면 채팅에서 알려드릴게요`, action: { label: '채팅 보기', to: '/chat/requests?dir=sent' } }),
+  chatRequest: (nick: string): ToastSpec => ({ title: '대화 요청이 완료되었어요', desc: `${nick}님이 수락하면 채팅에서 알려드릴게요`, action: { label: '채팅 보기', to: '/chat' } }),
   applied: { title: '참여 신청이 완료되었어요', desc: '주최자가 확인하면 알림으로 알려드릴게요', action: { label: '신청 내역 보기', to: '/meetups/me?modal=pending' } } as ToastSpec,
   posted: (to: string): ToastSpec => ({ title: '게시글이 등록되었어요', desc: '게시판에서 바로 확인할 수 있어요', action: { label: '글 보기', to } }),
   edited: { title: '수정이 완료되었어요', desc: '변경한 내용이 저장되었어요' } as ToastSpec,
@@ -108,8 +108,8 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   onClose: () => void
   duration?: number
   placement?: 'bottom' | 'top'
-  /** error: 쓰기가 실패해 되돌렸을 때 (api/queries useOptimistic) */
-  tone?: 'ok' | 'error'
+  /** error: 쓰기가 실패해 되돌렸을 때 (api/queries useOptimistic) · info: 안내성(준비 중 등, 초록 체크 대신 ⓘ) */
+  tone?: 'ok' | 'error' | 'info'
 }) {
   useEffect(() => {
     if (!open) return
@@ -119,10 +119,12 @@ export function Toast({ open, title, desc, action, onClose, duration = 4000, pla
   if (!open) return null
   return createPortal(
     <div className={`${styles.toast} ${placement === 'top' ? styles.top : ''}`} role={tone === 'error' ? 'alert' : 'status'}>
-      <span className={tone === 'error' ? `${styles.check} ${styles.checkError}` : styles.check} aria-hidden>
+      <span className={tone === 'error' ? `${styles.check} ${styles.checkError}` : tone === 'info' ? `${styles.check} ${styles.checkInfo}` : styles.check} aria-hidden>
         {tone === 'error'
           ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 6.5v7M12 17.5v.01" /></svg>
-          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
+          : tone === 'info'
+            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 11v6.5M12 6.5v.01" /></svg>
+            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </span>
       <span className={styles.text}>
         <strong>{title}</strong>

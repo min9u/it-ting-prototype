@@ -5,7 +5,9 @@ import Pagination from '../../components/Pagination'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, EmptyMole, ReportDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import { ErrorState, SkeletonLines } from '../../components/AsyncState'
-import { userOf } from '../../data/mock'
+import { ME_ID, userOf } from '../../data/mock'
+import { getMyProfile } from '../../data/myBurrow'
+import { SendIcon } from '../../components/Icons'
 import type { GuestbookEntry, User } from '../../data/types'
 import s from './Burrow.module.css'
 import m from './MyBurrow.module.css'
@@ -18,7 +20,10 @@ import m from './MyBurrow.module.css'
  * - 한 페이지 5개, 6개 이상이면 페이지 번호
  * - 작성자(두더지·닉네임)를 누르면 프로필 팝업(00 공통 15)
  * 방문자 뷰(VisitBurrow)도 이 모달을 씀: onDelete 가 없으면 삭제 버튼 없이 신고만. compose 를 주면 맨 위에 쓰기 칸(글자 수 제한 · 남기기)이 생겨
- * 한 창에서 쓰기와 읽기를 다 함 (Figma 방문자 뷰 510:13663, 방명록은 사이드바가 아니라 우체통 창 안에)
+ * 한 창에서 쓰기와 읽기를 다 함 (Figma 방문자 뷰 510:13663 · 1243:24838, 방명록은 사이드바가 아니라 우체통 창 안에)
+ * - 쓰기 칸은 한 줄 + 오른쪽 갈색 "➤ 남기기", 글자 수는 아래. 글이 하나도 없으면 가운데에 "가장 먼저 방명록을 작성해보세요."
+ * - onDeleteOwn(방문자 뷰): 내가 쓴 글은 "신고" 대신 "삭제"(확인 없이 바로, 완료 토스트). 남이 쓴 글은 신고
+ * - 내가 쓴 글의 작성자는 저장한 내 닉네임(getMyProfile)으로
  */
 export const GUESTBOOK_PAGE_SIZE = 5
 
@@ -40,14 +45,15 @@ export interface GuestbookCompose { value: string; onChange: (v: string) => void
 /** 목록을 아직 못 받았을 때 (처음 받는 중 · 받기 실패) */
 export interface GuestbookLoad { loading?: boolean; error?: unknown; onRetry?: () => void; retrying?: boolean }
 
-export default function GuestbookModal({ open, onClose, entries, onDelete, compose, load }: {
-  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void; compose?: GuestbookCompose; load?: GuestbookLoad
+export default function GuestbookModal({ open, onClose, entries, onDelete, onDeleteOwn, compose, load }: {
+  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void; onDeleteOwn?: (id: string) => void; compose?: GuestbookCompose; load?: GuestbookLoad
 }) {
   const [page, setPage] = useState(1)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
   const [profile, setProfile] = useState<User | null>(null)
   const [toast, setToast] = useState<ToastSpec | null>(null)
+  const authorOf = (id: string): User => (id === ME_ID ? { ...userOf(id), nickname: getMyProfile().nickname } : userOf(id))
   const target = entries.find((g) => g.id === confirmId)
   const total = Math.max(1, Math.ceil(entries.length / GUESTBOOK_PAGE_SIZE))
   useEffect(() => { if (page > total) setPage(total) }, [page, total])
@@ -60,14 +66,14 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, compo
         <div className={s.gbModal}>
           <h2 id="gb-all-title" className={`display ${s.gbModalTitle}`}>방명록 <span className="count-badge">{entries.length}</span></h2>
           {compose && (
-            <div className={s.gbWrite}>
-              <textarea value={compose.value} maxLength={compose.max} onChange={(e) => compose.onChange(e.target.value)} aria-label="방명록 남기기" aria-describedby="gb-count"
-                placeholder={compose.placeholder}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); compose.onSubmit() } }} />
-              <div className={s.gbWriteRow}>
-                <span id="gb-count">{compose.value.length} / {compose.max}</span>
-                <button className="link-accent" onClick={compose.onSubmit} disabled={!compose.value.trim()}>남기기</button>
+            <div className={s.gbCompose}>
+              <div className={s.gbComposeRow}>
+                <input type="text" value={compose.value} maxLength={compose.max} onChange={(e) => compose.onChange(e.target.value)} aria-label="방명록 남기기" aria-describedby="gb-count"
+                  placeholder={compose.placeholder}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); compose.onSubmit() } }} />
+                <button className={`btn btn-primary ${s.gbSend}`} onClick={compose.onSubmit} disabled={!compose.value.trim()}><SendIcon size={15} /> 남기기</button>
               </div>
+              <span id="gb-count" className={s.gbCount}>{compose.value.length} / {compose.max}</span>
             </div>
           )}
           {load?.loading ? (
@@ -75,11 +81,11 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, compo
           ) : load?.error && entries.length === 0 ? (
             <ErrorState compact error={load.error} onRetry={load.onRetry} retrying={load.retrying} title="방명록을 불러오지 못했어요" />
           ) : entries.length === 0 ? (
-            <div className={s.gbEmptyBox}><EmptyMole message="아직 아무도 방명록을 남기지 않았어요" /></div>
+            <div className={s.gbEmptyBox}><EmptyMole message={compose ? '가장 먼저 방명록을 작성해보세요.' : '아직 아무도 방명록을 남기지 않았어요'} /></div>
           ) : (
             <ul className={s.gbModalList}>
               {shown.map((g) => {
-                const author = userOf(g.authorId)
+                const author = authorOf(g.authorId)
                 return (
                   <li key={g.id} className={m.gbRow}>
                     <button className={m.gbAvatar} onClick={() => setProfile(author)} aria-label={`${author.nickname} 프로필 보기`}><Avatar size={52} /></button>
@@ -88,8 +94,13 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, compo
                       <p className={m.gbText}>{g.text}</p>
                     </div>
                     <div className={m.gbActions}>
-                      {onDelete && <><button onClick={() => setConfirmId(g.id)}>삭제</button><span aria-hidden>|</span></>}
-                      <button onClick={() => setReportId(g.id)}>신고</button>
+                      {onDelete ? (
+                        <><button onClick={() => setConfirmId(g.id)}>삭제</button><span aria-hidden>|</span><button onClick={() => setReportId(g.id)}>신고</button></>
+                      ) : onDeleteOwn && g.authorId === ME_ID ? (
+                        <button onClick={() => { onDeleteOwn(g.id); setToast(TOAST.deleted) }}>삭제</button>
+                      ) : (
+                        <button onClick={() => setReportId(g.id)}>신고</button>
+                      )}
                     </div>
                   </li>
                 )
@@ -103,7 +114,7 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, compo
         </div>
         <ConfirmDialog open={!!target} onClose={() => setConfirmId(null)}
           onConfirm={() => { if (target) { onDelete?.(target.id); setToast(TOAST.deleted) } }}
-          title={`${target ? userOf(target.authorId).nickname : ''}님의 방명록을 삭제할까요?`}
+          title={`${target ? authorOf(target.authorId).nickname : ''}님의 방명록을 삭제할까요?`}
           desc="내 땅굴에서 사라지고 되돌릴 수 없어요. 작성자에게 따로 알림은 가지 않아요." />
         <ReportDialog open={!!reportId} target="방명록" onClose={() => setReportId(null)} onConfirm={() => { setReportId(null); setToast(TOAST.reported) }} />
       </Modal>
