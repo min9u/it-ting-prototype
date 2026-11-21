@@ -52,7 +52,7 @@ export interface BoardPost {
   views: number
   likes: number
   liked?: boolean
-  /** 다른 사람들이 저장한 수 (인기 점수에 들어감) */
+  /** 다른 사람들이 저장한 수 (인기 점수에는 안 들어감) */
   saves: number
   /** 내가 저장한 때. 없으면 저장 안 함 */
   savedAt?: number
@@ -313,14 +313,19 @@ export function commentCount(p: BoardPost) {
 }
 export const savesOf = (p: BoardPost) => p.saves + (p.savedAt ? 1 : 0)
 export const likesOf = (p: BoardPost) => p.likes + (p.liked ? 1 : 0)
-/** 인기 점수 = 좋아요 + 댓글 + 저장 */
-export const scoreOf = (p: BoardPost) => likesOf(p) + commentCount(p) + savesOf(p)
+/**
+ * 인기 점수 = 최근 7일 동안 받은 좋아요 수 (F8 명세 11-20: 댓글 · 저장은 안 셈).
+ * 인기순 정렬 · 이번 주 TOP5 · 글 상세 "다음 읽을 글"이 같이 씀.
+ * 목 데이터에는 좋아요 시각이 없어 지금은 받은 좋아요 전체를 7일 안의 것으로 봄(TOP5 는 글 쓴 날 기준 7일 필터).
+ * 서버가 오면 서버의 "최근 7일 좋아요 수"로 바꾼다
+ */
+export const scoreOf = (p: BoardPost) => likesOf(p)
 /** 목록·인기·저장·댓글 단 글에 보이는 글 (가려짐·삭제 빼고) */
 export const isListed = (p: BoardPost) => p.status === 'public'
 export const isMine = (p: { authorId: string }) => p.authorId === ME_ID
 const within7 = (p: BoardPost) => Date.now() - p.at <= 7 * DAY
 
-/** 이번 주 인기 글 TOP5: 최근 7일, 점수 높은 순, 같으면 최신 */
+/** 이번 주 인기 글 TOP5: 최근 7일, 좋아요 많은 순, 같으면 최신 */
 export function hotPosts(all: BoardPost[], n = 5) {
   return all.filter((p) => isListed(p) && within7(p)).sort((a, b) => scoreOf(b) - scoreOf(a) || b.at - a.at).slice(0, n)
 }

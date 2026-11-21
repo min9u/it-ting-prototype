@@ -201,6 +201,14 @@ describe('커뮤니티 (F8 10 인기 글 · 신고 4)', () => {
       expect(scoreOf(a) > scoreOf(b) || (scoreOf(a) === scoreOf(b) && a.at >= b.at)).toBe(true)
     }
   })
+  it('인기 점수는 좋아요 수 하나: 댓글 · 저장이 많아도 점수가 안 오름 (11-20 명세)', () => {
+    const p = usePostsSnapshot().find((x) => x.status === 'public')!
+    const base = scoreOf(p)
+    expect(base).toBe(p.likes + (p.liked ? 1 : 0))
+    expect(scoreOf({ ...p, saves: p.saves + 50 })).toBe(base)
+    expect(scoreOf({ ...p, commentTotal: 999, comments: [] })).toBe(base)
+    expect(scoreOf({ ...p, likes: p.likes + 3 })).toBe(base + 3)
+  })
   it(`신고: 같은 사람은 한 번, 신고 수가 ${HIDE_AT}이 되면 가려짐`, () => {
     const p = usePostsSnapshot().find((x) => x.status === 'public' && !x.reportedByMe)!
     const before = p.reports
