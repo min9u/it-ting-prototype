@@ -75,14 +75,15 @@ export function setSignupMethod(m: SignupMethod) {
 export function setAdmin(on: boolean) { accountStore.set({ admin: on }) }
 
 /** 탈퇴 사유 (F10 회원 탈퇴 · 선택). 관리자 "탈퇴 사유 확인"에서 모아 봄 */
-export const LEAVE_REASONS = ['자주 쓰지 않아요', '원하는 사람을 찾기 어려워요', '대화나 모임이 부담스러워요', '불편한 일을 겪었어요', '새 계정으로 다시 가입할래요', '기타'] as const
+/** 여섯 가지 (팀 명세 10 설정 회원 탈퇴 2, 11-20). "기타"를 골라도 글 적는 칸은 없음 */
+export const LEAVE_REASONS = ['자주 쓰지 않아요', 'SSAFY 과정이 끝났어요', '맞는 사람이나 모임을 찾지 못했어요', '쓰기 불편해요', '불쾌한 일을 겪었어요', '기타'] as const
 export const leaveLog = createStore<{ reasons: { reason: string; at: string }[] }>({
   reasons: [
     { reason: '자주 쓰지 않아요', at: '2026.11.12' },
-    { reason: '원하는 사람을 찾기 어려워요', at: '2026.11.09' },
+    { reason: '맞는 사람이나 모임을 찾지 못했어요', at: '2026.11.09' },
     { reason: '자주 쓰지 않아요', at: '2026.11.02' },
   ],
-}, 'digul.leaveLog.v1')
+}, 'digul.leaveLog.v2') // v1 은 예전 사유 문구가 저장돼 있어 키를 올림
 /** 탈퇴: 계정을 처음 상태로 돌리고(프로토타입), 사유를 남긴다 */
 export function withdraw(reason: string | null) {
   if (reason) leaveLog.set((s) => ({ reasons: [{ reason, at: today() }, ...s.reasons] }))
