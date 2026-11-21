@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import { exploreHref } from '../../data/field'
 import { toIso } from '../../lib/time'
 import { api } from '../../api'
+import { reportBody } from '../../api/reports'
 import type { BurrowVM } from '../../api/mappers'
 import { patch, useBurrow, useGuestbook, useOptimistic } from '../../api/queries'
 import { qk } from '../../api/queryClient'
@@ -72,7 +73,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const regular = b.regular
   const [regToast, setRegToast] = useState<string | null>(null)
   const spot = b.spot
-  // 대화 관계 (서버가 땅굴 응답에 같이 줌): 대화방이 있으면 "대화하기", 보낸 요청이 있으면 "답변 기다리는 중"
+  // 대화 관계 (서버가 땅굴 응답에 같이 줌): 대화방이 있으면 "대화하기", 보낸 요청이 있으면 "요청 보냄"(누를 수 없음)
   const dmRoomId = b.chatRoomId
   const pendingReq = b.pendingRequestId
   const me = USERS[ME_ID]
@@ -117,6 +118,11 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
       patches: [patch<GuestbookEntry[]>(qk.guestbook(owner.id), (l) => l.filter((g) => g.id !== id))],
     })
   }
+  /** 방명록 글 신고: 서로 다른 3명이면 서버가 가림 → 다시 받아서 목록·글 수에서 뺌 */
+  const reportEntry = (id: string, picked: string) => {
+    const r = reportBody('GUESTBOOK', id, picked)
+    run.mutate({ call: () => api.burrows.reportGuestbook(id, r.reason, r.detail ?? null), errorTitle: '신고를 접수하지 못했어요', invalidate: [qk.guestbook(owner.id)] })
+  }
   /** 단골: 상대 수락 없이 바로. 실패하면 되돌림 */
   const toggleRegular = () => {
     const on = !regular
@@ -141,7 +147,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
         hostBubble={dmRoomId
           ? <Link className={s.speech} to={`/chat/${dmRoomId}`}><ChatIcon size={16} /> 대화하기</Link>
           : pendingReq
-            ? <Link className={s.speech} to="/chat/requests?dir=sent">⏳ 답변 기다리는 중</Link>
+            ? <span className={`${s.speech} ${s.speechSent}`} role="status">요청 보냄</span>
             : <button className={s.speech} onClick={() => setReqOpen(true)}><ChatIcon size={16} /> 대화 요청하기</button>}>
         {/* 단골 추가 (02 F5 방문자 뷰 2번): 상대 수락 없이 내 단골 목록에 들어감. 다시 누르면 해제(알리지 않음) */}
         <div className={s.sceneTools}>
@@ -160,7 +166,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
       </NotePanel>
 
       {/* 우체통: 쓰기와 읽기를 한 창에서. 남기면 목록 맨 위에 바로 들어가고 우체통 깃발이 올라감 */}
-      <GuestbookModal open={allOpen} onClose={() => setAllOpen(false)} entries={entries} onDeleteOwn={deleteOwn}
+      <GuestbookModal open={allOpen} onClose={() => setAllOpen(false)} entries={entries} onDeleteOwn={deleteOwn} onReport={reportEntry}
         load={{ loading: gb.isPending, error: gb.isError && !gb.data ? gb.error : undefined, onRetry: () => void gb.refetch(), retrying: gb.isFetching }}
         compose={{ value: draft, onChange: setDraft, onSubmit: submitGb, max: GB_MAX, placeholder: `${owner.nickname}님의 땅굴에 다녀간 흔적을 남겨주세요` }} />
 

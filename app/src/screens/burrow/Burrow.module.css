@@ -88,7 +88,6 @@
 .gbCount { display: block; margin: 6px 0 0 4px; font-size: 11px; color: var(--ink-400); }
 .gbModalList { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .gbPager { margin-top: auto; padding-top: 12px; }
-.gbNote { margin-top: 6px; text-align: center; font-size: 11px; color: var(--ink-300); }
 
 .simpleModal { padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 14px; }
 .simpleModal h2 { font-size: 22px; }
@@ -137,7 +136,10 @@
   border: 6.5px solid transparent; border-top-color: var(--surface); border-bottom: 0;
 }
 .speech:hover { background: #fff; }
+/* 요청 보냄: 누를 수 없음 (02 F5 방문자 뷰 4). 보낸 요청 취소는 채팅 요청 탭에서 */
+.speechSent, .speechSent:hover { background: var(--surface); color: var(--ink-400); cursor: default; }
 .speech:hover::after { border-top-color: #fff; }
+.speechSent:hover::after { border-top-color: var(--surface); }
 @keyframes bob { 50% { transform: translate(-50%, -3px); } }
 
 

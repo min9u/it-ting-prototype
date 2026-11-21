@@ -15,7 +15,7 @@ import m from './MyBurrow.module.css'
 /**
  * 땅굴 메인 – 내 땅굴 · 방명록 전체 보기 / 방명록 삭제 확인 (02 F4, 2026-11-16 명세 기준)
  * - 제목 "방명록" + 남아 있는 글 수 (글이 지워지면 바로 줄어듦)
- * - 작성자 · 쓴 시각 · 본문, 최신순. 정렬은 바꿀 수 없음. 쓴 지 7일이 지난 글은 자동으로 지워짐(lib/format liveGuestbook). 주인은 고칠 수 없음
+ * - 작성자 · 쓴 시각 · 본문, 최신순. 정렬은 바꿀 수 없음. 글은 시간이 지나도 자동으로 지워지지 않음(2026-11-21 명세). 서로 다른 3명이 신고하면 가려져 목록·글 수에서 빠짐(lib/format visibleGuestbook, 부르는 쪽이 걸러서 줌). 주인은 고칠 수 없음
  * - 글마다 삭제 · 신고. 삭제 → 삭제 확인(00 공통 17) → 완료 토스트(16). 신고 → 신고 팝업(F8 과 같은 사유)
  * - 한 페이지 5개, 6개 이상이면 페이지 번호
  * - 작성자(두더지·닉네임)를 누르면 프로필 팝업(00 공통 15)
@@ -45,8 +45,10 @@ export interface GuestbookCompose { value: string; onChange: (v: string) => void
 /** 목록을 아직 못 받았을 때 (처음 받는 중 · 받기 실패) */
 export interface GuestbookLoad { loading?: boolean; error?: unknown; onRetry?: () => void; retrying?: boolean }
 
-export default function GuestbookModal({ open, onClose, entries, onDelete, onDeleteOwn, compose, load }: {
-  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void; onDeleteOwn?: (id: string) => void; compose?: GuestbookCompose; load?: GuestbookLoad
+export default function GuestbookModal({ open, onClose, entries, onDelete, onDeleteOwn, onReport, compose, load }: {
+  open: boolean; onClose: () => void; entries: GuestbookEntry[]; onDelete?: (id: string) => void; onDeleteOwn?: (id: string) => void
+  /** 신고 접수 (사유 문구는 ReportDialog 가 준 값). 3명이 되면 부르는 쪽 목록에서 빠짐 */
+  onReport?: (id: string, reason: string) => void; compose?: GuestbookCompose; load?: GuestbookLoad
 }) {
   const [page, setPage] = useState(1)
   const [confirmId, setConfirmId] = useState<string | null>(null)
@@ -110,13 +112,12 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, onDel
           {entries.length > GUESTBOOK_PAGE_SIZE && (
             <div className={s.gbPager}><Pagination page={page} total={total} onChange={setPage} /></div>
           )}
-          <p className={s.gbNote}>방명록은 7일이 지나면 자동으로 사라져요.</p>
         </div>
         <ConfirmDialog open={!!target} onClose={() => setConfirmId(null)}
           onConfirm={() => { if (target) { onDelete?.(target.id); setToast(TOAST.deleted) } }}
           title={`${target ? authorOf(target.authorId).nickname : ''}님의 방명록을 삭제할까요?`}
           desc="내 땅굴에서 사라지고 되돌릴 수 없어요. 작성자에게 따로 알림은 가지 않아요." />
-        <ReportDialog open={!!reportId} target="방명록" onClose={() => setReportId(null)} onConfirm={() => { setReportId(null); setToast(TOAST.reported) }} />
+        <ReportDialog open={!!reportId} target="방명록" onClose={() => setReportId(null)} onConfirm={(reason) => { if (reportId) onReport?.(reportId, reason); setReportId(null); setToast(TOAST.reported) }} />
       </Modal>
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />
       <Toast open={!!toast} title={toast?.title ?? ''} desc={toast?.desc} onClose={() => setToast(null)} />

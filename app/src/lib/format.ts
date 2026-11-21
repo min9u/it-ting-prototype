@@ -1,19 +1,22 @@
 import type { GuestbookEntry } from '../data/types'
 import { agoShort, parseIso, weekdayOf, ymdLabel } from './time'
 
-const DAY = 24 * 60 * 60 * 1000
-
 /** "방금", "3분 전", "2시간 전", "3일 전" (날짜 계산·문구는 lib/time.ts 한 곳) */
 export function timeAgo(iso: string, now = Date.now()): string {
   return agoShort(parseIso(iso), now)
 }
 
-/** 방명록은 7일이 지나면 자동 삭제된다 (주석 454:7052). 최신순 정렬. 서버도 같은 조건으로 거른다 (api/burrows) */
-export const GUESTBOOK_TTL_DAYS = 7
-export function liveGuestbook(list: GuestbookEntry[], now = Date.now()): GuestbookEntry[] {
+/**
+ * 방명록 글은 시간이 지나도 자동으로 지워지지 않는다 (04 내 땅굴 방명록 전체 보기 2, 2026-11-21 명세. 예전의 "7일 지나면 자동 삭제"는 없어짐).
+ * 없어지는 때: 주인·작성자가 지울 때, 탈퇴, 관리자가 지울 때. 서로 다른 3명이 신고하면 가려져 목록과 글 수에서 빠짐 (관리자가 복구하면 다시 보임).
+ * 최신순 정렬. 서버도 같은 조건으로 거른다 (api/burrows)
+ */
+export const GUESTBOOK_HIDE_REPORTS = 3
+export const isGuestbookHidden = (g: GuestbookEntry) => new Set(g.reporters ?? []).size >= GUESTBOOK_HIDE_REPORTS
+export function visibleGuestbook(list: GuestbookEntry[]): GuestbookEntry[] {
   // 문자열 비교(localeCompare)는 Z 와 +09:00 이 섞이면 순서가 틀려서 ms 로 비교 (위험 B2)
   return list
-    .filter((g) => now - parseIso(g.createdAt) < GUESTBOOK_TTL_DAYS * DAY)
+    .filter((g) => !isGuestbookHidden(g))
     .sort((a, b) => parseIso(b.createdAt) - parseIso(a.createdAt))
 }
 

@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
 import { CloseIcon, PinIcon, SearchIcon } from '../../components/Icons'
-import { EmptyMole, Toast } from '../../components/Feedback'
+import { EmptyMole } from '../../components/Feedback'
 import { toneOf } from '../../data/mock'
-import { migrateInterests } from '../../data/interests'
+import { GENERATIONS } from '../../data/auth'
 import {
-  CAMPUS_FLOORS, CURRENT_TERM, MAX_REC_QUESTIONS, MY_FLOOR, MY_PAST_FLOORS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId,
-  getRecommendSettings, getRegulars, me, setRecommendSettings, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendSettings,
+  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId,
+  getRegulars, me, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendPick,
 } from '../../data/field'
 import { campusesInOrder, floorsOf } from '../../data/campusFloors'
-import { QUESTIONS, questionOf, questionTag } from '../../data/questions'
 import type { User } from '../../data/types'
 import x from './Explore.module.css'
 
@@ -51,124 +50,70 @@ export function RegularsModal({ open, onClose, onRemoved }: { open: boolean; onC
   )
 }
 
-/* ===================== 오늘의 추천 친구 (설정 863:133 · 질문 고르기 1265:35509 · 결과 761:3795 · 카드 뒤집기 765:3619) ===================== */
+/* ===================== 오늘의 추천 친구 (설정 863:133 · 결과 761:3795 · 카드 뒤집기 765:3619) ===================== */
 /**
- * 오늘 아직 안 받았으면 추천 조건 설정 → (질문 고르기) → 추천 받기 → 결과. 이미 받았으면 오늘 받은 3명.
+ * 오늘 아직 안 받았으면 추천 설정(캠퍼스 · 층 · 기수) → 추천 받기 → 결과. 이미 받았으면 오늘 받은 3명.
  * 탐색에 들어올 때 자동으로 띄우지 않음 (02 F5 5번). 결과 화면에는 설정을 두지 않음.
- * 질문 고르기는 같은 팝업 안에서 화면만 바뀜 (팝업 위에 또 팝업을 띄우지 않아 초점 가두기가 꼬이지 않음)
+ * 2026-11-21 명세: 설정은 캠퍼스 · 층과 기수만 (관심사 칩 · 답이 궁금한 질문 · 질문 고르기 · 같은 질문 토글은 없어짐), 고른 값은 저장하지 않음.
+ * 모양은 Figma 863:133 (칩 · 안내 상자 · 추천 받기 버튼)에서 남는 줄만 그대로
  */
-type RecView = 'settings' | 'question' | 'result'
+type RecView = 'settings' | 'result'
 export function RecommendModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [picks, setPicks] = useState<string[] | null>(null)
   const [view, setView] = useState<RecView>('settings')
   useEffect(() => { if (open) { const p = todaysPicks(); setPicks(p); setView(p ? 'result' : 'settings') } }, [open])
   return (
-    <Modal open={open} onClose={onClose} width={view === 'question' ? 560 : 720} labelledBy="rec-title">
+    <Modal open={open} onClose={onClose} width={view === 'result' ? 720 : 560} labelledBy="rec-title">
       {view === 'result' && picks
         ? <RecommendResult ids={picks} onGo={onClose} />
-        : view === 'question'
-          ? <QuestionPicker onDone={() => setView('settings')} />
-          : <RecommendSettingsView onPickQuestion={() => setView('question')} onDraw={() => { setPicks(drawRecommendations()); setView('result') }} />}
+        : <RecommendSettingsView onDraw={(sel) => { setPicks(drawRecommendations(sel)); setView('result') }} />}
     </Modal>
   )
 }
 
-function Toggle({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
-  return <button type="button" className={on ? x.optOn : x.opt} aria-pressed={on} onClick={onClick} title={title}>{on && '✓ '}{children}</button>
+/** 선택 칩 (Figma 863:133 "같은 캠퍼스" 칩: 고르면 갈색 + ✓, 안 고르면 흰 바탕 테두리). 한 줄에서 하나만 고름 */
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" className={on ? x.chipOn : x.chip} aria-pressed={on} onClick={onClick}>{on && '✓ '}{children}</button>
 }
 
-/** 주황 켜고 끄기 스위치 */
-function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} className={on ? x.switchOn : x.switch} onClick={onClick}><i aria-hidden /></button>
-}
+/** 기수 목록 (00 공통 19, 회원가입의 기수 목록과 같은 값: "16기" → 16) */
+const GEN_NUMS = GENERATIONS.map((g) => parseInt(g, 10))
 
-/** 질문 문장 앞 "Q." (질문 목록 문장은 그대로, 칩에서만 앞에 붙임) */
-const qLabel = (id: string) => { const q = questionOf(id); return q ? `Q. ${q.text}` : null }
-
-function RecommendSettingsView({ onDraw, onPickQuestion }: { onDraw: () => void; onPickQuestion: () => void }) {
-  // 2026-11-18 전에 저장된 설정은 예전 관심사 이름(시티팝 …)일 수 있어서 새 이름으로 옮겨서 보여 줌 (data/interests migrateInterests)
-  const [st, setSt] = useState<RecommendSettings>(() => { const s = getRecommendSettings(); return { ...s, interests: migrateInterests(s.interests) } })
-  const set = (p: Partial<RecommendSettings>) => { const v = { ...st, ...p }; setSt(v); setRecommendSettings(v) }
-  const myInt = me().interests
+/**
+ * 추천 친구 설정 (02 F5 "추천 받기 전" 2 · 4, 2026-11-21 명세): 캠퍼스 · 층과 기수만 고름. 캠퍼스를 고르면 그 캠퍼스의 층 목록이 나옴
+ * (캠퍼스를 바꾸면 층을 다시 고름). 고른 값은 저장하지 않음 — 열 때마다 내 캠퍼스 · 층 · 기수로 시작
+ */
+function RecommendSettingsView({ onDraw }: { onDraw: (sel: RecommendPick) => void }) {
+  const [campus, setCampus] = useState(MY_FLOOR.campus)
+  const [floor, setFloor] = useState<number | null>(MY_FLOOR.floor)
+  const [gen, setGen] = useState<number | null>(me().gen)
+  const campuses = [...CAMPUS_FLOORS].sort((a, b) => campusRank(a.campus) - campusRank(b.campus))
+  const floors = CAMPUS_FLOORS.find((c) => c.campus === campus)?.floors ?? []
+  const ready = floor != null && gen != null
   return (
     <div className={x.modal}>
       <h2 id="rec-title" className="display">오늘의 추천 친구</h2>
-      <p className={x.lead}>추천 조건을 정하고 오늘의 추천 친구 3명을 받아 보세요.</p>
-      <section className={x.recBox} aria-label="추천 친구 설정">
-        <h3 className="display">추천 친구 설정</h3>
-        <div className={x.recRow}>
-          <span>관심사</span>
-          <div className={x.opts}>
-            {myInt.map((i) => <Toggle key={i} on={st.interests.includes(i)} onClick={() => set({ interests: st.interests.includes(i) ? st.interests.filter((v) => v !== i) : [...st.interests, i] })}>{i}</Toggle>)}
-          </div>
-        </div>
-        <div className={x.recRow}>
-          <span>답이 궁금한 질문</span>
-          <div className={x.opts}>
-            {st.questions.map((id) => { const t = qLabel(id); return t && <Toggle key={id} on title={t} onClick={() => set({ questions: st.questions.filter((v) => v !== id) })}>{t}</Toggle> })}
-            <button type="button" className={x.addQ} onClick={onPickQuestion}>+ 질문 고르기</button>
-          </div>
-        </div>
-        <div className={`${x.recRow} ${x.recSwitchRow}`}>
-          <span id="rec-same-q">같은 질문에 답한 사람 먼저 추천</span>
-          <Switch on={st.sameQuestionFirst} onClick={() => set({ sameQuestionFirst: !st.sameQuestionFirst })} label="같은 질문에 답한 사람 먼저 추천" />
-        </div>
-        <div className={x.recRow}>
-          <span>캠퍼스 · 기수 · 층</span>
-          <div className={x.opts}>
-            <Toggle on={st.sameCampus} onClick={() => set({ sameCampus: !st.sameCampus })}>같은 캠퍼스</Toggle>
-            <Toggle on={st.sameGen} onClick={() => set({ sameGen: !st.sameGen })}>같은 기수</Toggle>
-            <Toggle on={st.sameFloor} onClick={() => set({ sameFloor: !st.sameFloor })}>같은 층</Toggle>
-          </div>
+      <p className={x.lead}>캠퍼스 · 층과 기수를 고르고 오늘의 추천 친구 3명을 받아 보세요.</p>
+      <section className={x.recSec} aria-labelledby="rec-campus">
+        <h3 id="rec-campus">캠퍼스</h3>
+        <div className={x.chips} role="group" aria-labelledby="rec-campus">
+          {campuses.map((c) => <Chip key={c.campus} on={campus === c.campus} onClick={() => { if (c.campus !== campus) { setCampus(c.campus); setFloor(null) } }}>{c.campus}</Chip>)}
         </div>
       </section>
-      <p className={x.recNotice}>추천은 하루 한 번 받을 수 있어요. 추천을 받은 뒤 조건을 바꾸면 다음 날부터 적용돼요.</p>
-      <button className={`btn btn-cta btn-block ${x.recDraw}`} onClick={onDraw}>추천 받기</button>
-    </div>
-  )
-}
-
-/** 답이 궁금한 질문 고르기 (1265:35509): 전체 · 관심사 · TMI 탭, 최대 3개. 고르는 즉시 저장. 3개를 골랐는데 더 누르면 ⓘ 안내 토스트 */
-type QFilter = 'all' | 'interest' | 'tmi'
-const Q_FILTERS: [QFilter, string][] = [['all', '전체'], ['interest', '관심사'], ['tmi', 'TMI']]
-function QuestionPicker({ onDone }: { onDone: () => void }) {
-  const [ids, setIds] = useState<string[]>(() => getRecommendSettings().questions)
-  const [filter, setFilter] = useState<QFilter>('all')
-  /** 안내 토스트. 번호를 key 로 써서 또 눌렀을 때 4초를 다시 셈 */
-  const [limitToast, setLimitToast] = useState<number | null>(null)
-  const closeLimitToast = useCallback(() => setLimitToast(null), [])
-  const list = QUESTIONS.filter((q) => filter === 'all' || q.kind === filter)
-  const toggle = (id: string) => {
-    if (!ids.includes(id) && ids.length >= MAX_REC_QUESTIONS) { setLimitToast((n) => (n ?? 0) + 1); return }
-    const next = ids.includes(id) ? ids.filter((v) => v !== id) : [...ids, id]
-    setIds(next)
-    setRecommendSettings({ ...getRecommendSettings(), questions: next })
-  }
-  return (
-    <div className={x.modal}>
-      <Toast key={limitToast ?? 0} open={limitToast !== null} onClose={closeLimitToast} tone="info" title={`최대 ${MAX_REC_QUESTIONS}개까지 고를 수 있어요`} />
-      <h2 id="rec-title" className="display">답이 궁금한 질문 고르기</h2>
-      <p className={x.lead}>고른 질문에 답한 친구를 추천해 드려요</p>
-      <div className={x.qTabs} role="tablist" aria-label="질문 종류">
-        {Q_FILTERS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={filter === k} className={filter === k ? x.qTabOn : x.qTab} onClick={() => setFilter(k)}>{label}</button>)}
-      </div>
-      <ul className={x.qPick}>
-        {list.map((q) => {
-          const on = ids.includes(q.id)
-          return (
-            <li key={q.id}>
-              <button type="button" className={on ? x.qRowOn : x.qRow} aria-pressed={on} onClick={() => toggle(q.id)}>
-                <span className={x.qText}><small>{questionTag(q)}</small><strong>{q.text}</strong></span>
-                <span className={on ? x.qStateOn : x.qState}>{on ? '✓ 골랐어요' : '+ 고르기'}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-      <div className={x.qFoot}>
-        <span aria-live="polite">{ids.length}개 골랐어요</span>
-        <button type="button" className="btn btn-cta" onClick={onDone}>고르기 완료</button>
-      </div>
+      <section className={x.recSec} aria-labelledby="rec-floor">
+        <h3 id="rec-floor">층</h3>
+        <div className={x.chips} role="group" aria-labelledby="rec-floor">
+          {floors.map((fl) => <Chip key={fl} on={floor === fl} onClick={() => setFloor(fl)}>{fl}층</Chip>)}
+        </div>
+      </section>
+      <section className={x.recSec} aria-labelledby="rec-gen">
+        <h3 id="rec-gen">기수</h3>
+        <div className={x.chips} role="group" aria-labelledby="rec-gen">
+          {GEN_NUMS.map((g) => <Chip key={g} on={gen === g} onClick={() => setGen(g)}>{g}기</Chip>)}
+        </div>
+      </section>
+      <p className={x.recNotice}>추천은 하루 한 번 받을 수 있어요. 오늘 받은 추천은 내일까지 바뀌지 않아요.</p>
+      <button className={`btn btn-cta btn-block ${x.recDraw}`} disabled={!ready} onClick={() => ready && onDraw({ campus, floor, gen })}>추천 받기</button>
     </div>
   )
 }
