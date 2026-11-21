@@ -1,0 +1,2193 @@
+[
+ {
+  "name": "furniture_slot_01",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.589,
+   2.071,
+   0
+  ],
+  "rz_deg": -40.5,
+  "pos_three": [
+   1.589,
+   0,
+   -2.071
+  ],
+  "ry_deg": -40.5,
+  "max_m": {
+   "w": 1.25,
+   "d": 0.9,
+   "h": 1.25
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "note": "v3.8: 피아노가 돔 갈빗대(room_rib_02)·벽판에 묻혀서 3° 더 돌림 (-37.5 → -40.5). 위치 그대로",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.2,
+    "S": 0.9,
+    "dust": 1.44
+   },
+   {
+    "max_h": 1.0,
+    "mode": "pop",
+    "dust": 1.44
+   },
+   {
+    "max_h": 1.25,
+    "mode": "pop",
+    "dust": 1.44
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_02",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.811,
+   0.854,
+   0
+  ],
+  "rz_deg": -64.8,
+  "pos_three": [
+   1.811,
+   0,
+   -0.854
+  ],
+  "ry_deg": -64.8,
+  "max_m": {
+   "w": 0.6,
+   "d": 0.6,
+   "h": 0.8
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   },
+   {
+    "max_h": 0.8,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0.2,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_03",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.102,
+   1.436,
+   0
+  ],
+  "rz_deg": -37.5,
+  "pos_three": [
+   1.102,
+   0,
+   -1.436
+  ],
+  "ry_deg": -37.5,
+  "max_m": {
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.6,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_04",
+  "slot_type": "shared_big",
+  "kind": "wall",
+  "category": null,
+  "pos_blender": [
+   1.114,
+   2.757,
+   1.3
+  ],
+  "rz_deg": -22.0,
+  "pos_three": [
+   1.114,
+   1.3,
+   -2.757
+  ],
+  "ry_deg": -22.0,
+  "max_m": {
+   "w": 0.65,
+   "d": 0.14,
+   "h": 0.45
+  },
+  "mount": "wall_hung",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "model"
+  },
+  "moved_from_v3": {
+   "pos_blender": [
+    2.833,
+    0.198,
+    1.5
+   ],
+   "rz_deg": -86.0
+  },
+  "moved_note": "11/11 (슬롯 재검사): (2.833, 0.198, 1.5) → 뒤쪽 벽 오른쪽 가운데 (1.114, 2.757, 1.3). 이전 자리는 벽에서 6.3cm 떠 있었음. 지금: 벽에 닿음(0.2cm), 다른 물체와 5.0cm 이상, 카메라에서 100% 보임, 화면에서 선반·액자와 겹치지 않음. 원점 = 판 아래 가운데"
+ },
+ {
+  "name": "furniture_slot_05",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.05,
+   0.25,
+   0
+  ],
+  "rz_deg": -83.0,
+  "pos_three": [
+   2.05,
+   0,
+   -0.25
+  ],
+  "ry_deg": -83.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 1.4
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   },
+   {
+    "max_h": 1.0,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0.2,
+    "dust": 0.6
+   },
+   {
+    "max_h": 1.4,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0.5,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_06",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -0.781,
+   2.637,
+   0
+  ],
+  "rz_deg": 16.5,
+  "pos_three": [
+   -0.781,
+   0,
+   -2.637
+  ],
+  "ry_deg": 16.5,
+  "max_m": {
+   "w": 0.8,
+   "d": 0.7,
+   "h": 1.25
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 0.8,
+    "S": 0.7,
+    "dust": 0.7
+   },
+   {
+    "max_h": 1.0,
+    "mode": "pop",
+    "dust": 0.7
+   },
+   {
+    "max_h": 1.25,
+    "mode": "pop",
+    "dust": 0.7
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_07",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -1.2,
+   1.5,
+   0
+  ],
+  "rz_deg": 38.7,
+  "pos_three": [
+   -1.2,
+   0,
+   -1.5
+  ],
+  "ry_deg": 38.7,
+  "max_m": {
+   "w": 0.55,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "occupant": null,
+  "moved_note": "11/11 (3묶음 수정): (-1.75, 1.0) → (-1.2, 1.5). 이전 자리는 침대·협탁에 가려 카메라에서 23%만 보임. 지금은 95% 보임",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.6,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_08",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -2.239,
+   1.482,
+   0
+  ],
+  "rz_deg": 56.5,
+  "pos_three": [
+   -2.239,
+   0,
+   -1.482
+  ],
+  "ry_deg": 56.5,
+  "max_m": {
+   "w": 0.8,
+   "d": 0.75,
+   "h": 1.5
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.2,
+    "S": 0.7,
+    "dust": 0.91
+   },
+   {
+    "max_h": 1.0,
+    "mode": "fall",
+    "H": 0.8,
+    "S": 0.9,
+    "dust": 0.91
+   },
+   {
+    "max_h": 1.5,
+    "mode": "pop",
+    "dust": 0.91
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_09",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -1.5,
+   -0.6,
+   0
+  ],
+  "rz_deg": 111.8,
+  "pos_three": [
+   -1.5,
+   0,
+   0.6
+  ],
+  "ry_deg": 111.8,
+  "max_m": {
+   "w": 0.65,
+   "d": 0.65,
+   "h": 0.45
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.45,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.63
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_10",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.677,
+   0.424,
+   0
+  ],
+  "rz_deg": -81.0,
+  "pos_three": [
+   2.677,
+   0,
+   -0.424
+  ],
+  "ry_deg": -81.0,
+  "max_m": {
+   "w": 0.8,
+   "d": 0.7,
+   "h": 1.45
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.6,
+    "S": 0.9,
+    "dust": 0.64
+   },
+   {
+    "max_h": 1.0,
+    "mode": "fall",
+    "H": 0.8,
+    "S": 0.9,
+    "dust": 0.64
+   },
+   {
+    "max_h": 1.45,
+    "mode": "pop",
+    "dust": 0.64
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_11",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.336,
+   0.414,
+   0
+  ],
+  "rz_deg": -72.8,
+  "pos_three": [
+   1.336,
+   0,
+   -0.414
+  ],
+  "ry_deg": -72.8,
+  "max_m": {
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_12",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -1.591,
+   2.169,
+   0
+  ],
+  "rz_deg": 36.2,
+  "pos_three": [
+   -1.591,
+   0,
+   -2.169
+  ],
+  "ry_deg": 36.2,
+  "max_m": {
+   "w": 0.8,
+   "d": 0.7,
+   "h": 1.6
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.0,
+    "S": 0.9,
+    "dust": 0.8
+   },
+   {
+    "max_h": 1.0,
+    "mode": "pop",
+    "dust": 0.8
+   },
+   {
+    "max_h": 1.6,
+    "mode": "pop",
+    "dust": 0.8
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_13",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -1.366,
+   1.76,
+   0
+  ],
+  "rz_deg": 37.8,
+  "pos_three": [
+   -1.366,
+   0,
+   -1.76
+  ],
+  "ry_deg": 37.8,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.3,
+   "h": 1.15
+  },
+  "mount": "floor",
+  "moved_from": [
+   -1.236,
+   1.685
+  ],
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 1.6,
+    "S": 0,
+    "dust": 0.6
+   },
+   {
+    "max_h": 1.0,
+    "mode": "fall",
+    "H": 1.2,
+    "S": 0.35,
+    "dust": 0.6
+   },
+   {
+    "max_h": 1.15,
+    "mode": "fall",
+    "H": 1.0,
+    "S": 0.35,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_14",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.534,
+   1.346,
+   0
+  ],
+  "rz_deg": -62.0,
+  "pos_three": [
+   2.534,
+   0,
+   -1.346
+  ],
+  "ry_deg": -62.0,
+  "max_m": {
+   "w": 0.58,
+   "d": 0.66,
+   "h": 1.2
+  },
+  "mount": "floor",
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "note_5b": "11/12 (5묶음 B): 망원경 모델에 맞춰 슬롯 상자를 0.7×0.7×1.55 → 0.6×0.66×1.2로 줄이고, 뒤쪽 다리가 돔 벽에 닿도록 (2.393, 1.272) → (2.534, 1.346)으로 벽 쪽으로 0.16m 옮김 (회전 -62° 그대로)",
+  "occupant": null,
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "pop",
+    "dust": 0.65
+   },
+   {
+    "max_h": 1.0,
+    "mode": "pop",
+    "dust": 0.65
+   },
+   {
+    "max_h": 1.2,
+    "mode": "pop",
+    "dust": 0.65
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_15",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.797,
+   -0.395,
+   0
+  ],
+  "rz_deg": -98.0,
+  "pos_three": [
+   2.797,
+   0,
+   0.395
+  ],
+  "ry_deg": -98.0,
+  "max_m": {
+   "w": 0.6,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "occupant": null,
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0.7,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_16",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   0.374,
+   2.75,
+   0
+  ],
+  "rz_deg": -7.8,
+  "pos_three": [
+   0.374,
+   0,
+   -2.75
+  ],
+  "ry_deg": -7.8,
+  "max_m": {
+   "w": 1.25,
+   "d": 0.65,
+   "h": 0.98
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "note_4": "11/11 (4묶음): 조리대 위 냄비 포함 높이 0.97m라서 슬롯 높이 0.95 → 0.98",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 0.8,
+    "S": 0.9,
+    "dust": 1.41
+   },
+   {
+    "max_h": 0.98,
+    "mode": "pop",
+    "dust": 1.41
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_17",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.7,
+   -1.3,
+   0
+  ],
+  "rz_deg": 54.8,
+  "pos_three": [
+   1.7,
+   0,
+   1.3
+  ],
+  "ry_deg": 54.8,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "occupant": null,
+  "note_5a": "11/11 (5묶음 A): 옛 자리 (0.286, 2.106, 회전 -7.7°)는 카메라에서 두더지에 90.6% 가려짐 → 오른쪽 앞 (1.70, -1.30, 회전 54.8°)로 이동. 두더지 가림 0%, 카메라 화면 안, 다른 상자와 16.8cm, 앞쪽이라 돔 벽 없음 (낮은 가구 높이 0.5m 이하)",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_18",
+  "slot_type": "shared_big",
+  "kind": "wall",
+  "category": null,
+  "pos_blender": [
+   -1.123,
+   2.78,
+   1.32
+  ],
+  "rz_deg": 22.0,
+  "pos_three": [
+   -1.123,
+   1.32,
+   -2.78
+  ],
+  "ry_deg": 22.0,
+  "max_m": {
+   "w": 1.0,
+   "d": 0.8,
+   "h": 0.6
+  },
+  "mount": "wall_hung",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "model",
+   "note": "pop: 벽걸이라 위에서 떨어뜨리지 않음. 확인(11/11 자전거 다듬기): 판 뒷면이 돔 벽에 닿음, 돔 4.6cm, 선반 01 위 소품 자리 5.8cm, 액자 02 5.9cm, 책장 4.3cm 이상 떨어짐. 카메라 화면에서도 선반·액자·리브와 겹치지 않음(5px 여유)"
+  },
+  "occupant": null,
+  "moved_note": "11/11: (2.615, -1.056, 0.8) → 뒤쪽 벽 (0.836, 2.916, 1.15) → (자전거 다듬기) 선반 01 왼쪽 위 (-1.123, 2.78, 1.32). 이전 자리는 돔(뒤쪽 절반만 있음) 바깥이라 뒤에 벽이 없었고, 그다음 자리는 화면에서 선반 끝과 겹쳤음. 0.7배, 30° 회전, 팔 2개. 원점 = 벽에 닿는 점(판 가운데 아래) 높이 = 자전거 맨 아래"
+ },
+ {
+  "name": "furniture_slot_19",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.2,
+   -0.6,
+   0
+  ],
+  "rz_deg": -105.3,
+  "pos_three": [
+   2.2,
+   0,
+   0.6
+  ],
+  "ry_deg": -105.3,
+  "max_m": {
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "occupant": null,
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_20",
+  "slot_type": "shared_big",
+  "kind": "wall",
+  "category": null,
+  "pos_blender": [
+   -2.718,
+   0.528,
+   1.3
+  ],
+  "rz_deg": 79.0,
+  "pos_three": [
+   -2.718,
+   1.3,
+   -0.528
+  ],
+  "ry_deg": 79.0,
+  "max_m": {
+   "w": 0.8,
+   "d": 0.45,
+   "h": 0.85
+  },
+  "mount": "wall_hung",
+  "occupant": null,
+  "moved_from": [
+   -2.736,
+   0.143,
+   1.0
+  ],
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "model",
+   "note": "pop: 벽걸이"
+  },
+  "moved_from_v3": {
+   "pos_blender": [
+    -2.859,
+    -0.25,
+    1.0
+   ],
+   "rz_deg": 95.0
+  },
+  "moved_note": "11/11 (슬롯 재검사): (-2.859, -0.25, 1.0) → 왼쪽 뒤쪽 벽 (-2.718, 0.528, 1.3). 이전 자리는 돔(뒤쪽 절반만 있음) 바깥이라 벽 없이 떠 있었음. 지금: 뒷면이 벽에 닿음(0.2cm), 돔 안쪽 3.2cm, 리브 05와 8.4cm·다른 물체와 8.4cm 이상, 카메라에서 100% 보임, 화면에서 선반·아케이드와 겹치지 않음. 원점 = 바닥(TV 받침대 맨 아래) 가운데"
+ },
+ {
+  "name": "furniture_slot_21",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.3,
+   -0.2,
+   0
+  ],
+  "rz_deg": -98.7,
+  "pos_three": [
+   1.3,
+   0,
+   0.2
+  ],
+  "ry_deg": -98.7,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.4
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "drop_by_height": [
+   {
+    "max_h": 0.4,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "prop_slot_01",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -0.45,
+   2.869,
+   1.35
+  ],
+  "rz_deg": -0.0,
+  "pos_three": [
+   -0.45,
+   1.35,
+   -2.869
+  ],
+  "ry_deg": -0.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_01",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(5.6~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_02",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -0.15,
+   2.869,
+   1.35
+  ],
+  "rz_deg": -0.0,
+  "pos_three": [
+   -0.15,
+   1.35,
+   -2.869
+  ],
+  "ry_deg": -0.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_01",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(5.6~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_03",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   0.15,
+   2.869,
+   1.35
+  ],
+  "rz_deg": -0.0,
+  "pos_three": [
+   0.15,
+   1.35,
+   -2.869
+  ],
+  "ry_deg": -0.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_01",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(5.6~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_04",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   0.45,
+   2.869,
+   1.35
+  ],
+  "rz_deg": -0.0,
+  "pos_three": [
+   0.45,
+   1.35,
+   -2.869
+  ],
+  "ry_deg": -0.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_01",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(5.6~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_05",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   1.681,
+   2.249,
+   1.7
+  ],
+  "rz_deg": -46.0,
+  "pos_three": [
+   1.681,
+   1.7,
+   -2.249
+  ],
+  "ry_deg": -46.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_02",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_06",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   1.897,
+   2.041,
+   1.7
+  ],
+  "rz_deg": -46.0,
+  "pos_three": [
+   1.897,
+   1.7,
+   -2.041
+  ],
+  "ry_deg": -46.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_02",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_07",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   2.105,
+   1.825,
+   1.7
+  ],
+  "rz_deg": -46.0,
+  "pos_three": [
+   2.105,
+   1.7,
+   -1.825
+  ],
+  "ry_deg": -46.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_02",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_08",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   2.31,
+   1.606,
+   1.7
+  ],
+  "rz_deg": -46.0,
+  "pos_three": [
+   2.31,
+   1.7,
+   -1.606
+  ],
+  "ry_deg": -46.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_02",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정"
+ },
+ {
+  "name": "prop_slot_09",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -2.406,
+   1.432,
+   1.7
+  ],
+  "rz_deg": 50.0,
+  "pos_three": [
+   -2.406,
+   1.7,
+   -1.432
+  ],
+  "ry_deg": 50.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_03",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정 / 데모 소품 순서 바꿈(깊은 소품은 안쪽 자리): 09 sf_books, 10 book_stack, 11 popcorn, 12 game_console"
+ },
+ {
+  "name": "prop_slot_10",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -2.205,
+   1.655,
+   1.7
+  ],
+  "rz_deg": 50.0,
+  "pos_three": [
+   -2.205,
+   1.7,
+   -1.655
+  ],
+  "ry_deg": 50.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_03",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정 / 데모 소품 순서 바꿈(깊은 소품은 안쪽 자리): 09 sf_books, 10 book_stack, 11 popcorn, 12 game_console"
+ },
+ {
+  "name": "prop_slot_11",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -2.024,
+   1.895,
+   1.7
+  ],
+  "rz_deg": 50.0,
+  "pos_three": [
+   -2.024,
+   1.7,
+   -1.895
+  ],
+  "ry_deg": 50.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_03",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정 / 데모 소품 순서 바꿈(깊은 소품은 안쪽 자리): 09 sf_books, 10 book_stack, 11 popcorn, 12 game_console"
+ },
+ {
+  "name": "prop_slot_12",
+  "slot_type": "prop",
+  "kind": "shelf",
+  "category": null,
+  "pos_blender": [
+   -1.827,
+   2.121,
+   1.7
+  ],
+  "rz_deg": 50.0,
+  "pos_three": [
+   -1.827,
+   1.7,
+   -2.121
+  ],
+  "ry_deg": 50.0,
+  "max_m": {
+   "w": 0.3,
+   "d": 0.28,
+   "h": 0.35
+  },
+  "fixture": "display_shelf_03",
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule"
+  },
+  "moved_note": "11/11 (슬롯 재검사): 선반이 벽에서 떠 있어서(14.5~15.0cm) 벽 쪽으로 옮김. 소품 자리도 선반과 같이 이동. 선반 위 가로 위치 ±0.15/±0.45m, 돔과 3cm 이상 떨어지도록 앞뒤 미세 조정 / 데모 소품 순서 바꿈(깊은 소품은 안쪽 자리): 09 sf_books, 10 book_stack, 11 popcorn, 12 game_console"
+ },
+ {
+  "name": "prop_slot_13",
+  "slot_type": "prop",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -2.75,
+   0.95,
+   0
+  ],
+  "rz_deg": 70.9,
+  "pos_three": [
+   -2.75,
+   0,
+   -0.95
+  ],
+  "ry_deg": 70.9,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 1.0
+  },
+  "occupant": "guitar",
+  "drop": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0.35,
+   "dust": 0.6,
+   "basis": "model"
+  },
+  "small_prop_rule": {
+   "used_in_v3_8_1": true,
+   "model_scale": 1.4,
+   "note": "v3.8 에 있었지만 규칙이 안 쓰던 바닥 자리를 작은 소품 자리로 되살림. 좌표·상자 그대로"
+  }
+ },
+ {
+  "name": "prop_slot_14",
+  "slot_type": "prop",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   2.6,
+   -1.05,
+   0
+  ],
+  "rz_deg": -112.0,
+  "pos_three": [
+   2.6,
+   0,
+   1.05
+  ],
+  "ry_deg": -112.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "drop": {
+   "mode": "fall",
+   "H": 1.6,
+   "S": 0.2,
+   "dust": 0.6,
+   "basis": "box"
+  },
+  "small_prop_rule": {
+   "used_in_v3_8_1": true,
+   "model_scale": 1.4,
+   "note": "v3.8 에 있었지만 규칙이 안 쓰던 바닥 자리를 작은 소품 자리로 되살림. 좌표·상자 그대로"
+  }
+ },
+ {
+  "name": "pet_slot_01",
+  "slot_type": "pet",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -2.003,
+   -1.561,
+   0
+  ],
+  "rz_deg": 131.4,
+  "pos_three": [
+   -2.003,
+   0,
+   1.561
+  ],
+  "ry_deg": 131.4,
+  "max_m": {
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  "pet": "cat",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 6.9cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "pet_cat",
+  "pair_slot": "prop_slot_15",
+  "pet_offset_from_prop": {
+   "prop": "cat_bed",
+   "local_blender": [
+    0.153,
+    -0.264,
+    0
+   ],
+   "local_three": [
+    0.153,
+    0,
+    0.264
+   ]
+  },
+  "moved_from_v3_3": {
+   "pos_blender": [
+    1.6,
+    -1.0,
+    0
+   ],
+   "rz_deg": -122.0
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "prop_slot_15",
+  "slot_type": "prop",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -2.1,
+   -1.85,
+   0
+  ],
+  "rz_deg": 131.4,
+  "pos_three": [
+   -2.1,
+   0,
+   1.85
+  ],
+  "ry_deg": 131.4,
+  "max_m": {
+   "w": 0.35,
+   "d": 0.35,
+   "h": 0.35
+  },
+  "pet": "cat",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 6.9cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "cat_bed",
+  "pair_slot": "pet_slot_01",
+  "moved_from_v3_3": {
+   "pos_blender": [
+    1.9,
+    -1.3,
+    0
+   ],
+   "rz_deg": -124.4
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "pet_slot_02",
+  "slot_type": "pet",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   1.828,
+   -1.65,
+   0
+  ],
+  "rz_deg": -127.7,
+  "pos_three": [
+   1.828,
+   0,
+   1.65
+  ],
+  "ry_deg": -127.7,
+  "max_m": {
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  "pet": "dog",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 28.5cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "pet_dog",
+  "pair_slot": "prop_slot_16",
+  "pet_offset_from_prop": {
+   "prop": "dog_house",
+   "local_blender": [
+    0.188,
+    -0.325,
+    0
+   ],
+   "local_three": [
+    0.188,
+    0,
+    0.325
+   ]
+  },
+  "moved_from_v3_3": {
+   "pos_blender": [
+    2.3,
+    -1.6,
+    0
+   ],
+   "rz_deg": -124.8
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "prop_slot_16",
+  "slot_type": "prop",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   2.2,
+   -1.7,
+   0
+  ],
+  "rz_deg": -127.7,
+  "pos_three": [
+   2.2,
+   0,
+   1.7
+  ],
+  "ry_deg": -127.7,
+  "max_m": {
+   "w": 0.35,
+   "d": 0.35,
+   "h": 0.35
+  },
+  "pet": "dog",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 28.5cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "dog_house",
+  "pair_slot": "pet_slot_02",
+  "moved_from_v3_3": {
+   "pos_blender": [
+    2.1,
+    -2.0,
+    0
+   ],
+   "rz_deg": -133.6
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "pet_slot_03",
+  "slot_type": "pet",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -2.4,
+   -1.45,
+   0
+  ],
+  "rz_deg": 121.1,
+  "pos_three": [
+   -2.4,
+   0,
+   1.45
+  ],
+  "ry_deg": 121.1,
+  "max_m": {
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  "pet": "parrot",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 6.9cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "pet_parrot",
+  "pair_slot": "prop_slot_17",
+  "pet_offset_from_prop": {
+   "prop": "parrot_perch",
+   "local_blender": [
+    0.0,
+    0.0,
+    0
+   ],
+   "local_three": [
+    0.0,
+    0,
+    0.0
+   ]
+  },
+  "moved_from_v3_3": {
+   "pos_blender": [
+    -2.3,
+    -1.7,
+    0
+   ],
+   "rz_deg": 126.5
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "prop_slot_17",
+  "slot_type": "prop",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -2.4,
+   -1.45,
+   0
+  ],
+  "rz_deg": 121.1,
+  "pos_three": [
+   -2.4,
+   0,
+   1.45
+  ],
+  "ry_deg": 121.1,
+  "max_m": {
+   "w": 0.35,
+   "d": 0.35,
+   "h": 0.35
+  },
+  "pet": "parrot",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 6.9cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "parrot_perch",
+  "pair_slot": "pet_slot_03",
+  "moved_from_v3_3": {
+   "pos_blender": [
+    -1.95,
+    -2.0,
+    0
+   ],
+   "rz_deg": 135.7
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "pet_slot_04",
+  "slot_type": "pet",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -1.387,
+   -1.375,
+   0
+  ],
+  "rz_deg": 140.4,
+  "pos_three": [
+   -1.387,
+   0,
+   1.375
+  ],
+  "ry_deg": 140.4,
+  "max_m": {
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  "pet": "lizard",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 23.0cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "pet_lizard",
+  "pair_slot": "prop_slot_18",
+  "pet_offset_from_prop": {
+   "prop": "lizard_tank",
+   "local_blender": [
+    0.19,
+    -0.329,
+    0
+   ],
+   "local_three": [
+    0.19,
+    0,
+    0.329
+   ]
+  },
+  "moved_from_v3_3": {
+   "pos_blender": [
+    -1.4,
+    -2.0,
+    0
+   ],
+   "rz_deg": 145.0
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "prop_slot_18",
+  "slot_type": "prop",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   -1.45,
+   -1.75,
+   0
+  ],
+  "rz_deg": 140.4,
+  "pos_three": [
+   -1.45,
+   0,
+   1.75
+  ],
+  "ry_deg": 140.4,
+  "max_m": {
+   "w": 0.35,
+   "d": 0.35,
+   "h": 0.35
+  },
+  "pet": "lizard",
+  "moved_from": [
+   -1.05,
+   -0.1
+  ],
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 23.0cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "lizard_tank",
+  "pair_slot": "pet_slot_04",
+  "moved_from_v3_3": {
+   "pos_blender": [
+    1.0,
+    -1.65,
+    0
+   ],
+   "rz_deg": -148.8
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "pet_slot_05",
+  "slot_type": "pet",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   1.4,
+   -1.85,
+   0
+  ],
+  "rz_deg": -45.0,
+  "pos_three": [
+   1.4,
+   0,
+   1.85
+  ],
+  "ry_deg": -45.0,
+  "max_m": {
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  "pet": "ant_farm",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 28.5cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "pet_ant",
+  "pair_slot": "prop_slot_19",
+  "pet_offset_from_prop": {
+   "prop": "ant_farm_case",
+   "local_blender": [
+    0.0,
+    0.0,
+    0
+   ],
+   "local_three": [
+    0.0,
+    0,
+    0.0
+   ]
+  },
+  "moved_from_v3_3": {
+   "pos_blender": [
+    1.25,
+    -2.0,
+    0
+   ],
+   "rz_deg": -148.0
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "prop_slot_19",
+  "slot_type": "prop",
+  "kind": "pet_floor",
+  "category": "pet",
+  "pos_blender": [
+   1.4,
+   -1.85,
+   0
+  ],
+  "rz_deg": -45.0,
+  "pos_three": [
+   1.4,
+   0,
+   1.85
+  ],
+  "ry_deg": -45.0,
+  "max_m": {
+   "w": 0.35,
+   "d": 0.35,
+   "h": 0.35
+  },
+  "pet": "ant_farm",
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "model",
+   "note": "pop: 동물과 용품을 같이 제자리 등장(최대 1.08배). 1.08배일 때도 다른 물체와 3cm 이상(최소 28.5cm), 용품·동물 서로는 겹치지 않음 (6묶음 전수 재검사)"
+  },
+  "occupant": "ant_farm_case",
+  "pair_slot": "pet_slot_05",
+  "moved_from_v3_3": {
+   "pos_blender": [
+    1.65,
+    -1.8,
+    0
+   ],
+   "rz_deg": -137.5
+  },
+  "moved_note": "11/12 (6묶음 전수 재검사): 옛 자리는 카페 의자(furniture_slot_17)·반려동물 짝이 서로 멀리 떨어져 있어(도마뱀 용품·동물 2.4m) 다시 배치. 용품과 동물이 짝으로 붙고, 화면 아래 가장자리에 걸리지 않게 함"
+ },
+ {
+  "name": "mailbox_slot",
+  "slot_type": "fixed",
+  "kind": "fixed_floor",
+  "category": null,
+  "pos_blender": [
+   -1.8,
+   -1.2,
+   0
+  ],
+  "rz_deg": 20.0,
+  "pos_three": [
+   -1.8,
+   0,
+   1.2
+  ],
+  "ry_deg": 20.0,
+  "max_m": {
+   "w": 0.32,
+   "d": 0.28,
+   "h": 0.4
+  },
+  "mount": "floor",
+  "layout_id": "fixed_mailbox",
+  "occupant": "mailbox",
+  "always_present": true,
+  "drop": {
+   "mode": "none",
+   "note": "고정 슬롯: 관심사와 상관없이 항상 있음. 낙하/pop 없이 처음부터 서 있음. 침대 발치 오른쪽 모서리, 고양이·도마뱀·빈백 사이. 확인(11/14): 벽 여유 1.09m(기준 0.22m), 방 카메라 프레임 안(투영 여유 6%), 펫 슬롯과 간격 0.05m 이상. rz 20도 = 앞면이 방 카메라 쪽(약 19도)으로 거의 정면"
+  }
+ },
+ {
+  "name": "furniture_slot_22",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   -1.14,
+   -2.45,
+   0
+  ],
+  "rz_deg": 20,
+  "pos_three": [
+   -1.14,
+   0,
+   2.45
+  ],
+  "ry_deg": 20,
+  "max_m": {
+   "w": 0.5,
+   "d": 0.4,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "note": "v3.8 추가",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_23",
+  "slot_type": "shared_big",
+  "kind": "floor",
+  "category": null,
+  "pos_blender": [
+   1.14,
+   -2.45,
+   0
+  ],
+  "rz_deg": -20,
+  "pos_three": [
+   1.14,
+   0,
+   2.45
+  ],
+  "ry_deg": -20,
+  "max_m": {
+   "w": 0.5,
+   "d": 0.4,
+   "h": 0.5
+  },
+  "mount": "floor",
+  "occupant": null,
+  "drop": {
+   "note": "v3.8: 모델 키(size h)에 맞는 drop_by_height 줄을 씀",
+   "basis": "상자(max_m, 키 단계별)"
+  },
+  "note": "v3.8 추가",
+  "drop_by_height": [
+   {
+    "max_h": 0.5,
+    "mode": "fall",
+    "H": 2.0,
+    "S": 0,
+    "dust": 0.6
+   }
+  ]
+ },
+ {
+  "name": "furniture_slot_24",
+  "slot_type": "shared_big",
+  "kind": "wall",
+  "category": null,
+  "pos_blender": [
+   2.589,
+   1.495,
+   1.15
+  ],
+  "rz_deg": -60,
+  "pos_three": [
+   2.589,
+   1.15,
+   -1.495
+  ],
+  "ry_deg": -60,
+  "max_m": {
+   "w": 0.36,
+   "d": 0.05,
+   "h": 0.5
+  },
+  "mount": "wall_hung",
+  "occupant": null,
+  "drop": {
+   "mode": "pop"
+  },
+  "note": "v3.8 추가"
+ },
+ {
+  "name": "prop_slot_20",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   -0.82,
+   -1.74,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -0.82,
+   0.0,
+   1.74
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_21",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   0.85,
+   -1.5,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   0.85,
+   0.0,
+   1.5
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_22",
+  "slot_type": "prop",
+  "kind": "floor_prop",
+  "category": null,
+  "pos_blender": [
+   -1.62,
+   0.45,
+   0.0
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -1.62,
+   0.0,
+   -0.45
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.45,
+   "d": 0.45,
+   "h": 0.5
+  },
+  "model_scale": 1.4,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": 0.6,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_23",
+  "slot_type": "prop",
+  "kind": "table_top",
+  "category": null,
+  "pos_blender": [
+   0.25,
+   0.14,
+   0.39
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   0.25,
+   0.39,
+   -0.14
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.14,
+   "d": 0.14,
+   "h": 0.18
+  },
+  "model_scale": 0.45,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ },
+ {
+  "name": "prop_slot_24",
+  "slot_type": "prop",
+  "kind": "table_top",
+  "category": null,
+  "pos_blender": [
+   -0.28,
+   0.05,
+   0.39
+  ],
+  "rz_deg": 0.0,
+  "pos_three": [
+   -0.28,
+   0.39,
+   -0.05
+  ],
+  "ry_deg": 0.0,
+  "max_m": {
+   "w": 0.14,
+   "d": 0.14,
+   "h": 0.18
+  },
+  "model_scale": 0.45,
+  "occupant": null,
+  "drop": {
+   "mode": "pop",
+   "H": null,
+   "S": null,
+   "dust": null,
+   "basis": "rule",
+   "note": "v3.8.1 새 작은 소품 자리: 제자리 등장(pop)"
+  },
+  "note": "v3.8.1 추가. 작은 소품 모델을 model_scale 배로 키워(바닥) 줄여(원탁) 놓음. max_m 은 배율을 곱한 뒤의 상자. 원탁 위는 원탁 윗면 높이(three y 0.39)에 놓음"
+ }
+]
