@@ -68,8 +68,14 @@
   line-height: normal; /* Figma 는 줄 높이를 글꼴 기본값(normal)으로 둠. 21px 줄(.lead·.expiredBox)만 따로 */
 }
 .logoMole { position: absolute; z-index: 0; right: 48px; top: -50px; width: 72px; height: 72px; overflow: hidden; pointer-events: none; }
-.logoMole img { position: absolute; left: 2.88px; top: 10.77px; width: 66.24px; height: 61.2306px; max-width: none; animation: peek 4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .logoMole img { animation: none; } }
+.logoMoleBody { position: absolute; inset: 0; animation: peek 4s ease-in-out infinite; }
+.logoMole img { position: absolute; left: 2.88px; top: 10.77px; width: 66.24px; height: 61.2306px; max-width: none; }
+/* 눈꺼풀: 눈(svg 안 좌표 20.6,30.1 · 44.0,28.9 + 프레임 안 오프셋 2.88,10.77)을 몸 색 #6b4a3a 로 덮음. 평소 scaleY(0), 4초 중 한 번 감았다 뜸 */
+.lidL, .lidR { position: absolute; width: 9px; height: 11px; border-radius: 50%; background: #6b4a3a; transform: scaleY(0); transform-origin: 50% 0; animation: lid 4s infinite; }
+.lidL { left: 19px; top: 35.4px; }
+.lidR { left: 42.4px; top: 34.3px; }
+@keyframes lid { 0%, 91%, 99%, 100% { transform: scaleY(0); } 94%, 96% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .logoMoleBody, .lidL, .lidR { animation: none; } }
 /* 패널 밖 아래(프로토타입 전용 링크): 패널 가운데 정렬에 끼지 않게 띄움 */
 .afterSlot { position: absolute; left: 0; right: 0; top: 100%; margin-top: 16px; display: flex; justify-content: center; }
 
