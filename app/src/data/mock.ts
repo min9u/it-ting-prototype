@@ -147,8 +147,12 @@ export const GUESTBOOK: GuestbookEntry[] = [
     text,
     createdAt: minutesAgo(GB_AGO[i]),
   })),
-  // 8일 지난 글 — 7일 자동 삭제 규칙으로 화면에 안 보여야 한다
-  { id: 'gb-old', authorId: 'kim', text: '(8일 지난 방명록 — 보이면 안 됨)', createdAt: minutesAgo(8 * 24 * 60) },
+  // 오래된 글도 자동으로 지워지지 않는다 (2026-11-21 명세: 7일 자동 삭제 없음). 목록 맨 끝에 그대로 보여야 한다
+  { id: 'gb-old', authorId: 'kim', text: '한 달 전에 남긴 글이에요. 오래돼도 그대로 남아 있어요', createdAt: minutesAgo(30 * 24 * 60) },
+  // 신고 2명 → 아직 보임. 한 명이 더 신고하면 가려짐 (서로 다른 3명)
+  { id: 'gb-rep2', authorId: 'lee', text: '홍보 글 같은 방명록이에요 (신고 2명)', createdAt: minutesAgo(2000), reporters: ['yerin', 'park'] },
+  // 서로 다른 3명이 신고 → 가려져 목록과 글 수에서 빠짐. 같은 사람이 여러 번 신고해도 1명 (reporters 는 사람 기준)
+  { id: 'gb-hidden', authorId: 'kim', text: '(신고로 가려진 방명록 — 보이면 안 됨)', createdAt: minutesAgo(40), reporters: ['yerin', 'park', 'seoyeon', 'yerin'] },
 ]
 
 /* ===== 게시판: data/boardStore.ts ===== */

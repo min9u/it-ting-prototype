@@ -33,6 +33,7 @@
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } }
 .check { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #6f8a3c; color: #fff; flex: none; }
 .checkError { background: var(--alert); }
+.checkInfo { background: #9a8574; } /* 안내성 토스트 ⓘ (준비 중 등): 초록 체크 대신 */
 .text { display: flex; flex-direction: column; gap: 3px; }
 .text strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; }
 .text small { font-size: 11px; color: #e3d2c2; }

@@ -6,8 +6,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_SEAT, affOf, allCurrentFloors, drawRecommendations, exploreHref, fieldOf, fieldUserOf,
-  floorId, floorLabel, getRecommendSettings, locateUser, me, parseFloor, setRecommendSettings, shortAffOf, todaysPicks,
+  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_SEAT, affOf, allCurrentFloors, exploreHref, fieldOf, fieldUserOf,
+  floorId, floorLabel, locateUser, parseFloor, shortAffOf,
 } from '../data/field'
 import { ME_ID, USERS } from '../data/mock'
 import layout from '../data/fieldLayout150.json'
@@ -107,42 +107,108 @@ describe('소속 표기 (00 공통 4: 캠퍼스 · 기수 · 층, 반 없음)', 
   })
 })
 
-describe('오늘의 추천 친구 (F5 5 · 추천 친구 설정 2)', () => {
+describe('오늘의 추천 친구 (02 F5 5 · 추천 친구 설정 2 · 4, 2026-11-21 명세: 캠퍼스-층 + 기수만)', () => {
   beforeEach(() => {
+    vi.resetModules()
+    localStorage.clear()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 16, 10, 0))
   })
-  afterEach(() => { vi.useRealTimers() })
+  afterEach(() => { vi.useRealTimers(); localStorage.clear() })
+  const SEL = { campus: '서울', floor: 2, gen: 16 }
 
-  it('3명, 나는 빼고, 모두 이번 학기 들판 어딘가에 땅굴이 있음 (보는 들판과 관계없음)', () => {
-    const picks = drawRecommendations()
-    expect(picks).toHaveLength(3)
-    expect(new Set(picks).size).toBe(3)
-    expect(picks).not.toContain(ME_ID)
-    for (const id of picks) expect(locateUser(id), id).not.toBeNull()
+  it('설정을 저장하는 곳이 없음 (관심사 · 질문 설정 API 는 없어짐, 고른 값은 저장하지 않음)', async () => {
+    const f = await import('../data/field') as Record<string, unknown>
+    expect(f.getRecommendSettings).toBeUndefined()
+    expect(f.setRecommendSettings).toBeUndefined()
+    expect(f.MAX_REC_QUESTIONS).toBeUndefined()
+    f.drawRecommendations && (f.drawRecommendations as (s: typeof SEL) => string[])(SEL)
+    expect(JSON.parse(localStorage.getItem('digul.recommend')!)).not.toHaveProperty('settings')
   })
-  it('받고 나면 오늘은 그 3명 (하루 한 번), 다음 날이 되면 다시 받을 수 있음', () => {
-    const picks = drawRecommendations()
-    expect(todaysPicks()).toEqual(picks)
+  it('예전에 저장된 설정(관심사 · 질문 · 같은 캠퍼스…)은 읽지 않고, 오늘 받은 추천은 그대로', async () => {
+    localStorage.setItem('digul.recommend', JSON.stringify({ settings: { interests: ['소설'], questions: ['tmi-1'], sameCampus: true }, date: '2026-11-16', picks: ['x1', 'x2'] }))
+    const f = await import('../data/field')
+    expect(f.todaysPicks()).toEqual(['x1', 'x2'])
+  })
+  it('후보: 고른 캠퍼스 · 층의 이번 학기 들판 사람 중 기수가 같고, 나와 단골은 뺌', async () => {
+    const f = await import('../data/field')
+    const pool = f.recommendPool(SEL)
+    const regular = new Set(f.getRegulars())
+    expect(pool.length).toBeGreaterThan(3)
+    for (const u of pool) {
+      expect(u.campus).toBe('서울'); expect(u.floor).toBe(2); expect(u.gen).toBe(16)
+      expect(u.id).not.toBe(ME_ID); expect(regular.has(u.id), u.id).toBe(false)
+    }
+    // 서울-2층 16기 단골(예린 · 서벅이)은 들판에 있어도 후보가 아님
+    expect(f.fieldOf(f.MY_FLOOR).residents.some((r) => r.user.id === 'yerin')).toBe(true)
+    expect(pool.some((u) => u.id === 'yerin')).toBe(false)
+  })
+  it('단골을 해제하면 다시 후보', async () => {
+    const f = await import('../data/field')
+    f.setRegular('yerin', false)
+    expect(f.recommendPool(SEL).some((u) => u.id === 'yerin')).toBe(true)
+  })
+  it('기수가 다르면 안 나옴 · 없는 캠퍼스 · 층이면 빈 목록 · 사람 없는 들판도 빈 목록', async () => {
+    const f = await import('../data/field')
+    expect(f.recommendPool({ ...SEL, gen: 12 })).toEqual([])
+    expect(f.recommendPool({ campus: '서울', floor: 99, gen: 16 })).toEqual([])
+    expect(f.recommendPool({ campus: '부울경', floor: 1, gen: 16 })).toEqual([])
+    expect(f.drawRecommendations({ campus: '부울경', floor: 1, gen: 16 })).toEqual([])
+  })
+  it('3명, 지금 보는 들판과 관계없이 고른 캠퍼스 · 층에서, 서로 다른 사람', async () => {
+    const f = await import('../data/field')
+    const picks = f.drawRecommendations({ campus: '대전', floor: 2, gen: 16 })
+    expect(picks.length).toBeLessThanOrEqual(3)
+    expect(picks.length).toBeGreaterThan(0)
+    expect(new Set(picks).size).toBe(picks.length)
+    for (const id of picks) { const loc = f.locateUser(id)!; expect(loc.floor.campus).toBe('대전'); expect(loc.floor.floor).toBe(2) }
+  })
+  it('후보가 3명보다 적으면 있는 만큼', async () => {
+    const f = await import('../data/field')
+    const small = f.allCurrentFloors().find((fl) => { const n = f.recommendPool({ campus: fl.campus, floor: fl.floor, gen: 15 }).length; return n > 0 && n < 3 })
+    if (!small) return // 목 데이터에 그런 들판이 없으면 건너뜀
+    const n = f.recommendPool({ campus: small.campus, floor: small.floor, gen: 15 }).length
+    expect(f.drawRecommendations({ campus: small.campus, floor: small.floor, gen: 15 })).toHaveLength(n)
+  })
+  it('나에게 추천된 횟수가 적은 사람 먼저: 이미 추천된 사람은 아직 안 된 사람 뒤', async () => {
+    const f = await import('../data/field')
+    const pool = f.recommendPool(SEL)
+    const first = f.drawRecommendations(SEL)
+    expect(first).toHaveLength(3)
+    f.resetToday() // 다음 날처럼 다시 받을 수 있게 (횟수는 남음)
+    vi.setSystemTime(new Date(2026, 10, 17, 10, 0))
+    const second = f.drawRecommendations(SEL)
+    // 추천된 적 없는 사람이 3명 이상 남아 있으면 둘째 날은 전부 새 사람
+    if (pool.length - first.length >= 3) for (const id of second) expect(first.includes(id), id).toBe(false)
+  })
+  it('모두 한 번씩 추천된 뒤에는 다시 모두 같은 순위 (따로 초기화하지 않아도 다시 나옴)', async () => {
+    const f = await import('../data/field')
+    const pool = f.recommendPool(SEL)
+    const seen = new Set<string>()
+    let day = 16
+    while (seen.size < pool.length && day < 16 + 40) {
+      vi.setSystemTime(new Date(2026, 10, day++, 10, 0)); f.resetToday()
+      for (const id of f.drawRecommendations(SEL)) seen.add(id)
+    }
+    expect(seen.size).toBe(pool.length)
+    vi.setSystemTime(new Date(2026, 10, day, 10, 0)); f.resetToday()
+    expect(f.drawRecommendations(SEL).length).toBe(3)
+  })
+  it('받고 나면 오늘은 그 결과 그대로 (하루 한 번, 조건을 바꿔 다시 보내도 처음 결과), 다음 날이 되면 다시 받을 수 있음', async () => {
+    const f = await import('../data/field')
+    const picks = f.drawRecommendations(SEL)
+    expect(f.todaysPicks()).toEqual(picks)
+    expect(f.drawRecommendations({ campus: '대전', floor: 1, gen: 15 })).toEqual(picks)
     vi.setSystemTime(new Date(2026, 10, 17, 9, 0))
-    expect(todaysPicks()).toBeNull()
+    expect(f.todaysPicks()).toBeNull()
   })
-  it('같은 날 같은 설정이면 같은 결과 (날짜 시드)', () => {
-    expect(drawRecommendations()).toEqual(drawRecommendations())
-  })
-  it('걸러 내지 않고 우선순위: 고른 관심사를 가진 사람이 위로', () => {
-    const s = getRecommendSettings()
-    const target = me().interests[0]
-    setRecommendSettings({ ...s, interests: [target], question: null, sameCampus: false, sameGen: false, sameFloor: false })
-    const pool = allCurrentFloors().flatMap((f) => fieldOf(f).residents).filter((r) => !r.mine).map((r) => r.user)
-    const having = pool.filter((u) => u.interests.includes(target)).length
-    const picks = drawRecommendations().map((id) => pool.find((u) => u.id === id)!)
-    if (having >= 3) for (const u of picks) expect(u.interests, u.id).toContain(target)
-  })
-  it('설정은 저장돼 다음에도 그대로', () => {
-    const s = { ...getRecommendSettings(), sameFloor: true }
-    setRecommendSettings(s)
-    expect(getRecommendSettings()).toEqual(s)
-    expect(JSON.parse(localStorage.getItem('digul.recommend')!).settings.sameFloor).toBe(true)
+  it('같은 날 같은 조건이면 같은 결과 (날짜 시드)', async () => {
+    const f = await import('../data/field')
+    const a = f.drawRecommendations(SEL)
+    f.resetToday()
+    localStorage.clear()
+    vi.resetModules()
+    const g = await import('../data/field')
+    expect(g.drawRecommendations(SEL)).toEqual(a)
   })
 })

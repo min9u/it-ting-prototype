@@ -12,11 +12,11 @@ import { entranceOf, guestbookEntryDto, memberProfile, rawPerson } from './mock/
 import { GUESTBOOK, ME_ID } from '../data/mock'
 import { CAMPUS_FLOORS, CURRENT_TERM, fieldOf, floorId, getRegulars, setRegular } from '../data/field'
 import { dmRoomWith, sentRequestTo } from '../data/chat'
-import { liveGuestbook } from '../lib/format'
+import { visibleGuestbook } from '../lib/format'
 import { toIso } from '../lib/time'
 import type { GuestbookEntry } from '../data/types'
 import { getMyFurnChoice, getMyRoomPick } from '../data/myBurrow'
-import type { BurrowDto, CampusFloorDto, CursorPageDto, FieldDto, GuestbookEntryDto, Id, MemberProfileDto, RoomLayoutDto } from './types'
+import type { BurrowDto, CampusFloorDto, CursorPageDto, FieldDto, GuestbookEntryDto, Id, MemberProfileDto, ReportReason, RoomLayoutDto } from './types'
 
 /** 방명록 글자 수 (화면 100자, ERD VARCHAR(50) → erd-gaps) */
 /** 방명록 글자 수 (lib/validation · ERD guestbook_entry.content VARCHAR(50)) */
@@ -25,13 +25,15 @@ export const GUESTBOOK_MAX = RULES.guestbook.max
 const real = {
   /** GET /burrows/{memberId} — 땅굴 방문 (주인·관계). 탈퇴·없는 사람 404 BURROW_NOT_FOUND */
   get: (memberId: Id, signal?: AbortSignal) => http.get<BurrowDto>(`/burrows/${memberId}`, undefined, signal),
-  /** GET /burrows/{memberId}/guestbook — 7일 안 글, 최신순 (커서) */
+  /** GET /burrows/{memberId}/guestbook — 신고로 가려진 글만 빼고 전부, 최신순 (커서). 시간이 지나도 지워지지 않음 */
   guestbook: (memberId: Id, cursor?: string | null, size = 20, signal?: AbortSignal) =>
     http.get<CursorPageDto<GuestbookEntryDto>>(`/burrows/${memberId}/guestbook`, { cursor, size }, signal),
   /** POST /burrows/{memberId}/guestbook */
   writeGuestbook: (memberId: Id, content: string) => http.post<GuestbookEntryDto>(`/burrows/${memberId}/guestbook`, { content }),
   /** DELETE /guestbook/{entryId} — 땅굴 주인·글쓴이 */
   deleteGuestbook: (entryId: Id) => http.delete<void>(`/guestbook/${entryId}`),
+  /** POST /reports (targetType GUESTBOOK) — 글마다 한 사람 한 번, 서로 다른 3명이 신고하면 서버가 가림 (409 ALREADY_REPORTED) */
+  reportGuestbook: (entryId: Id, reason: ReportReason, detail: string | null) => http.post<void>('/reports', { targetType: 'GUESTBOOK', targetId: entryId, reason, detail }),
   /** PUT·DELETE /burrows/{memberId}/regular — 단골 (상대 수락 없음, 해제해도 알리지 않음) */
   setRegular: (memberId: Id, on: boolean) => (on ? http.put<void>(`/burrows/${memberId}/regular`) : http.delete<void>(`/burrows/${memberId}/regular`)),
   /** GET /me/regulars — 단골 땅굴 목록 */
@@ -85,7 +87,7 @@ const mock: BurrowsApi = {
   }, { signal, detail: true }),
   guestbook: (memberId, cursor, size = 20, signal) => mockRead(() => {
     ownerOrThrow(memberId)
-    return cursorPage(liveGuestbook(bookOf(memberId)).map((g) => guestbookEntryDto(g, memberId)), cursor, size)
+    return cursorPage(visibleGuestbook(bookOf(memberId)).map((g) => guestbookEntryDto(g, memberId)), cursor, size)
   }, { signal, empty: () => emptyCursor() }),
   writeGuestbook: (memberId, content) => mockWrite(() => {
     ownerOrThrow(memberId)
@@ -98,6 +100,14 @@ const mock: BurrowsApi = {
   }),
   deleteGuestbook: (entryId) => mockWrite(() => {
     for (const b of books.values()) { const i = b.findIndex((g) => g.id === entryId); if (i >= 0) { b.splice(i, 1); return } }
+    throw notFound('방명록 글')
+  }),
+  reportGuestbook: (entryId) => mockWrite(() => {
+    // 신고한 사람 기준으로 센다 (같은 사람이 또 눌러도 그대로). 서로 다른 3명이 되면 visibleGuestbook 이 빼서 다음에 받을 때부터 안 보임
+    for (const b of books.values()) {
+      const g = b.find((x) => x.id === entryId)
+      if (g) { if (!(g.reporters ?? []).includes(ME_ID)) g.reporters = [...(g.reporters ?? []), ME_ID]; return }
+    }
     throw notFound('방명록 글')
   }),
   setRegular: (memberId, on) => mockWrite(() => { ownerOrThrow(memberId); setRegular(memberId, on) }),

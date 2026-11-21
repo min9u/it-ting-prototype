@@ -29,6 +29,8 @@
 .panelHead h2 { font-size: 22px; color: var(--ink-900); }
 
 .profile { display: flex; align-items: center; gap: 14px; margin-top: 16px; height: 64px; }
+.flagBtn { margin-left: auto; align-self: flex-start; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--ink-400); }
+.flagBtn:hover { background: var(--surface-item); color: var(--danger); }
 .nick { font-size: 20px; color: var(--ink-900); line-height: 1.2; }
 .aff { margin-top: 3px; font-size: 12px; color: var(--ink-400); }
 
@@ -56,8 +58,6 @@
 .sectionLabel span { margin-left: 4px; font-weight: 400; }
 
 .guestbook { margin-top: 14px; display: flex; flex-direction: column; }
-.gbTitle { display: flex; align-items: center; gap: 7px; font-size: 21px; color: #1f1510; padding-left: 4px; }
-.gbList { margin-top: 11px; display: flex; flex-direction: column; gap: 10px; }
 .more { align-self: flex-end; margin-top: 6px; margin-right: 4px; }
 .gbEmpty {
   margin-top: 18px; padding: 0 16px;
@@ -79,9 +79,15 @@
 .gbModal { padding: 23px 34px 22px 33px; min-height: 511px; display: flex; flex-direction: column; }
 .gbModalTitle { display: flex; align-items: center; gap: 8px; font-size: 28px; color: #1f1510; }
 .gbModalTitle :global(.count-badge) { height: 22px; font-size: 14px; }
+/* 방명록 쓰기: 한 줄 입력 + 오른쪽 갈색 채운 "➤ 남기기", 글자 수는 아래 */
+.gbCompose { margin-top: 14px; }
+.gbComposeRow { display: flex; gap: 10px; }
+.gbComposeRow input { flex: 1; min-width: 0; height: 44px; padding: 0 16px; border: 0; outline: none; border-radius: var(--radius-md); background: var(--surface-item); font-size: 14px; color: var(--ink-900); }
+.gbComposeRow input:focus { box-shadow: inset 0 0 0 1.5px rgba(116, 74, 50, 0.35); }
+.gbSend { flex: none; height: 44px; padding: 0 20px; gap: 6px; font-size: 15px; }
+.gbCount { display: block; margin: 6px 0 0 4px; font-size: 11px; color: var(--ink-400); }
 .gbModalList { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .gbPager { margin-top: auto; padding-top: 12px; }
-.gbNote { margin-top: 6px; text-align: center; font-size: 11px; color: var(--ink-300); }
 
 .simpleModal { padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 14px; }
 .simpleModal h2 { font-size: 22px; }
@@ -93,10 +99,22 @@
 
 /* ---- 탐색 / 방문자 뷰 ---- */
 .roomInfo { composes: panel; top: 40px; }
+/* 탐색 방노트: 머리글(접기)은 고정, 아래(프로필 · 자기소개 · 관심사 · 땅굴 놀러가기 · Q&A)는 한 덩어리로 스크롤 */
+.noteAside { overflow: hidden; }
+.noteBody { flex: 1; min-height: 0; margin: 0 -24px; padding: 0 24px 6px; overflow-y: auto; }
 .qna { margin-top: 12px; padding: 16px; background: var(--surface-sunken); border-radius: 4px; display: flex; flex-direction: column; gap: 14px; }
 .qna dt { font-size: 13px; font-weight: 700; color: var(--ink-900); }
 .qna dd { margin: 4px 0 0; font-size: 13px; color: var(--ink-800); line-height: 1.5; }
 .qnaTitle { margin-top: 14px; font-size: 20px; }
+/* 방노트 관심사 (Figma 477:12524 Interests: 제목 줄 22px · 칩과 10px · 칩 26px 높이 6px 간격) */
+.noteInterests { margin-top: 16px; }
+.noteInterestsHead { display: flex; align-items: center; gap: 6px; height: 22px; margin-bottom: 10px; }
+.noteInterestsTitle { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.noteInterestsCount { font-size: 13px; font-weight: 600; color: var(--ink-500); }
+.noteRule { flex: 1; height: 1px; background: var(--line); }
+.noteLegend { flex: none; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; border: 1px solid var(--ink-300); border-radius: 11px; font-size: 11px; color: var(--ink-500); }
+/* 방노트 Q&A: 질문은 굵게(.qna dt), 답변은 질문보다 안쪽으로 */
+.noteQna dd { padding-left: 12px; }
 .details { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 .details div { display: flex; }
 .details dt { width: 84px; color: var(--ink-400); }
@@ -118,20 +136,12 @@
   border: 6.5px solid transparent; border-top-color: var(--surface); border-bottom: 0;
 }
 .speech:hover { background: #fff; }
+/* 요청 보냄: 누를 수 없음 (02 F5 방문자 뷰 4). 보낸 요청 취소는 채팅 요청 탭에서 */
+.speechSent, .speechSent:hover { background: var(--surface); color: var(--ink-400); cursor: default; }
 .speech:hover::after { border-top-color: #fff; }
+.speechSent:hover::after { border-top-color: var(--surface); }
 @keyframes bob { 50% { transform: translate(-50%, -3px); } }
 
-.ownerTag {
-  position: absolute; top: 48px; left: 35px; z-index: 5;
-  height: 50px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px;
-  background: var(--scene-btn-cream); border-radius: 10px;
-  border: 1.5px solid rgba(116, 74, 50, 0.55);
-  font-family: var(--font-display); font-size: 18px; color: var(--brown-600);
-}
-
-.gbWrite { margin-top: 10px; padding: 10px 14px; background: var(--surface-item); border-radius: var(--radius-md); }
-.gbWrite textarea { width: 100%; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; height: 40px; }
-.gbWriteRow { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--ink-400); }
 
 .exploreHint {
   position: absolute; left: 50%; top: 40px; transform: translateX(-50%); z-index: 5;
@@ -157,8 +167,10 @@
 .neighbor:hover .neighborCard { background: #fff; transform: translateY(-2px); }
 .neighbor .neighborCard { transition: transform .15s; }
 
-.requestModal { padding: 23px 28px 21px; }
-.requestModal h2 { margin-top: 12px; font-size: 26px; }
+/* 두더지 그림과 제목은 왼쪽 정렬 (Figma 495:13898: 두더지 x 28, 제목 그 아래) */
+.requestModal { padding: 23px 28px 21px; text-align: left; }
+.requestModal h2 { margin-top: 2px; font-size: 26px; }
+.reqMole { display: block; margin: 0; }
 .phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .phrase { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--surface-item); font-size: 13px; color: var(--ink-700); }
 .phrase:hover { background: #f1dfcd; }
@@ -166,8 +178,6 @@
 .online { color: var(--green); font-size: 12px; font-family: var(--font-body); }
 .introRead { height: auto; min-height: 104px; cursor: default; }
 .introP { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--ink-800); }
-.sharedLegend { float: right; font-size: 11px; }
-.sharedLegend::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 4px; border: 1.5px solid var(--ink-500); border-radius: 2px; vertical-align: -1px; }
 .chipWrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .enter { margin-top: auto; flex: none; }
 .qna + .enter, .details + .enter { margin-top: 18px; }
@@ -179,9 +189,13 @@
 .walk:hover { background: #fff; }
 .walkL { left: 24px; }
 .reqSent { margin: 10px 0 20px; color: var(--ink-500); }
-.reqField { margin-top: 14px; }
-.quickLabel { margin-top: 16px; font-size: 12px; color: var(--ink-500); }
-.reqSend { margin-top: 18px; }
+/* 입력칸 (Figma 404×106: 글 + 아래쪽 글자 수) */
+.reqField { margin-top: 16px; padding: 14px 16px 10px; background: var(--surface-item); border-radius: var(--radius-md); text-align: left; }
+.reqField textarea { display: block; width: 100%; height: 58px; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; line-height: 1.55; color: var(--ink-900); }
+.reqField:focus-within { box-shadow: inset 0 0 0 1.5px rgba(116, 74, 50, 0.35); }
+.reqFieldFoot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--ink-400); }
+.quickLabel { margin-top: 16px; text-align: left; font-size: 12px; color: var(--ink-500); }
+.reqSend { margin-top: 18px; gap: 8px; }
 
 /* ---- 2026-11-11 Figma 반영 ---- */
 /* 내 정보 헤더 링크: 수정 · 접기 (454:6900 Links) */

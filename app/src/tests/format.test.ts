@@ -1,12 +1,12 @@
 /**
  * lib/format.ts · lib/store.ts noticeTime — 시간·날짜 표기
- * 근거: 00 공통 8 시간 표기, F4 방명록 전체 3 (7일 지나면 자동 삭제, 최신순)
+ * 근거: 00 공통 8 시간 표기, 04 내 땅굴 방명록 전체 보기 2 (자동 삭제 없음, 서로 다른 3명 신고하면 가려짐, 최신순)
  *
  * 주의: 시간 표기는 지금 네 곳에 따로 있음 (lib/format timeAgo, lib/store noticeTime, data/chat ago, data/boardStore ago).
  * "날짜 통일" 작업이 하나로 합치면 이 파일의 timeAgo 기대값도 그 규칙으로 바꿀 것 → 아래 it.todo
  */
 import { describe, expect, it } from 'vitest'
-import { GUESTBOOK_TTL_DAYS, cx, dateLabel, dateParts, liveGuestbook, timeAgo } from '../lib/format'
+import { GUESTBOOK_HIDE_REPORTS, cx, dateLabel, dateParts, isGuestbookHidden, timeAgo, visibleGuestbook } from '../lib/format'
 import { noticeTime } from '../lib/store'
 import type { GuestbookEntry } from '../data/types'
 
@@ -42,16 +42,25 @@ describe('noticeTime (00 공통 8 · lib/store, 알림·방명록)', () => {
   })
 })
 
-describe('liveGuestbook (F4 방명록 전체 3: 7일 지나면 자동 삭제, 최신순)', () => {
-  const entry = (id: string, ago: number): GuestbookEntry => ({ id, authorId: 'yerin', text: id, createdAt: iso(NOW - ago) })
-  it('보관 기간은 7일', () => expect(GUESTBOOK_TTL_DAYS).toBe(7))
-  it('7일이 지난 글은 빠지고 남은 글은 최신순', () => {
-    const list = [entry('old', 7 * DAY + MIN), entry('b', 2 * DAY), entry('a', HOUR), entry('edge', 7 * DAY - MIN)]
-    expect(liveGuestbook(list, NOW).map((g) => g.id)).toEqual(['a', 'b', 'edge'])
+describe('visibleGuestbook (04 방명록 전체 보기 2: 자동 삭제 없음, 서로 다른 3명 신고하면 가려짐, 최신순)', () => {
+  const entry = (id: string, ago: number, reporters?: string[]): GuestbookEntry => ({ id, authorId: 'yerin', text: id, createdAt: iso(NOW - ago), reporters })
+  it('오래된 글도 지워지지 않음 (예전의 7일 자동 삭제는 없어짐)', () => {
+    const list = [entry('year', 365 * DAY), entry('b', 8 * DAY), entry('a', HOUR)]
+    expect(visibleGuestbook(list).map((g) => g.id)).toEqual(['a', 'b', 'year'])
   })
-  it('원본 배열을 바꾸지 않음', () => {
+  it('신고한 서로 다른 사람이 3명이면 가려져 목록(= 글 수)에서 빠짐, 2명까지는 보임', () => {
+    expect(GUESTBOOK_HIDE_REPORTS).toBe(3)
+    const list = [entry('two', HOUR, ['a', 'b']), entry('three', 2 * HOUR, ['a', 'b', 'c']), entry('none', 3 * HOUR)]
+    expect(visibleGuestbook(list).map((g) => g.id)).toEqual(['two', 'none'])
+    expect(isGuestbookHidden(list[1])).toBe(true)
+  })
+  it('같은 사람이 여러 번 신고해도 한 명으로 셈', () => {
+    expect(isGuestbookHidden(entry('x', HOUR, ['a', 'a', 'a']))).toBe(false)
+    expect(isGuestbookHidden(entry('y', HOUR, ['a', 'a', 'b', 'c']))).toBe(true)
+  })
+  it('원본 배열을 바꾸지 않고 최신순', () => {
     const list = [entry('b', 2 * DAY), entry('a', HOUR)]
-    liveGuestbook(list, NOW)
+    expect(visibleGuestbook(list).map((g) => g.id)).toEqual(['a', 'b'])
     expect(list.map((g) => g.id)).toEqual(['b', 'a'])
   })
 })
