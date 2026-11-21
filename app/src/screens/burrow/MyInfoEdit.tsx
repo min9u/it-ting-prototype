@@ -23,9 +23,10 @@ export interface EditDraft extends MyProfile { interests: string[] }
  * 땅굴 – 내 정보 수정 (02 F4, 2026-11-16 명세 기준). 오른쪽 내 정보 카드가 이 패널로 바뀜 (팝업 아님)
  * 1 닉네임: 온보딩 1과 같은 규칙(필수, 최대 12자). 다른 사람과 겹치면 오류 문구, 저장 못 함
  * 2 기수 · 캠퍼스 · 층: 캠퍼스·층은 정해진 목록에서(00 공통 19). 캠퍼스를 바꾸면 층을 다시 고름. 기수는 SSAFY 인증 값이라 보여주기만. 반은 받지 않음
+ * 5 자기소개: 최대 150자, 선택. 화면 순서는 Figma 1230:13568 에 맞춰 기수 · 캠퍼스 · 층 바로 아래, 관심사 위 (2026-11-21. 명세 번호는 그대로)
  * 3 관심사: 3개 이상 최대 10개. ×로 빼고, "관심사 고르기"로 전체 분야에서 다시 고름(관심사 고르기 화면)
  * 4 질문 · 답변: 질문 옆 ↻ → 온보딩 3과 같은 질문 목록에서 다시 고름(그 자리 답변은 비워짐). 횟수 제한 없음. 답변 10~50자, 글자 수는 입력 중인 답변에만
- * 5 자기소개: 최대 150자, 선택
+ * (두더지 꾸미기 버튼은 넣지 않음: 두더지는 꾸미기 모드 · 두더지 탭에서 바꿈)
  * 6 취소 / 저장하기: 필수 조건을 못 채우면 저장 못 함. 바꾼 게 있는데 취소·뒤로 → 00 공통 18
  * 7 패널 · 스크롤: 항목이 패널 높이를 넘으면 가운데만 스크롤, 제목줄과 취소/저장하기는 고정
  */
@@ -93,6 +94,11 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
           </div>
 
           <div className={m.field}>
+            <label htmlFor="edit-intro">자기소개 <span>{d.intro.length} / {INTRO_MAX}</span></label>
+            <textarea id="edit-intro" ref={introRef} autoFocus={focusIntro} className={m.introArea} value={d.intro} maxLength={INTRO_MAX} onChange={(e) => set({ intro: e.target.value })} placeholder="나를 소개하는 말을 적어 주세요. (선택)" />
+          </div>
+
+          <div className={m.field}>
             <span className={m.label}>관심사 <span className={d.interests.length >= MAX_PICK ? m.limitOn : undefined}>{d.interests.length} / {MAX_PICK} · 최대 {MAX_PICK}개</span></span>
             <div className={m.editChips}>
               {d.interests.map((t) => (
@@ -126,11 +132,6 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
                 </div>
               )
             })}
-          </div>
-
-          <div className={m.field}>
-            <label htmlFor="edit-intro">자기소개 <span>{d.intro.length} / {INTRO_MAX}</span></label>
-            <textarea id="edit-intro" ref={introRef} autoFocus={focusIntro} className={m.introArea} value={d.intro} maxLength={INTRO_MAX} onChange={(e) => set({ intro: e.target.value })} placeholder="나를 소개하는 말을 적어 주세요. (선택)" />
           </div>
         </div>
 
