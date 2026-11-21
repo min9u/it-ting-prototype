@@ -11,12 +11,16 @@ import {
   verifyCode, type LoginResult,
 } from '../../data/auth'
 import { takeReturnTo } from '../../lib/authFlow'
-import StartHeader, { PeekMole } from './StartHeader'
+import chevronDown from '../../assets/auth/chevron-down.svg?no-inline'
+import iconClock from '../../assets/auth/clock.svg?no-inline'
+import iconMail from '../../assets/auth/mail.svg?no-inline'
+import StartHeader, { LogoMole } from './StartHeader'
 import s from './Start.module.css'
 
 /*
  * F2 로그인 · 회원가입 · 비밀번호 찾기 (02 명세 2026-11-16 기준, 디자인은 03 시작 v2 PNG).
- * 공통 (00 공통 11): 로고(누르면 랜딩) · 흐린 땅굴 배경 · 카드 위로 빼꼼 나온 두더지(눈 깜빡임)
+ * 공통 (00 공통 11): 로고(누르면 랜딩) · 흐린 땅굴 배경 · 카드 위로 빼꼼 나온 두더지 (Figma 로고 두더지 svg, 눈 깜빡임은 svg 라 없음)
+ * 수치는 Figma 03 시작 v2 그대로 (패널 400 · 안쪽 36/32/28 · 칸 사이 20 · 제목 24 · 라벨 13 · 입력 15), CSS 는 Start.module.css 의 .authPanel 묶음
  * 목 동작·시연 계정은 data/auth.ts 맨 위 주석
  */
 
@@ -33,7 +37,7 @@ function BlurRoom() {
 function Steps({ n, total = 3 }: { n: number; total?: number }) {
   return (
     <p className={s.step} aria-label={`${total}단계 중 ${n}단계`}>
-      {Array.from({ length: total }, (_, i) => <i key={i} className={i + 1 === n ? s.stepLong : s.stepShort} />)}
+      {Array.from({ length: total }, (_, i) => <i key={i} className={i + 1 === n ? s.stepLong : i + 1 < n ? s.stepDone : s.stepShort} />)}
       {n}/{total}
     </p>
   )
@@ -44,15 +48,15 @@ export function AuthFrame({ children, step, after, wide }: { children: ReactNode
     <div className={s.page}>
       <BlurRoom />
       <StartHeader tone="light" right={null} />
-      <main className={s.center}>
+      <main className={s.authCenter}>
         <div className={`${s.panelWrap} ${wide ? s.panelWide : ''}`}>
-          <PeekMole />
-          <section className={s.panel}>
+          <LogoMole />
+          <section className={s.authPanel}>
             {step && <Steps n={step} />}
             {children}
           </section>
+          {after && <div className={s.afterSlot}>{after}</div>}
         </div>
-        {after}
       </main>
     </div>
   )
@@ -168,17 +172,17 @@ export function Login() {
             {failed && <span className={s.err} role="alert">이메일 또는 비밀번호가 맞지 않아요</span>}
           </div>
         </div>
-        <button className={s.primary} disabled={(!LOGIN_FREE && (!email.value || !pw)) || !!busy} aria-busy={busy === 'pw'}>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={(!LOGIN_FREE && (!email.value || !pw)) || !!busy} aria-busy={busy === 'pw'}>
           {busy === 'pw' ? <><Spinner />로그인 중</> : '로그인'}
         </button>
       </form>
-      <p className={s.or}><span>또는</span></p>
-      <button className={s.secondary} onClick={google} disabled={!!busy} aria-busy={busy === 'google'}>
+      <p className={s.orText}>또는</p>
+      <button className={`${s.secondary} ${s.gBtn}`} onClick={google} disabled={!!busy} aria-busy={busy === 'google'}>
         {busy === 'google' ? <><Spinner />Google 계정 확인 중</> : 'Google로 계속하기'}
       </button>
       <div className={s.links}>
         <Link to="/password-reset" state={{ email: email.value }}>비밀번호 찾기</Link>
-        <span>처음이에요 <Link to="/signup" state={{ email: email.value }} className={s.accentLink}>회원가입</Link></span>
+        <span className={s.linkPair}>처음이에요 <Link to="/signup" state={{ email: email.value }} className={s.accentLink}>회원가입</Link></span>
       </div>
 
       {/* 정지된 계정: 사유와 기간 */}
@@ -228,8 +232,10 @@ export function SignupEmail() {
 
   return (
     <AuthFrame step={1}>
-      <h1 className={s.panelTitle}>땅굴 주소를 만들어요</h1>
-      <p className={s.panelLead}>가입할 이메일을 인증해요.</p>
+      <div className={s.head}>
+        <h1 className={s.panelTitle}>땅굴 주소를 만들어요</h1>
+        <p className={s.panelLead}>SSAFY 이메일로 인증해요.</p>
+      </div>
       <form className={s.form} noValidate onSubmit={(e) => {
         e.preventDefault()
         if (!sent || !code.complete || expired) return
@@ -241,7 +247,7 @@ export function SignupEmail() {
           <div className={s.field}>
             <label htmlFor="su-email">이메일</label>
             <div className={s.inputBox}>
-              <input id="su-email" className={`${s.input} ${email.bad ? s.inputBad : ''}`} type="email" {...email.props}
+              <input id="su-email" className={`${s.input} ${s.inputChip} ${email.bad ? s.inputBad : ''}`} type="email" {...email.props}
                 placeholder="yejin@ssafy.com" autoComplete="email" aria-invalid={email.bad} />
               <button type="button" className={s.inInputBtn} disabled={!email.valid || cooling} onClick={send}>
                 {sent ? (cooling ? `재전송 ${gap.left}` : '재전송') : '코드 받기'}
@@ -260,7 +266,7 @@ export function SignupEmail() {
             <span className={s.help}>메일함에 코드가 없으면 스팸함도 확인해 주세요.</span>
           </div>
         </div>
-        <button className={s.primary} disabled={!sent || !code.complete || expired}>다음</button>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!sent || !code.complete || expired}>다음</button>
       </form>
     </AuthFrame>
   )
@@ -278,9 +284,9 @@ function PasswordPair({ pw, pw2, setPw, setPw2, label = '비밀번호' }: { pw: 
         <label htmlFor="pw1">{label}</label>
         <input id="pw1" className={`${s.input} ${!rule.allowed ? s.inputBad : ''}`} type="password" value={pw} onChange={(e) => setPw(e.target.value)}
           onKeyUp={onKey} placeholder="••••••••••" autoComplete="new-password" aria-invalid={!rule.allowed} aria-describedby="pw1-rule" />
-        <span id="pw1-rule" className={`${s.rule} ${rule.ok ? s.ruleOk : ''}`}>{rule.ok && <b aria-hidden>✓ </b>}{PW_RULE_TEXT}</span>
+        <span id="pw1-rule" className={`${s.ruleLine} ${rule.ok ? s.ruleLineOk : ''}`}>{rule.ok && <b aria-hidden>✓ </b>}{PW_RULE_TEXT}</span>
         {!rule.allowed && <span className={s.err} role="alert">{PW_BAD_CHAR}</span>}
-        {caps && <span className={s.err}>Caps Lock이 켜져 있어요</span>}
+        {caps && <span className={s.err}>캡스락이 켜져 있어요</span>}
       </div>
       <div className={s.field}>
         <label htmlFor="pw2">{label} 확인</label>
@@ -307,7 +313,7 @@ export function SignupPassword() {
       <h1 className={s.panelTitle}>비밀번호를 정해요</h1>
       <form className={s.form} noValidate onSubmit={(e) => { e.preventDefault(); if (!ready) return; signupDraft.pw = pw; nav('/signup/ssafy') }}>
         <PasswordPair pw={pw} pw2={pw2} setPw={setPw} setPw2={setPw2} />
-        <button className={s.primary} disabled={!ready}>다음</button>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!ready}>다음</button>
       </form>
     </AuthFrame>
   )
@@ -323,7 +329,7 @@ function Select({ id, label, value, options, onChange, placeholder, disabled }: 
           <option value="" disabled>{placeholder}</option>
           {options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
-        <span className={s.selectArrow} aria-hidden>▾</span>
+        <img className={s.selChev} src={chevronDown} alt="" width={16} height={16} />
       </div>
     </div>
   )
@@ -363,8 +369,10 @@ export function SignupSsafy() {
 
   return (
     <AuthFrame step={single ? undefined : 3}>
-      <h1 className={s.panelTitle}>SSAFY 인증을 해요</h1>
-      <p className={s.panelLead}>Mattermost로 인증 코드를 보내요.</p>
+      <div className={s.head}>
+        <h1 className={s.panelTitle}>SSAFY 인증을 해요</h1>
+        <p className={s.panelLead}>Mattermost로 인증 코드를 보내요.</p>
+      </div>
       <form className={s.form} noValidate onSubmit={(e) => {
         e.preventDefault()
         if (!ready) return
@@ -382,7 +390,7 @@ export function SignupSsafy() {
           <div className={s.field}>
             <label htmlFor="ss-mm">Mattermost ID</label>
             <div className={s.inputBox}>
-              <input id="ss-mm" className={s.input} value={mm} onChange={(e) => setMm(e.target.value.trim())} placeholder="yejin.kim" autoComplete="off" />
+              <input id="ss-mm" className={`${s.input} ${s.inputChip}`} value={mm} onChange={(e) => setMm(e.target.value.trim())} placeholder="yejin.kim" autoComplete="off" />
               <button type="button" className={s.inInputBtn} disabled={!mm || !gen || cooling} onClick={send} title={!gen ? '기수를 먼저 골라 주세요' : undefined}>
                 {sent ? (cooling ? `재전송 ${gap.left}` : '재전송') : '코드 받기'}
               </button>
@@ -403,7 +411,7 @@ export function SignupSsafy() {
           <label><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span className={s.box} aria-hidden />이용약관 동의 <em>필수</em></label>
           <label><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} /><span className={s.box} aria-hidden />개인정보 수집·이용 동의 <em>필수</em></label>
         </div>
-        <button className={s.primary} disabled={!ready}>땅굴 파기</button>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!ready}>땅굴 파기</button>
       </form>
     </AuthFrame>
   )
@@ -431,14 +439,16 @@ export function PasswordReset() {
         <div className={s.fields}>
           <div className={s.field}>
             <label htmlFor="re">이메일</label>
-            <input id="re" className={`${s.input} ${email.bad ? s.inputBad : ''}`} type="email" {...email.props}
+            <input id="re" className={`${s.input} ${s.phDark} ${email.bad ? s.inputBad : ''}`} type="email" {...email.props}
               placeholder="가입한 이메일을 입력해 주세요" autoComplete="email" aria-invalid={email.bad} />
-            {email.bad && <span className={s.err} role="alert">{EMAIL_BAD}</span>}
+            {email.bad
+              ? <span className={s.err} role="alert">{EMAIL_BAD}</span>
+              : <span className={s.help}>이 이메일로 비밀번호 재설정 링크를 보내드려요</span>}
           </div>
         </div>
-        <button className={s.primary} disabled={!email.value}>재설정 링크 보내기</button>
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!email.value}>재설정 링크 보내기</button>
       </form>
-      <div className={s.links}><Link to="/login">로그인으로 돌아가기</Link></div>
+      <div className={s.links}><Link to="/login">← 로그인으로 돌아가기</Link></div>
     </AuthFrame>
   )
 }
@@ -458,18 +468,25 @@ export function PasswordResetSent() {
   useEffect(() => { if (!lastResetToken(email)) requestReset(email) }, [email])
   const cooling = (gap.left ?? 0) > 0
   return (
-    <AuthFrame after={<>
-      <p className={s.returnHint}>링크는 30분 동안, 한 번만 쓸 수 있어요</p>
+    <AuthFrame after={
       <button className={s.protoLink} onClick={() => nav(`/password-reset/new?token=${lastResetToken(email) ?? ''}`)}>체험용 · 메일 속 링크 열기</button>
-    </>}>
+    }>
       <h1 className={s.panelTitle}>메일을 보냈어요</h1>
-      <p className={s.panelText}>입력한 이메일로 비밀번호 재설정 링크를 보냈어요.<br />메일함과 스팸함을 확인해 주세요.</p>
-      <button className={`${s.primary} ${s.mt24}`} onClick={() => nav('/login', { state: { email: loc.state?.email } })}>로그인으로 돌아가기</button>
-      <p className={s.links}>
-        <button className={s.linkBtn} disabled={cooling} onClick={() => { requestReset(email); gap.start(RESEND_GAP); setToast(true) }}>
-          메일이 안 왔나요? 다시 보내기{cooling && ` (${gap.left}초)`}
+      <div className={s.fields}>
+        <p className={s.lead}>입력한 이메일로 비밀번호 재설정 링크를 보냈어요.<br />메일함과 스팸함을 확인해 주세요.</p>
+        <div className={s.sentTo}>
+          <img src={iconMail} alt="" width={18} height={18} />
+          <span>{email}</span>
+        </div>
+      </div>
+      <button className={`${s.primary} ${s.aBtn}`} onClick={() => nav('/login', { state: { email: loc.state?.email } })}>로그인으로 돌아가기</button>
+      <div className={s.links}>
+        <span>메일이 안 왔나요?</span>
+        <button className={s.linkWarm} disabled={cooling} onClick={() => { requestReset(email); gap.start(RESEND_GAP); setToast(true) }}>
+          다시 보내기{cooling && ` (${gap.left}초)`}
         </button>
-      </p>
+      </div>
+      <p className={s.resendNote}>링크는 30분 동안, 한 번만 쓸 수 있어요.</p>
       <Toast open={toast} onClose={() => setToast(false)} title="재설정 메일을 다시 보냈어요" desc="이전에 보낸 링크는 더 이상 쓸 수 없어요" />
     </AuthFrame>
   )
@@ -498,10 +515,10 @@ export function PasswordResetNew() {
         if (token && token !== 'demo') consumeResetToken(token, pw)
         nav('/login', { replace: true, state: { toast: '비밀번호를 바꿨어요. 새 비밀번호로 로그인해 주세요' } })
       }}>
-        <PasswordPair pw={pw} pw2={pw2} setPw={setPw} setPw2={setPw2} />
-        <button className={s.primary} disabled={!ready}>비밀번호 바꾸기</button>
+        <PasswordPair pw={pw} pw2={pw2} setPw={setPw} setPw2={setPw2} label="새 비밀번호" />
+        <button className={`${s.primary} ${s.aBtn}`} disabled={!ready}>비밀번호 바꾸기</button>
       </form>
-      <div className={s.links}><Link to="/login">로그인으로 돌아가기</Link></div>
+      <div className={s.links}><Link to="/login">← 로그인으로 돌아가기</Link></div>
     </AuthFrame>
   )
 }
@@ -510,11 +527,14 @@ export function PasswordResetNew() {
 export function PasswordResetExpired() {
   const nav = useNavigate()
   return (
-    <AuthFrame after={<p className={s.returnHint}>링크는 30분 동안, 한 번만 쓸 수 있어요</p>}>
+    <AuthFrame>
       <h1 className={s.panelTitle}>링크가 만료됐어요</h1>
-      <p className={`${s.panelText} ${s.panelErr}`}>이미 쓴 링크이거나 30분이 지났어요.<br />재설정 링크를 다시 받아 주세요.</p>
-      <button className={`${s.primary} ${s.mt24}`} onClick={() => nav('/password-reset')}>재설정 링크 다시 받기</button>
-      <div className={s.links}><Link to="/login">로그인으로 돌아가기</Link></div>
+      <div className={s.expiredBox} role="alert">
+        <img src={iconClock} alt="" width={20} height={20} />
+        <p>이미 쓴 링크이거나 30분이 지났어요.<br />재설정 링크를 다시 받아 주세요.</p>
+      </div>
+      <button className={`${s.primary} ${s.aBtn}`} onClick={() => nav('/password-reset')}>재설정 링크 다시 받기</button>
+      <div className={s.links}><Link to="/login">← 로그인으로 돌아가기</Link></div>
     </AuthFrame>
   )
 }

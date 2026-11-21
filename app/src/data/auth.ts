@@ -14,7 +14,7 @@
 
 /* ===== 00 공통 9 비밀번호 규칙 ===== */
 /** 8자 이상. 쓸 수 있는 문자는 영문 대소문자, 숫자, 특수기호 !@#$% 뿐. 영문 · 숫자 · 특수기호를 각각 1개 이상 */
-export const PW_RULE_TEXT = '8자 이상, 영문 · 숫자 · 특수기호(!@#$%) 포함'
+export const PW_RULE_TEXT = '8자 이상 · 영문, 숫자, 특수기호(!@#$%) 각 1개 이상'
 export const PW_ALLOWED = /^[A-Za-z0-9!@#$%]*$/
 export function checkPassword(pw: string) {
   const allowed = PW_ALLOWED.test(pw)
@@ -23,7 +23,7 @@ export function checkPassword(pw: string) {
 }
 /** 규칙에 어긋나는 문자(공백 등)를 넣었을 때 바로 띄우는 문구 (명세에 문구가 없어 정함) */
 export const PW_BAD_CHAR = '영문 · 숫자 · 특수기호(!@#$%)만 쓸 수 있어요'
-export const PW_MISMATCH = '비밀번호가 일치하지 않아요'
+export const PW_MISMATCH = '비밀번호가 달라요' // 02 명세는 "일치하지 않아요", Figma 03 은 "달라요" → Figma 를 따름 (2026-11-21)
 /**
  * 비밀번호 확인 칸: "입력하는 동안 두 값이 다르면 바로" 띄움.
  * 아직 덜 친 경우(앞부분이 같음)는 기다리고, 갈라지거나 길이가 같아졌는데 다르면 오류

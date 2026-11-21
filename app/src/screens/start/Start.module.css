@@ -56,38 +56,62 @@
 .peekBody b { position: absolute; left: 50%; top: 23px; width: 17px; height: 11px; margin-left: -8.5px; border-radius: 50%; background: #ec8a7c; }
 @keyframes peek { 0%, 70%, 100% { transform: translateY(0); } 80% { transform: translateY(-4px); } 90% { transform: translateY(1px); } }
 
-.panelTitle { font-size: 28px; font-weight: 400; line-height: 30px; letter-spacing: -0.01em; text-wrap: balance; }
-.panelLead { margin-top: 8px; font-size: 16px; color: var(--ink-700); }
-.step { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--ink-500); font-variant-numeric: tabular-nums; }
-.step i { height: 4px; border-radius: 2px; }
-.stepLong { width: 20px; background: var(--brown-700); }
-.stepShort { width: 8px; background: var(--line); }
-.step i + i { margin-right: 2px; }
+/*
+ * F2 (로그인·회원가입·비밀번호 찾기) Figma 수치: 패널 400 · 안쪽 36/32/28 · 칸 사이 20 · 반지름 14 · 그림자 0 16 40 · 세로 가운데(900 기준 450)
+ * 두더지는 72×72 프레임(안에 66.24×61.23), 패널 오른쪽에서 48, 위로 50 (아래 22는 패널 뒤). 둘러보기 문·PC 안내는 위의 .panel / .peek 그대로
+ */
+.authCenter { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 72px 16px; }
+.authPanel {
+  position: relative; z-index: 1; display: flex; flex-direction: column; gap: 20px;
+  padding: 36px 32px 28px; border-radius: 14px; background: #fbf4ec;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .28); color: var(--ink-900);
+  line-height: normal; /* Figma 는 줄 높이를 글꼴 기본값(normal)으로 둠. 21px 줄(.lead·.expiredBox)만 따로 */
+}
+.logoMole { position: absolute; z-index: 0; right: 48px; top: -50px; width: 72px; height: 72px; overflow: hidden; pointer-events: none; }
+.logoMole img { position: absolute; left: 2.88px; top: 10.77px; width: 66.24px; height: 61.2306px; max-width: none; animation: peek 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .logoMole img { animation: none; } }
+/* 패널 밖 아래(프로토타입 전용 링크): 패널 가운데 정렬에 끼지 않게 띄움 */
+.afterSlot { position: absolute; left: 0; right: 0; top: 100%; margin-top: 16px; display: flex; justify-content: center; }
 
-.form { margin-top: 20px; display: flex; flex-direction: column; gap: 20px; }
+.panelTitle { font-size: 28px; font-weight: 400; line-height: 30px; letter-spacing: -0.01em; text-wrap: balance; }
+.authPanel .panelTitle { font-size: 24px; line-height: normal; letter-spacing: -0.02em; text-wrap: wrap; }
+.head { display: flex; flex-direction: column; gap: 6px; }
+.panelLead { font-size: 14px; line-height: normal; color: var(--ink-500); }
+.step { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8f7765; font-variant-numeric: tabular-nums; }
+.step i { height: 4px; border-radius: 2px; flex: none; }
+.stepLong { width: 20px; background: var(--brown-700); }
+.stepShort { width: 8px; background: var(--line-strong); }
+.stepDone { width: 8px; background: var(--brown-700); }
+
+.form { display: flex; flex-direction: column; gap: 20px; }
 .fields { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field > span:first-child, .field > label { font-size: 14px; line-height: 16px; color: var(--ink-700); }
+.field > span:first-child, .field > label { font-size: 13px; line-height: normal; color: var(--ink-500); }
 .inputBox { position: relative; }
 .input {
-  width: 100%; height: 47px; padding: 0 15px; border-radius: 10px;
+  width: 100%; height: 47px; padding: 0 14px; border-radius: 10px;
   border: 1px solid var(--line-strong); background: #fff; outline: 0;
-  font-family: var(--font-display); font-size: 16px; color: var(--ink-900);
+  font-family: var(--font-display); font-size: 15px; color: var(--ink-900);
 }
-.input::placeholder { color: var(--ink-400); }
+.input::placeholder { color: #b9a390; }
+.input.phDark::placeholder { color: #8f7765; }
+.input.inputChip { height: 51px; } /* 오른쪽에 칩(코드 받기·재전송)이 있는 칸은 칩 높이만큼 51 */
 .input:focus { border-color: var(--brown-600); }
 .input:disabled { background: #fdfaf7; }
-.inputBad, .inputBad:focus { border-color: #d6453d; }
+.inputBad, .inputBad:focus { border-color: #d64545; }
 .inputBox .input { padding-right: 72px; }
 .inInputBtn {
   position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-  height: 23px; padding: 0 8px; border-radius: 6px; background: var(--surface-sunken);
-  font-family: var(--font-display); font-size: 13px; color: var(--ink-700);
+  padding: 4px 8px; border-radius: 6px; background: var(--surface-sunken);
+  font-family: var(--font-display); font-size: 12px; line-height: normal; color: var(--ink-500);
 }
 .inInputBtn:disabled { opacity: .5; cursor: default; }
-.timer { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
-.help { font-size: 13px; color: var(--ink-500); }
-.err { font-size: 13px; color: #d6453d; }
+.timer { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #a9502f; font-variant-numeric: tabular-nums; }
+.help { font-size: 12px; color: #8f7765; }
+.err { font-size: 12px; color: #d64545; }
+.ruleLine { font-size: 12px; color: #8f7765; }
+.ruleLineOk { color: #5e8a3a; }
+.selChev { position: absolute; right: 16px; top: 50%; width: 16px; height: 16px; margin-top: -8px; pointer-events: none; }
 
 .primary, .secondary {
   width: 100%; height: 47px; border-radius: 10px;
@@ -101,22 +125,37 @@
 .secondary:hover { background: var(--surface-item); }
 .textBtn { height: 32px; font-family: var(--font-display); font-size: 14px; color: var(--ink-500); }
 .textBtn:hover { color: var(--accent); }
+.primary.aBtn { height: 47px; padding: 0 20px; font-size: 15px; }
+.primary.aBtn:not(:disabled) { color: #fff8f0; }
+.secondary.gBtn { height: 49px; padding: 0 20px; font-size: 15px; border-color: var(--brown-700); color: var(--brown-700); background: #fff; }
+.secondary.gBtn:hover:not(:disabled) { background: #fdfaf7; }
+.orText { text-align: center; font-size: 13px; color: var(--ink-500); }
 .primary:focus-visible, .secondary:focus-visible, .textBtn:focus-visible, .input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.links { margin-top: 20px; display: flex; justify-content: space-between; font-size: 14px; color: var(--ink-500); }
-.links a:hover { color: var(--accent); }
-.accentLink { margin-left: 4px; color: var(--accent); }
+.links { display: flex; justify-content: space-between; align-items: flex-start; font-size: 13px; color: #8f7765; }
+.links a, .links button { font: inherit; color: inherit; }
+.links a:hover, .links button:hover:not(:disabled) { color: var(--accent); }
+.links button:disabled { opacity: .7; cursor: default; }
+.links .accentLink { color: #a9502f; }
+.links .linkWarm { color: #c8643a; }
+.linkPair { display: inline-flex; gap: 6px; }
 
-.terms { display: flex; flex-direction: column; gap: 10px; margin-top: -2px; }
-.terms label { position: relative; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-900); cursor: pointer; }
+.terms { display: flex; flex-direction: column; gap: 10px; }
+.terms label { position: relative; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-900); cursor: pointer; }
 .terms input { position: absolute; opacity: 0; width: 18px; height: 18px; margin: 0; cursor: pointer; }
 .box { width: 18px; height: 18px; flex: none; border-radius: 4px; border: 1.5px solid var(--brown-700); background: #fff; display: grid; place-items: center; }
 .terms input:checked + .box { background: var(--brown-700); }
 .terms input:checked + .box::after { content: ''; width: 9px; height: 5px; margin-top: -2px; border: 2px solid #fbf4ec; border-top: 0; border-right: 0; transform: rotate(-45deg); }
 .terms input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
-.terms em { font-style: normal; font-size: 13px; color: var(--ink-400); }
+.terms em { font-style: normal; font-size: 12px; color: #8f7765; }
 
-.returnHint { height: 32px; padding: 0 14px; border-radius: 8px; background: rgba(48, 30, 20, .78); color: #fbf4ec; font-size: 14px; display: inline-flex; align-items: center; }
+.lead { font-size: 14px; line-height: 21px; color: var(--ink-500); }
+.sentTo { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); font-size: 15px; color: var(--ink-900); }
+.sentTo img { width: 18px; height: 18px; flex: none; }
+.sentTo span { min-width: 0; overflow-wrap: anywhere; }
+.expiredBox { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 10px; background: #f8e3dc; font-size: 14px; line-height: 21px; color: #9a3a2a; }
+.expiredBox img { width: 20px; height: 20px; flex: none; }
+.resendNote { font-size: 12px; color: #8f7765; }
 
 /* ===== 둘러보기 (비로그인) ===== */
 .lookField { position: absolute; inset: -40px; transition: filter .3s ease; }
