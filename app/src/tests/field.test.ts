@@ -118,6 +118,15 @@ describe('추천 조건: 답이 궁금한 질문 여러 개 (Figma 863:133 설�
     const { questionOf } = await import('../data/questions')
     expect(questionOf('tmi-1')?.text).toBe('하루 동안 투명 인간이 된다면 뭐 해볼래요?')
   })
+  it('답이 궁금한 질문은 최대 3개: 3개보다 많이 저장돼 있으면 앞의 3개만 읽음', async () => {
+    const f = await import('../data/field')
+    expect(f.MAX_REC_QUESTIONS).toBe(3)
+    const five = ['tmi-1', 'tmi-2', 'tmi-3', 'tmi-4', 'tmi-5']
+    localStorage.setItem('digul.recommend', JSON.stringify({ settings: { ...OLD, question: undefined, questions: five }, date: null, picks: [] }))
+    vi.resetModules()
+    const g = await import('../data/field')
+    expect(g.getRecommendSettings().questions).toEqual(five.slice(0, 3))
+  })
   it('예전에 저장된 질문 하나(문장, 2026-11-21 전)는 질문 id 목록으로 옮겨 읽음', async () => {
     localStorage.setItem('digul.recommend', JSON.stringify({ settings: OLD, date: null, picks: [] }))
     const f = await import('../data/field')
