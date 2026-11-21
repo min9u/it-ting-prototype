@@ -38,6 +38,8 @@ export interface FurnitureRow {
   parent?: string
 }
 export interface DropSpec { mode: 'fall' | 'pop'; H: number | null; S: number | null; dust: number | null }
+/** v3.8: 공용 자리는 모델 키 이상인 첫 max_h 줄의 값을 씀 (PLACEMENT_v3_8.md 5번). 4단계에서 연결 */
+export interface DropByHeight extends DropSpec { max_h: number }
 export interface Slot {
   name: string
   kind: string
@@ -47,6 +49,13 @@ export interface Slot {
   max_m: Size
   mount?: string
   drop: DropSpec
+  /** v3.8 slots_v3_8.json: 'shared_big'(바닥 · 벽 공용) | 'prop'(선반 · 동물 용품) | 'pet' | 'fixed'(우체통). 옛 slots.json 에는 없음 */
+  slot_type?: 'shared_big' | 'prop' | 'pet' | 'fixed'
+  /** v3.8: 공용 자리의 키 단계별 낙하 값 */
+  drop_by_height?: DropByHeight[]
+  /** v3.8: 동물 자리는 동물 이름(cat 등), 용품 자리와 짝(pair_slot) */
+  pet?: string
+  pair_slot?: string
 }
 
 export const FURNITURE_CATALOG = catalogRaw as unknown as FurnitureRow[]
