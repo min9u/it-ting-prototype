@@ -155,10 +155,10 @@ export interface MeDto extends MemberProfileDto {
 
 /* ===== 인증 ===== */
 export interface LoginRequest { email: string; password: string }
-/** 로그인 결과: 다음에 갈 곳을 서버 상태로 정함 (SSAFY 인증 전 · 온보딩 전 · 완료) */
+/** 로그인 결과: 다음에 갈 곳을 서버 상태로 정함 (온보딩 전 · 완료). 가입을 마치지 않은 계정은 없음 */
 export interface LoginResponseDto {
   member: MeDto
-  next: 'SSAFY_VERIFY' | 'ONBOARDING' | 'HOME'
+  next: 'ONBOARDING' | 'HOME'
 }
 export interface SuspendedErrorDetail { reason: string; endsAt: IsoDateTime }
 

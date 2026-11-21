@@ -5,6 +5,7 @@ import { ChevronLeft, CloseIcon, PlusIcon } from '../../components/Icons'
 import { toneOf } from '../../data/mock'
 import { MAX_PICK } from '../../data/interests'
 import { CAMPUS_FLOORS, ME_HOME } from '../../data/field'
+import { campusesInOrder } from '../../data/campusFloors'
 import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag } from '../../data/questions'
 import { MIN_PICK, NICK_MAX, myAffiliation, nickTaken, type MyProfile } from '../../data/myBurrow'
 import QuestionList from '../onboarding/QuestionList'
@@ -75,7 +76,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
               <label>기수<input value={`${ME_HOME.gen}기`} readOnly aria-readonly title="기수는 SSAFY 인증 값이라 바꿀 수 없어요" /></label>
               <label>캠퍼스
                 <select value={d.campus} onChange={(e) => set({ campus: e.target.value, floor: 0 })}>
-                  {CAMPUS_FLOORS.map((c) => <option key={c.campus} value={c.campus}>{c.campus}</option>)}
+                  {campusesInOrder().map((c) => <option key={c.campus} value={c.campus}>{c.campus}</option>)}
                 </select>
               </label>
               <label>층
