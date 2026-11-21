@@ -149,6 +149,8 @@ export const NOTICE_TYPE: Record<string, NotificationType> = {
   '새 메시지': 'CHAT_MESSAGE', '대화 요청': 'CHAT_REQUEST_RECEIVED', '대화 요청 수락': 'CHAT_REQUEST_ACCEPTED',
   '내 글에 댓글': 'POST_COMMENTED', '내 댓글의 답글': 'COMMENT_REPLIED', '내 글 좋아요': 'POST_LIKED', '댓글 좋아요': 'COMMENT_LIKED',
   '답글 좋아요': 'REPLY_LIKED', '신고로 가려짐': 'POST_HIDDEN',
+  // 11-20 명세의 두 종류. api/types.ts 의 NotificationType 에는 아직 없어(그 파일은 #3 이 바꿈) 캐스팅. #3 이 main 에 들어가면 union 에 COMMENT_HIDDEN · GUESTBOOK_HIDDEN 추가
+  '내 댓글 신고로 가려짐': 'COMMENT_HIDDEN' as NotificationType, '방명록 글 신고로 가려짐': 'GUESTBOOK_HIDDEN' as NotificationType,
   '방명록 새 글': 'GUESTBOOK_WRITTEN', '서비스 공지': 'SERVICE_NOTICE',
 }
 const GONE_TARGET: Record<string, NotificationTargetType> = { meetup: 'MEETUP', post: 'POST', burrow: 'BURROW', chat: 'CHAT_ROOM', notice: 'NOTICE' }
