@@ -13,7 +13,7 @@ import { DROP_LEN, DROP_SPAN, FURNITURE_CATALOG, SLOTS, planRoom } from '../data
 import { CATEGORIES } from '../data/mock'
 import { DEFAULT_WALLPAPER, wallpaperForCategory } from '../data/wallpapers'
 import { roomLookOf } from '../data/roomLook'
-import { MIN_PICK, applyChoice, furnitureCandidates, isRare, leadCategory, moodWallpaper, pruneChoice, ssafyCount } from '../data/myBurrow'
+import { MIN_PICK, furnitureCandidates, wordChoices, isRare, leadCategory, moodWallpaper, pruneChoice, ssafyCount } from '../data/myBurrow'
 
 const subsOfCat = (cat: string) => INTEREST_SUBS.filter((s) => s.category === cat)
 const nameOf = (id: string) => subOf(id)!.name_ko
@@ -93,28 +93,25 @@ describe('땅굴 무드 (F3 3a-3 · 00 공통 5: 대표 관심사 = 맨 앞)', (
 })
 function count(subId: string) { return CATEGORIES.flatMap((c) => c.tags).find((t) => t.id === subId)!.count }
 
-describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
+describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3.8, 규칙 자체는 room-plan-v38.test.ts)', () => {
   it('아무것도 안 고르면 빈 방, 연출 0초', () => {
     const p = planRoom([])
     expect(p.items).toEqual([])
     expect(p.duration).toBe(0)
   })
-  it('고른 대분류의 대분류 가구는 모두 정해진 슬롯에', () => {
+  it('소분류 하나 = 모델 하나 (동물은 용품 + 동물 둘), 대분류는 고른 순서', () => {
     const picks = [subsOfCat('book')[0].id, subsOfCat('music_dance')[0].id]
     const p = planRoom(picks)
     expect(p.categories).toEqual(['book', 'music_dance'])
-    for (const cat of p.categories) {
-      const cd = INTEREST_CATS.find((c) => c.id === cat)!
-      const placed = p.items.filter((it) => it.category === cat && it.sub === null)
-      expect(placed.map((it) => [it.row.id, it.slot.name])).toEqual(cd.furniture.map((f, i) => [f, cd.furniture_slots[i]]))
-    }
+    expect(p.items.map((it) => it.sub)).toEqual(picks)
+    expect(planRoom(['강아지']).items).toHaveLength(2)
   })
   it('화면 이름으로 골라도 id 로 고른 것과 같음', () => {
     const ids = subsOfCat('art_craft').slice(0, 3).map((s) => s.id)
     const a = planRoom(ids), b = planRoom(ids.map(nameOf))
     expect(b.items.map((it) => [it.row.id, it.slot.name])).toEqual(a.items.map((it) => [it.row.id, it.slot.name]))
   })
-  it('무작위 조합 300개: 슬롯 하나에 가구 하나(같은 가구 두 번 없음), 소품이 있는 소분류마다 소품 하나', () => {
+  it('무작위 조합 300개: 슬롯 하나에 모델 하나, 같은 모델 두 번 없음, 고른 소분류마다 놓임', () => {
     const r = rng(20261116)
     for (let k = 0; k < 300; k++) {
       const picks = randomPicks(r, 3 + Math.floor(r() * 8))
@@ -122,33 +119,25 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
       const slots = p.items.map((it) => it.slot.name)
       expect(new Set(slots).size, picks.join(',')).toBe(slots.length)
       expect(new Set(p.items.map((it) => it.row.id)).size, picks.join(',')).toBe(p.items.length)
-      for (const id of picks) {
-        const props = p.items.filter((it) => it.sub === id && it.row.type !== 'pet')
-        const prop = subOf(id)!.prop
-        expect(props, id).toHaveLength(prop ? 1 : 0)
-        if (prop) expect(props[0].row.id).toBe(prop)
-      }
-      // 고른 대분류의 가구는 (다른 대분류가 먼저 놓았더라도) 방에 있음
-      for (const c of p.categories) for (const f of INTEREST_CATS.find((x) => x.id === c)!.furniture) expect(p.items.some((it) => it.row.id === f), f).toBe(true)
+      for (const id of picks) expect(p.items.some((it) => it.sub === id), id).toBe(true)
     }
   })
-  it('선반 소품은 선반 슬롯에만, 바닥·반려동물 소품은 카탈로그가 정한 슬롯에', () => {
+  it('작은 모델은 선반에만, 큰 모델은 바닥 · 벽 공용 자리에, 동물은 동물 자리에', () => {
     const r = rng(7)
     for (let k = 0; k < 100; k++) {
       for (const it of planRoom(randomPicks(r, 10)).items) {
-        if (!it.sub) continue
-        const sub = subOf(it.sub)!
-        if (it.row.type === 'pet') expect(it.slot.name).toBe(it.row.slot?.name)
-        else if (sub.slot_kind === 'shelf') expect(it.slot.kind).toBe('shelf')
-        else expect(it.slot.name).toBe(it.row.slot?.name)
+        if (it.row.type === 'pet') expect(it.slot.slot_type).toBe('pet')
+        else if (it.row.type === 'sub_prop' && it.slot.kind === 'pet_floor') expect(it.slot.slot_type).toBe('prop')
+        else if (it.row.type === 'sub_prop') expect(it.slot.kind).toBe('shelf')
+        else expect(it.slot.slot_type).toBe('shared_big')
       }
     }
   })
-  it('반려동물 용품을 고르면 짝 동물도 같이, 같은 시각에 떨어짐 (v3.4)', () => {
-    for (const sub of subsOfCat('pet_plant').filter((s) => s.pet)) {
+  it('반려동물 소분류는 용품 + 짝 동물이 같은 시각에 떨어짐 (v3.4)', () => {
+    for (const sub of subsOfCat('pet_plant').filter((s) => ['dog', 'cat', 'bird', 'insect_reptile', 'small_animal'].includes(s.id))) {
       const p = planRoom([sub.id])
       const pair = p.items.filter((it) => it.sub === sub.id)
-      expect(pair.map((it) => it.row.id).sort()).toEqual([sub.prop, sub.pet!].sort())
+      expect(pair.map((it) => it.row.type).sort()).toEqual(['pet', 'sub_prop'])
       expect(pair[0].start).toBe(pair[1].start)
     }
   })
@@ -163,62 +152,35 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3)', () => {
       for (const it of p.items) expect(it.start).toBeGreaterThanOrEqual(0)
     }
   })
-  it('세트(카테고리)는 고른 순서대로 떨어지고, 세트 안은 부피 큰 것부터', () => {
-    const picks = [subsOfCat('game')[0].id, subsOfCat('book')[0].id, subsOfCat('game')[1].id]
-    const p = planRoom(picks)
-    const firstStart = (c: string) => Math.min(...p.items.filter((it) => it.category === c).map((it) => it.start))
-    expect(firstStart('game')).toBeLessThan(firstStart('book'))
-    for (const c of p.categories) {
-      const set = p.items.filter((it) => it.category === c).sort((a, b) => a.start - b.start)
-      const vol = (it: (typeof set)[number]) => it.row.size_m.w * it.row.size_m.d * it.row.size_m.h
-      for (let i = 1; i < set.length; i++) {
-        if (set[i].start > set[i - 1].start) expect(vol(set[i - 1])).toBeGreaterThanOrEqual(vol(set[i]))
-      }
-    }
+  it('부피 큰 묶음부터 떨어짐 (묶음 = 같은 시각, 용품 + 짝 동물)', () => {
+    const p = planRoom(randomPicks(rng(5), 10))
+    const vol = (it: (typeof p.items)[number]) => it.row.size_m.w * it.row.size_m.d * it.row.size_m.h
+    const starts = [...new Set(p.items.map((it) => it.start))].sort((x, y) => x - y)
+    const maxVol = starts.map((t) => Math.max(...p.items.filter((it) => it.start === t).map(vol)))
+    for (let i = 1; i < maxVol.length; i++) expect(maxVol[i - 1]).toBeGreaterThanOrEqual(maxVol[i] - 1e-9)
   })
-  it('지금 카탈로그는 모든 가구가 모델(built) — 둥근 블록 없음 (v3.1~v3.4)', () => {
+  it('모든 모델은 대분류 glb 안 node 로 찾음 (둥근 블록 없음)', () => {
     const p = planRoom(INTEREST_SUBS.slice(0, 10).map((s) => s.id))
-    expect(p.items.every((it) => it.built)).toBe(true)
+    expect(p.items.every((it) => it.built && /^interest_.*_v3_8_draco_webp\.glb$/.test(it.row.glb_compressed ?? ''))).toBe(true)
+  })
+  it('공용 바닥 자리의 낙하 값은 모델 키 단계별로 고른 값이 슬롯에 들어 있음', () => {
+    const r = rng(11)
+    for (let k = 0; k < 50; k++) for (const it of planRoom(randomPicks(r, 10)).items) expect(['fall', 'pop'], it.row.id).toContain(it.slot.drop.mode)
   })
 })
 
-describe('가구 고르기 (F4 꾸미기 가구 탭 3)', () => {
-  const shelfSub = INTEREST_SUBS.find((s) => s.slot_kind === 'shelf')!
-  const floorSub = INTEREST_SUBS.find((s) => s.slot_kind === 'floor' || s.slot_kind === 'pet_floor')!
-  it('후보 = 기본 가구 + 같은 대분류 선반 소품 최대 2개, 기본 가구가 맨 앞', () => {
-    const c = furnitureCandidates(shelfSub.id, [shelfSub.id])
-    expect(c[0].id).toBe(shelfSub.prop)
-    expect(c.length).toBeGreaterThanOrEqual(1)
-    expect(c.length).toBeLessThanOrEqual(3)
-    for (const row of c) expect(INTEREST_SUBS.find((s) => s.prop === row.id)?.category).toBe(shelfSub.category)
+describe('가구 고르기 → 단어 고르기 (v3.8, 꾸미기 소품 탭은 5단계)', () => {
+  it('"/"로 묶인 소분류만 고를 단어가 있고, 한 단어는 고정', () => {
+    expect(wordChoices(INTEREST_SUBS.find((s) => s.name_ko === '카페/커피')!.id)).toEqual(['카페', '커피'])
+    expect(wordChoices(INTEREST_SUBS.find((s) => s.name_ko === '영화')!.id)).toEqual([])
+    expect(wordChoices(INTEREST_SUBS.find((s) => s.name_ko === '액세서리/기타')!.id)).toEqual([])
   })
-  it('소품이 아직 없는 소분류는 후보 없음', () => {
-    const none = INTEREST_SUBS.find((s) => !s.prop)!
-    expect(furnitureCandidates(none.id, [none.id])).toEqual([])
-  })
-  it('내가 고른 다른 관심사의 기본 가구는 후보에서 뺌', () => {
-    const siblings = subsOfCat(shelfSub.category).filter((s) => s.slot_kind === 'shelf' && s.id !== shelfSub.id)
-    const picks = [shelfSub.id, ...siblings.map((s) => s.id)]
-    const c = furnitureCandidates(shelfSub.id, picks)
-    expect(c.map((r) => r.id)).toEqual([shelfSub.prop])
-  })
-  it('바닥·반려동물 자리는 기본 가구 하나뿐', () => {
-    expect(furnitureCandidates(floorSub.id, [floorSub.id]).map((r) => r.id)).toEqual([floorSub.prop])
+  it('가구 후보(예전 가구 탭)는 비어 있음', () => {
+    expect(INTEREST_SUBS.every((s) => furnitureCandidates(s.id, [s.id]).length === 0)).toBe(true)
   })
   it('관심사를 바꾸면 뺀 관심사의 선택은 사라지고 남긴 것은 유지', () => {
     const [a, b, c] = INTEREST_SUBS
     expect(pruneChoice({ [a.id]: 'x', [b.id]: 'y' }, [b.id, c.id])).toEqual({ [b.id]: 'y' })
-  })
-  it('고른 가구는 같은 자리에 다른 가구로 (반려동물은 안 바꿈)', () => {
-    const c = furnitureCandidates(shelfSub.id, [shelfSub.id])
-    if (c.length < 2) return
-    const plan = planRoom([shelfSub.id])
-    const next = applyChoice(plan, { [shelfSub.id]: c[1].id })
-    const before = plan.items.find((it) => it.sub === shelfSub.id)!
-    const after = next.items.find((it) => it.sub === shelfSub.id)!
-    expect(after.row.id).toBe(c[1].id)
-    expect(after.slot.name).toBe(before.slot.name)
-    expect(after.start).toBe(before.start)
   })
 })
 

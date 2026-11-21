@@ -24,68 +24,31 @@ export interface Category3D {
 }
 
 export const CATEGORY_3D: Readonly<Record<string, Category3D>> = {
-  food: { kit: 'tea_coffee', furniture: ['kitchen_counter', 'cafe_stool'], accessories: ['hat_chef', 'prop_cup'] },
+  food: { kit: 'tea_coffee', furniture: [], accessories: ['hat_chef', 'prop_cup'] },
   sports: {
-    kit: 'outdoor', furniture: ['bike_rack_wall', 'camp_chair'], accessories: ['headband_sport'],
+    kit: 'outdoor', furniture: [], accessories: ['headband_sport'],
     substitute: '스포츠 가구가 없어 아웃도어 세트(벽걸이 자전거·캠핑 의자)를 같이 씀. 카탈로그의 러닝머신·덤벨 랙은 모델이 없음(unused)',
   },
-  culture: { kit: 'movie', furniture: ['tv', 'projector'], accessories: ['glasses_3d'] },
-  game: { kit: 'game', furniture: ['arcade', 'bean_bag'], accessories: ['prop_gamepad'] },
-  music_dance: { kit: 'music', furniture: ['piano', 'speaker', 'piano_stool'], accessories: ['headphones'] },
-  outdoor: { kit: 'outdoor', furniture: ['bike_rack_wall', 'camp_chair'], accessories: ['prop_suitcase', 'hat_straw'] },
+  culture: { kit: 'movie', furniture: [], accessories: ['glasses_3d'] },
+  game: { kit: 'game', furniture: [], accessories: ['prop_gamepad'] },
+  music_dance: { kit: 'music', furniture: [], accessories: ['headphones'] },
+  outdoor: { kit: 'outdoor', furniture: [], accessories: ['prop_suitcase', 'hat_straw'] },
   language_selfdev: {
-    kit: 'book', furniture: ['bookshelf', 'reading_lamp'], accessories: [],
+    kit: 'book', furniture: [], accessories: [],
     substitute: '외국어·자기계발 가구가 없어 책 세트(책장·독서등)를 같이 씀 (공부하는 자리)',
   },
-  book: { kit: 'book', furniture: ['bookshelf', 'reading_lamp'], accessories: ['prop_book'] },
-  photo_video: { kit: 'photo', furniture: ['photo_board', 'tripod_camera'], accessories: ['camera_neck'] },
-  art_craft: { kit: 'craft', furniture: ['easel', 'drawing_stool'], accessories: ['prop_palette', 'hat_beret'] },
+  book: { kit: 'book', furniture: [], accessories: ['prop_book'] },
+  photo_video: { kit: 'photo', furniture: [], accessories: ['camera_neck'] },
+  art_craft: { kit: 'craft', furniture: [], accessories: ['prop_palette', 'hat_beret'] },
   fandom_collect: {
-    kit: 'science', furniture: ['mineral_bench'], accessories: [],
+    kit: 'science', furniture: [], accessories: [],
     substitute: '덕질·수집 가구가 없어 우주·과학 세트의 광물 진열 벤치만 진열대로 씀 (망원경은 안 씀)',
   },
-  pet_plant: { kit: 'nature', furniture: ['plant_stand', 'terrarium_bench'], accessories: ['hat_sprout'] },
+  pet_plant: { kit: 'nature', furniture: [], accessories: ['hat_sprout'] },
 }
 
 /**
  * 소분류 → 소품 (카탈로그 sub_prop 행 id). 주석 = 예전 세부 관심사 이름 (임시는 뜻이 가까워 빌린 것)
  * 반려동물 용품(cat_bed 등)을 고르면 짝 동물(slot.paired_pet)도 같이 놓임
  */
-export const SUB_PROP: Readonly<Record<string, string | null>> = {
-  // 음식·음료
-  restaurant_tour: null, cafe_coffee: 'drip_kettle' /* 핸드드립 */, liquor: null, healthy_food: null, cooking: null,
-  baking_dessert: 'baking_set' /* 베이킹 */, tea: 'tea_bowl_set' /* 다도 */,
-  // 스포츠
-  fitness_yoga: 'yoga_mat' /* 요가 */, running: null, climbing: 'chalk_bag' /* 클라이밍 */, soccer: null, baseball: null, ball_sports: null,
-  racket_sports: null, billiards_bowling: null, ski_board: 'skateboard' /* 스케이트보드 (임시: 보드) */, martial_arts: null, water_sports: null,
-  // 문화생활
-  movie: 'popcorn' /* 고전영화 */, drama_variety: 'vhs_tapes' /* VHS수집 (임시: 녹화 테이프) */, animation: 'clapperboard' /* 애니메이션 */,
-  concert_festival: null, exhibition: null, theater_musical: 'magic_hat' /* 마술 (임시: 무대 소품) */, fortune_tarot: 'star_chart' /* 별자리 (임시: 별자리 운세) */,
-  // 게임
-  pc_game: 'mech_keyboard' /* 기계식키보드 */, mobile_game: null, board_game: 'board_game_box' /* 보드게임 */, escape_room: null,
-  console_game: 'game_console' /* 레트로게임 */, vr_arcade: 'arcade_stick' /* 아케이드 */, puzzle_cube: 'speed_cube' /* 스피드큐브 */, go_chess: 'chess_set' /* 체스 */,
-  // 음악·댄스
-  kpop: null, pop_song: 'vintage_radio' /* 올드팝 */, jpop_ost: 'cassette_walkman' /* 시티팝 */, hiphop_rock: 'mini_amp' /* 인디밴드 */,
-  jazz_classical: 'trumpet' /* 재즈 */, dance: null, vocal: null, guitar_bass: 'guitar' /* 기타연주 (바닥 자리) */, piano_keys: 'metronome' /* 피아노 */,
-  drums_orchestra: 'snare_drum' /* 드럼 */, compose_dj: 'mini_synth' /* 신스·작곡 */,
-  // 아웃도어
-  domestic_travel: null, overseas_travel: 'globe' /* 지도·지구본 */, hiking: 'binoculars' /* 천체관측 (임시: 쌍안경) */, camping: 'backpack' /* 캠핑 */,
-  cycling_drive: 'bike_helmet' /* 자전거 */, fishing: null,
-  // 외국어·자기계발: 맞는 소품 없음
-  english: null, japanese: null, chinese: null, spanish: null, other_language: null, finance: null, volunteer: null,
-  // 책·글
-  novel: 'sf_books' /* SF소설 */, poem_essay: 'book_stack' /* 시집 */, webtoon_comics: 'comic_stack' /* 만화책 */, web_novel: null, current_affairs: null,
-  humanities: null, writing: 'typewriter' /* 타자기 */,
-  // 사진·영상
-  smartphone_photo: null, video_editing: null, photo_retouch: null, mirrorless_dslr: 'camera_case' /* 사진산책 */, film_compact: 'film_camera' /* 필름카메라 */,
-  actioncam_drone: null,
-  // 미술·수공예
-  drawing_painting: 'paint_box' /* 수채화 */, needlework: 'yarn_basket' /* 뜨개질 */, candle_diffuser: null, leather_pottery_wood: 'pottery_vase' /* 도자기 */,
-  calligraphy: null, flower_art: 'small_pot' /* 다육식물 (임시: 작은 화분) */, accessory_etc: 'sewing_kit' /* 재봉 */,
-  // 덕질·수집
-  goods_photocard: null, keyring_doll: 'dino_figure' /* 공룡 (임시: 작은 인형) */, deco_stationery: 'writing_notebook' /* 필사 (임시: 다이어리) */,
-  figure: 'figure_pair' /* 피규어 */, plamodel_lego: 'gunpla_robot' /* 건프라 */, lp_album: 'record_player' /* LP수집 */,
-  // 반려동물·식물
-  dog: 'dog_house' /* 강아지 + 짝 동물 */, cat: 'cat_bed' /* 고양이 + 짝 동물 */, small_animal: null, fish: 'fish_bowl' /* 열대어 */,
-  bird: 'parrot_perch' /* 앵무새 + 짝 동물 */, insect_reptile: 'lizard_tank' /* 도마뱀 + 짝 동물 */, plant_terrarium: 'terrarium_jar' /* 테라리움 */,
-}
+export const SUB_PROP: Readonly<Record<string, string | null>> = {}
