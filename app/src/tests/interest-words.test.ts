@@ -95,11 +95,11 @@ describe('관심사 v3.8 단어 데이터', () => {
   })
 })
 
-describe('slots.json (v3.8 슬롯 49개)', () => {
+describe('slots.json (v3.8.1 슬롯 54개)', () => {
   const rows = slotsNew as unknown as { name: string; slot_type: string; kind: string; drop_by_height?: unknown[] }[]
-  it('49개: 바닥 공용 20 + 벽 공용 4 + 선반 12 + 동물 5 + 용품 5 + 앞 구석 2 + 우체통 1', () => {
-    expect(rows).toHaveLength(49)
-    expect(new Set(rows.map((r) => r.name)).size).toBe(49)
+  it('54개: 바닥 공용 20 + 벽 공용 4 + 선반 12 + 동물 5 + 용품 5 + 앞 구석 2 + 우체통 1 + 작은 소품 바닥 3 · 원탁 위 2', () => {
+    expect(rows).toHaveLength(54)
+    expect(new Set(rows.map((r) => r.name)).size).toBe(54)
     const n = (t: string, k: string) => rows.filter((r) => r.slot_type === t && r.kind === k).length
     expect(n('shared_big', 'floor')).toBe(20)
     expect(n('shared_big', 'wall')).toBe(4)

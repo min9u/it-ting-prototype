@@ -158,9 +158,11 @@ describe('관심사 3D 연결 · furnitureCatalog · slots (3D 핸드오프 v3, 
     for (const c of CATS) { expect(c.max_pick, c.id).toBe(10); expect(c.kit, c.id).toBeTruthy(); expect(c.furniture, c.id).toEqual([]) }
     for (const s of SUBS) { expect(s.prop, s.id).toBeNull(); expect(s.slot_kind, s.id).toBeNull() }
   })
-  it('슬롯 49개 v3.8: 바닥 공용 20 · 벽 공용 4 · 선반 12 · 동물 5 + 용품 5 · 앞 구석 2 · 우체통 1', () => {
-    expect(SLOTS).toHaveLength(49)
+  it('슬롯 54개 v3.8.1: 바닥 공용 20 · 벽 공용 4 · 선반 12 · 동물 5 + 용품 5 · 앞 구석 2 · 우체통 1 · 작은 소품 바닥 3 + 원탁 위 2', () => {
+    expect(SLOTS).toHaveLength(54)
     expect(SLOTS.filter((s) => s.kind === 'shelf')).toHaveLength(12)
+    expect(SLOTS.filter((s) => s.kind === 'floor_prop')).toHaveLength(3)
+    expect(SLOTS.filter((s) => s.kind === 'table_top')).toHaveLength(2)
     expect(SLOTS.filter((s) => s.kind === 'pet_floor')).toHaveLength(10)
     expect(SLOTS.filter((s) => s.name === 'mailbox_slot')).toHaveLength(1)
   })

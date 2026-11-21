@@ -122,13 +122,13 @@ describe('planRoom: 관심사 → 가구 배치 (3D 핸드오프 v3.8, 규칙 �
       for (const id of picks) expect(p.items.some((it) => it.sub === id), id).toBe(true)
     }
   })
-  it('작은 모델은 선반에만, 큰 모델은 바닥 · 벽 공용 자리에, 동물은 동물 자리에', () => {
+  it('작은 모델은 선반 · 바닥 · 원탁 위(v3.8.1), 큰 모델은 바닥 · 벽 공용 자리에, 동물은 동물 자리에', () => {
     const r = rng(7)
     for (let k = 0; k < 100; k++) {
       for (const it of planRoom(randomPicks(r, 10)).items) {
         if (it.row.type === 'pet') expect(it.slot.slot_type).toBe('pet')
         else if (it.row.type === 'sub_prop' && it.slot.kind === 'pet_floor') expect(it.slot.slot_type).toBe('prop')
-        else if (it.row.type === 'sub_prop') expect(it.slot.kind).toBe('shelf')
+        else if (it.row.type === 'sub_prop') expect(['shelf', 'floor_prop', 'table_top', 'floor']).toContain(it.slot.kind) // v3.8.1: 작은 소품은 선반 · 바닥 · 원탁 위
         else expect(it.slot.slot_type).toBe('shared_big')
       }
     }

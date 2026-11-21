@@ -24,6 +24,15 @@ export const BIG_SIZES = bigRaw as unknown as Record<string, { sub: string; word
 const FLOOR_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'shared_big' && s.kind === 'floor')
 const WALL_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'shared_big' && s.kind === 'wall')
 const SHELF_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'prop' && s.kind === 'shelf').sort((a, b) => a.name.localeCompare(b.name))
+/**
+ * v3.8.1 작은 소품 자리: 바닥 5칸(20 → 21 → 22 → 13 → 14 순서) · 원탁 위 2칸(23 → 24). 선반은 번호가 앞선 빈 칸
+ * 작은 소품 배정 순서(PLACEMENT_v3_8_1.md): 작은 단어를 고른 순서대로 세어 i = 1, 2, 3 …
+ */
+const FLOOR_PROP_SLOTS = ['prop_slot_20', 'prop_slot_21', 'prop_slot_22', 'prop_slot_13', 'prop_slot_14'].map((n) => SLOTS_V38.find((s) => s.name === n)!)
+const TABLE_SLOTS = ['prop_slot_23', 'prop_slot_24'].map((n) => SLOTS_V38.find((s) => s.name === n)!)
+export const SMALL_ORDER = ['shelf', 'shelf', 'table', 'shelf', 'floor', 'shelf', 'table', 'floor', 'shelf', 'floor'] as const
+/** 자리 모델 배율: 바닥 칸 1.4배 · 원탁 칸 0.45배 (새 칸은 slot.model_scale, 13 · 14 는 small_prop_rule.model_scale) */
+export const scaleOfSlot = (s: Slot) => s.model_scale ?? s.small_prop_rule?.model_scale ?? 1
 const PET_SLOTS = SLOTS_V38.filter((s) => s.slot_type === 'pet')
 const slotByName = (n: string) => SLOTS_V38.find((s) => s.name === n)
 
@@ -40,7 +49,9 @@ export interface Placed {
   slot: Slot
   /** 동물 짝이면 동물 자리 pet_slot */
   petSlot?: Slot
-  kind: 'shelf' | 'floor' | 'wall' | 'pet'
+  kind: 'shelf' | 'floor_prop' | 'table_top' | 'floor' | 'wall' | 'pet'
+  /** 작은 소품 모델 배율 (바닥 1.4 · 원탁 0.45, 그 밖 1) */
+  scale: number
   /** 낙하 값 (공용 바닥은 키 단계별로 고른 값) */
   drop: DropSpec
 }
@@ -68,6 +79,8 @@ export function wordOrder(sub: string, chosen?: string): WordDef[] {
 
 export function placeWords(subIds: readonly string[], choice: Readonly<Record<string, string>> = {}): PlaceResult {
   const used = new Set<string>()
+  /** 지금까지 놓은 작은 소품 수 (배정 순서의 i - 1) */
+  let smallN = 0
   const placed: Placed[] = []
   const unplaced: PlaceResult['unplaced'] = []
   // 같은 종의 짝은 그 동물에게 남겨 둠 (설치류 · 소동물처럼 짝이 없는 종이 남의 짝을 먼저 가져가지 않게)
@@ -85,20 +98,24 @@ export function placeWords(subIds: readonly string[], choice: Readonly<Record<st
       const prop = pick && slotByName(pick.pair_slot ?? '')
       if (!pick || !prop) return null
       used.add(pick.name); used.add(prop.name)
-      return { sub, word: w, slot: prop, petSlot: pick, kind: 'pet', drop: prop.drop }
+      return { sub, word: w, slot: prop, petSlot: pick, kind: 'pet', drop: prop.drop, scale: 1 }
     }
     if (w.size === '작은') {
-      const s = SHELF_SLOTS.find((x) => !used.has(x.name))
+      // v3.8.1: i 번째 작은 소품의 자리 종류(선반·원탁·바닥)를 표대로 고르고, 그 종류가 다 찼으면 빈 선반 → 남은 바닥·원탁
+      const want = SMALL_ORDER[smallN] ?? 'shelf'
+      const free = (list: Slot[]) => list.find((x) => !used.has(x.name))
+      const s = free(want === 'table' ? TABLE_SLOTS : want === 'floor' ? FLOOR_PROP_SLOTS : SHELF_SLOTS) ?? free(SHELF_SLOTS) ?? free(FLOOR_PROP_SLOTS) ?? free(TABLE_SLOTS)
       if (!s) return null
-      used.add(s.name)
-      return { sub, word: w, slot: s, kind: 'shelf', drop: s.drop }
+      used.add(s.name); smallN++
+      const kind = s.kind === 'shelf' ? 'shelf' : s.kind === 'table_top' ? 'table_top' : 'floor_prop'
+      return { sub, word: w, slot: s, kind, drop: s.drop, scale: scaleOfSlot(s) }
     }
     const m = BIG_SIZES[w.node]
     if (!m) return null
     const s = freeBest(w.size === '벽' ? WALL_SLOTS : FLOOR_SLOTS, m)
     if (!s) return null
     used.add(s.name)
-    return { sub, word: w, slot: s, kind: w.size === '벽' ? 'wall' : 'floor', drop: w.size === '벽' ? s.drop : dropByHeight(s, m.h) }
+    return { sub, word: w, slot: s, kind: w.size === '벽' ? 'wall' : 'floor', drop: w.size === '벽' ? s.drop : dropByHeight(s, m.h), scale: 1 }
   }
 
   for (const sub of subIds) {

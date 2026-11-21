@@ -497,7 +497,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
   const fillSlot = (g: THREE.Group, it: PlannedItem, src: THREE.Object3D | null) => {
     const { row, slot } = it
     if (src) {
-      const m = src.clone(true); m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.setScalar(1)
+      // v3.8.1: 작은 소품은 바닥 칸 1.4배 · 원탁 칸 0.45배 (slot.model_scale)
+      const m = src.clone(true); m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.setScalar(slot.model_scale ?? 1)
       markShadows(m)
       g.add(m)
       return row.size_m
@@ -604,7 +605,8 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       g.rotation.order = 'YXZ'; g.rotation.y = ry
       const src = it.built ? srcRoot?.getObjectByName(row.node) : null
       const size = fillSlot(g, it, src ?? null)
-      const hung = slot.mount === 'wall_hung' || slot.kind === 'shelf'
+      // 벽에 걸린 것·선반·원탁 위 소품은 발자리 없음 (원탁 위는 원탁 발자리가 막음)
+      const hung = slot.mount === 'wall_hung' || slot.kind === 'shelf' || slot.kind === 'table_top'
       const data: FurnitureData = {
         id: row.id, label: row.name_ko, hint: it.built ? row.name_ko : `${row.name_ko} · 3D 모델 준비 중`,
         // 벽에 걸린 것·선반 소품은 두더지가 앞까지 걸어가지 않음 (앞이 다른 가구일 수 있음)
