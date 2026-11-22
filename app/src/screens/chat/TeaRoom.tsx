@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import SceneBoundary from '../../components/SceneBoundary'
 import Avatar from '../../components/Avatar'
-import { testParam } from '../../three/engine'
+import { testParam } from '../../lib/testParam'
 import s from './TeaRoom.module.css'
 
 const ChatRoomCanvas = lazy(() => import('../../three/ChatRoomCanvas'))
