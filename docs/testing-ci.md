@@ -55,6 +55,7 @@
 설치 없이 Node 24 + 시스템 크롬을 CDP(WebSocket)로 직접 조종한다 (`explore/gpu/cdp-*.mjs` 와 같은 방식).
 1. `dist/` 를 작은 정적 서버로 띄움 (포트 5331, 없는 경로는 index.html). `--url=http://127.0.0.1:5331` 이면 떠 있는 개발 서버를 그대로 씀
 2. 화면 목록 = `src/screens/ScreenIndex.tsx` 의 82개 + `src/App.tsx` 라우트 중 목록에 없는 14개(`:id` 는 목 데이터 값으로) = **96개** (11-16 에는 94개, 11-17 땅굴 다양성 실험 `/lab/style` · `/dev/crash` 가 늘어남). `--list` 로 목록만 볼 수 있음
+2-1. 크롬 시작은 최대 45초 기다리고, 안 뜨거나 바로 끝나면 정리 후 **한 번 더** 시도 (2026-11-22: CI 러너의 SwiftShader 크롬이 15초 안에 안 떠서 main CI #52 가 스모크 단계에서 한 번 실패 — 코드 문제 아님, 가끔 나던 것). 시험용 `SMOKE_CHROME_START_MS`
 3. 화면마다 저장소(localStorage · sessionStorage)를 비우고 새로 엶 → load 뒤 네트워크가 0.9초 조용해지거나 최대 7초(`--wait`)까지 기다림
 4. 잡는 것: 처리 안 된 예외(Promise 포함) · `console.error` · 같은 주소 리소스 4xx/5xx · 네트워크 실패 · 빈 화면(#root 가 비었거나 글 · 그림이 없음) · 오류 화면("잠시 문제가 생겼어요") · 뜻밖의 "없는 주소예요"(00 공통 21 을 일부러 보는 주소는 뺌) · canvas 가 있으면 WebGL 컨텍스트를 얻었는지
 5. 결과: 터미널 표 + `app/shots/smoke/<gpu>/report.md` · `report.json` · 화면별 PNG (`shots/` 는 `.gitignore` 의 `**/shots/*` 로 커밋 안 됨). **실패(예외 · 빈 화면 · 오류 화면)가 있으면 종료 코드 1** (`--no-fail` 로 끔)
