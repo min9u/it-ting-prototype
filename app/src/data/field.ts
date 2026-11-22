@@ -81,6 +81,16 @@ export const MY_PAST_FLOORS: Floor[] = [{ id: floorId('2026 상반기', '서울'
 /** 내 자리 번호 (이번 학기 들판) */
 export const MY_SEAT = 13
 
+/**
+ * 내 땅굴을 이번 학기의 다른 캠퍼스 · 층으로 이사 (내 정보 수정에서 캠퍼스 · 층을 바꿀 때, 새 학기 안내에서 고를 때. 명세 04 · 05).
+ * MY_FLOOR 를 같은 객체 그대로 고쳐서, 이걸 import 한 모든 곳(탐색 · 미니맵 · 들판)이 따라온다. 방명록 · 단골 · 방 모습은 그대로
+ */
+export function moveMyBurrow(campus: string, floor: number) {
+  if (MY_FLOOR.campus === campus && MY_FLOOR.floor === floor) return
+  Object.assign(MY_FLOOR, { id: floorId(CURRENT_TERM, campus, floor), campus, floor })
+  ME_HOME.campus = campus; ME_HOME.floor = floor
+}
+
 /* ---------- 시드 난수 ---------- */
 function hash(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
 function rng(seed: string) {
