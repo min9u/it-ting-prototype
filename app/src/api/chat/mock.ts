@@ -13,7 +13,6 @@ import { conflict, forbidden, invalidInput, items, mockRead, mockWrite, notFound
 import { interestTags, userDisplay } from '../common/mockPeople'
 import { toAppId, toDtoId } from '../common/ids'
 import type { Id } from '../common/types'
-import { accountStore } from '../../data/account'
 import { ME_ID } from '../../data/mock'
 import { confirmedOf, findMeetup, isPast, parseHour, quit as quitMeetup, startMs, canQuit, type MeetupX } from '../../data/meetupStore'
 import { meetupCategoryOf } from '../../data/meetupCategory'
@@ -120,7 +119,6 @@ function emitCount() {
 }
 
 /* ===== 목 서버 ===== */
-const blockedIds = () => accountStore.get().blocked.map((b) => b.id)
 /** 들어갈 수 있는 대화방 (없거나 나갔거나 모임이 지워졌으면 404, 명세 "대화방에 들어갈 수 있는 사람") */
 function accessRoom(chatRoomId: Id): Room {
   const r = roomOf(toAppId(chatRoomId))
@@ -129,15 +127,12 @@ function accessRoom(chatRoomId: Id): Room {
 }
 function visibleRooms(): Room[] {
   syncGroupRooms()
-  const blocked = blockedIds()
   return getChatState().rooms
-    .filter((r) => !(r.kind === 'dm' && r.partnerId && blocked.includes(r.partnerId)))
     .filter((r) => r.kind === 'dm' || !!findMeetup(r.meetupId!))
     .sort((a, b) => lastAt(b) - lastAt(a))
 }
 function visibleRequests(dir: Req['direction']): Req[] {
-  const blocked = blockedIds()
-  return liveRequests().filter((q) => q.direction === dir && !blocked.includes(q.userId))
+  return liveRequests().filter((q) => q.direction === dir)
 }
 const reqNotFound = () => notFound('CHAT_REQUEST', '대화 요청을 찾을 수 없습니다.')
 /** 목 사진 저장소 (POST /images 흉내): id → 주소 */
