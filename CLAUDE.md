@@ -183,6 +183,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-22 [프론트를 백엔드 확정 API 명세(v1)에 맞추기](docs/backend/api-v1-alignment.md): 백엔드 리포 it-ting-team/it-ting `dev`의 명세(API 111개)를 `docs/backend/team-spec/`에 사본으로. 우리 초안과 다른 점: `/api/v1`, 응답 틀 `{success,data,error}`, 숫자 id, UTC `Z`, 세션 쿠키(갱신 API 없음), 실시간은 SSE 하나. 결정: 이 리포에서 맞추고 나중에 팀 리포로, **API + 기능 차이까지**(백엔드 서비스 명세가 기준), 공통 계층 먼저 → 영역 7개 병렬
 - 2026-11-22 [팀 리포로 프론트엔드 옮기기 계획](docs/team-repo-migration.md): API v1 맞추기를 이 리포에서 끝낸 뒤 **Next.js(App Router)로 바꿔** 팀 리포 `frontend/`에 넣음. 예전 이력은 안 옮김(서명·다른 팀원 커밋·메시지 형식), **화면·기능 하나에 커밋 하나(약 30개) PR 하나**. 팀 규칙(브랜치 `chore/fe/KAN-…`, 커밋 제목 형식, 커밋마다 빌드 통과, 서명 필수)과 남은 준비(Jira 번호, 이 맥 서명 설정)
 - 2026-11-22 [F6~F10 중간 묶음](docs/f6-f10-gaps-2026-11-21.md): 채팅 사진 첨부(3장·5MB) · 거절한 요청 재요청 → 수락 · 모임 신청 7번째 상태 "모임 취소로 마감" · 글쓰기 모임 연결 규칙(홍보·후기·자유) · **차단 기능 전체 제거**(명세에 없음). 브랜치 fix/f6-f10-mid
+- 2026-11-22 [F6~F10 확인부터 묶음](docs/f6-f10-gaps-2026-11-21.md): 명세 대조 결과 고친 것 = 모임 나가기 버튼 꺼진 채 보임(F6-B5) · 빈자리 알림 발송(F7-B3) · 회원 탈퇴(비밀번호는 팝업에서 확인 · Google 10분 · 내가 연 모임 저장소 기준 · 재가입 문구, F10-B3). 이미 같아서 확인 완료 = F8-B5 · F8-B6 · F9-B2 · F10-B4. 브랜치 fix/f6-f10-check
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
