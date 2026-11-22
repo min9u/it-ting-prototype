@@ -19,9 +19,10 @@ const codeOf = (e: unknown) => (isApiError(e) ? e.code : '')
 /** Google 에 다녀오면 화면이 새로 열리므로, 고른 사유 · 동의를 이 탭에 잠깐 둔다 (10 "Google 확인": 프론트가 다시 보여 줌) */
 const DRAFT_KEY = 'digul.leaveDraft'
 type Draft = { reason: WithdrawReason | ''; agree: boolean }
-function takeDraft(): Draft | null {
-  try { const v = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? 'null'); sessionStorage.removeItem(DRAFT_KEY); return v } catch { return null }
+function readDraft(): Draft | null {
+  try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? 'null') } catch { return null }
 }
+function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* 무시 */ } }
 function saveDraft(d: Draft) { try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)) } catch { /* 저장소가 막힌 곳 */ } }
 
 /**
@@ -40,7 +41,7 @@ export function LeavePage() {
   const account = useAccount()
   const check = useWithdrawalCheck()
   const withdraw = useWithdraw()
-  const [draft] = useState(takeDraft)
+  const [draft] = useState(readDraft) // 지우기는 효과에서 (개발 모드 StrictMode 가 초기값 함수를 두 번 부름)
   const [reason, setReason] = useState<WithdrawReason | ''>(draft?.reason ?? '')
   const [agree, setAgree] = useState(draft?.agree ?? false)
   const [pw, setPw] = useState('')
@@ -57,6 +58,7 @@ export function LeavePage() {
   useEffect(() => {
     if (handled.current) return
     handled.current = true
+    clearDraft()
     const code = params.get('error')
     if (!code) return
     setGErr(SETTINGS_ERRORS[code] ?? SETTINGS_ERRORS.GOOGLE_VERIFICATION_FAILED)
