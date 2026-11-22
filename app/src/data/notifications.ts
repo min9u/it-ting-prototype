@@ -1,5 +1,5 @@
 import { createStore } from '../lib/store'
-import { applicantsOf, isPast, useMeetups, userName } from './meetupStore'
+import { applicantsOf, isPast, onVacancy, useMeetups, userName } from './meetupStore'
 import { ME_ID } from './mock'
 
 /**
@@ -129,6 +129,9 @@ export function pushNotice(n: Omit<AppNotice, 'id' | 'at' | 'unread'>) {
     try { new Notification(n.title, { body: n.sub }) } catch { /* 무시 */ }
   }
 }
+// 모집 완료였던 모임에 자리가 나면 빈자리 알림을 켠 사람에게 (명세 09 "빈자리 생김")
+onVacancy((m, left) => pushNotice({ kind: '모임', type: '빈자리 생김', title: `찜한 ‘${m.title}’ 모임에 빈자리가 생겼어요`, sub: `남은 자리 ${left}석`, to: `/meetups/${m.id}` }))
+
 export function setNoticeKind(kind: NoticeKind, on: boolean) {
   noticePrefs.set((s) => ({ kinds: { ...s.kinds, [kind]: on } }))
 }

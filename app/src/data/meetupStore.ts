@@ -251,9 +251,26 @@ export function apply(id: string, note: string) {
 export function withdraw(id: string) { setMy(id, { st: 'withdrawn' }); emit() }
 /** 참여 취소 (확정 후) → 다시 신청 불가 */
 export function quit(id: string) {
+  const before = seatsBefore(id)
   setMy(id, { st: 'quit' })
   setMembers(id, membersOf(id).filter((u) => u !== ME_ID))
+  notifyVacancy(id, before)
   emit()
+}
+
+/**
+ * 빈자리 알림 (명세 07 찜한 모임 5 · 만들기 정원): 모집 완료였던 모임에 자리가 나면(참여 취소 · 내보내기 · 정원 늘림)
+ * 빈자리 알림을 켠 사람에게 알린다. 알림 저장소가 이 저장소를 읽으므로(순환 방지) 받는 쪽이 onVacancy 로 등록한다
+ */
+type VacancyHandler = (m: MeetupX, left: number) => void
+const vacancyHandlers: VacancyHandler[] = []
+export function onVacancy(fn: VacancyHandler) { vacancyHandlers.push(fn) }
+const seatsBefore = (id: string) => { const m = findMeetup(id); return m ? leftOf(m) : 0 }
+function notifyVacancy(id: string, leftBefore: number) {
+  const m = findMeetup(id)
+  if (!m || leftBefore > 0 || m.cancelled || isPast(m) || deadlinePassed(m)) return
+  const left = leftOf(m)
+  if (left > 0 && state.alerts.includes(id)) for (const h of vacancyHandlers) h(m, left)
 }
 export function toggleWish(id: string) {
   const on = state.wish.includes(id)
@@ -281,7 +298,9 @@ export function reject(id: string, userId: string) {
   emit()
 }
 export function kick(id: string, userId: string) {
+  const before = seatsBefore(id)
   setMembers(id, membersOf(id).filter((u) => u !== userId))
+  notifyVacancy(id, before)
   emit()
 }
 
@@ -308,6 +327,7 @@ export function createMeetup(d: Draft): string {
   return id
 }
 export function updateMeetup(id: string, d: Draft) {
+  const before = seatsBefore(id)
   state.list = state.list.map((m) => (m.id !== id ? m : {
     ...m, title: d.title.trim(), category: d.category, intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
@@ -317,6 +337,7 @@ export function updateMeetup(id: string, d: Draft) {
     link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
     capacity: d.cap, prep: d.prep.trim() || undefined, askMsg: d.askMsg,
   }))
+  notifyVacancy(id, before)
   emit()
 }
 export function cancelMeetup(id: string) {
