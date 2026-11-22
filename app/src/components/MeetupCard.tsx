@@ -7,11 +7,10 @@ import InterestChip from './InterestChip'
 import { CalendarIcon, PinIcon } from './Icons'
 import styles from './MeetupCard.module.css'
 
-/** 모집 상태: 모집 중 / 마감 임박(1자리) / 모집 완료 */
+/** 모집 상태: 모집 중 / 모집 완료 ("마감 임박"은 명세 07 범위 밖이라 뺌, 2026-11-22). 모임 화면은 서버 recruitStatus 로 badge 를 넘김 */
 export function recruitOf(m: Meetup): { label: string; tone: 'open' | 'hot' | 'done' } {
   const left = m.capacity - m.memberIds.length
   if (left <= 0 || m.past) return { label: '모집 완료', tone: 'done' }
-  if (left === 1) return { label: '마감 임박', tone: 'hot' }
   return { label: '모집 중', tone: 'open' }
 }
 
