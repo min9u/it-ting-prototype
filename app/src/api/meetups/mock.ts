@@ -10,12 +10,13 @@ import { ME_ID } from '../../data/mock'
 import { meetupCategoryOf } from '../../data/meetupCategory'
 import { getChatState, groupRoomId, leaveRoom, roomOf } from '../../data/chat'
 import {
-  NOW, accept, apply, applicantsOf, cancelMeetup, confirmedOf, createMeetup, deleteMeetup, findMeetup, getMeetupState, isPast, isoMs, kick,
-  membersOf, myOf, parseHour, quit, recruitClosedByTime, recruitOf, reject, setAlert, setWish, startMs, updateMeetup, withdraw,
+  NOW, accept, apply, applicantsOf, cancelMeetup, confirmedOf, createMeetup, deadlinePassed, deleteMeetup, findMeetup, getMeetupState, isPast, isoMs, kick,
+  leftOf, membersOf, myOf, parseHour, quit, recruitClosedByTime, recruitOf, reject, setAlert, setWish, startMs, updateMeetup, withdraw,
   type Draft, type MeetupState, type MeetupX,
 } from '../../data/meetupStore'
 import { msToWall, parseIso, seoulParts, seoulYmd, toIso } from '../../lib/time'
 import { MEETUP_LIMITS } from './errors'
+import { pushMockNotification } from '../notifications'
 import type { MeetupsApi } from './real'
 import type {
   MeetupApplicationItemDto, MeetupCardDto, MeetupCategoryCode, MeetupCreateRequest, MeetupDetailDto, MeetupMyStatus, MeetupSort,
@@ -24,6 +25,19 @@ import type {
 
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
+
+/**
+ * 서버가 하는 일 (명세 09 MEETUP_VACANCY_OPENED): 정원이 차 있던 모임에 자리가 나면 그 모임에 빈자리 알림을 켠 사람에게 알림.
+ * 자리가 나는 길 셋(참여 취소 · 내보내기 · 정원 늘림)이 write 를 이걸로 감쌈. 취소 · 지난 · 모집 마감 시각이 지난 모임은 "모집 중"이 아니라 만들지 않음
+ */
+function openingSeat(id: string, write: () => void) {
+  const before = findMeetup(id)
+  const wasFull = !!before && leftOf(before) <= 0
+  write()
+  const m = findMeetup(id)
+  if (!wasFull || !m || leftOf(m) <= 0 || m.cancelled || isPast(m) || deadlinePassed(m)) return
+  if (getMeetupState().alerts.includes(m.id)) pushMockNotification('MEETUP_VACANCY_OPENED', { targetId: m.id })
+}
 const meetupNotFound = () => notFound('MEETUP', '모임을 찾을 수 없습니다.')
 const applicationNotFound = () => notFound('MEETUP_APPLICATION', '신청을 찾을 수 없습니다.')
 const notHost = () => forbidden('주최자만 할 수 있습니다.')
@@ -253,7 +267,7 @@ export const mock: MeetupsApi = {
     const missing = PATCH_KEYS.filter((k) => !(k in (req as object)))
     if (missing.length) throw invalidInput(Object.fromEntries(missing.map((k) => [k, '값을 보내야 합니다.'])))
     checkWrite(req, { create: false, minCapacity: confirmedOf(m), deadlineMs: m.deadline ? isoMs(m.deadline) : null })
-    updateMeetup(m.id, draftOfRequest(req))
+    openingSeat(m.id, () => updateMeetup(m.id, draftOfRequest(req)))
     return null
   }),
 
@@ -321,7 +335,7 @@ export const mock: MeetupsApi = {
     if (my === 'CANCELED') return null
     if (my !== 'CONFIRMED') throw applicationNotFound()
     if (m.cancelled || startMs(m) - NOW < DAY) throw conflict('MEETUP_PARTICIPATION_CANCEL_NOT_ALLOWED', '시작 24시간 전부터는 참여를 취소할 수 없습니다.')
-    quit(m.id)
+    openingSeat(m.id, () => quit(m.id))
     // 서버가 함께 하는 일: 모임 대화방에서 나를 뺌 (목: 채팅 저장소)
     leaveRoom(groupRoomId(m.id))
     return null
@@ -349,7 +363,7 @@ export const mock: MeetupsApi = {
     if (s.appLog[`${m.id}:${uid}`] === 'KICKED') return null
     if (!membersOf(m.id, s).includes(uid)) throw applicationNotFound()
     if (m.cancelled || started(m)) throw conflict('MEETUP_KICK_NOT_ALLOWED', '취소된 모임이거나 시작한 모임입니다.')
-    kick(m.id, uid)
+    openingSeat(m.id, () => kick(m.id, uid))
     return null
   }),
 
