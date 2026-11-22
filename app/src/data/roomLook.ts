@@ -12,7 +12,7 @@
  * 3. (2단계) 꾸미기 값 = 대표 관심사 대분류의 색 묶음(data/roomStyle CATEGORY_THEMES) + 집주인 id 씨앗 자동 꾸미기.
  *    집주인이 색 테마를 골랐으면 그 테마로. 같은 사람은 늘 같은 방 (씨앗 = 회원 id. 서버를 붙이면 내 땅굴도 'me' 가 아니라 실제 회원 id 로)
  */
-import { furnitureCandidates, getMyFurnChoice, getMyRoomPick, leadCategory, pruneChoice, type FurnChoice } from './myBurrow'
+import { wordChoices, getMyFurnChoice, getMyRoomPick, leadCategory, pruneChoice, type FurnChoice } from './myBurrow'
 import { WALLPAPERS, wallpaperForCategory } from './wallpapers'
 import { ALL_THEME_IDS, autoStyle, autoStyleFor, categoryTheme, hashSeed, type RoomStyle } from './roomStyle'
 
@@ -47,10 +47,10 @@ export const leadCategoryOf = (interests: string[]): string | null => leadCatego
 /** 내가 저장한 방 (목: sessionStorage. 서버를 붙이면 GET /burrows/{내 id} 의 room 과 같은 값) */
 export const mySavedRoom = (): SavedRoom => { const p = getMyRoomPick(); return { wallpaperId: p.wallpaperId, furniture: getMyFurnChoice(), themeId: p.themeId ?? null } }
 
-/** 저장된 가구 선택 중 지금 관심사에 맞는 것만 (꾸미기 가구 탭에서 고를 수 있는 후보만) */
+/** 저장된 가구 선택 중 지금 관심사에 맞는 것만 (꾸미기 소품 탭에서 고를 수 있는 단어만, v3.8) */
 export function validFurniture(furniture: FurnChoice | null | undefined, interests: string[]): FurnChoice {
   const kept = pruneChoice(furniture ?? {}, interests)
-  return Object.fromEntries(Object.entries(kept).filter(([sub, fid]) => furnitureCandidates(sub, interests).some((r) => r.id === fid)))
+  return Object.fromEntries(Object.entries(kept).filter(([sub, fid]) => wordChoices(sub).includes(fid)))
 }
 
 /** 꾸미기 값: 고른 테마가 있으면 그 테마로 자동 꾸미기, 없으면 대표 관심사 대분류의 묶음 */

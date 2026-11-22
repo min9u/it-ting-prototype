@@ -10,7 +10,7 @@ import { PALETTE_KEYS, SLOT_NAME, PATTERN_SIZES, shapeOf, themeOf, type FinishKi
  * - 무늬: onBeforeCompile 로 색 단계 뒤에 삼면 투영(triplanar) 무늬를 섞음. 좌표는 가구 기준(크기 m)이라 회전한 가구에서도 결이 맞음
  *   (UV 는 AO 아틀라스용이라 무늬에 못 씀)
  * - 마감: 점토(원래 Standard) / 도자기·금속(Physical + 방 환경맵) / 벨벳·펠트(sheen)
- * - 모양: 기본 가구만. 노드 크기·위치 바꾸기, 숨기기·복제, 코드로 만든 점토 덧붙이(머리판·테이블보·술). 덧붙이도 팔레트 재질이라 같이 칠해짐
+ * - 모양: 기본 가구만. 노드 크기·위치 바꾸기, 숨기기·복제, 코드로 만든 점토 덧붙이(테이블보·술). 덧붙이도 팔레트 재질이라 같이 칠해짐
  * - 러그: 껍데기에 구운 그림(emissive)이라 밝기만 살리고 색을 다시 입힘
  * apply(style) 는 매번 처음 상태로 되돌린 뒤 다시 적용 (몇 번 불러도 같은 결과)
  */
@@ -47,7 +47,7 @@ interface Target {
   mats: Map<string, MatSlot>
 }
 
-const ADDON_LABEL: Record<string, string> = { head: '머리판', cloth: '테이블보', tassel: '술' }
+const ADDON_LABEL: Record<string, string> = { cloth: '테이블보', tassel: '술' }
 const PAT_ID: Record<Exclude<PatternKind, 'none'>, number> = { stripe: 1, dot: 2, check: 3, gingham: 4, zigzag: 5, flower: 6 }
 const slotOfMat = (name: string): PaletteKey | null => {
   const m = /^M_(?:bulb_)?(.+)$/.exec(name)
@@ -192,55 +192,12 @@ function injectPattern(m: THREE.Material, kind: PatternKind, u: PatUniforms, rug
 
 /* ===== 점토 덧붙이 (코드로 만든 모양) ===== */
 
-/** 머리판 외곽선 (가운데 아래 = 원점, 폭 w, 높이 h) */
-function headShape(kind: string, w: number, h: number) {
-  const s = new THREE.Shape(), hw = w / 2
-  if (kind === 'arch') {
-    const ry = Math.min(hw * .75, h * .45)
-    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw, h - ry)
-    s.absellipse(0, h - ry, hw, ry, 0, Math.PI, false, 0)
-    s.lineTo(-hw, 0)
-  } else if (kind === 'cloud') {
-    const n = 3, r = w / n / 2, base = h - r * .9
-    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw, base)
-    for (let i = n - 1; i >= 0; i--) {
-      const cx = -hw + r + i * r * 2, lift = i === 1 ? r * .45 : 0
-      s.absarc(cx, base + lift, r * (i === 1 ? 1.12 : 1), 0, Math.PI, false)
-    }
-    s.lineTo(-hw, 0)
-  } else if (kind === 'bumps') {
-    // 아래쪽 판 + 위에 봉긋한 두 봉우리 (하트 윗부분)
-    const bh = h * .55, hr = Math.min(hw * .5, (h - bh) * .62)
-    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw, bh)
-    s.lineTo(hr * 1.9, bh)
-    s.absarc(hr * .95, bh + hr * .6, hr, -.35, Math.PI, false)
-    s.absarc(-hr * .95, bh + hr * .6, hr, 0, Math.PI + .35, false)
-    s.lineTo(-hr * 1.9, bh); s.lineTo(-hw, bh); s.lineTo(-hw, 0)
-  } else {
-    const r = Math.min(.2, hw * .45)
-    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw, h - r)
-    s.absarc(hw - r, h - r, r, 0, Math.PI / 2, false)
-    s.lineTo(-hw + r, h)
-    s.absarc(-hw + r, h - r, r, Math.PI / 2, Math.PI, false)
-    s.lineTo(-hw, 0)
-  }
-  return s
-}
-
 /** 메시 → 원래(glb) 재질. userData 에 넣으면 clone 때 JSON 으로 복사돼서 따로 둠 */
 const ORIG = new WeakMap<THREE.Mesh, THREE.Material>()
-/** 복제한 노드의 메시들도 원본 메시의 원래 재질을 가리키게 */
-function linkClone(src: THREE.Object3D, copy: THREE.Object3D) {
-  const a: THREE.Mesh[] = [], b: THREE.Mesh[] = []
-  src.traverse((o) => { if ((o as THREE.Mesh).isMesh) a.push(o as THREE.Mesh) })
-  copy.traverse((o) => { if ((o as THREE.Mesh).isMesh) b.push(o as THREE.Mesh) })
-  a.forEach((m, i) => { const o = ORIG.get(m); if (o && b[i]) { ORIG.set(b[i], o); b[i].material = o } })
-}
-
 /** 흰 1×1 (덧붙이 재질의 AO 자리, 아래 plainMatLike). UV 채널마다 하나 */
 const WHITE_AO = new Map<number, THREE.DataTexture>()
 /**
- * 점토 덧붙이(머리판 · 테이블보 · 술) 재질. 가구 glb 의 팔레트 재질(tpl)을 복제하고 AO 만 흰 1×1 로 바꿈 →
+ * 점토 덧붙이(테이블보 · 술) 재질. 가구 glb 의 팔레트 재질(tpl)을 복제하고 AO 만 흰 1×1 로 바꿈 →
  * 셰이더가 가구 재질과 같아서 새로 컴파일할 것이 없음 (2026-11-18: 맨 MeshStandardMaterial 은 셰이더 종류가 하나 늘어
  * 가속 끈 PC 첫 진입이 길어졌음). tpl 이 없으면(가구를 아직 못 받음) 예전처럼 맨 재질
  */
@@ -341,66 +298,6 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
     collect(t, mesh, { part, slot, defaults, addon: true })
   }
 
-  const shapeBed = (t: Target, s: RoomStyle) => {
-    const frame = node(t, 'bed_frame'), pillow = node(t, 'bed_pillow')
-    if (!frame || !pillow) return
-    const size = shapeOf(s, 'bed', 'size')
-    if (size === 'low') t.root.scale.y *= .8
-    if (size === 'big') { t.root.scale.x *= 1.1; t.root.scale.z *= 1.06 }
-    const fb = localBox(t.root, [frame]), pb = localBox(t.root, [pillow])
-    const headSign = pb.getCenter(new THREE.Vector3()).z < fb.getCenter(new THREE.Vector3()).z ? -1 : 1
-    const pc = pb.getCenter(new THREE.Vector3())
-    const pil = shapeOf(s, 'bed', 'pillow')
-    if (pil === 'none') pillow.visible = false
-    if (pil === 'two') {
-      const twin = pillow.clone(true)
-      linkClone(pillow, twin)
-      scaleAbout([pillow], pc, new THREE.Vector3(.6, 1, 1)); pillow.position.x -= (pb.max.x - pb.min.x) * .27
-      scaleAbout([twin], pc, new THREE.Vector3(.6, 1, 1)); twin.position.x += (pb.max.x - pb.min.x) * .27
-      t.root.add(twin); t.addons.push(twin)
-      collect(t, twin, { addon: true })
-    }
-    const head = shapeOf(s, 'bed', 'head')
-    if (head !== 'none') {
-      const w = (fb.max.x - fb.min.x) * .98, h = fb.max.y + .3, depth = .05
-      const geo = new THREE.ExtrudeGeometry(headShape(head, w, h), { depth, bevelEnabled: true, bevelSize: .025, bevelThickness: .025, bevelSegments: 3, curveSegments: 20 })
-      geo.translate(0, 0, -depth / 2)
-      const mesh = new THREE.Mesh(geo, plainMat('wood_light'))
-      const z = headSign < 0 ? fb.min.z - .045 : fb.max.z + .045
-      mesh.position.set((fb.min.x + fb.max.x) / 2, 0, z)
-      addAddon(t, mesh, 'head', head === 'bumps' ? 'orange' : head === 'cloud' ? 'cream' : 'wood_light')
-    }
-  }
-
-  const shapeNightstand = (t: Target, s: RoomStyle) => {
-    const lamp = nodes(t, /^nightstand_lamp_(cap|dot_\d+)$/), stem = node(t, 'nightstand_lamp_stem')
-    const body = nodes(t, /^nightstand_(body|door|drawer)$/)
-    const bodyBox = localBox(t.root, body)
-    const bodyH = bodyBox.max.y
-    const lampAll = [...lamp, ...(stem ? [stem] : [])]
-    const bodyKind = shapeOf(s, 'nightstand', 'body')
-    if (bodyKind === 'tall') {
-      scaleAbout(body, new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1.25, 1))
-      for (const n of lampAll) n.position.y += bodyH * .25
-    } else if (bodyKind === 'wide') {
-      // 침대 반대쪽(+x)으로만 넓힘 (침대와 겹치지 않게)
-      const piv = new THREE.Vector3(bodyBox.min.x, 0, 0)
-      scaleAbout(body, piv, new THREE.Vector3(1.35, 1, 1.05))
-      for (const n of lampAll) n.position.x += (bodyBox.max.x - bodyBox.min.x) * .35 / 2
-    }
-    const cap = node(t, 'nightstand_lamp_cap')
-    if (!cap) return
-    const cb = localBox(t.root, [cap])
-    const piv = new THREE.Vector3((cb.min.x + cb.max.x) / 2, cb.min.y, (cb.min.z + cb.max.z) / 2)
-    const k = shapeOf(s, 'nightstand', 'cap')
-    if (k === 'flat') scaleAbout(lamp, piv, new THREE.Vector3(1.4, .62, 1.4))
-    if (k === 'cone') scaleAbout(lamp, piv, new THREE.Vector3(.72, 1.9, .72))
-    if (k === 'tiny' && stem) {
-      const sb = localBox(t.root, [stem])
-      scaleAbout(lampAll, new THREE.Vector3((sb.min.x + sb.max.x) / 2, sb.min.y, (sb.min.z + sb.max.z) / 2), new THREE.Vector3(.68, .68, .68))
-    }
-  }
-
   const shapeTable = (t: Target, s: RoomStyle) => {
     const top = node(t, 'round_table_top')
     const tea = node(t, 'round_table_teapot'), cups = nodes(t, /^round_table_cup_0\d$/)
@@ -471,7 +368,8 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
   }
 
   const SHAPERS: Record<string, (t: Target, s: RoomStyle) => void> = {
-    bed: shapeBed, nightstand: shapeNightstand, round_table: shapeTable, cushion_sky: shapeCushion, cushion_yellow: shapeCushion, ceiling_lamp: shapeCeilingLamp,
+    // v3.8: room_base_v3(_1) 에서 침대 · 협탁이 빠져서 그 둘의 모양 손질은 지움 (저장된 값은 대상이 없어 그냥 무시됨)
+    round_table: shapeTable, cushion_sky: shapeCushion, cushion_yellow: shapeCushion, ceiling_lamp: shapeCeilingLamp,
   }
 
   /* ----- 재질 ----- */
@@ -513,7 +411,7 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
   const restore = (t: Target) => {
     for (const a of t.addons) {
       a.removeFromParent()
-      // 코드로 만든 덧붙이만 지오메트리·재질 해제 (복제한 베개는 glb 지오메트리·재질을 공유)
+      // 코드로 만든 덧붙이만 지오메트리·재질 해제 
       if ((a as THREE.Mesh).isMesh && a.name.startsWith('style_')) {
         (a as THREE.Mesh).geometry.dispose()
         ;ORIG.get(a as THREE.Mesh)?.dispose()
@@ -550,6 +448,12 @@ export function createStyler(renderer: THREE.WebGLRenderer, opts: { patterns?: b
       collect(t, root)
       root.userData.styleId = id
       targets.push(t)
+    },
+    /** 묶음(root)이 방에서 빠짐 (꾸미기 소품 탭에서 단어를 바꿔 자리가 달라짐) → 그 가구 재질을 버림 */
+    unregister(root: THREE.Object3D) {
+      const i = targets.findIndex((t) => t.root === root)
+      if (i < 0) return
+      const old = targets[i]; restore(old); for (const ms of old.mats.values()) ms.mat.dispose(); targets.splice(i, 1)
     },
     /** 같은 묶음(root) 안의 가구가 바뀜 (꾸미기 가구 탭에서 갈아 끼움) → 그 가구 재질을 버리고 다시 등록 */
     replace(root: THREE.Object3D, id: string, label: string, kind: StyleKind) {

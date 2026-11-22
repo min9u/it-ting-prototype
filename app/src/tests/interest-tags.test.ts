@@ -12,7 +12,7 @@ import { INTEREST_CATS, INTEREST_SUBS, categoriesOf, migrateInterests, migrateSu
 import { CATEGORIES, MEETUPS, USERS, categoryOf } from '../data/mock'
 import { FX_COLORS, FX_STYLE } from '../data/interestFx'
 import { MOOD_NAMES } from '../data/myBurrow'
-import { BLOCK_COLORS, FURNITURE_CATALOG, SLOTS, planRoom } from '../data/roomPlan'
+import { BLOCK_COLORS, planRoom } from '../data/roomPlan'
 import { QUESTIONS, questionOf } from '../data/questions'
 import { DEFAULT_WALLPAPER, wallpaperForCategory } from '../data/wallpapers'
 import { GUEST_ROOMS } from '../data/guestRooms'
@@ -43,7 +43,6 @@ const PARSED = USER_LIST.trim().split('\n').map((line) => {
 })
 
 const catIds = INTEREST_CATS.map((c) => c.id)
-const catalogRow = (id: string) => FURNITURE_CATALOG.find((r) => r.id === id)
 
 describe('확정본 목록 그대로 (사용자 문구 · 개수 · 순서)', () => {
   it('대분류 12 · 소분류 90 · 최대 10개', () => {
@@ -119,48 +118,29 @@ describe('대분류마다 빠짐없이 (새 대분류를 더하면 여기서 알
 })
 
 describe('3D 가구 · 소품 연결 (data/interest3d.ts)', () => {
-  it('대분류 가구: 카탈로그의 대분류 가구 행 · 슬롯이 있고, 세트(kit)가 같음', () => {
+  it('대분류마다 3D 세트(kit, 벽지 · 블록 색)가 있음. 대분류 가구 · 소분류 소품 표는 v3.8 에서 비움(모델은 data/interestWords.ts)', () => {
     for (const c of INTEREST_CATS) {
-      expect(c.furniture.length, c.id).toBeGreaterThan(0)
-      c.furniture.forEach((fid, i) => {
-        const r = catalogRow(fid)
-        expect(r?.type, fid).toBe('category_furniture')
-        expect(r?.category, fid).toBe(c.kit)
-        expect(c.furniture_slots[i], fid).toBe(r?.slot?.name)
-        expect(SLOTS.find((s) => s.name === c.furniture_slots[i])?.category, fid).toBe(c.kit)
-      })
+      expect(c.kit, c.id).toBeTruthy()
+      expect(c.furniture, c.id).toEqual([])
     }
+    expect(Object.keys(SUB_PROP)).toEqual([])
+    for (const s of INTEREST_SUBS) expect(s.prop, s.id).toBeNull()
   })
-  it('같은 가구를 쓰는 대분류는 빌려 쓰는 쪽(substitute)이 있을 때뿐', () => {
-    const owners = new Map<string, string[]>()
-    for (const c of INTEREST_CATS) for (const f of c.furniture) owners.set(f, [...(owners.get(f) ?? []), c.id])
-    for (const [f, cs] of owners) if (cs.length > 1) expect(cs.some((c) => !!CATEGORY_3D[c].substitute), `${f}: ${cs}`).toBe(true)
-  })
-  it('소품 표는 소분류 90개를 모두 적음 · 있는 소품은 카탈로그의 소품 행 · 소품 하나는 소분류 하나에만', () => {
-    expect(Object.keys(SUB_PROP).sort()).toEqual(INTEREST_SUBS.map((s) => s.id).sort())
-    const used = Object.values(SUB_PROP).filter((p): p is string => !!p)
-    expect(new Set(used).size, '소품 겹침').toBe(used.length)
-    for (const p of used) expect(catalogRow(p)?.type, p).toBe('sub_prop')
-    // 표에 적은 소품이 모두 실제로 연결됨 (오타면 prop 이 null 이 됨)
-    for (const s of INTEREST_SUBS) expect(s.prop, s.id).toBe(SUB_PROP[s.id] ?? null)
-  })
-  it('반려동물 용품을 고르면 짝 동물이 있음 (강아지 · 고양이 · 새 · 곤충/파충류/기타)', () => {
-    const pets = INTEREST_SUBS.filter((s) => s.pet).map((s) => s.id).sort()
-    expect(pets).toEqual(['bird', 'cat', 'dog', 'insect_reptile'])
-    for (const s of INTEREST_SUBS.filter((x) => x.pet)) expect(catalogRow(s.pet!)?.type).toBe('pet')
-  })
-  it('스포츠 + 아웃도어를 같이 골라도 같은 가구는 한 번만, 먼저 고른 대분류 몫', () => {
+  it('소분류 하나를 고르면 모델 하나가 놓임 (v3.8). 두 대분류를 같이 골라도 그대로', () => {
     const p = planRoom(['러닝/마라톤', '캠핑/글램핑'])
-    const bikes = p.items.filter((it) => it.row.id === 'bike_rack_wall')
-    expect(bikes).toHaveLength(1)
-    expect(bikes[0].category).toBe('sports')
+    expect(p.items).toHaveLength(2)
+    expect(p.items.map((it) => it.sub).sort()).toEqual(['camping', 'running'])
     expect(p.categories).toEqual(['sports', 'outdoor'])
-    expect(p.items.find((it) => it.sub === 'camping')?.row.id).toBe('backpack')
+    expect(p.items.map((it) => it.category).sort()).toEqual(['outdoor', 'sports'])
   })
-  it('소품이 없는 소분류만 골라도 대분류 가구는 놓임 (외국어·자기계발 → 책 세트)', () => {
-    const p = planRoom(['영어', '일본어', '봉사'])
-    expect(p.items.map((it) => it.row.id).sort()).toEqual(['bookshelf', 'reading_lamp'])
-    expect(p.items.every((it) => it.category === 'language_selfdev')).toBe(true)
+  it('"/"로 묶인 소분류는 첫 단어의 모델 (카페/커피 → 카페 = 에스프레소 머신), 고른 단어가 있으면 그 단어', () => {
+    expect(planRoom(['카페/커피']).items[0].row.node).toBe('espresso_machine')
+    expect(planRoom(['카페/커피'], { cafe_coffee: '커피' }).items[0].row.node).toBe('drip_kettle')
+  })
+  it('반려동물 소분류는 용품 + 짝 동물 두 개가 같은 시각에 놓임', () => {
+    const p = planRoom(['강아지'])
+    expect(p.items.map((it) => it.row.type).sort()).toEqual(['pet', 'sub_prop'])
+    expect(new Set(p.items.map((it) => it.start)).size).toBe(1)
   })
   it('벽지는 대분류의 3D 세트로 (반려동물·식물 = 숲, 음식·음료 = 체크, 스포츠 = 기본)', () => {
     expect(wallpaperForCategory('pet_plant')).toBe(wallpaperForCategory('nature'))

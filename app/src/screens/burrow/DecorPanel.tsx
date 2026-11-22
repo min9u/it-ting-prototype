@@ -1,10 +1,12 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { lookDiverse, subscribeLook } from '../../lib/roomLookLab'
 import MoleDresser from '../../components/MoleDresser'
 import { CloseIcon } from '../../components/Icons'
 import { interestCatOf, subOf, toSubIds } from '../../data/interests'
 import { BLOCK_COLORS } from '../../data/roomPlan'
-import { defaultFurniture, furnitureCandidates, leadCategory, type FurnChoice } from '../../data/myBurrow'
+import { placeWords } from '../../data/roomPlanV38'
+import { wordsOfSub, type WordDef } from '../../data/interestWords'
+import { leadCategory, wordChoices, type FurnChoice } from '../../data/myBurrow'
 import { CATEGORY_THEMES, categoryTheme } from '../../data/roomStyle'
 import UnsavedDialog from './UnsavedDialog'
 import s from './Burrow.module.css'
@@ -13,12 +15,12 @@ import m from './MyBurrow.module.css'
 export type DecorTab = 'furniture' | 'mole' | 'color'
 
 /**
- * 땅굴 – 꾸미기 모드 (02 F4 가구 탭 · 두더지 탭, 2026-11-16)
- * 가구 탭
- *  3 안내: 세부 관심사마다 가구를 하나씩 고름. 기본 가구 = 온보딩 3a 추천 가구
- *  4 내 세부 관심사 칩(분야 아님). 누르면 그 관심사의 가구 후보
- *  5 후보 중 하나를 고르면 땅굴의 그 자리 가구가 바로 바뀜 (자리는 고정, 옮기거나 뺄 수 없음)
- *  6 지금 고르는 가구를 땅굴 위에 점선 + "관심사 · 가구 이름" (RoomView highlight → three/roomScene)
+ * 땅굴 – 꾸미기 모드 (02 F4 · 소품 탭 / 두더지 탭, 2026-11-21 v3.8 5단계)
+ * 소품 탭 (탭 값은 'furniture' 그대로: MyBurrow 연결을 안 건드리려고. 화면 글자만 "소품")
+ *  3 안내: "/"로 묶인 관심사마다 소품(단어)을 하나씩 고름. 처음 값 = 첫 단어. 한 단어짜리 관심사는 소품이 고정이라 칩에 안 나옴
+ *  4 내 관심사 칩 중 고를 수 있는 것만(90개 중 57개). 누르면 그 관심사의 단어 후보
+ *  5 후보(단어마다 모델 1개: 썸네일 + 모델 이름)를 고르면 땅굴의 그 소품이 바로 바뀜 (방이 새 선택으로 배치를 다시 계산)
+ *  6 지금 고르는 소품을 땅굴 위에 점선 + "관심사 · 소품 이름" (RoomView highlight → three/roomScene)
  * 두더지 탭: 지금 착용 중 / 부위 탭 / 부위마다 하나("없음"이면 벗기). 아이템·관심사 아이템 규칙은 온보딩 1과 같음(관심사 아이템도 고를 수 있음)
  * 색 탭 (2026-11-18 실험, docs/room-diversity-2-2026-11-18.md): 땅굴 색 묶음(벽 · 바닥 · 러그 · 가구 색)을 고름. "자동" = 대표 관심사 대분류의 묶음.
  *   이불·러그 무늬와 가구 모양은 그대로(내 id 씨앗), 색만 바뀜. 고른 값은 저장한 방의 themeId (남이 볼 때도 같음). 명세에 없는 탭이라 확인받을 것
@@ -44,7 +46,7 @@ export default function DecorPanel({ tab, setTab, picks, worn, setWorn, furn, se
         <button className={s.closeBtn} onClick={leave} aria-label="꾸미기 닫기"><CloseIcon size={18} /></button>
       </div>
       <div className={s.segment} role="tablist" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <button role="tab" aria-selected={tab === 'furniture'} className={tab === 'furniture' ? s.segOn : s.seg} onClick={() => setTab('furniture')}>가구</button>
+        <button role="tab" aria-selected={tab === 'furniture'} className={tab === 'furniture' ? s.segOn : s.seg} onClick={() => setTab('furniture')}>소품</button>
         <button role="tab" aria-selected={tab === 'color'} className={tab === 'color' ? s.segOn : s.seg} onClick={() => setTab('color')}>색</button>
         <button role="tab" aria-selected={tab === 'mole'} className={tab === 'mole' ? s.segOn : s.seg} onClick={() => setTab('mole')}>두더지</button>
       </div>
@@ -54,7 +56,7 @@ export default function DecorPanel({ tab, setTab, picks, worn, setWorn, furn, se
         ) : tab === 'color' ? (
           <ColorTab picks={picks} theme={theme} setTheme={setTheme} />
         ) : (
-          <FurnitureTab picks={picks} furn={furn} setFurn={setFurn} focusSub={focusSub} setFocusSub={setFocusSub} />
+          <PropTab picks={picks} furn={furn} setFurn={setFurn} focusSub={focusSub} setFocusSub={setFocusSub} />
         )}
       </div>
       <div className={s.panelActions}>
@@ -108,45 +110,56 @@ function ColorTab({ picks, theme, setTheme }: { picks: string[]; theme: string |
   )
 }
 
-function FurnitureTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: string[]; furn: FurnChoice; setFurn: (f: FurnChoice) => void; focusSub: string | null; setFocusSub: (id: string | null) => void }) {
-  const subs = toSubIds(picks).filter((id) => defaultFurniture(id))
+/** 소품 썸네일: assets/prop-thumbs/<모델 노드>.webp 가 있으면 그 그림, 없으면 대분류 색 바탕에 단어 (임시, 필요한 목록은 docs/room-interest-v3-8-step4-5.md) */
+const THUMBS = import.meta.glob('../../assets/prop-thumbs/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+const thumbOf = (node: string) => THUMBS[`../../assets/prop-thumbs/${node}.webp`]
+
+function PropTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: string[]; furn: FurnChoice; setFurn: (f: FurnChoice) => void; focusSub: string | null; setFocusSub: (id: string | null) => void }) {
+  const subs = useMemo(() => toSubIds(picks).filter((id) => wordChoices(id).length > 0), [picks])
   const cur = focusSub && subs.includes(focusSub) ? focusSub : subs[0] ?? null
+  // 꾸미기를 열면 첫 칩의 소품을 방에서 가리키게 (highlight 는 focusSub 로 정해짐)
+  useEffect(() => { if (cur && focusSub !== cur) setFocusSub(cur) }, [cur, focusSub, setFocusSub])
   const sub = cur ? subOf(cur) : undefined
-  const rows = cur ? furnitureCandidates(cur, picks) : []
-  const chosen = cur ? furn[cur] ?? defaultFurniture(cur)?.id : undefined
-  const pickRow = (id: string) => {
+  const words: WordDef[] = (cur ? wordsOfSub(cur)?.words : undefined) ?? []
+  const chosen = cur ? words.find((w) => w.word === furn[cur])?.word ?? words[0]?.word : undefined
+  const pickWord = (word: string) => {
     if (!cur) return
     const next = { ...furn }
-    if (id === defaultFurniture(cur)?.id) delete next[cur]; else next[cur] = id
+    if (word === words[0]?.word) delete next[cur]; else next[cur] = word
     setFurn(next)
   }
+  // 고른 단어가 자리가 없어 못 놓이면(다른 단어로 넘어감) 안내
+  const placed = useMemo(() => (cur ? placeWords(toSubIds(picks), furn).placed.find((p) => p.sub === cur)?.word.word : undefined), [cur, picks, furn])
   return (
     <div className={s.furnTab}>
-      <p className={s.furnInfo}>ⓘ 관심사마다 가구를 하나씩 골라요.<br />관심사를 바꾸면 가구도 자동으로 바뀌어요.</p>
-      {subs.length === 0 ? <p className={s.formNote}>고른 관심사가 없어요. 내 정보 수정에서 관심사를 골라 주세요.</p> : (
+      <p className={s.furnInfo}>ⓘ "/"로 묶인 관심사마다 소품을 하나씩 골라요.<br />관심사를 바꾸면 소품도 자동으로 바뀌어요.</p>
+      {subs.length === 0 ? <p className={s.formNote}>고를 수 있는 소품이 없어요. "/"로 묶인 관심사(예: 카페/커피)를 고르면 소품을 고를 수 있어요.</p> : (
         <>
-          <div className={s.furnCats} role="tablist" aria-label="내 관심사">
+          <div className={s.furnCats} role="tablist" aria-label="소품을 고를 수 있는 내 관심사">
             {subs.map((id) => (
               <button key={id} role="tab" aria-selected={id === cur} className={id === cur ? s.furnCatOn : s.furnCat} onClick={() => setFocusSub(id)}>{subOf(id)?.name_ko}</button>
             ))}
           </div>
-          <p className={s.furnHead}><strong>{sub?.name_ko} 가구 고르기</strong><span>{rows.length}개 중 1개</span></p>
+          <p className={s.furnHead}><strong>{sub?.name_ko} 소품 고르기</strong><span>{words.length}개 중 1개</span></p>
           <ul className={s.furnGrid}>
-            {rows.map((r, i) => {
-              const on = chosen === r.id
+            {words.map((w, i) => {
+              const on = chosen === w.word
+              const src = thumbOf(w.node)
               return (
-                <li key={r.id}>
-                  <button className={on ? s.furnCardOn : s.furnCard} aria-pressed={on} onClick={() => pickRow(r.id)}>
+                <li key={w.word}>
+                  <button className={on ? s.furnCardOn : s.furnCard} aria-pressed={on} onClick={() => pickWord(w.word)}>
                     {i === 0 && <em className={m.furnBase}>기본</em>}
-                    <span className={s.furnThumb} style={{ background: BLOCK_COLORS[sub?.category ?? ''] ?? '#F7E6C8' }} aria-hidden />
-                    {r.name_ko}
+                    {src
+                      ? <img className={s.furnThumb} src={src} alt="" aria-hidden style={{ objectFit: 'contain', borderRadius: 0, boxShadow: 'none' }} />
+                      : <span className={s.furnThumb} style={{ background: BLOCK_COLORS[sub?.category ?? ''] ?? '#F7E6C8', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display)', fontSize: 13, lineHeight: 1.1, textAlign: 'center', wordBreak: 'keep-all', color: 'rgba(62,42,31,.55)' }} aria-hidden>{w.word}</span>}
+                    {w.name}
                   </button>
                 </li>
               )
             })}
           </ul>
-          {rows.length === 1 && <p className={s.formNote}>이 관심사 자리에 놓을 수 있는 가구는 하나예요.</p>}
-          <p className={s.formNote}>가구 자리는 정해져 있어서 옮기거나 뺄 수 없어요.</p>
+          {placed && chosen && placed !== chosen && <p className={s.formNote}>자리가 없어서 "{placed}" 소품이 대신 놓여요.</p>}
+          <p className={s.formNote}>소품 자리는 정해져 있어서 옮기거나 뺄 수 없어요.</p>
         </>
       )}
     </div>
