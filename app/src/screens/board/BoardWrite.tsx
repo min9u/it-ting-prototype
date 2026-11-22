@@ -106,7 +106,7 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
   return (
     <div className={s.wrap}>
       <div className={s.writeWrap}>
-        <p className={s.writeCrumb}><Link to="/board">커뮤니티</Link> / <span>{mode === 'edit' ? '글 수정' : '글쓰기'}</span></p>
+        <p className={s.writeCrumb}><Link to="/board">게시판</Link> / <span>{mode === 'edit' ? '글 수정' : '글쓰기'}</span></p>
         <h1 className={`display ${s.writeTitle}`}>{mode === 'edit' ? '글 수정' : '글쓰기'}</h1>
 
         <form className={s.writeCard} onSubmit={(e) => { e.preventDefault(); submit() }}>

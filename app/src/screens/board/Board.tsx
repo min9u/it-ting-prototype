@@ -81,7 +81,7 @@ export function BoardList() {
         <section className={s.boardCard}>
           <header className={s.boardHead}>
             <div>
-              <h1 className="display">커뮤니티</h1>
+              <h1 className="display">게시판</h1>
               <p>땅굴 밖에서 디굴디굴 나누는 이야기예요.</p>
             </div>
             <WriteButton />

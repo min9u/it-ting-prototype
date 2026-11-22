@@ -156,7 +156,7 @@ function PostView({ p }: { p: Post }) {
           )}
           {/* 4 위치 · 카테고리 */}
           <p className={s.crumb}>
-            <Link to="/board"><ChevronLeft size={14} /> 커뮤니티</Link>
+            <Link to="/board"><ChevronLeft size={14} /> 게시판</Link>
             <Link to={`/board?cat=${encodeURIComponent(p.category)}`}><CatPill cat={p.category} /></Link>
           </p>
           {folded ? (
