@@ -207,6 +207,8 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
   // 입력창을 떠나면 "입력 중" 끝
   useEffect(() => () => setMyTyping(room.id, false), [room.id])
 
+  // 사용자별 마지막으로 말한 시각 (찻방 3D: 6명 초과일 때 누가 앉을지)
+  const spoke = useMemo(() => { const r: Record<string, number> = {}; for (const m of room.messages) if (!m.system) r[m.authorId] = Math.max(r[m.authorId] ?? 0, m.at); return r }, [room.messages])
   const guests = useMemo<TeaGuest[]>(() => (room.kind === 'group' ? membersOf(room).sort((a, b) => (a === ME_ID ? -1 : b === ME_ID ? 1 : 0)).map(guestOf) : [meGuest(), guestOf(room.partnerId!)]), [room])
 
   const submit = (text = draft, meetupId?: string) => {
@@ -232,7 +234,7 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
 
   return (
     <>
-      <TeaRoom mode={room.kind === 'group' ? 'group' : 'dm'} guests={guests} greet={greet} onPick={onProfile} />
+      <TeaRoom mode={room.kind === 'group' ? 'group' : 'dm'} guests={guests} greet={greet} spoke={spoke} roomKey={room.id} onPick={onProfile} onMore={() => setInfo(true)} />
 
       <section className={s.panel} aria-label={`${roomTitle(room)} 대화`}>
         <header className={s.head}>

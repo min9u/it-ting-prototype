@@ -1420,7 +1420,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
  * glb 재질은 장면끼리 공유하므로 이 장면 복제본의 메시에만 새 재질을 끼움
  */
 const SHADE_INTENSITY = 4 * Math.PI
-function applyWallpaper(root: THREE.Object3D, tile: THREE.Texture | null, solid?: string): THREE.MeshBasicMaterial | null {
+export function applyWallpaper(root: THREE.Object3D, tile: THREE.Texture | null, solid?: string): THREE.MeshBasicMaterial | null {
   let made: THREE.MeshBasicMaterial | null = null
   root.traverse((o) => {
     const m = o as THREE.Mesh
