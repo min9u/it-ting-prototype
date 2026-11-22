@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ME_ID } from '../../../data/mock'
 import RoomModeToggle from '../../../components/RoomModeToggle'
 import Avatar from '../../../components/Avatar'
 import InterestChip from '../../../components/InterestChip'
 import { EmptyMole } from '../../../components/Feedback'
 import { ChevronLeft, ChevronRight } from '../../../components/Icons'
-import { affOf, floorLabel, getRegulars, subscribeRegulars, type Resident } from '../../../data/field'
+import { affOf, floorLabel, type Resident } from '../../../data/field'
+import { useRegularOwnerIds } from '../../../api/explore'
 import { getMyWorn } from '../../../data/moleItems'
 import Minimap from '../Minimap'
 import { EmptyField, ExploreOverlays, ExploreTools, HomeButton, capture, useExploreBase, useExploreKeys, type ExploreBase } from './common'
@@ -31,7 +32,7 @@ const SORTS: [Sort, string][] = [['match', '잘 맞는 순'], ['online', '접속
 export default function ExploreCards() {
   const base = useExploreBase()
   const { field, floor, mine } = base
-  const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
+  const regulars = useRegularOwnerIds() // GET /me/regular-burrows
   const worn = useMemo(() => getMyWorn(), [])
   const q = base.params.get('sort')
   const [sort, setSortState] = useState<Sort>(q === 'online' || q === 'regular' || q === 'seat' ? q : 'match')
