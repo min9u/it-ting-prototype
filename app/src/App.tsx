@@ -16,7 +16,7 @@ import MeetupDetail from './screens/meetups/MeetupDetail'
 import MeetupNew from './screens/meetups/MeetupNew'
 import { BoardActivity, BoardEdit, BoardList, BoardPost, BoardWrite } from './screens/board/Board'
 import Settings, {
-  BlockedPage, CreditsPage, GooglePage, LeavePage, NoticeDetailPage, NoticeListPage, NotifSettingsPage, PasswordPage, SettingsHome,
+  CreditsPage, GooglePage, LeavePage, NoticeDetailPage, NoticeListPage, NotifSettingsPage, PasswordPage, SettingsHome,
 } from './screens/settings/Settings'
 import Admin from './screens/admin/Admin'
 import NotFound, { GoneRoute, RouteError } from './components/NotFound'
@@ -117,7 +117,6 @@ export const router = createRouter([{ errorElement: <RouteError />, children: [
           { path: 'password', element: <PasswordPage /> },
           { path: 'google', element: <GooglePage /> },
           { path: 'notifications', element: <NotifSettingsPage /> },
-          { path: 'blocked', element: <BlockedPage /> },
           { path: 'notices', element: <NoticeListPage /> },
           { path: 'notices/:id', element: <NoticeDetailPage /> },
           { path: 'leave', element: <LeavePage /> },

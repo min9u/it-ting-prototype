@@ -12,7 +12,7 @@
 
 | # | 질문 | 프론트 제안 |
 |---|---|---|
-| Q1 🔴 | **차단** 테이블이 없음 (설정 › 차단 관리, 프로필 팝업 차단, 채팅·요청 숨김) | `member_block(member_id, blocked_member_id, created_at)` PK 두 칼럼 |
+| ~~Q1~~ 취소 | ~~**차단** 테이블이 없음 (설정 › 차단 관리, 프로필 팝업 차단, 채팅·요청 숨김) | `member_block(member_id, blocked_member_id, created_at)` PK 두 칼럼~~ (2026-11-22 팀 명세에 차단이 없어 프론트에서 기능 전체를 뺌) |
 | Q2 🔴 | **방명록 길이**: 화면 100자, ERD `content VARCHAR(50)` | VARCHAR(100) 로 (화면 명세가 100) |
 | Q3 🔴 | **(2026-11-22 바뀜)** 모임 `category` 는 **관심사가 아니라 모임 전용 6개**(명세 07). `meetup.category` enum(HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS)로 두면 됨. **모임 관심사 태그(최대 3개)는 명세 07 에 없어 삭제** → `meetup_tag` 테이블 불필요 | `meetup.category` enum 6개 |
 | Q4 🔴 | **알림 제목 스냅숏**: 원본이 지워진 알림("‘북한산 아침 등산’ 모임이 취소됐어요")의 제목을 만들 데이터가 없음 | `notification.payload JSON` (대상 제목·닉네임 등) 또는 `title VARCHAR(100)`·`body VARCHAR(150)` |
@@ -57,7 +57,7 @@
 | 단골 수 🟢 | 내 땅굴 "단골 8" (`MY_REGULARS_COUNT`) | 상수 | `regular_burrow` | `COUNT(burrow_id = 내 땅굴)` 서버 계산 |
 | 추천 입력 🟠 | 추천 설정 팝업 (`RecommendSettings`) | 관심사 n개 · 질문 1 · 같은 질문 먼저 · 캠퍼스/기수/층 | `use_interest`·`use_same_question`·`use_affiliation` (타입 미정) + `recommend_setting_question` | Q9. 점수 규칙(프론트 목: 고른 관심사 겹침 ×3, 내 관심사 겹침 ×1, 같은 질문 +4, 같은 캠퍼스 +2, 기수 +1.5, 층 +2, 같은 점수는 날마다 섞음 — `data/field.ts drawRecommendations`)을 서버로 옮김 |
 | 오늘의 추천 날짜 🟢 | 하루 한 번 | 브라우저 날짜 | `recommended_on (미정)` | `DATE`, **Asia/Seoul 기준 오늘** |
-| 차단 🔴 | 설정 › 차단 관리, 프로필 팝업, 채팅 숨김 | localStorage | 없음 | Q1. 차단하면 서로의 대화 요청·1:1·방명록을 막을지(양방향) 결정 필요 |
+| ~~차단~~ | 2026-11-22 기능 삭제 (명세에 없음) | — | — | — |
 | 방 꾸미기 · 무드 · 벽지 🟠 | 내 땅굴 꾸미기 › 가구 탭, 무드 | 세부 관심사 → 가구 id (sessionStorage) | `member_interest.furniture VARCHAR(30)` | Q8. 가구 id 는 영구 id (이름 바꾸지 않음), 모르는 id 는 기본 가구로 |
 | 두더지 꾸미기 부위 🟢 | 머리 · 얼굴 · 목 · 손 (`MOLE_PARTS`) | 아이템 id 배열 (최대 4) | `mole_head`·`mole_face`·`mole_neck`·`mole_hand VARCHAR(30)` | **부위 4개는 맞음**. 아이템 목록(41개, glb 노드 이름, 가장 긴 것 18자)은 프론트 상수 → 서버 검증용으로 같은 목록 공유 필요. 규칙: 부위마다 하나, 관심사 전용 아이템은 그 대분류 관심사가 있어야, `ribbon_back`(목) + `prop_suitcase`(손) 같이 못 낌 |
 | 관심사 인원수 (니치) 🟢 | 온보딩 "통하는 취향", 분야 팝업 | 목 상수 | `member_interest` | `GET /interest-categories` 의 `memberCount` = COUNT (캐시 가능) |

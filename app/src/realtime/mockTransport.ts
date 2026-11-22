@@ -38,7 +38,7 @@ export interface MockControl {
   mode: MockMode
   /** 지금 연결을 끊고 ms 동안 못 붙게 함. missedFrom 을 주면 끊긴 동안 그 방에 상대 메시지가 하나 옴 */
   drop(ms?: number, missed?: { roomId: string; from?: string; text?: string }): void
-  /** 다음 보내기를 서버가 거절 (예: 차단된 상대) */
+  /** 다음 보내기를 서버가 거절 (예: 읽기 전용이 된 대화방) */
   rejectNext(code?: string, message?: string): void
   /** 상대가 메시지를 보냄 (연결돼 있으면 바로, 아니면 기록에만) */
   incoming(roomId: string, from: string, text: string): void
@@ -125,7 +125,7 @@ export function createMockTransport(mode: MockMode = 'normal'): Transport & { co
         later(0, () => target?.onClose({ reason: '연결이 끊겼어요 (목 서버)' }))
       }
     },
-    rejectNext(code = 'BLOCKED', message = '상대에게 메시지를 보낼 수 없어요') { reject = { code, message } },
+    rejectNext(code = 'SEND_REJECTED', message = '상대에게 메시지를 보낼 수 없어요') { reject = { code, message } },
     incoming(roomId, from, text) { say(roomId, from, text) },
     notify(text) {
       emit(TOPIC.notifications, { event: 'NOTIFICATION', notification: { id: `n-${Date.now()}`, type: 'TEST', createdAt: new Date().toISOString(), text } })

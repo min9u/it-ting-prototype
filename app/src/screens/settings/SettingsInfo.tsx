@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import Avatar from '../../components/Avatar'
-import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
+import { EmptyMole } from '../../components/Feedback'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import NotFound from '../../components/NotFound'
 import Pagination from '../../components/Pagination'
 import pg from '../../components/Pagination.module.css'
-import { unblockUser, useBlocked, type BlockedUser } from '../../data/account'
 import { KIND_META, NOTICE_KINDS, setBrowserPush, setNoticeKind, useNoticePrefs } from '../../data/notifications'
 import { serviceNoticeOf, useServiceNotices } from '../../data/serviceNotices'
 import { PageHead } from './SettingsParts'
@@ -66,40 +64,6 @@ export function NotifSettingsPage() {
       </ul>
       {pushMsg && <p className={s.noteWarn} role="status">{pushMsg}</p>}
       <p className={s.note}>바꾸면 바로 저장돼요.</p>
-    </>
-  )
-}
-
-/**
- * 설정 – 차단 관리 · 차단 해제 확인 (F10, 11-13 메타데이터 기준)
- * 차단한 사람: 두더지 · 닉네임 · 차단일 · 차단 해제. 해제는 확인 팝업 "OO님의 차단을 해제할까요?"
- * 차단은 프로필 팝업 · 글/댓글 "더 보기 › 차단"에서 한다 (data/account.ts blockUser)
- */
-export function BlockedPage() {
-  const list = useBlocked()
-  const [target, setTarget] = useState<BlockedUser | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
-  return (
-    <>
-      <PageHead title="차단 관리" sub="차단한 사람을 확인하고 해제할 수 있어요." />
-      {list.length === 0 ? (
-        <div className={s.card}><EmptyMole message="차단한 사람이 없어요" /></div>
-      ) : (
-        <ul className={`${s.card} ${s.cardFlush} ${s.rowList}`}>
-          {list.map((b) => (
-            <li key={b.id} className={s.blockRow}>
-              <Avatar size={44} label={`${b.nickname}의 두더지`} />
-              <span className={s.setText}><strong>{b.nickname}</strong><small>차단일 {b.blockedAt}</small></span>
-              <button className={s.btnLine} style={{ width: 100 }} onClick={() => setTarget(b)}>차단 해제</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className={s.note}>차단한 사람은 내게 대화 요청을 보낼 수 없고, 그 사람의 글 · 댓글은 가려져요. 차단 목록은 언제든 바꿀 수 있어요.</p>
-      <ConfirmDialog open={!!target} onClose={() => setTarget(null)}
-        onConfirm={() => { if (target) { unblockUser(target.id); setToast(`${target.nickname}님의 차단을 해제했어요`) } }}
-        title={`${target?.nickname ?? ''}님의 차단을 해제할까요?`} desc="해제하면 서로 다시 대화 요청을 보낼 수 있어요." confirmLabel="해제" tone="primary" />
-      <Toast open={!!toast} title={toast ?? ''} onClose={() => setToast(null)} />
     </>
   )
 }

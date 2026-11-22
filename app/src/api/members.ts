@@ -11,11 +11,11 @@ import { MAX_PICK, setMyInterests, subOf } from '../data/interests'
 import { MAX_WORN, itemOf, setMyWorn } from '../data/moleItems'
 import { NICK_MAX, nickTaken, setMyProfile } from '../data/myBurrow'
 import { QUESTIONS } from '../data/questions'
-import { accountStore, blockUser, unblockUser, withdraw as withdrawAccount } from '../data/account'
+import { withdraw as withdrawAccount } from '../data/account'
 import { drawRecommendations, todaysPicks } from '../data/field'
 import { seoulYmd } from '../lib/time'
 import type {
-  DailyRecommendationDto, Id, InterestCategoryDto, IntroQuestionDto, MemberProfileDto, MemberSummaryDto, MoleLookDto, RecommendRequestDto,
+  DailyRecommendationDto, Id, InterestCategoryDto, IntroQuestionDto, MemberProfileDto, MoleLookDto, RecommendRequestDto,
 } from './types'
 
 export interface ProfilePatch {
@@ -41,10 +41,6 @@ const real = {
   interestCategories: (signal?: AbortSignal) => http.get<InterestCategoryDto[]>('/interest-categories', undefined, signal),
   /** GET /intro-questions */
   introQuestions: (signal?: AbortSignal) => http.get<IntroQuestionDto[]>('/intro-questions', undefined, signal),
-  /** 차단 (ERD 에 차단 테이블 없음 → erd-gaps) */
-  blocked: (signal?: AbortSignal) => http.get<(MemberSummaryDto & { blockedAt: string })[]>('/me/blocks', undefined, signal),
-  block: (memberId: Id) => http.put<void>(`/me/blocks/${memberId}`),
-  unblock: (memberId: Id) => http.delete<void>(`/me/blocks/${memberId}`),
   /** DELETE /me — 회원 탈퇴 (사유 선택) */
   withdraw: (reason: string | null) => http.delete<void>('/me', { body: { reason } }),
   /** 오늘의 추천 친구 (2026-11-21 명세: 설정은 캠퍼스-층 · 기수뿐이고 서버에 저장하지 않음 → 설정 조회·저장 API 없음) */
@@ -87,9 +83,6 @@ const mock: MembersApi = {
     id: c.id, name: c.name, interests: c.tags.map((t) => ({ id: t.id, categoryId: c.id, name: t.name, memberCount: t.count })),
   })), { signal }),
   introQuestions: (signal) => mockRead(() => QUESTIONS.map((q) => ({ id: q.id, type: q.kind === 'tmi' ? 'TMI' : 'INTEREST', interestCategoryId: q.category ?? null, content: q.text })), { signal }),
-  blocked: (signal) => mockRead(() => accountStore.get().blocked.map((b) => ({ ...memberProfile(b.id), id: b.id, nickname: b.nickname, status: 'ACTIVE' as const, blockedAt: b.blockedAt })), { signal, empty: () => [] }),
-  block: (memberId) => mockWrite(() => { const u = rawPerson(memberId); blockUser({ id: memberId, nickname: u?.nickname ?? '두더지' }) }),
-  unblock: (memberId) => mockWrite(() => unblockUser(memberId)),
   withdraw: (reason) => mockWrite(() => withdrawAccount(reason)),
   todayRecommendation: (signal) => mockRead(() => { const p = todaysPicks(); if (!p) throw notFound('오늘의 추천'); return daily(p) }, { signal }),
   drawRecommendation: (req) => mockWrite(() => {

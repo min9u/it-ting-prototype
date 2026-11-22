@@ -83,7 +83,7 @@ HTTP/1.1 409 Conflict
 - 이전/다음 글은 상세 응답의 `prevId`·`nextId` (목록 기준 최신순)
 
 ### 1.8 쓰기
-- 켜고 끄는 것(찜·좋아요·저장·단골·차단)은 **PUT(켜기)/DELETE(끄기)** 로 멱등하게. 두 번 눌러도 같은 결과
+- 켜고 끄는 것(찜·좋아요·저장·단골)은 **PUT(켜기)/DELETE(끄기)** 로 멱등하게. 두 번 눌러도 같은 결과
 - 만들기는 POST. 중복 제출이 문제가 되는 곳(모임 신청·대화 요청·글쓰기)은 `Idempotency-Key` 헤더를 받아 주면 좋음 (선택)
 - 상태 충돌은 409 + code (`MEETUP_FULL`, `ALREADY_APPLIED` …). 프론트는 화면을 먼저 바꿨다가(낙관적 업데이트) 실패하면 되돌리고 `message` 를 토스트로 보여 줌
 - 쓰기 응답은 바뀐 리소스를 돌려주면 좋음 (예: 신청 → 모임 상세). 안 되면 204 로도 됨 (프론트가 다시 불러옴)
@@ -124,7 +124,7 @@ HTTP/1.1 409 Conflict
 | POST | `/auth/password-reset` | `{ email }` | 204 (가입 여부와 관계없이) | 429 | 🔓 | `requestPasswordReset` |
 | POST | `/auth/password-reset/confirm` | `{ token, password }` | 204 | 410 RESET_LINK_EXPIRED | 🔓 | `confirmPasswordReset` |
 
-### 2.2 회원 · 프로필 · 관심사 · 차단 (F3 · F4 · F10) — `api.members`
+### 2.2 회원 · 프로필 · 관심사 (F3 · F4 · F10) — 차단 API 는 명세에 없어 2026-11-22 에 뺌 — `api.members`
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 인증 | 코드 |
 |---|---|---|---|---|---|---|
 | GET | `/members/{id}` | — | `MemberProfileDto` (프로필 팝업) | 404 MEMBER_NOT_FOUND | 🔒 | `profile` |
@@ -134,8 +134,6 @@ HTTP/1.1 409 Conflict
 | PUT | `/me/interests` | `{ items: [{ interestId, furniture }] }` (순서 = sort_order, 맨 앞 대표) | 204 | 400 INTEREST_COUNT (3~10) | 🔒 | `updateInterests` |
 | GET | `/interest-categories` | — | `InterestCategoryDto[]` (대분류 12 · 소분류 90, `memberCount` 포함. **2026-11-18 확정본으로 바뀜** (예전 11 · 65), `code`·`emoji`·`sortOrder` 추가 제안 → [interest-enum.md](interest-enum.md)) | — | 🔓 | `interestCategories` |
 | GET | `/intro-questions` | — | `IntroQuestionDto[]` | — | 🔒 | `introQuestions` |
-| GET | `/me/blocks` | — | `(MemberSummaryDto & { blockedAt })[]` | — | 🔒 | `blocked` |
-| PUT · DELETE | `/me/blocks/{memberId}` | — | 204 | — | 🔒 | `block` · `unblock` |
 | DELETE | `/me` | `{ reason }` | 204 | — | 🔒 | `withdraw` |
 
 ### 2.3 땅굴 · 방명록 · 들판 · 단골 (F4 · F5) — `api.burrows`
@@ -192,7 +190,7 @@ HTTP/1.1 409 Conflict
 
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 코드 | 화면 |
 |---|---|---|---|---|---|---|
-| GET | `/chat/rooms` | `?type=DIRECT·MEETUP&q=` | `ChatRoomSummaryDto[]` (최근 메시지 순, 차단한 상대 1:1 제외) | — | `rooms` | 대화 목록 ✅ |
+| GET | `/chat/rooms` | `?type=DIRECT·MEETUP&q=` | `ChatRoomSummaryDto[]` (최근 메시지 순) | — | `rooms` | 대화 목록 ✅ |
 | GET | `/chat/rooms/{roomId}/messages` | `?before=<cursor>&size=30` | `CursorPageDto<ChatMessageDto>` (오래된 쪽으로) | 404, 403 | (실시간 작업) | 대화 창 |
 | POST | `/chat/rooms/{roomId}/read` | `{ lastReadMessageId }` | 204 | — | (실시간 작업) | |
 | DELETE | `/chat/rooms/{roomId}/members/me` | — | 204 (대화 나가기) | 409 LEAVE_TOO_LATE (모임 방 = 참여 취소 규칙) | (실시간 작업) | |
@@ -395,7 +393,6 @@ HTTP/1.1 404 Not Found
 | ALREADY_REPORTED | 409 | 같은 대상 두 번 신고 | "이미 신고했어요" |
 | REQUEST_EXISTS · ROOM_EXISTS | 409 | 대화 요청 중복 | "답변 기다리는 중" 으로 바꿈 |
 | REQUEST_FROM_PEER | 409 | 상대가 먼저 보낸 요청에 내가 아직 답하지 않음 (F6 11-20) | 토스트 "이 분이 먼저 대화를 요청했어요. 채팅 › 요청에서 답해 주세요." |
-| BLOCKED_USER | 403 | 차단 관계 | 토스트 |
 | ALREADY_DRAWN · NOT_DRAWN | 409 · 404 | 오늘의 추천 | 결과 화면 / 설정 화면 |
 
 ---

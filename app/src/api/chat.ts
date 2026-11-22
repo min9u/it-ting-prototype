@@ -7,7 +7,6 @@ import { API_MODE } from './config'
 import { http } from './client'
 import { conflict, mockRead, mockWrite, notFound } from './mock/server'
 import { chatRequestDto, chatRoomSummary } from './mock/serialize'
-import { accountStore } from '../data/account'
 import {
   acceptRequest, dmRoomWith, dropRequest, getChatState, liveRequests, receivedFrom, rejectRequest, roomTitle, sendRequest, sentRequestTo,
 } from '../data/chat'
@@ -33,22 +32,18 @@ export type ChatApi = typeof real
 
 /* ===== 목 서버 ===== */
 const findReq = (id: Id) => liveRequests().find((r) => r.id === id)
-const getBlockedIds = () => accountStore.get().blocked.map((b) => b.id)
 
 const mock: ChatApi = {
   rooms: (q = {}, signal) => mockRead(() => {
-    const blocked = getBlockedIds()
     const word = q.q?.trim()
     return getChatState().rooms
-      .filter((r) => !(r.kind === 'dm' && r.partnerId && blocked.includes(r.partnerId)))
       .filter((r) => !q.type || (q.type === 'DIRECT' ? r.kind === 'dm' : r.kind === 'group'))
       .filter((r) => !word || roomTitle(r).includes(word) || r.messages.some((m) => m.text.includes(word)))
       .map(chatRoomSummary)
       .sort((a, b) => Date.parse(b.lastMessage?.createdAt ?? '1970-01-01T00:00:00Z') - Date.parse(a.lastMessage?.createdAt ?? '1970-01-01T00:00:00Z'))
   }, { signal, empty: () => [] }),
   requests: (signal) => mockRead(() => {
-    const blocked = getBlockedIds()
-    return liveRequests().filter((r) => !blocked.includes(r.userId)).map(chatRequestDto)
+    return liveRequests().map(chatRequestDto)
   }, { signal, empty: () => [] }),
   sendRequest: (receiverId, message, context) => mockWrite(() => {
     if (dmRoomWith(receiverId)) throw conflict('ROOM_EXISTS', '이미 대화방이 있어요.')

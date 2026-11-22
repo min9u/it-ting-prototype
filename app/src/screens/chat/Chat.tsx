@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useBlocked } from '../../data/account'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
@@ -67,10 +66,8 @@ export default function Chat({ requests }: { requests?: boolean }) {
   const word = useDebounced(q.trim())
   const rooms = useChatRooms({ type: filter === 'all' ? undefined : filter === 'dm' ? 'DIRECT' : 'MEETUP', q: word || undefined })
   const reqs = useChatRequests()
-  const blocked = useBlocked()
-  const reqN = (reqs.data ?? []).filter((r) => r.direction === 'received' && !blocked.some((b) => b.id === r.userId)).length
-  // 차단한 사람과의 1:1 은 서버도 빼지만, 방금 차단한 경우를 위해 한 번 더
-  const list = (rooms.data ?? []).filter((r) => !(r.kind === 'dm' && blocked.some((b) => b.id === r.partnerId)))
+  const reqN = (reqs.data ?? []).filter((r) => r.direction === 'received').length
+  const list = rooms.data ?? []
 
   const pickFilter = (f: Filter) => { setFilter(f); if (requests) navigate('/chat') }
   const openProfile = (id: string) => { if (id !== GONE_ID) setProfile(personOf(id)) }
@@ -516,8 +513,7 @@ function Requests({ onProfile, onToast }: { onProfile: (id: string) => void; onT
   const [dir, setDir] = useState<'received' | 'sent'>(params.get('dir') === 'sent' ? 'sent' : 'received')
   const [picked, setPicked] = useState<string | null>(null)
   const [decline, setDecline] = useState<ChatReqVM | null>(null)
-  const blocked = useBlocked()
-  const all = (rq.data ?? []).filter((r) => !blocked.some((b) => b.id === r.userId))
+  const all = rq.data ?? []
   const list = all.filter((r) => r.direction === dir)
   const count = (d: Req['direction']) => all.filter((r) => r.direction === d).length
   const focus = list.find((r) => r.id === picked) ?? list[0]

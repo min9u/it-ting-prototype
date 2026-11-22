@@ -9,13 +9,13 @@ import { accountStore, isGoogleOnly, setSignupMethod, useAccount } from '../../d
 import s from './Settings.module.css'
 
 export { PasswordPage, GooglePage } from './SettingsAccount'
-export { NotifSettingsPage, BlockedPage, NoticeListPage, NoticeDetailPage } from './SettingsInfo'
+export { NotifSettingsPage, NoticeListPage, NoticeDetailPage } from './SettingsInfo'
 export { LeavePage } from './SettingsLeave'
 
 /**
  * 설정 (Desktop) — Figma 02 F10 (2026-11-16 명세 스크린샷)
  * 왼쪽 메뉴: 계정(비밀번호 변경 · Google 연동하기) / 알림(알림 설정) / 정보(공지사항 · 버전 정보 · 3D 모델 크레딧)
- * 차단 기능은 팀 명세에 없어(2026-11-20, README "이번 범위에 없는 것") 메뉴에서 뺌. 차단 화면 · 프로필 팝업의 차단은 아직 남아 있음(docs/f6-f10-gaps F10-B1)
+ * 차단 기능은 팀 명세에 없어(2026-11-20, README "이번 범위에 없는 것") 전부 뺌: 메뉴 · 차단 관리 화면 · 프로필 팝업 · 채팅 숨김 · 데이터 · API (2026-11-22)
  * 맨 아래 로그아웃(확인 팝업) · 회원 탈퇴. 지금 보는 항목 강조. 버전 정보는 숫자만, 누를 수 없음.
  * "비밀번호 변경"은 이메일로 가입한 계정에만. Google로만 가입한 계정은 "Google 연동하기"가 첫 화면.
  * 언어 설정 · 다크 모드는 이번 범위에 없음.
