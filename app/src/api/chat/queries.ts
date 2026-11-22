@@ -15,7 +15,6 @@ import { isApiError } from '../client'
 import { errorText } from '../common/errors'
 import { toAppId, toDtoId } from '../common/ids'
 import { useMe } from '../auth'
-import { useBlocked } from '../../data/account'
 import { useMeetups } from '../../data/meetupStore'
 import { ME_ID } from '../../data/mock'
 import { useEventStream, useRefetchOnReconnect } from '../../realtime/useEventStream'
@@ -246,10 +245,9 @@ export function useReadReceipt(roomId: string, lastNum: number) {
   }, [qc, roomId, lastNum])
 }
 
-/** 목 모드: 모임 저장소(참여 확정 · 나감)나 차단 목록이 바뀌면 채팅 캐시를 새로 받음 (api/mockSync.tsx 가 부름) */
+/** 목 모드: 모임 저장소(참여 확정 · 나감)가 바뀌면 채팅 캐시를 새로 받음 (api/mockSync.tsx 가 부름) */
 export function useChatMockSync() {
   const meetups = useMeetups()
   useMockStoreSync('chat', meetups, chatKeys.rooms)
   useMockStoreSync('chat', meetups, chatKeys.roomAll)
-  useMockStoreSync('chat', useBlocked(), chatKeys.all)
 }
