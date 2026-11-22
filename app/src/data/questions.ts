@@ -96,27 +96,28 @@ export const QUESTIONS: Question[] = [
   ...Object.entries(CAT_Q).flatMap(([cat, list]) => list.map(([id, text, ex]) => ({ id, text, kind: 'interest' as const, category: cat, ex }))),
   ...TMI_Q.map(([text, ex], i) => ({ id: `tmi-${i + 1}`, text, kind: 'tmi' as const, ex })),
 ]
-export const questionOf = (id: string) => QUESTIONS.find((q) => q.id === id) ?? QUESTIONS.find((q) => q.id === QUESTION_ALIAS[id])
+/** 질문 찾기. list = 서버에서 받은 질문 목록(api/onboarding useIntroQuestions). 안 주면 목 데이터 */
+export const questionOf = (id: string, list: Question[] = QUESTIONS) => list.find((q) => q.id === id) ?? list.find((q) => q.id === QUESTION_ALIAS[id])
 /** 질문 앞 꼬리표: "관심사 · 음악·댄스" 또는 "TMI" */
 export const questionTag = (q: Question) => (q.kind === 'tmi' ? 'TMI' : `관심사 · ${interestCatOf(q.category ?? '')?.name_ko ?? ''}`)
 
 /** 내 관심사 대분류에 딸린 질문 (고른 순서대로) */
-export function interestQuestions(picks: string[]): Question[] {
-  return categoriesOf(picks).flatMap((c) => QUESTIONS.filter((q) => q.category === c))
+export function interestQuestions(picks: string[], list: Question[] = QUESTIONS): Question[] {
+  return categoriesOf(picks).flatMap((c) => list.filter((q) => q.category === c))
 }
-export const tmiQuestions = () => QUESTIONS.filter((q) => q.kind === 'tmi')
+export const tmiQuestions = (list: Question[] = QUESTIONS) => list.filter((q) => q.kind === 'tmi')
 
 /** 추천 3개: 서로 다른 대분류의 관심사 질문 2개 + TMI 1개. 관심사 질문이 모자라면 TMI 로 채움 */
-export function recommendedQuestions(picks: string[]): Question[] {
+export function recommendedQuestions(picks: string[], list: Question[] = QUESTIONS): Question[] {
   const out: Question[] = []
   for (const c of categoriesOf(picks)) {
     if (out.length >= 2) break
-    const q = QUESTIONS.find((x) => x.category === c)
+    const q = list.find((x) => x.category === c)
     if (q) out.push(q)
   }
   // 대분류가 하나뿐이면 그 대분류의 두 번째 질문
-  if (out.length < 2) for (const q of interestQuestions(picks)) { if (out.length >= 2) break; if (!out.includes(q)) out.push(q) }
-  for (const q of tmiQuestions()) { if (out.length >= 3) break; out.push(q) }
+  if (out.length < 2) for (const q of interestQuestions(picks, list)) { if (out.length >= 2) break; if (!out.includes(q)) out.push(q) }
+  for (const q of tmiQuestions(list)) { if (out.length >= 3) break; out.push(q) }
   return out
 }
 

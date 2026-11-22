@@ -1,28 +1,68 @@
 /**
- * 03 온보딩 (+ 00 관심사 · 질문 · 프로필 팝업) DTO. 명세: docs/backend/team-spec/api/03-onboarding.md, 00-common.md
- *
- * 아래는 옛 초안(docs/backend/api-draft.md, 2026-11-16)의 모양을 그대로 옮긴 것이다 (공통 계층 작업 때 동작을 바꾸지 않으려고).
- * 온보딩 · 내 땅굴 작업자가 명세 모양(숫자 id = Id, 시각 = UtcInstant, 사람 = UserDisplayDto …)으로 바꾼다. 공통 타입은 '../common'
+ * 03 온보딩 (+ 00 관심사 · 자기소개 질문 · 프로필 팝업) DTO — 명세 그대로.
+ * 명세: docs/backend/team-spec/api/03-onboarding.md, 00-common.md
+ * 공통 모양(Id · UtcInstant · UserDisplayDto · InterestTagDto · MoleDto · ItemsDto)은 '../common'
  */
-import type { LegacyId } from '../common/legacy'
+import type { Id, InterestTagDto, MoleDto, UserDisplayDto, UtcInstant } from '../common/types'
 
-/* ===== 관심사 ===== */
+/* ===== GET /interest-categories ===== */
+/** 세부 관심사 하나 */
 export interface InterestDto {
-  id: LegacyId
-  categoryId: LegacyId
+  /** 관심사를 저장하는 API 의 interestIds 에 보내는 값 */
+  id: Id
   name: string
-  /** 같은 관심사를 고른 사람 수 (니치 표시, 온보딩 "통하는 취향") */
-  memberCount: number
+  /** 그 관심사를 고른 사람 수 (저장된 관심사만, 온보딩 2 칩에 함께 적음) */
+  userCount: number
 }
+/** 대분류 하나 (data.items[]) */
 export interface InterestCategoryDto {
-  id: LegacyId
+  id: Id
   name: string
   interests: InterestDto[]
 }
+
+/* ===== GET /intro-questions ===== */
+export type IntroQuestionType = 'INTEREST' | 'TMI'
 export interface IntroQuestionDto {
-  id: LegacyId
-  /** intro_question.type: 공통 · 관심사별 등 */
-  type: string
-  interestCategoryId: LegacyId | null
+  /** 답변을 저장하는 API 의 introQuestionId 에 보내는 값 */
+  id: Id
+  type: IntroQuestionType
+  /** 관심사 질문이 딸린 대분류. TMI 질문은 null */
+  interestCategoryId: Id | null
   content: string
+}
+
+/* ===== GET /users/{userId}/profile ===== */
+export interface UserProfileDto {
+  user: UserDisplayDto
+  /** 고른 순서(3 ~ 10개), 첫 번째가 대표 관심사. isShared 는 요청한 사람 기준 */
+  interests: InterestTagDto[]
+}
+
+/* ===== POST /nicknames/check ===== */
+export interface NicknameCheckRequest { nickname: string }
+/** 성공이면 쓸 수 있는 닉네임이고, expiresAt 까지 이 계정 몫으로 맡아 둠 */
+export interface NicknameCheckDto { expiresAt: UtcInstant }
+
+/* ===== POST /me/onboarding/complete ===== */
+export interface AnswerRequest {
+  introQuestionId: Id
+  /** 10 ~ 50자 */
+  answer: string
+}
+export interface OnboardingCompleteRequest {
+  /** 1 ~ 12자 */
+  nickname: string
+  /** 네 부위 모두 ("없음"은 null) */
+  mole: MoleDto
+  /** 3 ~ 10개, 겹치지 않게, 고른 순서. 첫 번째가 대표 관심사 */
+  interestIds: Id[]
+  /** 정확히 3개. 보낸 순서가 자기소개에 보이는 순서 */
+  answers: AnswerRequest[]
+}
+export interface OnboardingCompleteDto {
+  userId: Id
+  /** 항상 HOME */
+  nextStep: 'HOME'
+  burrowId: Id
 }

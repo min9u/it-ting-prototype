@@ -1,58 +1,116 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import { ChevronLeft, CloseIcon, PlusIcon } from '../../components/Icons'
 import { toneOf } from '../../data/mock'
 import { MAX_PICK } from '../../data/interests'
-import { CAMPUS_FLOORS, ME_HOME } from '../../data/field'
-import { campusesInOrder } from '../../data/campusFloors'
-import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag } from '../../data/questions'
-import { MIN_PICK, NICK_MAX, myAffiliation, nickTaken, type MyProfile } from '../../data/myBurrow'
+import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, type Question } from '../../data/questions'
+import { MIN_PICK, NICK_MAX } from '../../data/myBurrow'
+import { errorText, isApiError, toastApiError } from '../../api'
+import { useCampuses } from '../../api/common'
+import { useCheckNickname, useInterestCatalog, useIntroQuestions } from '../../api/onboarding'
+import { BURROW_ERRORS, campusFloorIdOf, toProfileUpdate, useUpdateProfile, type MyBurrowVM, type ProfileDraft } from '../../api/burrow'
 import QuestionList from '../onboarding/QuestionList'
 import InterestPickPage from './InterestPickPage'
 import UnsavedDialog from './UnsavedDialog'
 import s from './Burrow.module.css'
 import m from './MyBurrow.module.css'
 
-// 자기소개 최대 150자 (lib/validation.ts, ERD member_profile.intro VARCHAR(150))
+// 자기소개 최대 150자 (lib/validation.ts)
 export { INTRO_MAX } from '../../lib/validation'
 import { INTRO_MAX } from '../../lib/validation'
-export interface EditDraft extends MyProfile { interests: string[] }
+
+/** 내 땅굴 값 → 수정 화면 값 */
+const draftOf = (b: MyBurrowVM): ProfileDraft => ({
+  nickname: b.nickname, intro: b.intro, campus: b.campus, floor: b.floor, interests: [...b.interests],
+  qna: b.answers.map((a) => ({ qid: a.questionId, a: a.answer })),
+})
+
+/** 닉네임 칸 상태: 확인 안 함 · 확인 중 · 쓸 수 있음 · 오류 문구 */
+type NickState = { kind: 'idle' } | { kind: 'checking' } | { kind: 'ok' } | { kind: 'bad'; text: string }
 
 /**
- * 땅굴 – 내 정보 수정 (02 F4, 2026-11-16 명세 기준). 오른쪽 내 정보 카드가 이 패널로 바뀜 (팝업 아님)
- * 1 닉네임: 온보딩 1과 같은 규칙(필수, 최대 12자). 다른 사람과 겹치면 오류 문구, 저장 못 함
- * 2 기수 · 캠퍼스 · 층: 캠퍼스·층은 정해진 목록에서(00 공통 19). 캠퍼스를 바꾸면 층을 다시 고름. 기수는 SSAFY 인증 값이라 보여주기만. 반은 받지 않음
- * 5 자기소개: 최대 150자, 선택. 화면 순서는 Figma 1230:13568 에 맞춰 기수 · 캠퍼스 · 층 바로 아래, 관심사 위 (2026-11-21. 명세 번호는 그대로)
- * 3 관심사: 3개 이상 최대 10개. ×로 빼고, "관심사 고르기"로 전체 분야에서 다시 고름(관심사 고르기 화면)
- * 4 질문 · 답변: 질문 옆 ↻ → 온보딩 3과 같은 질문 목록에서 다시 고름(그 자리 답변은 비워짐). 횟수 제한 없음. 답변 10~50자, 글자 수는 입력 중인 답변에만
- * (두더지 꾸미기 버튼은 넣지 않음: 두더지는 꾸미기 모드 · 두더지 탭에서 바꿈)
- * 6 취소 / 저장하기: 필수 조건을 못 채우면 저장 못 함. 바꾼 게 있는데 취소·뒤로 → 00 공통 18
- * 7 패널 · 스크롤: 항목이 패널 높이를 넘으면 가운데만 스크롤, 제목줄과 취소/저장하기는 고정
+ * 땅굴 – 내 정보 수정 (명세 04, 2026-11-22 API v1 맞춤). 오른쪽 내 정보 카드가 이 패널로 바뀜 (팝업 아님)
+ * 1 닉네임: 온보딩 1과 같은 규칙(필수, 최대 12자). 바꾸면 잠깐 뒤 POST /nicknames/check → 겹치면 오류 문구, 저장 못 함
+ * 2 기수 · 캠퍼스 · 층: 캠퍼스 · 층은 GET /campuses 목록에서. 캠퍼스를 바꾸면 층을 다시 고름. 기수는 SSAFY 인증 값이라 보여주기만. 반은 받지 않음
+ * 5 자기소개: 최대 150자, 선택. 화면 순서는 Figma 1230:13568 에 맞춰 기수 · 캠퍼스 · 층 바로 아래, 관심사 위
+ * 3 관심사: 3개 이상 최대 10개. ×로 빼고, "관심사 고르기"(GET /interest-categories)로 전체 분야에서 다시 고름
+ * 4 질문 · 답변: 질문 옆 ↻ → 온보딩 3과 같은 질문 목록(GET /intro-questions)에서 다시 고름(그 자리 답변은 비워짐). 답변 10~50자
+ * 6 취소 / 저장하기: PATCH /me/profile 에 다섯 값 모두 → 응답(바뀐 내 땅굴)으로 카드를 바로 바꿈. 바꾼 게 있는데 취소 · 뒤로 → 00 공통 18
+ * 7 패널 · 스크롤: 가운데만 스크롤, 제목줄과 취소/저장하기는 고정
+ * (두더지는 꾸미기 모드 · 두더지 탭에서 바꿈 — 명세 04 "서로 맞지 않아 보인 곳" 첫째 줄)
  */
-export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
-  initial: EditDraft
+export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
+  initial: MyBurrowVM
   focusIntro?: boolean
   onCancel: () => void
-  onSave: (d: EditDraft) => void
+  /** 저장 끝 (moved = 캠퍼스-층이 바뀌어 입구가 옮겨짐) */
+  onSaved: (b: MyBurrowVM, moved: boolean) => void
 }) {
-  const [d, setD] = useState<EditDraft>(initial)
+  const [start] = useState(() => draftOf(initial))
+  const [d, setD] = useState<ProfileDraft>(start)
   const [picking, setPicking] = useState(false)
   const [qSlot, setQSlot] = useState<number | null>(null)
   const [focusQ, setFocusQ] = useState<number | null>(null)
   const [ask, setAsk] = useState(false)
+  const [nickState, setNickState] = useState<NickState>({ kind: 'idle' })
   const introRef = useRef<HTMLTextAreaElement>(null)
-  const set = (p: Partial<EditDraft>) => setD((x) => ({ ...x, ...p }))
+  const set = (p: Partial<ProfileDraft>) => setD((x) => ({ ...x, ...p }))
+
+  const campuses = useCampuses()
+  const catalog = useInterestCatalog()
+  const questions = useIntroQuestions()
+  const save = useUpdateProfile()
+  const check = useCheckNickname()
 
   const nick = d.nickname.trim()
-  const taken = nickTaken(nick, initial.nickname)
-  const nickMsg = !nick ? { bad: true, text: '닉네임을 입력해 주세요' } : taken ? { bad: true, text: '이미 쓰고 있는 닉네임이에요. 다른 닉네임을 적어 주세요' } : nick !== initial.nickname.trim() ? { bad: false, text: '✓ 사용할 수 있는 닉네임이에요' } : null
-  const floors = CAMPUS_FLOORS.find((c) => c.campus === d.campus)?.floors ?? []
-  const moved = d.campus !== initial.campus || d.floor !== initial.floor
+  const nickChanged = nick !== start.nickname.trim()
+  // 닉네임을 바꾸면 잠깐 기다렸다가 확인 (명세 04 "닉네임을 바꿨을 때 POST /nicknames/check")
+  const checkMut = check.mutate
+  useEffect(() => {
+    if (!nick || !nickChanged) { setNickState({ kind: 'idle' }); return }
+    setNickState({ kind: 'checking' })
+    let alive = true
+    const t = setTimeout(() => checkMut(nick, {
+      onSuccess: () => { if (alive) setNickState({ kind: 'ok' }) },
+      onError: (e) => { if (alive) setNickState(isApiError(e) && (e.code === 'NICKNAME_DUPLICATED' || e.code === 'INVALID_INPUT') ? { kind: 'bad', text: errorText(e, BURROW_ERRORS) } : { kind: 'idle' }) },
+    }), 450)
+    return () => { alive = false; clearTimeout(t) }
+  }, [nick, nickChanged, checkMut])
+
+  const nickMsg = !nick ? { bad: true, text: '닉네임을 입력해 주세요' }
+    : nickState.kind === 'bad' ? { bad: true, text: nickState.text }
+      : nickState.kind === 'checking' ? { bad: false, text: '확인하는 중…' }
+        : nickState.kind === 'ok' ? { bad: false, text: '✓ 사용할 수 있는 닉네임이에요' } : null
+  const campusList = campuses.data ?? []
+  const floors = campusList.find((c) => c.name === d.campus)?.floors.map((f) => f.floor) ?? (d.campus === start.campus ? [start.floor] : [])
+  const moved = d.campus !== start.campus || d.floor !== start.floor
   const qOk = d.qna.length === 3 && d.qna.every((x) => answerOk(x.a))
-  const valid = !!nick && !taken && floors.includes(d.floor) && d.interests.length >= MIN_PICK && d.interests.length <= MAX_PICK && qOk && d.intro.length <= INTRO_MAX
-  const dirty = JSON.stringify(d) !== JSON.stringify(initial)
+  const valid = !!nick && nickState.kind !== 'bad' && nickState.kind !== 'checking' && floors.includes(d.floor)
+    && d.interests.length >= MIN_PICK && d.interests.length <= MAX_PICK && qOk && d.intro.length <= INTRO_MAX
+  const ready = !!catalog.data && !!campuses.data
+  const dirty = JSON.stringify(d) !== JSON.stringify(start)
   const leave = () => (dirty ? setAsk(true) : onCancel())
+
+  // 질문: 받은 목록에서 찾고, 아직 못 받았으면 내 땅굴 응답의 문구로
+  const qList = questions.data ?? []
+  const qOf = (qid: string, i: number): Question | undefined =>
+    questionOf(qid, qList) ?? (qid === initial.answers[i]?.questionId ? { id: qid, text: initial.answers[i].question, kind: 'tmi', ex: '' } : undefined)
+
+  const submit = () => {
+    if (!catalog.data) return
+    const cf = campusFloorIdOf(campuses.data, d.campus, d.floor)
+    if (!cf) { toastApiError(null, '캠퍼스 · 층을 다시 골라 주세요'); return }
+    let body
+    try { body = toProfileUpdate({ ...d, nickname: nick }, catalog.data, cf) } catch { toastApiError(null, '관심사를 다시 골라 주세요'); return }
+    save.mutate(body, {
+      onSuccess: (b) => onSaved(b, moved),
+      onError: (e) => {
+        if (isApiError(e) && e.code === 'NICKNAME_DUPLICATED') { setNickState({ kind: 'bad', text: errorText(e, BURROW_ERRORS) }); return }
+        toastApiError(e, '저장하지 못했어요', BURROW_ERRORS)
+      },
+    })
+  }
 
   return (
     <>
@@ -63,25 +121,26 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
         <div className={m.editScroll}>
           <div className={s.profile}>
             <Avatar size={64} empty />
-            <p className={s.aff}>{myAffiliation(d)}</p>
+            <p className={s.aff}>SSAFY {initial.gen ?? ''}기 · {d.campus} · {d.floor ? `${d.floor}층` : '층 선택'}</p>
           </div>
 
           <div className={m.field}>
             <label htmlFor="edit-nick">닉네임 <span>{d.nickname.length} / {NICK_MAX}</span></label>
             <input id="edit-nick" value={d.nickname} maxLength={NICK_MAX} aria-invalid={nickMsg?.bad} onChange={(e) => set({ nickname: e.target.value })} autoComplete="off" />
-            {nickMsg && <small className={nickMsg.bad ? m.msgBad : m.msgOk}>{nickMsg.text}</small>}
+            {nickMsg && <small className={nickMsg.bad ? m.msgBad : m.msgOk} role={nickMsg.bad ? 'alert' : undefined}>{nickMsg.text}</small>}
           </div>
 
           <div className={m.field}>
             <div className={m.affRow}>
-              <label>기수<input value={`${ME_HOME.gen}기`} readOnly aria-readonly title="기수는 SSAFY 인증 값이라 바꿀 수 없어요" /></label>
+              <label>기수<input value={`${initial.gen ?? ''}기`} readOnly aria-readonly title="기수는 SSAFY 인증 값이라 바꿀 수 없어요" /></label>
               <label>캠퍼스
-                <select value={d.campus} onChange={(e) => set({ campus: e.target.value, floor: 0 })}>
-                  {campusesInOrder().map((c) => <option key={c.campus} value={c.campus}>{c.campus}</option>)}
+                <select value={d.campus} disabled={!campuses.data} onChange={(e) => set({ campus: e.target.value, floor: 0 })}>
+                  {!campusList.some((c) => c.name === d.campus) && <option value={d.campus}>{d.campus}</option>}
+                  {campusList.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </label>
               <label>층
-                <select value={d.floor || ''} onChange={(e) => set({ floor: Number(e.target.value) })} aria-invalid={!floors.includes(d.floor)}>
+                <select value={d.floor || ''} disabled={!campuses.data} onChange={(e) => set({ floor: Number(e.target.value) })} aria-invalid={!floors.includes(d.floor)}>
                   {!floors.includes(d.floor) && <option value="">층 선택</option>}
                   {floors.map((f) => <option key={f} value={f}>{f}층</option>)}
                 </select>
@@ -89,7 +148,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
             </div>
             {!floors.includes(d.floor) && <small className={m.msgBad}>캠퍼스를 바꿨어요. 층을 다시 골라 주세요</small>}
             {moved && floors.includes(d.floor) && (
-              <small className={m.msgInfo}>저장하면 이번 학기 들판에서 내 땅굴 입구가 {d.campus}-{d.floor}층으로 옮겨져요. 지난 학기 들판의 입구, 단골·방명록·대화는 그대로예요.</small>
+              <small className={m.msgInfo}>저장하면 이번 학기 들판에서 내 땅굴 입구가 {d.campus}-{d.floor}층으로 옮겨져요. 단골 · 방명록 · 대화는 그대로예요.</small>
             )}
           </div>
 
@@ -107,24 +166,24 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
                 </button>
               ))}
             </div>
-            <button className={s.dashedBtn} onClick={() => setPicking(true)}><PlusIcon size={14} /> 관심사 고르기</button>
+            <button className={s.dashedBtn} onClick={() => setPicking(true)} disabled={!catalog.data}><PlusIcon size={14} /> 관심사 고르기</button>
             {d.interests.length < MIN_PICK && <small className={m.msgBad}>관심사는 {MIN_PICK}개 이상 골라 주세요</small>}
-            <small className={m.note}>관심사를 바꾸면 땅굴 가구도 함께 바뀌어요.</small>
+            <small className={m.note}>관심사를 바꾸면 땅굴 가구도 함께 바뀌어요. 맨 앞 관심사가 땅굴 무드를 정해요.</small>
           </div>
 
           <div className={m.field}>
             <span className={m.label}>질문 · 답변 <span>질문은 몇 번이든 바꿀 수 있어요</span></span>
             {d.qna.map((x, i) => {
-              const q = questionOf(x.qid)
+              const q = qOf(x.qid, i)
               const short = x.a.trim().length > 0 && x.a.trim().length < ANSWER_MIN
               return (
                 <div key={i} className={m.qaItem}>
                   <div className={m.qaQ}>
                     <Avatar size={24} empty />
-                    <p><small>{q ? questionTag(q) : ''}</small>{q?.text}</p>
-                    <button onClick={() => setQSlot(i)} aria-label={`Q${i + 1} 질문 바꾸기`} title="질문 바꾸기">↻</button>
+                    <p><small>{q && q.ex ? questionTag(q) : ''}</small>{q?.text}</p>
+                    <button onClick={() => setQSlot(i)} disabled={!questions.data} aria-label={`Q${i + 1} 질문 바꾸기`} title="질문 바꾸기">↻</button>
                   </div>
-                  <textarea className={m.qaA} value={x.a} maxLength={ANSWER_MAX} placeholder={q ? `예) ${q.ex}` : ''} aria-label={`Q${i + 1} 답변`}
+                  <textarea className={m.qaA} value={x.a} maxLength={ANSWER_MAX} placeholder={q?.ex ? `예) ${q.ex}` : ''} aria-label={`Q${i + 1} 답변`}
                     onFocus={() => setFocusQ(i)} onBlur={() => setFocusQ(null)}
                     onChange={(e) => set({ qna: d.qna.map((y, j) => (j === i ? { ...y, a: e.target.value } : y)) })} />
                   {focusQ === i && <span className={m.qaCount}>{x.a.length} / {ANSWER_MAX}</span>}
@@ -137,12 +196,12 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
 
         <div className={m.editActions}>
           <button className="btn btn-line" onClick={leave}>취소</button>
-          <button className="btn btn-cta" disabled={!valid} onClick={() => onSave({ ...d, nickname: nick })}>저장하기</button>
+          <button className="btn btn-cta" disabled={!valid || !ready || save.isPending} aria-busy={save.isPending} onClick={submit}>{save.isPending ? '저장하는 중…' : '저장하기'}</button>
         </div>
       </aside>
 
-      {picking && (
-        <InterestPickPage initial={d.interests} onCancel={() => setPicking(false)} onDone={(list) => { set({ interests: list }); setPicking(false) }} />
+      {picking && catalog.data && (
+        <InterestPickPage categories={catalog.data.categories} initial={d.interests} onCancel={() => setPicking(false)} onDone={(list) => { set({ interests: list }); setPicking(false) }} />
       )}
 
       <Modal open={qSlot !== null} onClose={() => setQSlot(null)} width={560} labelledBy="q-swap-title">
@@ -150,7 +209,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSave }: {
           <h2 id="q-swap-title" className="display">Q{(qSlot ?? 0) + 1} 질문 바꾸기</h2>
           <p>새 질문을 고르면 내 정보 수정으로 돌아가고, 그 자리 답변은 비워져요.</p>
           {qSlot !== null && (
-            <QuestionList compact picks={d.interests} max={1} selected={d.qna.map((y) => y.qid)}
+            <QuestionList questions={qList} compact picks={d.interests} max={1} selected={d.qna.map((y) => y.qid)}
               onToggle={(q) => {
                 if (q.id !== d.qna[qSlot].qid && !d.qna.some((y) => y.qid === q.id)) set({ qna: d.qna.map((y, j) => (j === qSlot ? { qid: q.id, a: '' } : y)) })
                 setQSlot(null)

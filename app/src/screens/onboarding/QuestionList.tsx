@@ -6,11 +6,13 @@ import s from './QuestionList.module.css'
  * 질문 목록 (02 F3 온보딩 3 · 2번, F4 내 정보 수정 "질문 바꾸기"가 같은 목록을 씀)
  * - 필터 추천 · 관심사 · TMI. 추천 = 내 관심사 대분류 질문 2개 + TMI 1개 (모자라면 TMI)
  * - 고른 질문은 "골랐어요", 아니면 "+ 고르기". max 개를 고르면 나머지는 못 고름(먼저 빼야 함)
+ * - questions: GET /intro-questions 로 받은 목록 (api/onboarding useIntroQuestions). 추천은 서버가 주지 않고 이 목록에서 고름 (명세 03 "추천 질문")
  */
 type Filter = 'rec' | 'interest' | 'tmi'
 const FILTERS: [Filter, string][] = [['rec', '추천'], ['interest', '관심사'], ['tmi', 'TMI']]
 
-export default function QuestionList({ picks, selected, max, onToggle, note, compact }: {
+export default function QuestionList({ questions, picks, selected, max, onToggle, note, compact }: {
+  questions: Question[]
   picks: string[]
   selected: string[]
   max: number
@@ -20,7 +22,7 @@ export default function QuestionList({ picks, selected, max, onToggle, note, com
   compact?: boolean
 }) {
   const [filter, setFilter] = useState<Filter>('rec')
-  const list = filter === 'rec' ? recommendedQuestions(picks) : filter === 'interest' ? interestQuestions(picks) : tmiQuestions()
+  const list = filter === 'rec' ? recommendedQuestions(picks, questions) : filter === 'interest' ? interestQuestions(picks, questions) : tmiQuestions(questions)
   const full = selected.length >= max
   return (
     <div className={compact ? `${s.wrap} ${s.compact}` : s.wrap}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { CATEGORIES, toneOf } from '../../data/mock'
+import { toneOf } from '../../data/mock'
+import type { Category } from '../../data/types'
 import { MAX_PICK } from '../../data/interests'
 import { MIN_PICK } from '../../data/myBurrow'
 import { ChevronLeft, ChevronRight, CloseIcon } from '../../components/Icons'
@@ -13,15 +14,16 @@ import m from './MyBurrow.module.css'
  * - 10개를 채운 상태에서 더 고르면 안내 3초 (온보딩 2와 같음)
  * - 고르기 완료: 3개 이상일 때, 내 정보 수정으로 돌아가 칩에 반영 (실제 저장은 내 정보 수정의 "저장하기")
  * - 취소 · "‹ 내 정보 수정으로": 바꾼 게 있으면 00 공통 18 저장 전 취소를 먼저
+ * - categories: GET /interest-categories 로 받은 목록 (api/onboarding useInterestCatalog). 칩 옆 숫자 = 고른 사람 수(userCount)
  */
-export default function InterestPickPage({ initial, onDone, onCancel }: { initial: string[]; onDone: (list: string[]) => void; onCancel: () => void }) {
+export default function InterestPickPage({ categories: CATEGORIES, initial, onDone, onCancel }: { categories: Category[]; initial: string[]; onDone: (list: string[]) => void; onCancel: () => void }) {
   const [picks, setPicks] = useState(initial)
   const [catId, setCatId] = useState(() => CATEGORIES.find((c) => c.tags.some((t) => initial.includes(t.name)))?.id ?? CATEGORIES[0].id)
   const [overMsg, setOverMsg] = useState(false)
   const [ask, setAsk] = useState(false)
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
-  const cat = CATEGORIES.find((c) => c.id === catId)!
+  const cat = CATEGORIES.find((c) => c.id === catId) ?? CATEGORIES[0]
   const full = picks.length >= MAX_PICK
   const dirty = picks.join('|') !== initial.join('|')
   const toggle = (t: string) => {
