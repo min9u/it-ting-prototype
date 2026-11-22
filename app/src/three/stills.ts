@@ -41,6 +41,8 @@ export interface Still {
 }
 
 // 크기·투명 여부는 make-stills.mjs 결과 (explore/gpu/results/round3/stills.json)
+// 2026-11-22: room · visit 을 v3.8.1 방(두더지 방석, 침대·빈백·오락기 없음)으로 다시 찍음 (Apple M4 Pro GPU).
+//   tea · tea-group 은 채팅방이 3D 방(chatRoomScene)이 되면서 아무 데서도 안 쓰임 (옛 찻방 2D 그림 위 두더지) → 다시 찍지 않음
 const STILLS: Record<StillKind, Still> = {
   room: { src: roomUrl, width: 2048, height: 1536, fit: 'room', alpha: true, alt: '관심사로 꾸민 땅굴 방 모습' },
   visit: { src: visitUrl, width: 2032, height: 1524, fit: 'room', alpha: true, alt: '집주인 두더지가 있는 땅굴 방 모습' },
