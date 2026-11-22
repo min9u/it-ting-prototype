@@ -7,7 +7,7 @@ import { EmptyMole } from '../../components/Feedback'
 import { toneOf } from '../../data/mock'
 import { GENERATIONS } from '../../data/auth'
 import {
-  CAMPUS_FLOORS, CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId,
+  CURRENT_TERM, MY_FLOOR, MY_PAST_FLOORS, affOf, drawRecommendations, fieldOf, fieldUserOf, floorId,
   getRegulars, me, setRegular, shortAffOf, subscribeRegulars, todaysPicks, type Floor, type RecommendPick,
 } from '../../data/field'
 import { campusesInOrder, floorsOf } from '../../data/campusFloors'
@@ -87,8 +87,8 @@ function RecommendSettingsView({ onDraw }: { onDraw: (sel: RecommendPick) => voi
   const [campus, setCampus] = useState(MY_FLOOR.campus)
   const [floor, setFloor] = useState<number | null>(MY_FLOOR.floor)
   const [gen, setGen] = useState<number | null>(me().gen)
-  const campuses = [...CAMPUS_FLOORS].sort((a, b) => campusRank(a.campus) - campusRank(b.campus))
-  const floors = CAMPUS_FLOORS.find((c) => c.campus === campus)?.floors ?? []
+  const campuses = campusesInOrder()
+  const floors = floorsOf(campus)
   const ready = floor != null && gen != null
   return (
     <div className={x.modal}>
