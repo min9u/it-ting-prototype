@@ -8,11 +8,11 @@ import styles from './AppHeader.module.css'
 
 /**
  * Figma: Review/Navigation (1440×63) + Nav Pill (State=Active/Default)
- * 00 공통 1 GNB: 메뉴 4개(땅굴 · 커뮤니티 · 모임 · 채팅). 알림 · 설정 화면에서는 어떤 메뉴도 선택하지 않는다(NavLink 라 자동)
+ * 00 공통 1 GNB: 메뉴 4개(땅굴 · 게시판 · 모임 · 채팅). 2026-11-20 "커뮤니티" → "게시판" (팀 명세에서 확정, 주소 /board 는 그대로). 알림 · 설정 화면에서는 어떤 메뉴도 선택하지 않는다(NavLink 라 자동)
  */
 const NAV = [
   { to: '/burrow', label: '땅굴' },
-  { to: '/board', label: '커뮤니티' },
+  { to: '/board', label: '게시판' },
   { to: '/meetups', label: '모임' },
   { to: '/chat', label: '채팅' },
 ]

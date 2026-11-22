@@ -26,6 +26,8 @@ export interface MinimapHandle {
   setMole(x: number, z: number, facing?: number): void
   /** 보이는 범위 다각형 (m 단위 점들). null 이면 숨김 */
   setView(poly: [number, number][] | null): void
+  /** 3D 카메라를 마우스로 끌어 옮겼을 때 지금 타깃 (m 단위, three x·z). 카메라 모드의 보이는 범위가 두더지 자리 대신 이 값을 따름. 두더지가 움직이거나 줌이 바뀌면 풀림 */
+  setCamera(x: number, z: number): void
 }
 
 type View =
@@ -126,9 +128,16 @@ export default function Minimap({
   const level: ZoomLevel = view.kind === 'camera' ? view.level ?? 'near' : 'near'
   const lvRef = useRef(level)
   const zoomT = useRef<{ t0: [number, number]; d0: number; e: number } | null>(null)
+  // 3D 에서 끌어 옮긴 카메라 타깃 (있으면 두더지 자리에서 계산하지 않고 이 값). 점프·줌이 시작되면 아래 효과들이 씀과 동시에 풀음
+  const panT = useRef<[number, number] | null>(null)
   const footprint = (p: [number, number]) => {
     if (!v || view.kind !== 'camera') return null
-    let [tx, tz] = camTarget(v, p[0], p[1], lvRef.current)
+    const [tx, tz] = panT.current ?? camTarget(v, p[0], p[1], lvRef.current)
+    return footprintT(tx, tz)
+  }
+  const footprintT = (tx0: number, tz0: number) => {
+    if (!v || view.kind !== 'camera') return null
+    let tx = tx0, tz = tz0
     let D = ZOOM_DIST[lvRef.current]
     const z = zoomT.current
     if (z) { tx = z.t0[0] + (tx - z.t0[0]) * z.e; tz = z.t0[1] + (tz - z.t0[1]) * z.e; D = distAt(z.d0, D, z.e) }
@@ -149,6 +158,7 @@ export default function Minimap({
   useImperativeHandle(handleRef, () => ({
     setMole: (x, z) => drawMole([x, z]),
     setView: (pts) => drawView(pts),
+    setCamera: (x, z) => { if (view.kind !== 'camera') return; panT.current = [x, z]; drawView(footprintT(x, z)) },
   }))
 
   // 장면 크기 (카메라 사다리꼴 비율)
@@ -175,8 +185,12 @@ export default function Minimap({
     const to = posOf(seat)
     const from = prev.current != null && prev.current !== seat ? posOf(prev.current) : null
     prev.current = seat
+    // 끌어 둔 카메라였으면 그 타깃에서 새 구멍 타깃으로 (3D 점프 카메라와 같이). 풀고 시작
+    const panFrom = panT.current
+    panT.current = null
     if (!from || !moving || reduceMotion()) { drawMole(to); drawView(footprint(to)); return }
-    const camFrom = cur.current.view ? camTarget(v, from[0], from[1], lvRef.current) : null
+    const camFrom = cur.current.view ? panFrom ?? camTarget(v, from[0], from[1], lvRef.current) : null
+    const camEnd = panFrom ? camTarget(v, to[0], to[1], lvRef.current) : null
     let raf = 0
     const t0 = performance.now()
     const step = () => {
@@ -186,8 +200,11 @@ export default function Minimap({
       drawMole([from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e], 1 + 0.45 * Math.sin(Math.PI * k))
       if (camFrom) {
         const c = ease(Math.min(1, Math.max(0, (t - camDelayMs) / camMs)))
-        const tgt: [number, number] = [from[0] + (to[0] - from[0]) * c, from[1] + (to[1] - from[1]) * c]
-        drawView(footprint(tgt))
+        if (panFrom && camEnd) drawView(footprintT(panFrom[0] + (camEnd[0] - panFrom[0]) * c, panFrom[1] + (camEnd[1] - panFrom[1]) * c))
+        else {
+          const tgt: [number, number] = [from[0] + (to[0] - from[0]) * c, from[1] + (to[1] - from[1]) * c]
+          drawView(footprint(tgt))
+        }
       }
       if (k < 1 || t < camDelayMs + camMs) raf = requestAnimationFrame(step)
       else { drawMole(to); drawView(footprint(to)) }
@@ -204,7 +221,8 @@ export default function Minimap({
     lvRef.current = level
     if (!v || view.kind !== 'camera' || reduceMotion()) { zoomT.current = null; drawView(footprint(cur.current.mole)); return }
     const p = cur.current.mole
-    const t0 = camTarget(v, p[0], p[1], prevLv), d0 = ZOOM_DIST[prevLv]
+    const t0 = panT.current ?? camTarget(v, p[0], p[1], prevLv), d0 = ZOOM_DIST[prevLv]
+    panT.current = null // 줌도 끌어 둔 타깃에서 구멍 타깃으로 돌아옴 (3D 와 같음)
     const s = performance.now()
     let raf = 0
     const step = () => {

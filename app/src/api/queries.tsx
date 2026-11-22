@@ -91,9 +91,12 @@ export function useChatRequests() {
 }
 
 /* ===== 쓰기: 낙관적 업데이트 ===== */
-export interface CachePatch { key: QueryKey; update: (old: unknown) => unknown }
-/** 캐시 한 곳을 어떻게 바꿀지 (key 가 앞부분이면 맞는 캐시 모두) */
-export const patch = <T,>(key: QueryKey, update: (old: T) => T): CachePatch => ({ key, update: update as (old: unknown) => unknown })
+export interface CachePatch { key: QueryKey; update: (old: unknown) => unknown; exact?: boolean }
+/**
+ * 캐시 한 곳을 어떻게 바꿀지 (key 가 앞부분이면 맞는 캐시 모두).
+ * exact: 키가 똑같은 캐시만 — 땅굴(['burrows', id])을 바꿀 때 같은 앞부분을 쓰는 방명록(['burrows', id, 'guestbook'])까지 땅굴 모양으로 덮어써 깨지던 것을 막음
+ */
+export const patch = <T,>(key: QueryKey, update: (old: T) => T, exact = false): CachePatch => ({ key, update: update as (old: unknown) => unknown, exact })
 
 export interface OptimisticOp<T = unknown> {
   call: () => Promise<T>
@@ -118,7 +121,7 @@ export function useOptimistic() {
       const snapshots: [QueryKey, unknown][] = []
       for (const p of op.patches ?? []) {
         await qc.cancelQueries({ queryKey: p.key })
-        for (const [k, v] of qc.getQueriesData({ queryKey: p.key })) {
+        for (const [k, v] of qc.getQueriesData({ queryKey: p.key, exact: p.exact })) {
           snapshots.push([k, v])
           if (v !== undefined) qc.setQueryData(k, p.update(v))
         }

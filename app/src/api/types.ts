@@ -214,7 +214,7 @@ export interface BurrowDto {
   visitorsNow: number
   /** 나와 이 사람의 1:1 대화방 (있으면 "대화하기") */
   chatRoomId: Id | null
-  /** 내가 보낸, 아직 답이 없는 대화 요청 (있으면 "답변 기다리는 중") */
+  /** 내가 보낸, 아직 답이 없는 대화 요청 (있으면 말풍선이 "요청 보냄"으로 바뀌고 누를 수 없다) */
   pendingRequestId: Id | null
   /** 방 꾸미기 저장 값 (ERD 에 없음 → erd-gaps "방 꾸미기 저장") */
   room: RoomLayoutDto | null
@@ -254,17 +254,11 @@ export interface FieldDto {
 }
 
 /* ===== 추천 ===== */
-export interface RecommendSettingDto {
-  useInterest: boolean
-  /** 고른 관심사 (ERD 에 칼럼 없음 → erd-gaps) */
-  interestIds: Id[]
-  useSameQuestion: boolean
-  questionIds: Id[]
-  useAffiliation: boolean
-  /** 같은 캠퍼스·기수·층 (use_affiliation 하나로는 셋을 따로 못 켬 → erd-gaps) */
-  sameCampus: boolean
-  sameGeneration: boolean
-  sameFloor: boolean
+/** 추천 받기 요청: 고른 캠퍼스-층과 기수. 서버에 저장하지 않고 받을 때마다 다시 고름 (2026-11-21 명세) */
+export interface RecommendRequestDto {
+  /** 고른 캠퍼스-층의 id (목에서는 "캠퍼스|층") */
+  campusFloorId: Id
+  generation: number
 }
 export interface DailyRecommendationDto {
   recommendedOn: IsoDate

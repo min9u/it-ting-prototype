@@ -1,6 +1,6 @@
 /**
  * 디자이너 핸드오프에서 옮긴 JSON 무결성
- * - data/fieldLayout150.json: 3D 핸드오프 v3.10 (들판 108×72m, 구역 36×36 6칸, 구역마다 25자리 → 150자리, 흙 노드·작물 5종·카메라 3단계), app/scripts/build-field-layout.mjs 가 만듦
+ * - data/fieldLayout150.json: 3D 핸드오프 v3.11 (들판 108×72m, 구역 36×36 6칸, 구역마다 25자리 → 150자리, 흙 노드·작물 9종·카메라 3단계), app/scripts/build-field-layout.mjs 가 만듦
  * - data/furnitureCatalog.json · slots.json · interestCatalog.json: 3D 핸드오프 v3 ~ v3.6 (카테고리 가구 슬롯 고정, 선반 12칸, 반려동물 짝)
  * - data/wallpapers.json: v3.5.1 (mood_map)
  * 새 JSON 을 받아 바꿨을 때 앱이 조용히 깨지지 않게 (자리 빠짐·번호 중복·없는 가구 id·슬롯 없음)
@@ -25,7 +25,7 @@ const slot = (name: string) => SLOTS.find((s) => s.name === name)
 const TOL = 0.01
 const fits = (a: Row['size_m'], b: Slot['max_m']) => a.w <= b.w + TOL && a.d <= b.d + TOL && a.h <= b.h + TOL
 
-describe('fieldLayout150.json (3D 핸드오프 v3.10 들판)', () => {
+describe('fieldLayout150.json (3D 핸드오프 v3.11 들판)', () => {
   const [x0, x1] = [...layout.field.x_range].sort((a, b) => a - b)
   const [z0, z1] = [...layout.field.z_range].sort((a, b) => a - b)
   const within = (v: number, [a, b]: number[]) => v >= Math.min(a, b) && v <= Math.max(a, b)
@@ -117,8 +117,8 @@ describe('fieldLayout150.json (3D 핸드오프 v3.10 들판)', () => {
       expect(touch(l.zones[0], l.zones[1]), l.node).toBe(true)
     }
   })
-  it('작물 테마 5종: 호박은 기본 슬롯(null), 나머지는 구역마다 기본 슬롯과 같은 수의 전용 슬롯, 그 작물 노드만', () => {
-    expect(layout.themes.map((t) => t.id)).toEqual(['pumpkin', 'apple', 'strawberry', 'sweetpotato', 'carrot'])
+  it('작물 테마 9종: 호박은 기본 슬롯(null), 나머지는 구역마다 기본 슬롯과 같은 수의 전용 슬롯, 그 작물 노드만', () => {
+    expect(layout.themes.map((t) => t.id)).toEqual(['pumpkin', 'apple', 'strawberry', 'sweetpotato', 'carrot', 'corn', 'tomato', 'sunflower', 'bread'])
     for (const th of layout.themes) {
       expect(th.nodes, th.id).toHaveLength(3)
       if (th.id === 'pumpkin') { expect(th.crops).toBeNull(); continue }
@@ -129,11 +129,21 @@ describe('fieldLayout150.json (3D 핸드오프 v3.10 들판)', () => {
       })
     }
   })
-  it('카메라 3단계: 거리 12 / 24 / 46, 각도 45°·FOV 32.3° 같음, far 만 구멍 중앙 정렬 막음', () => {
+  it('작물 glb: 테마마다 앱 모델 폴더에 파일이 있음 (build-field-layout.mjs 가 복사), v3.11 딸기는 v3 · 옛 v2 는 없음', () => {
+    // import.meta.glob 은 파일 이름만 모으고 불러오지는 않음 (프로젝트에 node 타입이 없어서 fs 대신)
+    const files = Object.keys(import.meta.glob('../assets/models/field/*.glb')).map((f) => f.split('/').pop())
+    for (const th of layout.themes) expect(files, th.glb).toContain(`${th.glb}.glb`)
+    expect(layout.themes.find((t) => t.id === 'strawberry')!.glb).toBe('strawberry_patch_v3')
+    expect(files).not.toContain('strawberry_patch_v2.glb')
+  })
+  it('카메라 3단계: 거리 12 / 24 / 46, 각도 45°·FOV 32.3° 같음, v3.11 은 far 도 구멍 중앙 정렬 허용 + 단계마다 안전 한계', () => {
     const L = layout.camera.levels
     expect([L.near.distance, L.mid.distance, L.far.distance]).toEqual([12, 24, 46])
     for (const v of [L.near, L.mid, L.far]) { expect(v.tilt).toBe(45); expect(v.fov).toBe(32.3) }
-    expect([L.near.centering, L.mid.centering, L.far.centering]).toEqual([true, true, false])
+    expect([L.near.centering, L.mid.centering, L.far.centering]).toEqual([true, true, true])
+    expect(L.near.safe).toEqual({ x: [-79.3, 79.3], y: [-30.2, 99.1] })
+    expect(L.mid.safe).toEqual({ x: [-70.6, 70.6], y: [-26.4, 92.2] })
+    expect(L.far.safe).toEqual({ x: [-54.7, 54.7], y: [-19.4, 79.5] })
   })
 })
 

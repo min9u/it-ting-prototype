@@ -7,15 +7,15 @@ import { http } from './client'
 import { badRequest, conflict, mockRead, mockWrite, notFound } from './mock/server'
 import { memberProfile, moleOf, rawPerson } from './mock/serialize'
 import { CATEGORIES, ME_ID } from '../data/mock'
-import { INTEREST_SUBS, MAX_PICK, setMyInterests, subOf } from '../data/interests'
+import { MAX_PICK, setMyInterests, subOf } from '../data/interests'
 import { MAX_WORN, itemOf, setMyWorn } from '../data/moleItems'
 import { NICK_MAX, nickTaken, setMyProfile } from '../data/myBurrow'
 import { QUESTIONS } from '../data/questions'
 import { accountStore, blockUser, unblockUser, withdraw as withdrawAccount } from '../data/account'
-import { drawRecommendations, getRecommendSettings, setRecommendSettings, todaysPicks } from '../data/field'
+import { drawRecommendations, todaysPicks } from '../data/field'
 import { seoulYmd } from '../lib/time'
 import type {
-  DailyRecommendationDto, Id, InterestCategoryDto, IntroQuestionDto, MemberProfileDto, MemberSummaryDto, MoleLookDto, RecommendSettingDto,
+  DailyRecommendationDto, Id, InterestCategoryDto, IntroQuestionDto, MemberProfileDto, MemberSummaryDto, MoleLookDto, RecommendRequestDto,
 } from './types'
 
 export interface ProfilePatch {
@@ -47,25 +47,15 @@ const real = {
   unblock: (memberId: Id) => http.delete<void>(`/me/blocks/${memberId}`),
   /** DELETE /me — 회원 탈퇴 (사유 선택) */
   withdraw: (reason: string | null) => http.delete<void>('/me', { body: { reason } }),
-  /** 오늘의 추천 친구 */
-  recommendSetting: (signal?: AbortSignal) => http.get<RecommendSettingDto>('/me/recommend-setting', undefined, signal),
-  updateRecommendSetting: (s: RecommendSettingDto) => http.put<RecommendSettingDto>('/me/recommend-setting', s),
+  /** 오늘의 추천 친구 (2026-11-21 명세: 설정은 캠퍼스-층 · 기수뿐이고 서버에 저장하지 않음 → 설정 조회·저장 API 없음) */
   /** GET /me/recommendations/today — 아직 안 받았으면 404 NOT_DRAWN */
   todayRecommendation: (signal?: AbortSignal) => http.get<DailyRecommendationDto>('/me/recommendations/today', undefined, signal),
-  /** POST /me/recommendations/today — 하루 한 번 (409 ALREADY_DRAWN) */
-  drawRecommendation: () => http.post<DailyRecommendationDto>('/me/recommendations/today'),
+  /** POST /me/recommendations/today — 하루 한 번. 고른 캠퍼스-층 · 기수의 이번 학기 들판에서, 단골 제외, 추천 횟수 적은 사람 먼저 (오늘 이미 받았으면 저장된 결과) */
+  drawRecommendation: (req: RecommendRequestDto) => http.post<DailyRecommendationDto>('/me/recommendations/today', req),
 }
 export type MembersApi = typeof real
 
 /* ===== 목 서버 ===== */
-const recSetting = (): RecommendSettingDto => {
-  const s = getRecommendSettings()
-  return {
-    useInterest: s.interests.length > 0, interestIds: s.interests.map((n) => subOf(n)?.id ?? n),
-    useSameQuestion: s.sameQuestionFirst, questionIds: s.question ? [s.question] : [],
-    useAffiliation: s.sameCampus || s.sameGen || s.sameFloor, sameCampus: s.sameCampus, sameGeneration: s.sameGen, sameFloor: s.sameFloor,
-  }
-}
 const daily = (ids: string[]): DailyRecommendationDto => ({ recommendedOn: seoulYmd(Date.now()), members: ids.map(memberProfile) })
 
 const mock: MembersApi = {
@@ -101,17 +91,13 @@ const mock: MembersApi = {
   block: (memberId) => mockWrite(() => { const u = rawPerson(memberId); blockUser({ id: memberId, nickname: u?.nickname ?? '두더지' }) }),
   unblock: (memberId) => mockWrite(() => unblockUser(memberId)),
   withdraw: (reason) => mockWrite(() => withdrawAccount(reason)),
-  recommendSetting: (signal) => mockRead(recSetting, { signal }),
-  updateRecommendSetting: (s) => mockWrite(() => {
-    const cur = getRecommendSettings()
-    setRecommendSettings({
-      ...cur, interests: s.interestIds.map((id) => INTEREST_SUBS.find((x) => x.id === id)?.name_ko ?? id), question: s.questionIds[0] ?? null,
-      sameQuestionFirst: s.useSameQuestion, sameCampus: s.sameCampus, sameGen: s.sameGeneration, sameFloor: s.sameFloor,
-    })
-    return recSetting()
-  }),
   todayRecommendation: (signal) => mockRead(() => { const p = todaysPicks(); if (!p) throw notFound('오늘의 추천'); return daily(p) }, { signal }),
-  drawRecommendation: () => mockWrite(() => { if (todaysPicks()) throw conflict('ALREADY_DRAWN', '오늘은 이미 추천을 받았어요.'); return daily(drawRecommendations()) }),
+  drawRecommendation: (req) => mockWrite(() => {
+    if (todaysPicks()) throw conflict('ALREADY_DRAWN', '오늘은 이미 추천을 받았어요.')
+    const [campus, floor] = req.campusFloorId.split('|')
+    if (!campus || !Number.isInteger(Number(floor))) throw badRequest('INVALID_INPUT', '캠퍼스와 층을 골라 주세요.')
+    return daily(drawRecommendations({ campus, floor: Number(floor), gen: req.generation }))
+  }),
 }
 
 export const members: MembersApi = API_MODE === 'real' ? real : mock

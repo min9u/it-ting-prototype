@@ -43,22 +43,33 @@ export function parseFloor(id: string): Floor | null {
 }
 
 /**
- * 층 → 작물 (3D 핸드오프 v3.10 themes 5종. 디자이너가 "층→작물 매핑은 개발 쪽에서 정해 달라"고 함 → docs/explore-field-v3-10.md "정한 것")
- * 규칙: 캠퍼스-층 목록(고르기 창 순서 = 캠퍼스 순서, 그 안에서 층 순서) 전체를 차례로 호박 → 사과 → 딸기 → 고구마 → 당근 돌려 씀
- * - 같은 캠퍼스 층은 목록에서 붙어 있어서 5개 층까지는 늘 작물이 다름 → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
+ * 층 → 작물 (3D 핸드오프 v3.11 themes 9종. 디자이너가 "층→작물 매핑은 개발 쪽에서 정해 달라"고 함 → docs/explore-field-v3-10.md "정한 것")
+ * 규칙 (2026-11-20 사용자 결정):
+ * - **빵은 대전 캠퍼스 층에만.** 대전 층이 몇 개든 전부 빵 (목록에 없는 대전 층도 빵)
+ * - 대전이 아닌 층은 나머지 8종(호박 → 사과 → 딸기 → 고구마 → 당근 → 옥수수 → 토마토 → 해바라기)을 캠퍼스-층 목록 순서대로 돌려 씀.
+ *   목록 순서 = 고르기 창 순서(캠퍼스 순서, 그 안에서 층 순서), 대전 층은 세지 않고 건너뜀 → 지금 층이면 서울 2·3·12 = 호박·사과·딸기, 광주 1 = 고구마, 구미 2·3 = 당근·옥수수, 부울경 1 = 토마토
+ *   (대전 아닌 층이 7개라 해바라기는 아직 안 나옴. 8번째 층이 생기면 해바라기)
+ * - 같은 캠퍼스 층은 목록에서 붙어 있어서 8개 층까지는 작물이 다름(대전만 전부 빵) → 사다리로 층을 옮기면 바로 다른 들판인 걸 앎
  * - 학기가 바뀌어도 같은 캠퍼스-층은 같은 작물 (목록에 없는 층은 캠퍼스-층 이름으로 고름)
- * - 층 번호를 5로 나눈 나머지로 고르면 서울 2층·12층이 같은 작물이 돼서 쓰지 않음
+ * - 층 번호를 개수로 나눈 나머지로 고르면 서울 2층·12층이 같은 작물이 될 수 있어서 쓰지 않음
  * - 실서비스는 서버의 캠퍼스-층 설정에 작물 값을 두는 것을 제안 (목록 중간에 층이 생기면 뒤 층 작물이 밀리므로)
  */
 export const CROPS = [
   { id: 'pumpkin', name: '호박' }, { id: 'apple', name: '사과' }, { id: 'strawberry', name: '딸기' },
   { id: 'sweetpotato', name: '고구마' }, { id: 'carrot', name: '당근' },
+  { id: 'corn', name: '옥수수' }, { id: 'tomato', name: '토마토' }, { id: 'sunflower', name: '해바라기' }, { id: 'bread', name: '빵' },
 ] as const
 export type Crop = (typeof CROPS)[number]
+/** 빵이 나오는 캠퍼스 */
+export const BREAD_CAMPUS = '대전'
+const BREAD = CROPS.find((c) => c.id === 'bread')!
+/** 대전이 아닌 층이 돌려 쓰는 8종 (CROPS 순서 그대로, 빵만 뺌) */
+const ROTATION = CROPS.filter((c) => c.id !== 'bread')
 export function cropOf(f: Pick<Floor, 'campus' | 'floor'>): Crop {
-  const all = CAMPUS_FLOORS.flatMap((c) => c.floors.map((fl) => `${c.campus}|${fl}`))
-  const i = all.indexOf(`${f.campus}|${f.floor}`)
-  return CROPS[(i >= 0 ? i : hash(`${f.campus}|${f.floor}`)) % CROPS.length]
+  if (f.campus === BREAD_CAMPUS) return BREAD
+  const others = CAMPUS_FLOORS.filter((c) => c.campus !== BREAD_CAMPUS).flatMap((c) => c.floors.map((fl) => `${c.campus}|${fl}`))
+  const i = others.indexOf(`${f.campus}|${f.floor}`)
+  return ROTATION[(i >= 0 ? i : hash(`${f.campus}|${f.floor}`)) % ROTATION.length]
 }
 
 /** 내 소속 (내 정보 수정에서 바꾸는 값. 기수는 SSAFY 인증 값) */
@@ -93,12 +104,12 @@ const INTROS = [
   '느리게 친해지는 편이에요. 방명록부터 남겨 주세요', '주말마다 새로운 걸 해 보려고 해요', '', '맛있는 거 추천해 주세요!', '',
 ]
 const QUESTIONS = [
-  '가장 좋아하는 음식은 뭐예요?', '요즘 가장 자주 듣는 노래는?', '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', '가방 속에 늘 들어 있는 물건은?',
+  '가장 좋아하는 음식은 뭐예요?', '요즘 가장 자주 듣는 노래 한 곡은?', '주말 아침, 눈 뜨면 가장 먼저 하는 일은?', '가방 속에 늘 들어 있는 물건은?',
   '하루 동안 투명 인간이 된다면 뭐 해볼래요?', '비 오는 날 꼭 하고 싶은 일은?',
 ]
 const ANSWERS: Record<string, string[]> = {
   '가장 좋아하는 음식은 뭐예요?': ['마라탕 3단계요. 매운데 못 끊어요', '엄마표 된장찌개', '편의점 삼각김밥 참치마요'],
-  '요즘 가장 자주 듣는 노래는?': ['출근길 시티팝 플레이리스트', '게임 OST만 돌려 들어요', '잔잔한 피아노 곡'],
+  '요즘 가장 자주 듣는 노래 한 곡은?': ['출근길 시티팝 플레이리스트', '게임 OST만 돌려 들어요', '잔잔한 피아노 곡'],
   '주말 아침, 눈 뜨면 가장 먼저 하는 일은?': ['고양이 밥부터 줘요', '이불 속에서 한참 뒹굴기', '커피 내리기'],
   '가방 속에 늘 들어 있는 물건은?': ['필름카메라', '보조배터리 두 개', '작은 스케치북'],
   '하루 동안 투명 인간이 된다면 뭐 해볼래요?': ['맛집 주방 몰래 구경하기', '도서관에서 밤새 책 읽기', '공연장 맨 앞줄 가기'],
@@ -240,54 +251,53 @@ export function setRegular(id: string, on: boolean) {
 }
 export const subscribeRegulars = (f: () => void) => { regSubs.add(f); return () => { regSubs.delete(f) } }
 
-/* 오늘의 추천 친구: 하루 한 번. 설정은 저장돼 다음 날에도 그대로 */
-export interface RecommendSettings {
-  interests: string[]
-  question: string | null
-  sameQuestionFirst: boolean
-  sameCampus: boolean
-  sameGen: boolean
-  sameFloor: boolean
-}
-export const RECOMMEND_QUESTIONS = QUESTIONS
+/**
+ * 오늘의 추천 친구 (02 F5 "추천 친구 설정" 2 · 4, 2026-11-21 명세):
+ * 조건은 캠퍼스 · 층과 기수뿐이고 **고른 값은 저장하지 않음**(받을 때마다 다시 고름). 관심사 · 질문 같은 다른 조건은 없음.
+ * 뽑는 규칙: 고른 캠퍼스 · 층의 이번 학기 들판에 땅굴이 있고 기수가 같은 사람, 내가 단골로 담은 땅굴 주인은 뺌,
+ * 나에게 추천된 횟수가 적은 사람 먼저 (같으면 무작위), 최대 3명. 지금 보고 있는 들판과 관계없음. 추천은 하루 한 번
+ */
+export interface RecommendPick { campus: string; floor: number; gen: number }
 const REC_KEY = 'digul.recommend'
-interface RecState { settings: RecommendSettings; date: string | null; picks: string[] }
+interface RecState {
+  /** 오늘 받았으면 그 날짜 */
+  date: string | null
+  picks: string[]
+  /** 사람마다 나에게 추천된 횟수 (서버의 daily_recommendation_member 줄 수). 지난 날 결과도 지우지 않고 셈 */
+  counts: Record<string, number>
+}
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` }
 function recState(): RecState {
-  const myInt = me().interests
-  return load<RecState>(REC_KEY, {
-    settings: { interests: myInt.slice(0, 3), question: QUESTIONS[4], sameQuestionFirst: true, sameCampus: true, sameGen: true, sameFloor: false },
-    date: null, picks: [],
-  })
+  // 2026-11-21 전에 저장된 값에는 settings(관심사·질문·같은 캠퍼스…)가 들어 있었음 → 쓰지 않고, 다음에 저장할 때 사라짐
+  const st = load<Partial<RecState>>(REC_KEY, {})
+  return { date: st.date ?? null, picks: st.picks ?? [], counts: st.counts ?? {} }
 }
 let rec = recState()
-export const getRecommendSettings = () => rec.settings
-export function setRecommendSettings(s: RecommendSettings) { rec = { ...rec, settings: s }; save(REC_KEY, rec) }
 /** 오늘 이미 받았으면 그 3명 (id), 아니면 null */
 export const todaysPicks = (): string[] | null => (rec.date === today() ? rec.picks : null)
-/** 개발용: 오늘 받은 추천을 지움 (?recommend=reset) */
+/** 개발용: 오늘 받은 추천을 지움 (?recommend=reset). 추천 횟수는 그대로 */
 export function resetToday() { rec = { ...rec, date: null, picks: [] }; save(REC_KEY, rec) }
 
-/**
- * 추천 받기: 걸러 내지 않고 우선순위로 줄 세움 (02 F5 "추천 친구 설정" 2번)
- * 대상은 이번 학기 들판에 땅굴이 있는 사람 전부 (지금 보는 들판과 관계없음)
- */
-export function drawRecommendations(): string[] {
-  const s = rec.settings
-  const mine = me()
-  const pool = allCurrentFloors().flatMap((f) => fieldOf(f).residents).filter((r) => !r.mine).map((r) => r.user)
-  const r = rng(`rec#${today()}`)
-  const score = (u: FieldUser) => {
-    let v = u.interests.filter((i) => s.interests.includes(i)).length * 3
-    v += u.interests.filter((i) => mine.interests.includes(i)).length
-    if (s.question && s.sameQuestionFirst && u.qna?.some((x) => x.q.endsWith(s.question!))) v += 4
-    if (s.sameCampus && u.campus === mine.campus) v += 2
-    if (s.sameGen && u.gen === mine.gen) v += 1.5
-    if (s.sameFloor && u.campus === mine.campus && u.floor === mine.floor) v += 2
-    return v + r() * 1.5 // 같은 점수끼리는 날마다 섞임
-  }
-  const picks = pool.map((u) => ({ u, v: score(u) })).sort((a, b) => b.v - a.v).slice(0, 3).map((x) => x.u.id)
-  rec = { ...rec, date: today(), picks }
+/** 이 조건에 맞는 후보 (추천 순서는 정하기 전) */
+export function recommendPool(sel: RecommendPick): FieldUser[] {
+  const f: Floor = { id: floorId(CURRENT_TERM, sel.campus, sel.floor), term: CURRENT_TERM, campus: sel.campus, floor: sel.floor }
+  if (!CAMPUS_FLOORS.some((c) => c.campus === sel.campus && c.floors.includes(sel.floor))) return []
+  const regular = new Set(getRegulars())
+  return fieldOf(f).residents.filter((r) => !r.mine && r.user.gen === sel.gen && !regular.has(r.user.id)).map((r) => r.user)
+}
+
+/** 추천 받기. 오늘 이미 받았으면 그 결과를 그대로 (새로 뽑지 않음, 조건을 바꿔 다시 보내도 처음 결과) */
+export function drawRecommendations(sel: RecommendPick): string[] {
+  const done = todaysPicks()
+  if (done) return done
+  const r = rng(`rec#${today()}#${sel.campus}${sel.floor}#${sel.gen}`)
+  const picks = recommendPool(sel)
+    .map((u) => ({ id: u.id, n: rec.counts[u.id] ?? 0, tie: r() }))
+    .sort((a, b) => a.n - b.n || a.tie - b.tie)
+    .slice(0, 3).map((x) => x.id)
+  const counts = { ...rec.counts }
+  for (const id of picks) counts[id] = (counts[id] ?? 0) + 1
+  rec = { date: today(), picks, counts }
   save(REC_KEY, rec)
   return picks
 }

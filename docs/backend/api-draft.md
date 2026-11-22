@@ -183,7 +183,7 @@ HTTP/1.1 409 Conflict
 ### 2.4 오늘의 추천 친구 (F5) — `api.members`
 | 메서드 | 경로 | 본문 | 응답 | 에러 | 코드 |
 |---|---|---|---|---|---|
-| GET · PUT | `/me/recommend-setting` | `RecommendSettingDto` | `RecommendSettingDto` | — | `recommendSetting` · `updateRecommendSetting` |
+| GET · PUT | `/me/recommend-setting` | `RecommendSettingDto` | `RecommendSettingDto` | — | `recommendSetting` · `updateRecommendSetting` | **← 2026-11-21 없어짐 (설정을 저장하지 않음). 추천 받기는 `POST /me/recommendations/today` 에 `{ campusFloorId, generation }` 을 보냄 (팀 명세는 `/me/daily-recommendation`)**
 | GET | `/me/recommendations/today` | — | `DailyRecommendationDto { recommendedOn, members[3] }` | 404 NOT_DRAWN (오늘 아직 안 받음) | `todayRecommendation` |
 | POST | `/me/recommendations/today` | — | `DailyRecommendationDto` | 409 ALREADY_DRAWN (하루 한 번, Asia/Seoul 날짜) | `drawRecommendation` |
 
