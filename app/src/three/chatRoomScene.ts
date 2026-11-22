@@ -5,9 +5,8 @@ import shellUrl from '../assets/models/room_shell_v3_draco_webp.glb?url'
 import baseUrl from '../assets/models/room/room_base_v3_1_draco_webp.glb?url'
 import decoUrl from '../assets/models/room/room_deco_v1_draco_webp.glb?url'
 import shelvesUrl from '../assets/models/room/room_shelves_v1_1_draco_webp.glb?url'
-import moleChatUrl from '../assets/models/mole_chat.glb?url'
 import { loadGlb } from './glb'
-import { fixChatMoleEyeTracks } from './chatMoleClips'
+import { loadMoleGltf, MOLE_NODE_Y } from './moleModel'
 import { markShadows } from './contactShadow'
 import { applyWallpaper } from './roomScene'
 import { approach, createRenderer, destroyRenderer, quality, startLoop, testParam } from './engine'
@@ -22,7 +21,7 @@ import {
  * - 방: 땅굴 방의 껍데기(room_shell_v3) + 기본 가구(room_base_v3_1, 원탁이 이미 가운데) + 장식(room_deco_v1) + 벽 선반(room_shelves_v1_1).
  *   핸드오프의 room_base_v2 노드 옮기기 대신 v3_1 에 맞춤: 원탁만 (1.7, 0.9, 1.7) 로 키워 낮추고(찻주전자·찻잔은 크기 상쇄),
  *   수납장·스탠드·큰 화분·러그 둘·원래 방석 둘은 숨김. 방석은 원래 방석 노드를 자리마다 복제
- * - 두더지: mole_v1_2_chat (동작 21개, sit_talk 포함) + accessories v1.2. 4명 이상이면 손 소품 숨김 (moleDress.handHiddenInChat)
+ * - 두더지: mole_v1_4 (앱 공용 glb, 동작 26개, sit_talk 포함) + accessories v1.2. 4명 이상이면 손 소품 숨김 (moleDress.handHiddenInChat)
  * - 인원별 자리 · 카메라 프리셋 · 0.6초 전환 · 6명 초과(나 + 최근 말한 5명, 교체 쏙/퐁) 규칙은 chatRoomLayout.ts
  * - 모션: sit_idle 반복(하체) + 상체만 덮어쓰기. 10초마다 drink, 사이에 talk, 메시지 보낼 때 talk
  * - 이름표 · 누르기는 장면 위 HTML (이름표 위치를 매 프레임 투영해서 옮김)
@@ -54,6 +53,8 @@ export interface ChatRoomHandle {
 }
 
 const UPPER = /^(upper_body|arm_L|arm_R|mole_eye_L|mole_eye_R|coffee_cup)\./
+/** 두더지 그룹 높이: sit point(SIT_Y) 에서 glb `mole` 노드의 +0.03 을 뺀 값 (그룹 위치에 노드 높이가 더해지므로. 3D 핸드오프 mole_v1_4 "높이 +0.03m") */
+const ROOT_Y = SIT_Y - MOLE_NODE_Y
 const FADE = 0.3
 const POP_SECONDS = 0.3
 const BG = '#E9B597'
@@ -158,7 +159,7 @@ export function mountChatRoom(el: HTMLElement, init: ChatRoomInit): ChatRoomHand
     model.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.frustumCulled = false })
     const root = new THREE.Group()
     root.add(model)
-    root.position.set(seat.x, SIT_Y, seat.z); root.rotation.y = seat.yaw
+    root.position.set(seat.x, ROOT_Y, seat.z); root.rotation.y = seat.yaw
     root.scale.setScalar(0.0001)
     scene.add(root)
 
@@ -266,7 +267,7 @@ export function mountChatRoom(el: HTMLElement, init: ChatRoomInit): ChatRoomHand
         // 카메라를 먼저 빼고(0.6초) 그다음 새 두더지 등장 (늘 때)
         a = makeActor(member, seat, opts.initial ? 0 : grow ? CAM_SECONDS : 0)
         actors.set(id, a)
-        if (opts.initial) a.root.position.set(seat.x, SIT_Y, seat.z)
+        if (opts.initial) a.root.position.set(seat.x, ROOT_Y, seat.z)
       } else {
         a.member = member
         a.target = { x: seat.x, z: seat.z, yaw: seat.yaw }
@@ -400,7 +401,7 @@ export function mountChatRoom(el: HTMLElement, init: ChatRoomInit): ChatRoomHand
       } else if (a.state === 'leaving') {
         a.stateT += dt
         const k = Math.min(1, a.stateT / POP_SECONDS)
-        a.root.scale.setScalar(Math.max(0.0001, 1 - k)); a.root.position.y = SIT_Y - 0.15 * k
+        a.root.scale.setScalar(Math.max(0.0001, 1 - k)); a.root.position.y = ROOT_Y - 0.15 * k
         a.cushion?.scale.setScalar(Math.max(0.0001, 1 - k))
         if (k >= 1) { dropActor(a); continue }
       } else {
@@ -444,10 +445,9 @@ export function mountChatRoom(el: HTMLElement, init: ChatRoomInit): ChatRoomHand
   }, q)
 
   // ---- 불러오기 ----
-  Promise.all([loadGlb(shellUrl), loadGlb(baseUrl), loadGlb(decoUrl), loadGlb(shelvesUrl), loadGlb(moleChatUrl), loadAccessories().catch(() => undefined)])
+  Promise.all([loadGlb(shellUrl), loadGlb(baseUrl), loadGlb(decoUrl), loadGlb(shelvesUrl), loadMoleGltf(), loadAccessories().catch(() => undefined)])
     .then(([shell, base, deco, shelves, mole, acc]) => {
       if (dead) return
-      fixChatMoleEyeTracks(mole.animations) // mole_chat.glb 클립의 틀린 눈 트랙 (docs/chat-mole-eyes.md)
       moleG = mole; accG = acc
       // 벽: 땅굴 방 01 기본 벽지(단색 #F0B47A × 구운 음영). 껍데기 원본 재질은 허옇게 나와서 핸드오프 사진(복숭아색)과 다름
       const shellRoot = shell.scene.clone()

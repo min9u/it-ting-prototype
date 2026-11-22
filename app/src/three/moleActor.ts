@@ -1,8 +1,7 @@
 import * as THREE from 'three'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import moleUrl from '../assets/models/mole.glb?url'
-import { loadGlb } from './glb'
+import { loadMoleGltf } from './moleModel'
 import { createMoleDress, type MoleDress } from './moleDress'
 
 /*
@@ -12,7 +11,7 @@ import { createMoleDress, type MoleDress } from './moleDress'
  *   리액션: mole_greet, mole_look_around, mole_ground_scratch
  * 지상 전용(mole_burrow_enter/exit, mole_butt_wiggle)은 굴 입구 기준 자세라 방에서는 안 씀.
  *
- * 원본 mole_v1_1.glb 에서 텍스처만 1024px WebP 로 줄인 파일 (Draco 해독기 없이 읽힘, 만드는 법은 docs/3d-handoff-v2-integration.md)
+ * 모델 파일은 three/moleModel.ts (mole_v1_4_draco_webp.glb, 동작 26개). 채팅방도 같은 파일을 씀
  *
  * 좌표: 두더지 원점 = 두 발 사이 바닥, 정면 +Z. 핸드오프 수치(m)는 키 1m 기준이라 방에서는 scale 배.
  * 구조: actor(위치·회전·scale) > gltf.scene(애니메이션 루트)
@@ -54,7 +53,7 @@ const STRIDE = 2.25
 const STRIDE_LIFT = 1.6        // 보폭이 커진 만큼 발을 조금 더 들어 올림 (발 높이 y 의 들림 폭 배율)
 const ARRIVE = .7              // 앉는 자리 앞 도착 거리 (m)
 
-export const loadMoleGltf = () => loadGlb(moleUrl)
+export { loadMoleGltf }
 
 /** mole_walk 복제본: 발의 앞뒤 이동(z)을 STRIDE 배, 들림(y)을 STRIDE_LIFT 배로 (각각 곡선의 가운데·바닥 기준). 이름은 그대로 */
 const strideCache = new WeakMap<THREE.AnimationClip, THREE.AnimationClip>()
