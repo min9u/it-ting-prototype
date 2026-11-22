@@ -1,3 +1,4 @@
+import { shadowFixedPos } from './contactShadow'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
@@ -127,7 +128,14 @@ const TARGET_Y = 2.04, TARGET_Y_NEAR = 1.0
 function markShadows(root: THREE.Object3D) {
   root.traverse((o) => {
     const m = o as THREE.Mesh
-    if (m.isMesh && /^shadow_/.test(m.name)) { (m.material as THREE.Material).depthWrite = false; m.renderOrder = 1 }
+    if (m.isMesh && /^shadow_/.test(m.name)) {
+      (m.material as THREE.Material).depthWrite = false; m.renderOrder = 1
+      // 판이 가구에서 떨어져 방 바깥에 뜨는 디자이너 파일 문제 바로잡기 (three/contactShadow.ts)
+      m.geometry.computeBoundingBox()
+      const b = m.geometry.boundingBox!
+      const np = shadowFixedPos({ x: (b.min.x + b.max.x) / 2, z: (b.min.z + b.max.z) / 2 }, m.scale, m.position)
+      m.position.x = np.x; m.position.z = np.z
+    }
   })
 }
 
