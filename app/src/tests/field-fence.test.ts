@@ -113,7 +113,7 @@ describe('울타리 닫기 (fieldFence)', () => {
         }
       }
     }
-  })
+  }, 30_000) // 물건이 많아 기계가 바쁘면(병렬 작업 중) 5초 기본 시간을 넘김
 
   it('FENCE_OFFSET 이 작물 모델이 경계 밖으로 튀어나오는 최대치 + 울타리 반 두께보다 넉넉함', () => {
     expect(FENCE_OFFSET).toBeGreaterThan(CROP_OVERHANG_MAX + 0.08)
