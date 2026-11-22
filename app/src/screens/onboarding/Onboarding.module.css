@@ -104,7 +104,7 @@
 
 /* 2. 관심사: 왼쪽 분류 248 + 오른쪽 태그 패널 */
 .pickCols { display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 20px; align-items: stretch; }
-.catList { display: flex; flex-direction: column; gap: 0; padding: 12px; border: 1px solid var(--ob-line); border-radius: 16px; background: var(--ob-card); max-height: 498px; overflow-y: auto; }
+.catList { display: flex; flex-direction: column; gap: 0; padding: 12px; border: 1px solid var(--ob-line); border-radius: 16px; background: var(--ob-card); }
 .cat, .catOn { height: 44px; flex: none; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--ink-800); text-align: left; }
 .cat svg { color: #b49a86; }
 .cat:hover { background: #f6e8da; }
@@ -259,58 +259,20 @@
 .hintLine { font-size: 12px; color: var(--ink-400); }
 .partNote { padding: 10px 14px; border-radius: 8px; background: #fbf0cf; font-size: 13px; color: #6b5410; }
 
-/* 2. 분야 카드 11개 + 선택한 관심사 */
-.catBoard { padding: 28px 28px 24px; border: 1px solid var(--ob-line); border-radius: 16px; background: #fdf8f3; display: flex; flex-direction: column; }
-.catGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.catCard, .catCardOn {
-  position: relative; min-height: 138px; padding: 16px 16px 18px; border-radius: 12px; text-align: left;
-  display: flex; flex-direction: column; gap: 6px; background: #fbf4ec; border: 1px solid var(--ob-line); color: var(--ink-900);
-  transition: border-color .15s, background .15s, opacity .15s;
-}
-.catCard:hover { border-color: #d9bfa6; }
-.catCardOn { background: #f4e8dc; border: 1.5px solid var(--brown-700); }
-.catCardDim { opacity: .45; }
-.catIcon { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-size: 22px; margin-bottom: 12px; flex: none; }
-.catCard strong, .catCardOn strong { font-weight: 400; font-size: 16px; }
-.catCard small, .catCardOn small { font-family: var(--font-body); font-size: 11px; color: var(--ink-500); }
-.catBadge, .catBadgeOn { position: absolute; top: 16px; right: 16px; height: 22px; padding: 0 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; }
-.catBadge { border: 1px solid var(--line-strong); color: var(--ink-500); background: #fffaf5; }
-.catBadgeOn { background: var(--brown-700); color: var(--on-brown); }
+/* 2. 관심사: 왼쪽 대분류 + 오른쪽 세부 관심사 (위 pickCols · catList · tagPanel) */
+.tagDim { opacity: .45; }
 .limit { font-size: 13px; color: var(--ink-500); }
 .limitOn { font-size: 13px; color: var(--alert); }
 .trayLead { margin-left: 10px; font-size: 12px; color: var(--ink-400); }
 .leadMark { font-style: normal; font-size: 10px; padding: 1px 5px; margin-right: 2px; border-radius: 4px; background: rgba(255, 255, 255, .7); }
 .tray { position: relative; }
 .overToast {
-  position: absolute; left: 50%; bottom: -60px; transform: translateX(-50%); white-space: nowrap; z-index: 3;
+  position: absolute; left: 50%; bottom: -52px; transform: translateX(-50%); white-space: nowrap; z-index: 3;
   padding: 11px 18px; border-radius: 20px; background: var(--toast-bg); color: #fbf1e6; font-size: 14px;
   box-shadow: 0 10px 24px rgba(40, 22, 12, .3); animation: obFade .2s;
 }
 
-/* 분야 팝업 */
-.catPop { --ob-orange: #c8643a; --ob-orange-hover: #b35530; --ob-line: #eadbcb; --ob-field: #f4e6d8; padding: 26px 26px 22px; font-family: var(--font-display); background: #fbf4ec; border-radius: 16px; }
-.catPopHead { display: flex; gap: 14px; align-items: center; padding-right: 36px; }
-.catPopHead .catIcon { margin: 0; width: 52px; height: 52px; }
-.catPopHead h2 { font-size: 22px; font-weight: 400; color: var(--ink-900); }
-.catPopHead p { margin-top: 4px; font-size: 13px; color: var(--ink-700); }
-.catGroup { margin-top: 20px; }
-.catGroup > p { font-size: 13px; color: var(--ink-800); }
-.catTags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
-.popTag, .popTagOn { height: 30px; padding: 0 11px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
-.popTag { background: var(--tag-bg); color: var(--tag-fg); border: 1.5px solid transparent; }
-.popTag:hover { border-color: var(--tag-fg); }
-.popTagOn { background: #fffaf5; color: var(--tag-fg); border: 1.5px solid var(--tag-fg); }
-.popTagDim { opacity: .5; }
-.popOver { margin-top: 14px; padding: 9px 12px; border-radius: 8px; background: var(--toast-bg); color: #fbf1e6; font-size: 13px; }
-.catPopFoot { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--ob-line); display: flex; align-items: center; gap: 14px; }
-.catPopFoot > span { flex: 1; font-size: 14px; color: var(--ink-800); }
-.catPopFoot b { font-weight: 400; color: var(--ob-orange); }
-.resetBtn { font-size: 14px; color: var(--ink-700); padding: 0 6px; }
-.resetBtn:hover { text-decoration: underline; }
-.catPopFoot .next { height: 44px; }
-
 /* 3. 자기소개 */
 .qEmpty { font-size: 13px; color: var(--ink-400); padding: 14px; border: 1px dashed var(--line-strong); border-radius: 10px; text-align: center; }
 
-@media (max-width: 900px) { .catGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @keyframes obFade { from { opacity: 0; } }
