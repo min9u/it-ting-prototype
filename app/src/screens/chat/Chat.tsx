@@ -22,11 +22,8 @@ import {
 } from '../../data/chat'
 import TeaRoom, { type TeaGuest } from './TeaRoom'
 import s from './Chat.module.css'
-import { api } from '../../api'
-import type { ChatReqVM, ChatRoomItem } from '../../api/mappers'
-import { patch, useChatRequests, useChatRooms, useOptimistic } from '../../api/queries'
-import { qk } from '../../api/queryClient'
-import type { AcceptChatRequestResponse } from '../../api/types'
+import { api, patch, useOptimistic } from '../../api'
+import { chatKeys, useChatRequests, useChatRooms, type AcceptChatRequestResponse, type ChatReqVM, type ChatRoomItem } from '../../api/chat'
 import { ErrorState, SkeletonRows } from '../../components/AsyncState'
 import { agoChat, chatListTime } from '../../lib/time'
 
@@ -463,12 +460,12 @@ function Requests({ onProfile, onToast }: { onProfile: (id: string) => void; onT
   const focus = list.find((r) => r.id === picked) ?? list[0]
   const who = focus?.person
   const drop = (r: ChatReqVM, call: () => Promise<unknown>, done: string, fail: string) => run.mutate({
-    call, errorTitle: fail, invalidate: [qk.chat],
-    patches: [patch<ChatReqVM[]>(qk.chatRequests, (l) => l.filter((x) => x.id !== r.id))],
+    call, errorTitle: fail, invalidate: [chatKeys.all],
+    patches: [patch<ChatReqVM[]>(chatKeys.requests, (l) => l.filter((x) => x.id !== r.id))],
   }, { onSuccess: () => onToast(done) })
   const accept = (r: ChatReqVM) => run.mutate({
-    call: () => api.chat.acceptRequest(r.id), errorTitle: '요청을 수락하지 못했어요', invalidate: [qk.chat],
-    patches: [patch<ChatReqVM[]>(qk.chatRequests, (l) => l.filter((x) => x.id !== r.id))],
+    call: () => api.chat.acceptRequest(r.id), errorTitle: '요청을 수락하지 못했어요', invalidate: [chatKeys.all],
+    patches: [patch<ChatReqVM[]>(chatKeys.requests, (l) => l.filter((x) => x.id !== r.id))],
   }, { onSuccess: (res) => navigate(`/chat/${(res as AcceptChatRequestResponse).chatRoomId}`) })
   const myInt = getMyInterests(USERS[ME_ID].interests)
 

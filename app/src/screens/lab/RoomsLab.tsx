@@ -12,7 +12,7 @@ import { roomLookOf, type SavedRoom } from '../../data/roomLook'
 import { talkMoodOf } from '../../data/interestFx'
 import { themeOf } from '../../data/roomStyle'
 import { lookDiverse } from '../../lib/roomLookLab'
-import { useBurrow } from '../../api/queries'
+import { useBurrow } from '../../api/explore'
 import s from '../burrow/Burrow.module.css'
 
 /*

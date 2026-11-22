@@ -7,8 +7,14 @@
 interface ImportMetaEnv {
   /** "1" 이면 # 라우팅 (공유 빌드) */
   readonly VITE_HASH_ROUTER?: string
-  /** REST 기준 주소 (기본 /api) */
+  /** REST 기준 주소 (기본 /api/v1) */
   readonly VITE_API_BASE?: string
+  /** API 방식: mock · real (기본 mock) */
+  readonly VITE_API_MODE?: string
+  /** 실제 서버로 부를 영역 목록 (쉼표, 예: common,auth,events) */
+  readonly VITE_API_REAL_AREAS?: string
+  /** 목으로 둘 영역 목록 (VITE_API_MODE=real 일 때) */
+  readonly VITE_API_MOCK_AREAS?: string
   /** WebSocket 주소 (기본 /ws) */
   readonly VITE_WS_URL?: string
   /** 실시간 연결 방식: mock · stomp (기본 mock) */

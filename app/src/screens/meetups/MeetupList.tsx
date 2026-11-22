@@ -13,11 +13,8 @@ import {
   recruitOf, toggleAlert, toggleWish, useMeetups, withdraw,
 } from '../../data/meetupStore'
 import { ActionToast, Dropdown, ManageModal, type MToast, MY_LABEL, RangePicker, dot, fullDate } from './parts'
-import { api } from '../../api'
-import type { MeetupCardVM } from '../../api/mappers'
-import { patch, useMeetupList, useOptimistic } from '../../api/queries'
-import { qk } from '../../api/queryClient'
-import type { MeetupListQuery } from '../../api/types'
+import { api, patch, useOptimistic } from '../../api'
+import { meetupKeys, useMeetupList, type MeetupCardVM, type MeetupListQuery } from '../../api/meetups'
 import { ErrorState, SkeletonCards } from '../../components/AsyncState'
 import s from './Meetups.module.css'
 
@@ -75,7 +72,7 @@ export function MeetupList() {
   const run = useOptimistic()
   const toggleCat = (id: string) => { setCats((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id])); reset() }
   const setLike = (id: string, on: boolean) => run.mutate({
-    call: () => api.meetups.setLike(id, on), errorTitle: on ? '찜하지 못했어요' : '찜을 해제하지 못했어요', invalidate: [qk.meetups],
+    call: () => api.meetups.setLike(id, on), errorTitle: on ? '찜하지 못했어요' : '찜을 해제하지 못했어요', invalidate: [meetupKeys.all],
     patches: [patch<{ items: MeetupCardVM[] }>(['meetups', 'list'], (o) => ({ ...o, items: o.items.map((c) => (c.meetup.id === id ? { ...c, liked: on } : c)) }))],
   }, { onError: () => setToast(null) })
   const wish = (c: MeetupCardVM) => {

@@ -30,6 +30,9 @@ const trimSlash = (s: string) => (s.length > 1 ? s.replace(/\/+$/, '') : s)
 
 export type RealtimeMode = 'mock' | 'stomp'
 
+/** 쉼표 목록 → 소문자 이름 집합 ("common, auth" → {common, auth}) */
+const list = (v: string | undefined) => new Set((v ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean))
+
 export const ENV = {
   /** vite 모드 ('development' · 'production' · 'share') */
   mode: raw.MODE,
@@ -42,10 +45,17 @@ export const ENV = {
   /** # 라우팅 (주소 경로를 못 바꾸는 곳에 올릴 때). VITE_HASH_ROUTER=1 */
   hashRouter: flag(raw.VITE_HASH_ROUTER),
   /**
-   * REST API 기준 주소. 기본은 같은 출처의 상대 경로 '/api' (개발은 vite 프록시, 배포는 Nginx 가 Spring 으로 넘김 → CORS 없음).
-   * 다른 도메인이 꼭 필요할 때만 'https://api.example.com/api' 처럼 (그때는 서버 CORS·쿠키 SameSite=None; Secure 필요)
+   * REST API 기준 주소. 백엔드 확정 명세(v1)의 모든 주소가 '/api/v1' 로 시작하므로 기본은 같은 출처의 '/api/v1'
+   * (개발은 vite 프록시, 배포는 Nginx 가 Spring 으로 넘김 → CORS 없음). 영역 코드의 경로는 '/meetups' 처럼 이 뒤만 적는다.
+   * 다른 도메인이 꼭 필요할 때만 'https://api.example.com/api/v1' 처럼 (그때는 서버 CORS·쿠키 SameSite 설정 필요)
    */
-  apiBase: trimSlash(str(raw.VITE_API_BASE, '/api')),
+  apiBase: trimSlash(str(raw.VITE_API_BASE, '/api/v1')),
+  /** 목 서버(mock, 기본) · 실제 서버(real). 영역마다 바꾸려면 아래 두 목록 (docs/backend/api-v1-foundation.md) */
+  apiMode: (str(raw.VITE_API_MODE, 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
+  /** apiMode 와 관계없이 실제 서버로 부를 영역 (예: "common,auth"). 실시간 소식 연결은 이름 "events" */
+  apiRealAreas: list(raw.VITE_API_REAL_AREAS),
+  /** apiMode 가 real 이어도 목으로 둘 영역 (백엔드가 아직 안 만든 영역) */
+  apiMockAreas: list(raw.VITE_API_MOCK_AREAS),
   /**
    * 실시간(WebSocket) 주소. 상대 경로면 지금 페이지의 출처로 ws:// 또는 wss:// 를 붙임 (realtime/index.ts wsUrl())
    */

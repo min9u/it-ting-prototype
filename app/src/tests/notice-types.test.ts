@@ -1,10 +1,10 @@
 /**
  * F9 알림 종류 (팀 명세 11-20): 가려진 댓글 · 방명록 글도 쓴 사람에게 알림
- * 알림 목 데이터의 모든 세부 종류가 서버 type 으로 바뀔 수 있어야 함 (api/mock/serialize.ts NOTICE_TYPE)
+ * 알림 목 데이터의 모든 세부 종류가 서버 type 으로 바뀔 수 있어야 함 (api/notifications/mock.ts NOTICE_TYPE)
  */
 import { describe, expect, it } from 'vitest'
 import { noticeStore } from '../data/notifications'
-import { NOTICE_TYPE } from '../api/mock/serialize'
+import { NOTICE_TYPE } from '../api/notifications/mock'
 
 describe('F9 알림 종류', () => {
   const list = noticeStore.get().list

@@ -1,0 +1,87 @@
+/**
+ * 목 서버가 여러 영역에서 같이 쓰는 "사람" 직렬화 (저장소 data/* → DTO).
+ * 실제 서버가 user · user_profile · campus_floor 를 이어 읽어 "사용자 표시"를 만드는 자리와 같다.
+ *
+ * - 명세 모양: userDisplay(id) · interestTags(id) · moleDto(worn)  ← 새 코드는 이것
+ * - 초안 모양: memberSummary(id) · memberProfile(id)               ← 아직 옮기지 않은 영역용 (common/legacy.ts)
+ * id 는 toDtoId 로 숫자로 바꿔 담는다 (common/ids.ts). 앱 쪽에서는 toAppId 로 원래 글자 id 가 돌아온다.
+ */
+import { ME_ID, USERS, categoryOf } from '../../data/mock'
+import { getMyInterests, subOf } from '../../data/interests'
+import { getMyWorn, wornByPart } from '../../data/moleItems'
+import { ME_HOME, affOf, fieldUserOf } from '../../data/field'
+import type { User } from '../../data/types'
+import { toDtoId } from './ids'
+import type { InterestTagDto, MoleDto, UserDisplayDto } from './types'
+import type { MemberProfileDto, MemberSummaryDto, MoleLookDto } from './legacy'
+
+/** 목 데이터에서 탈퇴한 사람을 가리키는 id (앱의 GONE_ID 와 같음) */
+const GONE = 'gone'
+
+/** 목 저장소의 사람 (없거나 탈퇴면 undefined) */
+export function rawPerson(id: string): User | undefined {
+  if (!id || id === GONE) return undefined
+  return USERS[id] ?? fieldUserOf(id)
+}
+/** "SSAFY 16기 · 서울 · 2층" → 숫자들 (목 데이터의 소속 문자열을 칼럼으로 나눔) */
+export function affParts(id: string, u: User): { gen: number | null; campus: string | null; floor: number | null } {
+  if (id === ME_ID) return { gen: ME_HOME.gen, campus: ME_HOME.campus, floor: ME_HOME.floor }
+  const m = /(\d+)기\s*·\s*([^·]+?)\s*·\s*(\d+)층/.exec(affOf(u))
+  return m ? { gen: +m[1], campus: m[2].trim(), floor: +m[3] } : { gen: null, campus: null, floor: null }
+}
+/** 입은 아이템 id 목록 → 부위별 코드 */
+export function moleDto(worn: string[]): MoleDto {
+  const by = wornByPart(worn)
+  return { head: by.머리, face: by.얼굴, neck: by.목, hand: by.손 }
+}
+const wornOf = (id: string, u: User) => (id === ME_ID ? getMyWorn() : u.worn ?? [])
+const NO_MOLE: MoleDto = { head: null, face: null, neck: null, hand: null }
+
+/* ===== 명세 모양 ===== */
+/** 사용자 표시 (00 공통). 없는 사람은 탈퇴한 사용자로 */
+export function userDisplay(id: string): UserDisplayDto {
+  const u = rawPerson(id)
+  if (!u) return { id: toDtoId(id || GONE), nickname: null, profileImageUrl: null, mole: { ...NO_MOLE }, campusName: null, generation: null, floor: null, isWithdrawn: true }
+  const a = affParts(id, u)
+  return {
+    id: toDtoId(u.id), nickname: u.nickname, profileImageUrl: null, mole: moleDto(wornOf(id, u)),
+    campusName: a.campus, generation: a.gen, floor: a.floor, isWithdrawn: false,
+  }
+}
+/** 한 사람의 관심사 태그 (고른 순서, 첫 번째가 대표). isShared 는 보는 사람(기본 나) 기준 */
+export function interestTags(id: string, viewerId: string = ME_ID): InterestTagDto[] {
+  const u = rawPerson(id)
+  if (!u) return []
+  const names = id === ME_ID ? getMyInterests(u.interests) : u.interests
+  const viewer = rawPerson(viewerId)
+  const mine = new Set(viewer ? (viewerId === ME_ID ? getMyInterests(viewer.interests) : viewer.interests) : [])
+  return names.map((name) => ({
+    id: toDtoId(subOf(name)?.id ?? name), name, interestCategoryId: toDtoId(categoryOf(name)?.id ?? 'etc'),
+    isShared: id !== viewerId && mine.has(name),
+  }))
+}
+
+/* ===== 초안 모양 (common/legacy.ts) ===== */
+/** @deprecated 명세 모양 userDisplay 로 옮길 것 */
+export const moleOf = (worn: string[]): MoleLookDto => moleDto(worn)
+/** @deprecated 명세 모양 userDisplay 로 옮길 것 */
+export function memberSummary(id: string): MemberSummaryDto {
+  const u = rawPerson(id)
+  if (!u) return { id: GONE, nickname: null, status: 'WITHDRAWN', generation: null, campus: null, floor: null, mole: { ...NO_MOLE } }
+  const a = affParts(id, u)
+  return { id: u.id, nickname: u.nickname, status: 'ACTIVE', generation: a.gen, campus: a.campus, floor: a.floor, mole: moleDto(wornOf(id, u)) }
+}
+/** @deprecated 명세 모양 userDisplay + interestTags 로 옮길 것 */
+export function memberProfile(id: string): MemberProfileDto {
+  const base = memberSummary(id)
+  const u = rawPerson(id)
+  if (!u) return { ...base, intro: null, interests: [], answers: [], online: false }
+  const names = id === ME_ID ? getMyInterests(u.interests) : u.interests
+  return {
+    ...base,
+    intro: u.intro || null,
+    interests: names.map((name, i) => ({ interestId: subOf(name)?.id ?? name, name, categoryId: categoryOf(name)?.id ?? '', sortOrder: i, furniture: null })),
+    answers: (u.qna ?? []).map((x, i) => ({ slot: i + 1, questionId: `q-${i + 1}`, question: x.q, answer: x.a })),
+    online: !!u.online,
+  }
+}

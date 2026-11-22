@@ -5,11 +5,8 @@ import { NOTICE_KINDS, type AppNotice, type NoticeKind } from '../../data/notifi
 import { NoticeRow } from '../../components/NotificationPopover'
 import Footer from '../../components/Footer'
 import { ErrorState, SkeletonRows } from '../../components/AsyncState'
-import { api } from '../../api'
-import { KIND_CATEGORY } from '../../api/mappers'
-import { patch, useNotificationList, useOptimistic } from '../../api/queries'
-import { qk } from '../../api/queryClient'
-import type { NotificationPageDto } from '../../api/types'
+import { api, patch, useOptimistic } from '../../api'
+import { KIND_CATEGORY, notificationKeys, useNotificationList, type NotificationPageDto } from '../../api/notifications'
 import { toIso } from '../../lib/time'
 import mound from '../../assets/mole-mound.png'
 import s from './Notifications.module.css'
@@ -18,7 +15,7 @@ type Tab = '전체' | NoticeKind
 const TABS: Tab[] = ['전체', ...NOTICE_KINDS]
 
 /** 알림 캐시(커서 쪽 묶음)의 알림을 읽음으로 */
-const readPatch = (pick: (id: string) => boolean) => patch<InfiniteData<NotificationPageDto>>(qk.notifications, (o) => {
+const readPatch = (pick: (id: string) => boolean) => patch<InfiniteData<NotificationPageDto>>(notificationKeys.all, (o) => {
   const now = toIso(Date.now())
   let read = 0
   const pages = o.pages.map((pg) => ({ ...pg, items: pg.items.map((n) => (!n.readAt && pick(n.id) ? (read++, { ...n, readAt: now }) : n)) }))

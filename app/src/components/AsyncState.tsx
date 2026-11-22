@@ -2,7 +2,7 @@ import { useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { isApiError, isNotFound } from '../api/client'
-import { activeKnobs, API_MODE, clearKnobs } from '../api/config'
+import { activeKnobs, ANY_MOCK, clearKnobs } from '../api/config'
 import { errorToastStore } from '../api/queryClient'
 import { EmptyMole, Toast } from './Feedback'
 import mound from '../assets/mole-mound.png'
@@ -125,7 +125,7 @@ export function ApiToaster() {
 export function ApiKnobBadge() {
   // 주소(해시 포함)가 바뀌면 다시 읽음 — 해시 라우터는 ?api= 를 붙여도 새로고침되지 않음
   useLocation()
-  if (API_MODE !== 'mock') return null
+  if (!ANY_MOCK) return null
   const knobs = [...activeKnobs()]
   if (!knobs.length) return null
   const off = () => {

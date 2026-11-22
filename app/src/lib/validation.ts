@@ -105,12 +105,12 @@ export function counter(value: string, max: number) {
 
 /* ---------- 서버 에러 자리 ---------- */
 /**
- * 서버 에러 형식 (docs/dev-deploy-risks.md 5장 API 규약 초안 + 칸별 오류):
- *   { code: 'VALIDATION_FAILED', message: '…', status: 400, traceId, fieldErrors: [{ field: 'nickname', message: '이미 쓰고 있는 닉네임이에요' }] }
- * API 계층(src/api)이 이 모양의 값을 던지면 화면은 fieldError(err, '칸 이름') 으로 그 칸 밑에 보여 줌
+ * 서버 에러 형식 (백엔드 명세 v1: 400 INVALID_INPUT + fields[{ field, message }]. 옛 초안의 fieldErrors 도 읽음):
+ *   API 계층의 ApiError{ code: 'INVALID_INPUT', fields: [{ field: 'nickname', message: '12자를 넘을 수 없습니다.' }] }
+ * 화면은 fieldError(err, '칸 이름') 으로 그 칸 밑에 보여 줌 (field 는 요청 JSON 경로: 'mole.head', 'answers[1].answer')
  */
 export interface ApiFieldError { field: string; message: string; code?: string }
-export interface ApiErrorBody { code?: string; message?: string; status?: number; traceId?: string; fieldErrors?: ApiFieldError[] }
+export interface ApiErrorBody { code?: string; message?: string; status?: number; traceId?: string; fieldErrors?: ApiFieldError[]; fields?: ApiFieldError[] | null }
 
 const bodyOf = (err: unknown): ApiErrorBody | null => {
   if (!err || typeof err !== 'object') return null
@@ -120,14 +120,15 @@ const bodyOf = (err: unknown): ApiErrorBody | null => {
 
 /** 이 칸의 서버 오류 문구 (없으면 null) */
 export function fieldError(err: unknown, field: string): string | null {
-  return bodyOf(err)?.fieldErrors?.find((f) => f.field === field)?.message ?? null
+  const b = bodyOf(err)
+  return (b?.fields ?? b?.fieldErrors)?.find((f) => f.field === field)?.message ?? null
 }
 
 /** 칸에 붙지 않은 오류 문구 (폼 위·토스트에) */
 export function formError(err: unknown): string | null {
   if (!err) return null
   const b = bodyOf(err)
-  if (b?.fieldErrors?.length && !b.message) return null
+  if ((b?.fields ?? b?.fieldErrors)?.length && !b?.message) return null
   return b?.message ?? MSG.server
 }
 

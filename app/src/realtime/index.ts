@@ -8,6 +8,9 @@ import type { ConnStatus, RealtimeClient, WireMessage, WireNotification } from '
 
 export type * from './types'
 export { SendFailure } from './hub'
+/** 명세 v1 의 실시간 소식 연결 (SSE). 채팅 허브(STOMP)와 따로 — 채팅 작업자가 채팅을 이쪽으로 옮김 */
+export { eventStream, startEventStream, stopEventStream, mockEvents } from './events'
+export { useEventStream, useRefetchOnReconnect, useEventStreamStatus } from './useEventStream'
 
 /**
  * 실시간 연결 하나 (앱 전체가 같이 씀). 방식은 VITE_REALTIME (lib/env.ts): mock(기본) · stomp

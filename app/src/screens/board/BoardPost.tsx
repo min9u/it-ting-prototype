@@ -17,11 +17,8 @@ import {
   useArrivalToast, type MenuItem,
 } from './parts'
 import s from './Board.module.css'
-import { api, isApiError } from '../../api'
-import type { BoardPostVM } from '../../api/mappers'
-import { patch, useOptimistic, usePostDetail, usePostList } from '../../api/queries'
-import { qk } from '../../api/queryClient'
-import { reportBody } from '../../api/reports'
+import { api, isApiError, patch, useOptimistic } from '../../api'
+import { communityKeys, reportBody, usePostDetail, usePostList, type BoardPostVM } from '../../api/community'
 import { DetailSkeleton, ErrorState, QueryGate } from '../../components/AsyncState'
 
 type Post = BoardPostVM
@@ -38,7 +35,7 @@ export function BoardPost() {
   // 서버에서 받기 (api/queries). 로딩 · 오류(다시 시도) · 진짜 없음(404) 을 나눠 그림 → 위험 B1
   const q = usePostDetail(postId)
   // 조회수: 글을 열 때 한 번 (같은 사람 중복은 서버가 거름). 특정 댓글로 오면(#댓글id) 댓글 쪽에서 스크롤하므로 맨 위로 올리지 않음
-  useEffect(() => { api.board.view(postId).catch(() => {}); if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api.community.view(postId).catch(() => {}); if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 404 = 없거나 삭제된 글, 403 POST_HIDDEN = 신고로 가려진 남의 글
   return (
@@ -55,38 +52,38 @@ export function BoardPost() {
 /** 글 · 댓글 쓰기: 캐시를 먼저 바꾸고(낙관적) 실패하면 되돌림 + 오류 토스트 (api/queries useOptimistic) */
 function usePostActions(p: Post, onToast: (t: ToastSpec | null) => void) {
   const run = useOptimistic()
-  const key = qk.post(p.id)
+  const key = communityKeys.detail(p.id)
   const edit = (f: (o: Post) => Post) => patch<Post>(key, f)
   const mapC = (f: (l: BoardComment[]) => BoardComment[]) => edit((o) => ({ ...o, comments: f(o.comments) }))
   const mapOne = (cid: string, f: (c: BoardComment) => BoardComment) =>
     mapC((l) => l.map((c) => (c.id === cid ? f(c) : { ...c, replies: c.replies.map((r) => (r.id === cid ? f(r) : r)) })))
   const temp = (text: string, mention?: string): BoardComment => ({ id: `tmp-${Date.now()}`, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] })
-  const all = [qk.posts]
+  const all = [communityKeys.all]
   return {
-    like: () => { const on = !p.liked; run.mutate({ call: () => api.board.setLike(p.id, on), patches: [edit((o) => ({ ...o, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
+    like: () => { const on = !p.liked; run.mutate({ call: () => api.community.setLike(p.id, on), patches: [edit((o) => ({ ...o, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
     save: () => {
       const on = !p.savedAt
       onToast(on ? SAVE_TOAST : UNSAVE_TOAST)
-      run.mutate({ call: () => api.board.setBookmark(p.id, on), patches: [edit((o) => ({ ...o, savedAt: on ? Date.now() : undefined }))], invalidate: all, errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요' }, { onError: () => onToast(null) })
+      run.mutate({ call: () => api.community.setBookmark(p.id, on), patches: [edit((o) => ({ ...o, savedAt: on ? Date.now() : undefined }))], invalidate: all, errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요' }, { onError: () => onToast(null) })
     },
-    remove: (then: () => void) => run.mutate({ call: () => api.board.remove(p.id), invalidate: all, errorTitle: '게시물을 삭제하지 못했어요' }, { onSuccess: then }),
+    remove: (then: () => void) => run.mutate({ call: () => api.community.remove(p.id), invalidate: all, errorTitle: '게시물을 삭제하지 못했어요' }, { onSuccess: then }),
     report: (why: string) => run.mutate({
-      call: () => { const b = reportBody('POST', p.id, why); return api.board.report(p.id, b.reason, b.detail) },
+      call: () => { const b = reportBody('POST', p.id, why); return api.community.report(p.id, b.reason, b.detail) },
       patches: [edit((o) => ({ ...o, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
     }, { onSuccess: () => onToast(TOAST.reported) }),
-    comment: (text: string) => run.mutate({ call: () => api.board.addComment(p.id, { content: text }), patches: [mapC((l) => [...l, temp(text)])], invalidate: all, errorTitle: '댓글을 등록하지 못했어요' }),
+    comment: (text: string) => run.mutate({ call: () => api.community.addComment(p.id, { content: text }), patches: [mapC((l) => [...l, temp(text)])], invalidate: all, errorTitle: '댓글을 등록하지 못했어요' }),
     reply: (parentId: string, text: string, mention?: string) => run.mutate({
-      call: () => api.board.addComment(p.id, { content: text, parentId, mentionNickname: mention ?? null, mentionMemberId: mention ? Object.values(USERS).find((u) => u.nickname === mention)?.id ?? null : null }),
+      call: () => api.community.addComment(p.id, { content: text, parentId, mentionNickname: mention ?? null, mentionMemberId: mention ? Object.values(USERS).find((u) => u.nickname === mention)?.id ?? null : null }),
       patches: [mapC((l) => l.map((c) => (c.id === parentId ? { ...c, replies: [...c.replies, temp(text, mention)] } : c)))], invalidate: all, errorTitle: '답글을 등록하지 못했어요',
     }),
-    editComment: (cid: string, text: string) => run.mutate({ call: () => api.board.editComment(p.id, cid, text), patches: [mapOne(cid, (c) => ({ ...c, text, editedAt: Date.now() }))], invalidate: all, errorTitle: '댓글을 고치지 못했어요' }),
+    editComment: (cid: string, text: string) => run.mutate({ call: () => api.community.editComment(p.id, cid, text), patches: [mapOne(cid, (c) => ({ ...c, text, editedAt: Date.now() }))], invalidate: all, errorTitle: '댓글을 고치지 못했어요' }),
     deleteComment: (cid: string) => run.mutate({
-      call: () => api.board.deleteComment(p.id, cid), invalidate: all, errorTitle: '댓글을 삭제하지 못했어요',
+      call: () => api.community.deleteComment(p.id, cid), invalidate: all, errorTitle: '댓글을 삭제하지 못했어요',
       patches: [mapC((l) => l.filter((c) => c.id !== cid).map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== cid) })))],
     }, { onSuccess: () => onToast({ title: '댓글을 삭제했어요' }) }),
-    likeComment: (c: BoardComment) => { const on = !c.liked; run.mutate({ call: () => api.board.setCommentLike(p.id, c.id, on), patches: [mapOne(c.id, (x) => ({ ...x, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
+    likeComment: (c: BoardComment) => { const on = !c.liked; run.mutate({ call: () => api.community.setCommentLike(p.id, c.id, on), patches: [mapOne(c.id, (x) => ({ ...x, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
     reportComment: (cid: string, why: string) => run.mutate({
-      call: () => { const b = reportBody('COMMENT', cid, why); return api.board.reportComment(cid, b.reason, b.detail) },
+      call: () => { const b = reportBody('COMMENT', cid, why); return api.community.reportComment(cid, b.reason, b.detail) },
       patches: [mapOne(cid, (x) => ({ ...x, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
     }, { onSuccess: () => onToast(TOAST.reported) }),
   }
