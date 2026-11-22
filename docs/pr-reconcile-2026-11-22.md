@@ -22,9 +22,9 @@
 | 13 | perf · `testParam`을 three 밖으로 | ③ | `screens/chat/TeaRoom.tsx:4`가 아직 `three/engine`에서 import |
 | 14 | perf · 화면 route lazy | ③ → **안 함** | `App.tsx` 정적 import 18개. Next.js 전환 때 파일 라우트가 자동으로 코드를 나눔 |
 | 15 | perf · three 청크 분리와 예산 | ③ → **안 함** | `vite.config.ts`에 청크 설정 없음. Next.js 전환 때 자동 |
-| 16 | term · 꾸미기 "소품" 탭 → "가구" 탭 | **보류** | 명세 사본(04ea897)이 KAN-40 머지 전 버전. KAN-40에서 "/"로 묶인 관심사의 단어 고르기(꾸미기 가구 탭)가 확정될 예정. 지금 main은 꾸미기에 두더지 탭만 둠(`DecorPanel.tsx:7-10`, 명세 04 `spec:26`) |
+| 16 | term · 꾸미기 "소품" 탭 → "가구" 탭 | **다시 넣을 것** (KAN-40 머지됨) | 팀 명세 KAN-40(PR #22, dev 6bc5111): 꾸미기 모드에 **가구 탭 + 두더지 탭**, "/"로 묶인 세부 관심사(90개 중 57개)는 단어를 하나 고름(04 `꾸미기 모드 · 가구 탭`, 00 공통 5). 지금 main은 두더지 탭만 둠(`DecorPanel.tsx:7-10`)이라 API v1 구조 위에 다시 얹어야 함. 데이터(`getMyFurnChoice`/`setMyFurnChoice`)·RoomView `furniture`·썸네일 131장은 main에 남아 있음 |
 | 17 | term · 남은 화면 문구 3곳(방문자 뷰 안내·목 공지·목 글) | ③ | `VisitBurrow.tsx:189`, `data/serviceNotices.ts:21`, `data/boardStore.ts:189`. 명세 05에는 "소품" 문구 없음 |
-| 18 | term · 랜딩 부제 "소설책이, 카세트 워크맨이" | **보류** | 명세 사본(04ea897)이 KAN-40 머지 전 버전. KAN-40에서 랜딩 부제가 확정될 예정. 지금 main은 88d8f2d에서 명세 01 랜딩 03 6번 "책장이, 오락기가"로 맞춰 둠 |
+| 18 | term · 랜딩 부제 "소설책이, 카세트 워크맨이" | **다시 넣을 것** (KAN-40 머지됨) | 팀 명세 01 랜딩 03 5번이 제목 "나의 관심사가 내 땅굴의 가구가 돼요" · 부제 "책을 좋아하면 소설책이, 음악을 좋아하면 카세트 워크맨이 놓여요"로 바뀜(가구 라벨도 게임기·소설책·물감 상자·카세트 워크맨·필름 카메라·캠핑 의자). 지금 main은 88d8f2d에서 옛 명세("고른 관심사가 가구가 돼요" · "책장이, 오락기가")로 맞춰 둠 → 문구 두 줄만 되돌리면 됨 |
 
 ## 진행 (사용자 결정, 2026-11-22)
 - 새 브랜치는 모두 최신 origin/main에서 하나씩. 각 브랜치는 tsc · vitest · build · smoke 통과 뒤 push
@@ -35,7 +35,8 @@
   | B | `chore/remove-block-remnants` | 6 차단 잔여 코드 |
   | D | `fix/term-furniture-strings` | 17 "소품" → "가구" 화면 문구 3곳 |
   | perf | `perf/testparam-out-of-three` | 13 `testParam`을 three 밖으로(route lazy · 청크 설정은 Next.js 전환 때 해결되므로 안 함) |
-- 안 하는 것: 9(테스트 다시 쓰기), 14·15(route lazy·청크 설정), 16·18(KAN-40 확정 뒤)
+- 안 하는 것: 9(테스트 다시 쓰기), 14·15(route lazy·청크 설정)
+- 16·18: KAN-40이 머지돼(2026-11-22) "보류"에서 "다시 넣을 것"으로 바뀜. A~D가 끝난 뒤 API v1 구조 위에 다시 얹는 계획을 먼저 보여 주고 진행(고른 단어 저장은 백엔드 명세에 없어 목 서버에만 두고 질문 목록에 적음)
 - 기존 PR #18~#22(`fix/f6-f10-mid`, `fix/f6-f10-check`, `feat/new-term-notice`, `perf/first-load`, `fix/term-furniture`)는 위 새 브랜치로 대체하고 닫음(닫는 건 사용자)
 
 ## 일정(`docs/team-repo-migration.md`)과의 관계
