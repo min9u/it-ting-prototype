@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { roomLookOf } from '../../data/roomLook'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import FieldView from '../../components/FieldView'
@@ -12,25 +12,30 @@ import s from './Start.module.css'
 /**
  * 밭 위 견본 방 입구 3개. 좌표는 FieldView 장면(1440×897, cover)을 1440×900 으로 그렸을 때의 px.
  *  - hot: 누를 수 있는 흙더미 타원 (cx, cy, rx, ry)
- *  - card: 방 카드 왼쪽 위 · sign: 방 이름 팻말(3D 나무 팻말) 가운데
+ *  - card: 방 카드 왼쪽 위 · sign: 방 이름 팻말(3D 나무 팻말) 판 가운데 · size: 팻말 글씨 크기(판 크기에 맞춤, 2026-11-20 들판 v3.10 기준으로 다시 잼)
  */
-const SPOTS: Record<string, { hot: [number, number, number, number]; card: [number, number]; sign: [number, number] }> = {
+const SPOTS: Record<string, { hot: [number, number, number, number]; card: [number, number]; sign: [number, number]; size: number }> = {
   // 가운데 굴 + 앞 오른쪽 팻말 (명세 그림: 내굴 카드가 팻말 아래에 뜸)
-  'sample-a': { hot: [715, 598, 250, 95], card: [1050, 545], sign: [1066, 486] },
-  'sample-b': { hot: [1164, 411, 140, 50], card: [1190, 250], sign: [920, 352] },
-  'sample-c': { hot: [300, 374, 115, 40], card: [150, 205], sign: [528, 308] },
+  'sample-a': { hot: [715, 598, 250, 95], card: [1050, 545], sign: [1083, 487], size: 36 },
+  'sample-b': { hot: [1164, 411, 140, 50], card: [1190, 250], sign: [919, 352], size: 28 },
+  'sample-c': { hot: [300, 374, 115, 40], card: [150, 205], sign: [526, 308], size: 26 },
 }
 
-/** 1440×897 장면을 el 크기에 cover 로 맞췄을 때 좌표 변환 (FieldView 와 같은 계산) */
-function useCover(el: React.RefObject<HTMLElement | null>) {
+/**
+ * 1440×897 장면을 node 크기에 cover 로 맞췄을 때 좌표 변환 (FieldView 와 같은 계산).
+ * node 는 콜백 ref 로 받음: 견본 방에서 돌아오면 들판 div 가 새로 생기는데, 예전처럼 ref 객체만 보면 떨어져 나간 옛 div 를 계속 재서
+ * 크기가 0 → 팻말 글씨·방 카드가 왼쪽 위 (0, 0) 에 몰리던 문제 (2026-11-20)
+ */
+function useCover(node: HTMLElement | null) {
   const [vp, setVp] = useState({ w: 1440, h: 900 })
   useEffect(() => {
-    const node = el.current
     if (!node) return
-    const ro = new ResizeObserver(() => setVp({ w: node.clientWidth, h: node.clientHeight }))
+    const measure = () => { if (node.clientWidth && node.clientHeight) setVp({ w: node.clientWidth, h: node.clientHeight }) }
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(node)
     return () => ro.disconnect()
-  }, [el])
+  }, [node])
   const k = Math.max(vp.w / 1440, vp.h / 897)
   const ox = (vp.w - 1440 * k) / 2, oy = (vp.h - 897 * k) / 2
   return (x: number, y: number) => ({ left: ox + x * k, top: oy + y * k, k })
@@ -111,8 +116,8 @@ function SampleRoom({ room, seen, onBack }: { room: GuestRoom; seen: number; onB
  */
 export default function LookAround() {
   const nav = useNavigate()
-  const pageRef = useRef<HTMLDivElement>(null)
-  const at = useCover(pageRef)
+  const [pageEl, setPageEl] = useState<HTMLDivElement | null>(null)
+  const at = useCover(pageEl)
   const [params] = useSearchParams()
   // 시연 쿼리는 처음 한 번만 읽음
   const [init] = useState(() => {
@@ -125,7 +130,12 @@ export default function LookAround() {
   })
   const [seen, setSeenState] = useState(init.seen)
   const setSeen = (n: number) => { setGuestSeen(n); setSeenState(n) }
-  const [picked, setPicked] = useState<string | null>(null)
+  // 들판에 오면 다음에 볼 방의 카드를 펼쳐 둠 (Figma 둘러보기 · 땅: 내굴 카드가 펼쳐진 채. 방에서 돌아오면 다음 방 카드, 2026-11-20)
+  const nextRoom = (after: string | null) => {
+    const i = GUEST_ROOMS.findIndex((x) => x.id === after)
+    return GUEST_ROOMS[(i + 1) % GUEST_ROOMS.length].id
+  }
+  const [picked, setPicked] = useState<string | null>(() => GUEST_ROOMS[0].id)
   const [inside, setInside] = useState<string | null>(init.room)
   const [gate, setGate] = useState(init.gate)
 
@@ -138,11 +148,11 @@ export default function LookAround() {
   const room = GUEST_ROOMS.find((x) => x.id === inside)
   const card = GUEST_ROOMS.find((x) => x.id === picked)
 
-  if (room) return <SampleRoom room={room} seen={seen} onBack={() => setInside(null)} />
+  if (room) return <SampleRoom room={room} seen={seen} onBack={() => { setPicked(nextRoom(room.id)); setInside(null) }} />
 
   const cardPos = card ? at(SPOTS[card.id].card[0], SPOTS[card.id].card[1]) : null
   return (
-    <div className={s.page} ref={pageRef}>
+    <div className={s.page} ref={setPageEl}>
       <div className={`${s.lookField} ${gate ? s.lookBlur : ''}`}>
         <FieldView label="견본 땅굴이 모여 있는 들판" options={{ zoom: false }}>
           {!gate && GUEST_ROOMS.map((x) => {
@@ -158,7 +168,7 @@ export default function LookAround() {
                   aria-label={`${x.name} 방 카드 보기 (${x.tags})`}
                   aria-expanded={picked === x.id}
                 />
-                <button className={s.signName} style={{ left: sg.left, top: sg.top, fontSize: 17 * sg.k }} onClick={() => setPicked(x.id)} tabIndex={-1} aria-hidden>
+                <button className={s.signName} style={{ left: sg.left, top: sg.top, fontSize: SPOTS[x.id].size * sg.k }} onClick={() => setPicked(x.id)} tabIndex={-1} aria-hidden>
                   {x.name}
                 </button>
               </div>

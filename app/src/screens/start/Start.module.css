@@ -150,7 +150,7 @@
 .gateActions { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ===== 랜딩 (sticky 장면) ===== */
-.track { height: 420vh; background: var(--bg-dark); font-family: var(--font-display); }
+.track { height: 220vh; background: var(--bg-dark); font-family: var(--font-display); }
 .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; background: #5b3e28; color: #fbf4ec; }
 .layer { position: absolute; inset: 0; transition: opacity .5s ease; }
 .fieldZoom { position: absolute; inset: 0; transition: transform .6s var(--ease-out); will-change: transform; }
@@ -186,7 +186,7 @@
 .copyBottom { top: auto; bottom: 71px; }
 @keyframes copyIn { from { opacity: 0; transform: translateY(16px); } }
 .copy h1 { font-size: 44px; font-weight: 400; line-height: 55px; letter-spacing: -0.01em; text-wrap: balance; }
-.copy p { margin-top: 14px; font-size: 16px; line-height: 26px; opacity: .92; }
+.copy p { margin-top: 14px; font-size: 16px; line-height: 26px; opacity: .92; font-family: var(--font-text); font-weight: 500; } /* Figma 본문: S-Core Dream 5 Medium */
 .copyBottom p { margin-top: 12px; line-height: 20px; }
 .scrollHint { display: inline-block; margin-top: 36px; font-size: 14px; opacity: .7; animation: hint 1.6s ease-in-out infinite; }
 @keyframes hint { 50% { transform: translateY(4px); } }
@@ -269,7 +269,7 @@
 .signName {
   position: absolute; z-index: 4; transform: translate(-50%, -50%);
   font-family: var(--font-display); color: #fff3e2; text-shadow: 0 1px 0 rgba(110, 50, 20, .55);
-  white-space: nowrap; cursor: pointer; letter-spacing: -0.01em;
+  white-space: nowrap; cursor: pointer; letter-spacing: -0.01em; line-height: 1;
 }
 .lock {
   position: absolute; right: -7px; top: -7px; width: 18px; height: 18px; border-radius: 50%;
