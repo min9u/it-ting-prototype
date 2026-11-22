@@ -5,10 +5,10 @@ import InterestChip from '../../components/InterestChip'
 import { ConfirmDialog, TOAST, type ToastSpec } from '../../components/Feedback'
 import { CloseIcon, PlusIcon } from '../../components/Icons'
 import {
-  BIG_INTERESTS, BOARD_CATS, BODY_MAX, PHOTO_MAX, TAG_MAX, TITLE_MAX, bigOf, createPost, isMine, linkableMeetups, meetupShortDate,
+  BIG_INTERESTS, BOARD_CATS, BODY_MAX, PHOTO_MAX, TAG_MAX, TITLE_MAX, bigOf, createPost, isMine, linkableMeetups, meetupShortDate, needsMeetup,
   updatePost, usePosts, type BoardPhoto, type PostDraft,
 } from '../../data/boardStore'
-import { MEETUPS } from '../../data/mock'
+import { findMeetup, useMeetups } from '../../data/meetupStore'
 import type { PostCategory, Tone } from '../../data/types'
 import { GonePage } from './parts'
 import FieldError from '../../components/FieldError'
@@ -52,13 +52,15 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
   const fileRef = useRef<HTMLInputElement>(null)
   const done = useRef(false)
 
-  const options = linkableMeetups(cat)
+  const meetupState = useMeetups() // 모임이 바뀌면(취소 · 시작) 고를 수 있는 모임도 따라 바뀜
+  const options = linkableMeetups(cat, meetupState)
   // 연결된 모임이 지금 목록에 없으면(예: 수정 중 마감) 그대로 보여 주고 고를 수 있게 둠
-  const current = meetupId ? MEETUPS.find((m) => m.id === meetupId) : undefined
-  const shownOptions = current && !options.includes(current) && cat !== '모임 홍보' ? [current, ...options] : options
-  useEffect(() => { if (cat === '모임 홍보' && meetupId && !options.some((m) => m.id === meetupId)) setMeetupId('') }, [cat]) // eslint-disable-line react-hooks/exhaustive-deps
+  const current = meetupId ? findMeetup(meetupId, meetupState) : undefined
+  const shownOptions = current && !options.includes(current) && !needsMeetup(cat) ? [current, ...options] : options
+  // 카테고리를 바꿨는데 고른 모임이 그 카테고리 규칙에 안 맞으면(홍보 ↔ 후기) 비움
+  useEffect(() => { if (needsMeetup(cat) && meetupId && !options.some((m) => m.id === meetupId)) setMeetupId('') }, [cat]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const needMeetup = cat === '모임 홍보'
+  const needMeetup = needsMeetup(cat)
   const ready = !!cat && !!title.trim() && !!body.trim() && (!needMeetup || !!meetupId)
   const dirty = mode === 'write'
     ? !!(cat || title || body || tags.length || photos.length || meetupId)
@@ -178,15 +180,18 @@ function PostForm({ mode, postId, initial }: { mode: 'write' | 'edit'; postId?: 
             </div>
           </div>
 
-          {/* 6 모임 연결: 모임 홍보면 필수(모집 중인 내 모임만), 나머지는 선택(내가 만들었거나 참여한 모임) */}
+          {/* 6 모임 연결: 모임 홍보 = 필수(모집 중인 내 모임), 모임 후기 = 필수(내가 열었거나 참여 확정된 지난 모임), 자유 = 선택(열었거나 확정된 모임, 취소 제외) */}
           <div className={s.field}>
             <p className={s.fieldHead}><label htmlFor="w-meetup">모임 연결</label><small className={needMeetup ? s.req : undefined}>{needMeetup ? '필수' : '선택'}</small></p>
             <select id="w-meetup" className={s.select} value={meetupId} onChange={(e) => setMeetupId(e.target.value)}>
-              <option value="">{needMeetup ? '홍보할 모임을 골라 주세요' : '연결할 모임을 골라 주세요'}</option>
+              <option value="">{cat === '모임 홍보' ? '홍보할 모임을 골라 주세요' : cat === '모임 후기' ? '후기를 쓸 모임을 골라 주세요' : '연결할 모임을 골라 주세요'}</option>
               {shownOptions.map((m) => <option key={m.id} value={m.id}>{m.title} · {meetupShortDate(m)}</option>)}
             </select>
-            {needMeetup && options.length === 0 && (
+            {cat === '모임 홍보' && options.length === 0 && (
               <p className={s.fieldHint}>모집 중인 내 모임이 없어요. <Link to="/meetups/new">모임 만들기</Link></p>
+            )}
+            {cat === '모임 후기' && options.length === 0 && (
+              <p className={s.fieldHint} role="alert">후기를 쓸 지난 모임이 없어요. 내가 열었거나 참여가 확정된 모임이 끝나면 후기를 쓸 수 있어요. <Link to="/meetups">모임 둘러보기</Link></p>
             )}
           </div>
           {/* 칸에 붙지 않은 서버 오류 (예: 정지된 계정, 잠시 문제) */}

@@ -5,7 +5,8 @@
  * 명세: Figma 02 F8 (design/figma/spec/f8/*.png), 정리 docs/spec-f8.md
  */
 import { useSyncExternalStore } from 'react'
-import { CATEGORIES, ME_ID, MEETUPS, TODAY, USERS, categoryOf } from './mock'
+import { CATEGORIES, ME_ID, USERS, categoryOf } from './mock'
+import { getMeetupState, myOf, recruitOf, startMs, type MeetupState, type MeetupX } from './meetupStore'
 import { getMyInterests } from './interests'
 import { agoBoard, monthDay, ymdLabel } from '../lib/time'
 import type { Meetup, PostCategory, Tone } from './types'
@@ -350,12 +351,25 @@ export function myCommentsOn(p: BoardPost) {
 }
 
 /* ===== 모임 (글에 나온 모임 · 모임 연결) ===== */
-export const isRecruiting = (mt: Meetup) => !mt.cancelled && !mt.past && mt.date >= TODAY && mt.memberIds.length < mt.capacity
-const joined = (mt: Meetup) => mt.hostId === ME_ID || mt.memberIds.includes(ME_ID) || mt.myStatus === '참여 확정' || mt.myStatus === '내가 주최'
-/** 모임 홍보: 모집 중인 내 모임만. 나머지: 내가 만들었거나 참여한 모임 */
-export function linkableMeetups(cat: PostCategory | null) {
-  return cat === '모임 홍보' ? MEETUPS.filter((mt) => mt.hostId === ME_ID && isRecruiting(mt)) : MEETUPS.filter(joined)
+/**
+ * 글에 연결할 수 있는 모임 (명세 08 글쓰기 6 · api 08 "글에 연결하는 모임", 11-20). 모임 저장소의 지금 상태로 판단:
+ * - 모임 홍보 = 필수: 내가 연 모임 가운데 모집 중(OPEN)인 것
+ * - 모임 후기 = 필수: 내가 열었거나 참여가 확정된 모임 가운데 **지난 모임**만(예정·취소 모임은 안 됨). 그런 모임이 없으면 후기를 쓸 수 없음
+ * - 자유 = 선택: 내가 열었거나 참여가 확정된 모임(지난 것도 됨, 취소된 모임은 안 됨)
+ * - 카테고리를 아직 안 골랐으면 자유와 같음
+ * 참여가 확정된 모임 = 내 신청 기록이 참여 확정(joined). 신청 대기 · 참여 취소 · 내보내짐 · 미승인은 아님
+ */
+export function linkableMeetups(cat: PostCategory | null, s: MeetupState = getMeetupState()): MeetupX[] {
+  const mine = (m: MeetupX) => ['host', 'joined'].includes(myOf(m.id, s)?.st ?? '')
+  return s.list.filter((m) => {
+    const rec = recruitOf(m, s)
+    if (cat === '모임 홍보') return m.hostId === ME_ID && rec === 'open'
+    if (cat === '모임 후기') return mine(m) && rec === 'past'
+    return mine(m) && rec !== 'cancelled'
+  }).sort((a, b) => startMs(b) - startMs(a))
 }
+/** 이 카테고리는 모임을 꼭 연결해야 글을 쓸 수 있음 */
+export const needsMeetup = (cat: PostCategory | null) => cat === '모임 홍보' || cat === '모임 후기'
 export function meetupWhen(mt: Meetup) {
   return `${ymdLabel(mt.date)} ${mt.start}`
 }
