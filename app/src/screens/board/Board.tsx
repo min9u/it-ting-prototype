@@ -16,10 +16,8 @@ import {
   SearchBox, WriteButton, POST_DELETED_TOAST, SAVE_TOAST, UNSAVE_TOAST, useArrivalToast, type ActivityKind,
 } from './parts'
 import s from './Board.module.css'
-import { api } from '../../api'
-import { POST_CATEGORY_CODE } from '../../api/mappers'
-import { patch, useOptimistic, usePostList } from '../../api/queries'
-import { qk } from '../../api/queryClient'
+import { api, patch, useOptimistic } from '../../api'
+import { POST_CATEGORY_CODE, communityKeys, usePostList } from '../../api/community'
 import { ErrorState, SkeletonRows } from '../../components/AsyncState'
 
 export { BoardPost } from './BoardPost'
@@ -70,7 +68,7 @@ export function BoardList() {
     const on = !p.savedAt
     setToast(on ? SAVE_TOAST : UNSAVE_TOAST)
     run.mutate({
-      call: () => api.board.setBookmark(p.id, on), errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요', invalidate: [qk.posts],
+      call: () => api.community.setBookmark(p.id, on), errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요', invalidate: [communityKeys.all],
       patches: [patch<{ items: BoardPost[] }>(['posts', 'list'], (o) => ({ ...o, items: o.items.map((x) => (x.id === p.id ? { ...x, savedAt: on ? Date.now() : undefined } : x)) }))],
     }, { onError: () => setToast(null) })
   }

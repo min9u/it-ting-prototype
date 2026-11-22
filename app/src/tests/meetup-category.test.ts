@@ -9,8 +9,8 @@ import { MEETUP_CATEGORIES, isMeetupCategory, meetupCategoryOf, meetupToneOf } f
 import { MEETUPS } from '../data/mock'
 import { getMeetupState } from '../data/meetupStore'
 import { subOf } from '../data/interests'
-import { toMeetup } from '../api/mappers'
-import { meetups as meetupsApi } from '../api/meetups'
+import { toMeetup } from '../api/meetups/mappers'
+import { meetupsApi } from '../api/meetups'
 
 describe('모임 카테고리 6개', () => {
   it('명세 순서·이름 그대로, id · 코드 · 이름이 겹치지 않음', () => {

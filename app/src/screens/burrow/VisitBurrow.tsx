@@ -17,12 +17,10 @@ import SceneButton from '../../components/SceneButton'
 import { Link } from 'react-router-dom'
 import { exploreHref } from '../../data/field'
 import { toIso } from '../../lib/time'
-import { api } from '../../api'
-import { isApiError } from '../../api/client'
-import { reportBody } from '../../api/reports'
-import type { BurrowVM } from '../../api/mappers'
-import { patch, useBurrow, useGuestbook, useOptimistic } from '../../api/queries'
-import { qk } from '../../api/queryClient'
+import { api, isApiError, patch, useOptimistic } from '../../api'
+import { reportBody } from '../../api/community'
+import { exploreKeys, useBurrow, useGuestbook, type BurrowVM } from '../../api/explore'
+import { chatKeys } from '../../api/chat'
 import { ErrorState, QueryGate, Skeleton, SkeletonLines } from '../../components/AsyncState'
 import s from './Burrow.module.css'
 import { CHAT_REQUEST_MAX, GUESTBOOK_MAX } from '../../lib/validation'
@@ -108,36 +106,36 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
     setDraft('')
     setPosted(true)
     run.mutate({
-      call: () => api.burrows.writeGuestbook(owner.id, text), errorTitle: '방명록을 남기지 못했어요',
-      patches: [patch<GuestbookEntry[]>(qk.guestbook(owner.id), (l) => [{ id: `tmp-${Date.now()}`, authorId: ME_ID, text, createdAt: toIso(Date.now()) }, ...l])],
+      call: () => api.explore.writeGuestbook(owner.id, text), errorTitle: '방명록을 남기지 못했어요',
+      patches: [patch<GuestbookEntry[]>(exploreKeys.guestbook(owner.id), (l) => [{ id: `tmp-${Date.now()}`, authorId: ME_ID, text, createdAt: toIso(Date.now()) }, ...l])],
     }, { onError: () => { setDraft(text); setPosted(params.get('mailbox') === '1') } })
   }
   /** 내가 쓴 방명록 지우기: 확인 없이 바로 (목록에서 먼저 빼고 실패하면 되돌림) */
   const deleteOwn = (id: string) => {
     run.mutate({
-      call: () => api.burrows.deleteGuestbook(id), errorTitle: '방명록을 지우지 못했어요',
-      patches: [patch<GuestbookEntry[]>(qk.guestbook(owner.id), (l) => l.filter((g) => g.id !== id))],
+      call: () => api.explore.deleteGuestbook(id), errorTitle: '방명록을 지우지 못했어요',
+      patches: [patch<GuestbookEntry[]>(exploreKeys.guestbook(owner.id), (l) => l.filter((g) => g.id !== id))],
     })
   }
   /** 방명록 글 신고: 서로 다른 3명이면 서버가 가림 → 다시 받아서 목록·글 수에서 뺌 */
   const reportEntry = (id: string, picked: string) => {
     const r = reportBody('GUESTBOOK', id, picked)
-    run.mutate({ call: () => api.burrows.reportGuestbook(id, r.reason, r.detail ?? null), errorTitle: '신고를 접수하지 못했어요', invalidate: [qk.guestbook(owner.id)] })
+    run.mutate({ call: () => api.explore.reportGuestbook(id, r.reason, r.detail ?? null), errorTitle: '신고를 접수하지 못했어요', invalidate: [exploreKeys.guestbook(owner.id)] })
   }
   /** 단골: 상대 수락 없이 바로. 실패하면 되돌림 */
   const toggleRegular = () => {
     const on = !regular
     setRegToast(on ? '단골 땅굴에 추가했어요' : `${owner.nickname}님을 단골에서 뺐어요`)
-    run.mutate({ call: () => api.burrows.setRegular(owner.id, on), errorTitle: '단골을 바꾸지 못했어요', patches: [patch<BurrowVM>(qk.burrow(owner.id), (o) => ({ ...o, regular: on }), true)] }, { onError: () => setRegToast(null) })
+    run.mutate({ call: () => api.explore.setRegular(owner.id, on), errorTitle: '단골을 바꾸지 못했어요', patches: [patch<BurrowVM>(exploreKeys.burrow(owner.id), (o) => ({ ...o, regular: on }), true)] }, { onError: () => setRegToast(null) })
   }
   /** 대화 요청 보내기 → 땅굴 응답의 pendingRequestId 가 생김 */
   const sendReq = () => {
     const msg = reqMsg.trim()
     setReqOpen(false)
     run.mutate({
-      call: () => api.chat.sendRequest(owner.id, msg, 'BURROW_VISIT'), errorTitle: '대화 요청을 보내지 못했어요', invalidate: [qk.burrow(owner.id), qk.chat],
+      call: () => api.chat.sendRequest(owner.id, msg, 'BURROW_VISIT'), errorTitle: '대화 요청을 보내지 못했어요', invalidate: [exploreKeys.burrow(owner.id), chatKeys.all],
       quietCodes: ['REQUEST_FROM_PEER'], // 오류가 아니라 안내: 상대가 먼저 보낸 요청이 있음 (F6-B3·B4)
-      patches: [patch<BurrowVM>(qk.burrow(owner.id), (o) => ({ ...o, pendingRequestId: o.pendingRequestId ?? 'tmp' }), true)],
+      patches: [patch<BurrowVM>(exploreKeys.burrow(owner.id), (o) => ({ ...o, pendingRequestId: o.pendingRequestId ?? 'tmp' }), true)],
     }, {
       onSuccess: () => { setReqMsg(''); setSent(true) },
       onError: (e) => {

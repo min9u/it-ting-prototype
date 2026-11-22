@@ -15,11 +15,13 @@ function stripAvifProbe(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  // 개발 서버 프록시 (docs/dev-deploy-risks.md B6): DEV_PROXY_TARGET=http://localhost:8080 을 app/.env.local 에 두면
-  // /api 와 /ws(WebSocket) 를 백엔드로 넘김 → 브라우저에는 같은 출처라 CORS·쿠키 SameSite 문제가 없음. 비우면 프록시 없음
+  // 개발 서버 프록시 (docs/dev-deploy-risks.md B6, docs/backend/api-v1-foundation.md): /api(REST · SSE /api/v1/me/event-stream)와
+  // /ws(옛 STOMP)를 백엔드로 넘김 → 브라우저에는 같은 출처라 CORS·쿠키 문제가 없음.
+  // 기본 http://localhost:8080 (백엔드 Spring 기본 포트). 바꾸려면 app/.env.local 에 DEV_PROXY_TARGET=…, 끄려면 DEV_PROXY_TARGET=off
+  // 목 모드에서는 /api 요청이 없어서 백엔드가 꺼져 있어도 상관없음. (Next.js 로 옮기면 next.config 의 rewrites 가 이 일을 함)
   const env = loadEnv(mode, '.', '')
-  const target = env.DEV_PROXY_TARGET || env.API_PROXY_TARGET
-  const proxy = target ? { '/api': { target, changeOrigin: true }, '/ws': { target, ws: true, changeOrigin: true } } : undefined
+  const target = env.DEV_PROXY_TARGET || env.API_PROXY_TARGET || 'http://localhost:8080'
+  const proxy = target === 'off' ? undefined : { '/api': { target, changeOrigin: true }, '/ws': { target, ws: true, changeOrigin: true } }
   return {
   plugins: [react(), stripAvifProbe()],
   server: { port: 5173, proxy },

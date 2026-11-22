@@ -9,10 +9,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as LookMod from '../data/roomLook'
 import type * as MyMod from '../data/myBurrow'
-import type * as MapMod from '../api/mappers'
-import type * as BurrowsMod from '../api/burrows'
+import type * as MapMod from '../api/explore/mappers'
+import type * as BurrowsMod from '../api/explore/mock'
 import type * as InterestsMod from '../data/interests'
-import type { BurrowDto, RoomLayoutDto } from '../api/types'
+import type { BurrowDto, RoomLayoutDto } from '../api/explore/types'
 import { INTEREST_SUBS } from '../data/interests'
 import { wallpaperForCategory } from '../data/wallpapers'
 import { ME_ID, USERS } from '../data/mock'
@@ -25,14 +25,14 @@ beforeEach(async () => {
   I = await import('../data/interests')
   L = await import('../data/roomLook')
   M = await import('../data/myBurrow')
-  P = await import('../api/mappers')
-  B = await import('../api/burrows')
+  P = await import('../api/explore/mappers')
+  B = await import('../api/explore/mock')
 })
 
 const subsOf = (cat: string) => INTEREST_SUBS.filter((s) => s.category === cat)
 /** 방문자 뷰가 하는 일 그대로: 땅굴 API(목 서버) → toBurrow → roomLookOf */
 async function visitLook(id: string) {
-  const b = P.toBurrow(await B.burrows.get(id))
+  const b = P.toBurrow(await B.mock.get(id))
   return L.roomLookOf(b.owner.id, b.owner.interests, b.room)
 }
 /** 내 땅굴이 하는 일 그대로 (screens/burrow/MyBurrow.tsx) */

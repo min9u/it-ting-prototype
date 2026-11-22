@@ -1,14 +1,17 @@
 /**
- * 날짜·시각 한 곳 (위험 B2, docs/backend/frontend-data-layer.md "날짜").
+ * 날짜·시각 한 곳 (위험 B2, docs/backend/frontend-data-layer.md "날짜", 백엔드 명세 v1 "JSON 필드").
  *
  * 앱 안의 날짜 값은 세 가지만 쓴다. "2시간 전" 같은 표시 문자열은 데이터에 넣지 않고, 화면에서 아래 함수로만 만든다.
- *  1) 순간(instant): 서버와 주고받을 때는 오프셋이 붙은 ISO 8601 ("2026-11-16T17:40:05+09:00"), 앱 안 계산은 ms 숫자
- *  2) 달력 날짜: "YYYY-MM-DD" (Asia/Seoul 기준의 하루)
+ *  1) 순간(instant): 서버와 주고받을 때는 **UTC ISO 8601 "2026-11-18T08:01:05Z"** (명세 v1, 필드 이름 …At), 앱 안 계산은 ms 숫자
+ *     받을 때는 오프셋이 붙은 값("+09:00")도 읽는다 (옛 목 데이터 · 다른 서버)
+ *  2) 달력 날짜: "YYYY-MM-DD" (Asia/Seoul 기준의 하루). 명세의 "날짜만 있는 값"과 같은 모양
  *  3) 입력 칸 값(벽시계): "YYYY-MM-DDTHH:mm" (<input type="datetime-local"> 값). Asia/Seoul 로 해석한다
  *
- * 브라우저 시간대와 관계없이 Asia/Seoul 로 계산한다 (한국은 서머타임이 없어 +09:00 고정).
- * 그래서 Intl 없이 UTC 계산 + 9시간으로 충분하고, 결과가 실행 환경(헤드리스·해외 PC)에 따라 바뀌지 않는다.
+ * 서버는 UTC 로 주고, 화면은 늘 서울 시각으로 보여 준다. 브라우저 시간대와 관계없이 Asia/Seoul 로 계산한다
+ * (한국은 서머타임이 없어 +09:00 고정). 그래서 Intl 없이 UTC 계산 + 9시간으로 충분하고, 결과가 실행 환경(헤드리스·해외 PC)에 따라 바뀌지 않는다.
  */
+import { ENV } from './env'
+
 export const TZ = 'Asia/Seoul'
 const KST = 9 * 3_600_000
 const MIN = 60_000
@@ -22,23 +25,29 @@ export type Ymd = string
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
 /* ===== 변환 ===== */
-/** ms → "2026-11-16T17:40:05+09:00" (서버로 보낼 때·목 서버가 응답할 때) */
+/** ms → UTC "2026-11-16T08:40:05Z" (명세 v1 시각. 서버로 보낼 때·목 서버가 응답할 때). 초 아래는 버림 */
 export function toIso(ms: number): IsoDateTime {
-  const p = seoulParts(ms)
-  return `${p.y}-${pad(p.m)}-${pad(p.d)}T${pad(p.h)}:${pad(p.mi)}:${pad(p.s)}+09:00`
+  const t = new Date(Math.floor(ms / 1000) * 1000)
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}Z`
 }
+/** toIso 와 같음 (이름으로 UTC 임을 드러낼 때) */
+export const toUtcIso = toIso
+/** 명세 v1 의 시각 모양인지 ("…Z", 초까지) */
+export const isUtcInstant = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(s)
+/** 명세 v1 의 날짜 모양인지 ("YYYY-MM-DD") */
+export const isDateString = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
 
 const HAS_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/i
 let warned = false
 /**
- * ISO 8601 → ms. 오프셋(Z, +09:00)이 있어야 한다 (규약). 없으면 Asia/Seoul 벽시계로 보고 개발 중 한 번 경고.
- * 날짜만("2026-11-16")이면 그날 서울 0시. 못 읽으면 NaN.
+ * ISO 8601 → ms. 오프셋(Z, +09:00)이 있어야 한다 (규약: 서버는 Z). 없으면 Asia/Seoul 벽시계로 보고 개발 중 한 번 경고.
+ * 날짜만("2026-11-16")이면 그날 서울 0시 (달력 값 그대로 쓰려면 parseIso 말고 문자열 그대로 둘 것). 못 읽으면 NaN.
  */
 export function parseIso(iso: string | null | undefined): number {
   if (!iso) return NaN
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return ymdMs(iso)
   if (HAS_OFFSET.test(iso)) return Date.parse(iso)
-  if (import.meta.env.DEV && !warned) { warned = true; console.warn(`[time] 오프셋 없는 날짜·시각을 받았어요: ${iso} → Asia/Seoul 로 읽음 (규약: ISO 8601 + 오프셋)`) }
+  if (ENV.dev && !warned) { warned = true; console.warn(`[time] 오프셋 없는 날짜·시각을 받았어요: ${iso} → Asia/Seoul 로 읽음 (규약: ISO 8601 + 오프셋)`) }
   return wallToMs(iso)
 }
 

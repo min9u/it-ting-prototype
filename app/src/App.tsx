@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createBrowserRouter, createHashRouter, Navigate, Outlet } from 'react-router-dom'
 import { ENV } from './lib/env'
 import { startChatRealtime } from './data/chat'
+import { startEventStream } from './realtime/events'
 
 // 공유용 빌드(npm run build:share)는 주소 경로를 바꿀 수 없는 곳에 올라가서 # 라우팅을 씀 (VITE_HASH_ROUTER=1, "0" 은 끔: lib/env.ts)
 const createRouter = ENV.hashRouter ? createHashRouter : createBrowserRouter
@@ -28,11 +29,12 @@ import { PcOnly, RequireLogin } from './screens/start/Guards'
 import Onboarding from './screens/onboarding/Onboarding'
 import ScreenIndex from './screens/ScreenIndex'
 import { ApiKnobBadge, ApiToaster } from './components/AsyncState'
-import { MockServerSync } from './api/queries'
+import { MockServerSync } from './api/mockSync'
 
 /** 로그인 뒤 화면: 헤더(GNB) + 내용 + 쓰기 실패 토스트 · 목 서버 손잡이 배지. 채팅·알림 실시간 연결은 여기 들어올 때 시작 (src/realtime, 로그아웃 때 stopChatRealtime) */
 function AppLayout() {
-  useEffect(() => { startChatRealtime() }, [])
+  // 실시간 소식(SSE, 명세 v1 GET /me/event-stream)은 로그인 영역에 들어올 때 한 번 연결 (realtime/events.ts)
+  useEffect(() => { startChatRealtime(); startEventStream() }, [])
   return (
     <>
       <AppHeader />

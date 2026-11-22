@@ -17,11 +17,9 @@ import {
   type MeetupState, type MeetupX, canQuit, deadlineLabel, deadlinePassed, hourLabel, leftOf, membersOf, myOf,
   parseHour, recruitOf,
 } from '../../data/meetupStore'
-import { api } from '../../api'
-import { toMeetupState, type MeetupCardVM, type MeetupDetailVM } from '../../api/mappers'
-import { patch, useMeetupDetail, useOptimistic } from '../../api/queries'
-import { qk } from '../../api/queryClient'
-import { reportBody } from '../../api/reports'
+import { api, patch, useOptimistic } from '../../api'
+import { meetupKeys, toMeetupState, useMeetupDetail, type MeetupCardVM, type MeetupDetailVM } from '../../api/meetups'
+import { reportBody } from '../../api/community'
 import { DetailSkeleton, QueryGate } from '../../components/AsyncState'
 import { dateParts } from '../../lib/format'
 import { ActionToast, type MToast, SignHero, useOutside } from './parts'
@@ -81,7 +79,7 @@ export default function MeetupDetail() {
 
 /** 찜 켜고 끄기를 상세 · 목록 캐시에 같이 반영 */
 const likePatches = (id: string, on: boolean) => [
-  patch<MeetupDetailVM>(qk.meetup(id), (o) => ({ ...o, liked: on, meetup: { ...o.meetup, likes: Math.max(0, o.meetup.likes + (on ? 1 : -1)) } })),
+  patch<MeetupDetailVM>(meetupKeys.detail(id), (o) => ({ ...o, liked: on, meetup: { ...o.meetup, likes: Math.max(0, o.meetup.likes + (on ? 1 : -1)) } })),
   patch<{ items: MeetupCardVM[] }>(['meetups', 'list'], (o) => ({ ...o, items: o.items.map((c) => (c.meetup.id === id ? { ...c, liked: on } : c)) })),
 ]
 
@@ -237,8 +235,8 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
               <button className={`btn btn-cta btn-block ${s.applyBtn}`} disabled={left <= 0 || run.isPending} onClick={() => act(() => {
                 const msg = note.trim()
                 run.mutate({
-                  call: () => api.meetups.apply(m.id, msg || null), errorTitle: '참여 신청을 보내지 못했어요', invalidate: [qk.meetups],
-                  patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'pending', note: msg || undefined, at: Date.now() } }))],
+                  call: () => api.meetups.apply(m.id, msg || null), errorTitle: '참여 신청을 보내지 못했어요', invalidate: [meetupKeys.all],
+                  patches: [patch<MeetupDetailVM>(meetupKeys.detail(m.id), (o) => ({ ...o, my: { st: 'pending', note: msg || undefined, at: Date.now() } }))],
                 }, { onSuccess: () => { setNote(''); setToast(APPLIED) } })
               })}>참여 신청하기</button>
             </>}
@@ -317,17 +315,17 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
 
       <ConfirmDialog open={confirm === 'withdraw'} onClose={() => setConfirm(null)} title="신청을 취소할까요?" desc="취소하면 주최자에게 보낸 신청과 남긴 말이 사라져요. 스스로 취소한 신청은 다시 신청할 수 있어요." confirmLabel="신청 취소"
         onConfirm={() => act(() => run.mutate({
-          call: () => api.meetups.withdraw(m.id), errorTitle: '신청을 취소하지 못했어요', invalidate: [qk.meetups],
-          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'withdrawn' } }))],
+          call: () => api.meetups.withdraw(m.id), errorTitle: '신청을 취소하지 못했어요', invalidate: [meetupKeys.all],
+          patches: [patch<MeetupDetailVM>(meetupKeys.detail(m.id), (o) => ({ ...o, my: { st: 'withdrawn' } }))],
         }, { onSuccess: () => setToast({ title: '신청을 취소했어요', desc: '마감 전까지 다시 신청할 수 있어요' }) }))} />
       <ConfirmDialog open={confirm === 'quit'} onClose={() => setConfirm(null)} title="참여를 취소할까요?" desc="주최자에게 알림이 가고 모임 대화방에서도 나가요. 확정 후 참여를 취소하면 이 모임에는 다시 신청할 수 없어요." confirmLabel="참여 취소"
         onConfirm={() => act(() => run.mutate({
-          call: () => api.meetups.quit(m.id), errorTitle: '참여를 취소하지 못했어요', invalidate: [qk.meetups],
-          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, my: { st: 'quit' }, members: o.members.filter((u) => u !== ME_ID) }))],
+          call: () => api.meetups.quit(m.id), errorTitle: '참여를 취소하지 못했어요', invalidate: [meetupKeys.all],
+          patches: [patch<MeetupDetailVM>(meetupKeys.detail(m.id), (o) => ({ ...o, my: { st: 'quit' }, members: o.members.filter((u) => u !== ME_ID) }))],
         }, { onSuccess: () => { leaveRoom(groupRoomId(m.id)); setToast({ title: '참여를 취소했어요', desc: '주최자에게 알림으로 전했어요' }) } }))} />
       <ReportDialog open={reportOpen} target="모임" onClose={() => setReportOpen(false)} onConfirm={(why) => run.mutate({
           call: () => { const b = reportBody('MEETUP', m.id, why); return api.meetups.report(m.id, b.reason, b.detail) }, errorTitle: '신고를 접수하지 못했어요',
-          patches: [patch<MeetupDetailVM>(qk.meetup(m.id), (o) => ({ ...o, reported: true }))],
+          patches: [patch<MeetupDetailVM>(meetupKeys.detail(m.id), (o) => ({ ...o, reported: true }))],
         }, { onSuccess: () => setToast(TOAST.reported) })} />
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />
       <ActionToast toast={toast} onClose={() => setToast(null)} duration={5000} />
