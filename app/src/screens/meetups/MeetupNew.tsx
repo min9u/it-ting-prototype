@@ -10,6 +10,7 @@ import MonthCalendar from '../../components/MonthCalendar'
 import MoleAvatar from '../../components/MoleAvatar'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import { ME_ID, USERS } from '../../data/mock'
+import { MEETUP_CATEGORIES } from '../../data/meetupCategory'
 import {
   type Draft, type MeetupX, PLATFORMS, canCancel, canEdit, cancelMeetup, clearDraft, confirmedOf, createMeetup,
   deadlineLabel, deleteMeetup, draftOf, findMeetup, getMeetupState, membersOf, myOf, parseHour, saveDraft, updateMeetup, useMeetups,
@@ -27,7 +28,7 @@ const TIMES = Array.from({ length: 34 }, (_, i) => {
 const EMPTY: Draft = {
   cap: 6, prep: '', askMsg: true, ymd: '', start: '', end: '', deadline: '',
   mode: '오프라인', place: '', placeDetail: '', platform: 'Zoom', platformEtc: '', link: '',
-  title: '', intro: '', interest: '', tags: [],
+  title: '', intro: '', category: '', tags: [],
 }
 const same = (a: Draft, b: Draft) => JSON.stringify(a) === JSON.stringify(b)
 /** '오후 2:00' + '2026-11-08' → '2026-11-08T14:00' */
@@ -40,7 +41,7 @@ const toIso = (ymd: string, t: string) => { const h = parseHour(t); return `${ym
  *  2 날짜(오늘 이후) · 시작 시간 · 끝나는 시간(선택, 시작보다 뒤) · 모집 마감(선택, 비우면 모임 시작 때 마감)
  *  3 오프라인 = 장소(직접 입력 또는 주소 찾기) + 상세 주소(선택). 모임에는 캠퍼스를 두지 않음 (명세 07)
  *    온라인 = 플랫폼 이름(Zoom / Discord / Gather / 기타 직접 입력, 필수) + 접속 링크(선택, 확정자에게만 보임) (M16)
- *  4 모임 이름(필수) · 소개(선택) · 대표 관심사 1개(필수) + 관심사 태그 최대 3개(선택) (M15)
+ *  4 모임 이름(필수) · 소개(선택) · 카테고리 1개(필수, 모임 전용 6개 — 관심사와 관계없음, M15 는 명세로 뒤집힘) + 관심사 태그 최대 3개(선택, 명세에 없음 — 확인 대기)
  *  5 미리보기 카드  6 그만두기 = 임시 저장 후 나감, 다시 들어오면 이어 씀(M3) / 모임 만들기 = 필수값을 채워야 켜짐 → 상세(주최자) + 완료 토스트(M1)
  * 수정
  *  기존 정보를 채워 엶. 시작 12시간 전까지만 수정(그 뒤엔 입력 칸이 잠기고 취소만), 모집 마감 일시는 바꿀 수 없음
@@ -83,7 +84,7 @@ export default function MeetupNew() {
   const endBad = !!d.end && !!d.start && parseHour(d.end) <= parseHour(d.start)
   const dlBad = !!d.deadline && !!d.ymd && !!d.start && d.deadline >= toIso(d.ymd, d.start)
   const missing = [
-    !d.title.trim() && '모임 이름', !d.interest && '대표 관심사', !d.ymd && '날짜', !d.start && '시작 시간',
+    !d.title.trim() && '모임 이름', !d.category && '카테고리', !d.ymd && '날짜', !d.start && '시작 시간',
     d.mode === '오프라인' && !d.place.trim() && '장소', d.mode === '온라인' && (d.platform === '기타' ? !d.platformEtc.trim() : !d.platform) && '온라인 플랫폼',
   ].filter(Boolean) as string[]
   const valid = missing.length === 0 && !endBad && !dlBad
@@ -91,7 +92,7 @@ export default function MeetupNew() {
   const pickedDay = d.ymd && d.ymd.startsWith(`${ym.y}-${String(ym.m).padStart(2, '0')}`) ? +d.ymd.slice(8) : undefined
 
   const preview: MeetupX = {
-    id: 'preview', title: d.title || '모임 이름', interest: d.interest || '관심사', date: d.ymd || `${TODAY_PARTS.y}-11-08`, start: d.start || '오후 2:00', end: d.end,
+    id: 'preview', title: d.title || '모임 이름', category: d.category || '카테고리', date: d.ymd || `${TODAY_PARTS.y}-11-08`, start: d.start || '오후 2:00', end: d.end,
     area: d.mode === '온라인' ? '온라인' : d.place.split(/\s+/).slice(0, 2).join(' ') || '장소', place: d.place, mode: d.mode, capacity: d.cap,
     memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0,
   }
@@ -204,17 +205,17 @@ export default function MeetupNew() {
               <h2 className={`display ${s.stepH}`}><span>4</span>무엇을 함께할까요</h2>
               <div className="field"><label htmlFor="t">모임 이름</label><input id="t" className={`input ${s.fill}`} value={d.title} maxLength={RULES.meetupTitle.max} onChange={(e) => set('title', e.target.value)} placeholder="예: 주말의 작은 독서 모임" /></div>
               <div className="field"><label htmlFor="i">소개 <span className={s.optTag}>선택</span></label><textarea id="i" className={`textarea ${s.fill}`} value={d.intro} maxLength={RULES.meetupIntro.max} onChange={(e) => set('intro', e.target.value)} placeholder="어떤 분위기의 모임인지, 처음 오는 사람이 알아야 할 게 있는지 적어주세요" /></div>
-              <div className="field"><span className="field-label">대표 관심사</span>
-                <div className={s.pickChips}>
-                  {(me.interests.includes(d.interest) || !d.interest ? me.interests : [d.interest, ...me.interests]).map((x) => (
-                    <button type="button" key={x} aria-pressed={x === d.interest} className={x === d.interest ? s.pickOn : s.pick} onClick={() => setD((v) => ({ ...v, interest: x, tags: v.tags.filter((t) => t !== x) }))}><InterestChip label={x === d.interest ? `✓ ${x}` : x} tone={undefined} /></button>
+              <div className="field"><span className="field-label">카테고리</span>
+                <div className={s.pickChips} role="group" aria-label="카테고리">
+                  {MEETUP_CATEGORIES.map((c) => (
+                    <button type="button" key={c.id} aria-pressed={c.name === d.category} className={c.name === d.category ? s.pickOn : s.pick} onClick={() => set('category', c.name)}><InterestChip label={c.name === d.category ? `✓ ${c.name}` : c.name} tone={c.tone} /></button>
                   ))}
                 </div>
-                <span className="hint">하나를 골라요. 고른 관심사가 모임 카드 색, 표지판, 캘린더 라벨 색을 정해요.</span>
+                <span className="hint">카테고리 하나를 골라요. 고른 카테고리가 모임 카드 색, 표지판, 캘린더 라벨 색을 정해요.</span>
               </div>
               <div className="field"><span className="field-label">관심사 태그 <span className={s.optTag}>선택 · 최대 3개</span></span>
                 <div className={s.pickChips}>
-                  {me.interests.filter((x) => x !== d.interest).map((x) => {
+                  {me.interests.map((x) => {
                     const on = d.tags.includes(x)
                     return <button type="button" key={x} aria-pressed={on} disabled={!on && d.tags.length >= 3} className={on ? s.pickOn : s.pick} onClick={() => set('tags', on ? d.tags.filter((t) => t !== x) : [...d.tags, x])}><InterestChip label={x} /></button>
                   })}

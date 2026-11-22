@@ -8,6 +8,7 @@ import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import { ME_ID, TODAY, USERS, toneOf } from '../../data/mock'
+import { meetupToneOf } from '../../data/meetupCategory'
 import { groupRoomId } from '../../data/chat'
 import type { User } from '../../data/types'
 import {
@@ -166,7 +167,7 @@ export function CalendarModal({ open, onClose }: { open: boolean; onClose: () =>
                 <button key={d} type="button" onClick={() => setDay(ymd)} aria-pressed={ymd === day}
                   className={`${s.bcDay} ${ymd === day ? s.bcOn : ''} ${ymd < TODAY ? s.bcPast : ''} ${i % 7 === 0 ? s.sun : ''}`}>
                   <span className={ymd === TODAY ? s.bcToday : s.bcNum}>{d}</span>
-                  {items.slice(0, 2).map((m) => <em key={m.id} style={{ background: `var(--tone-${toneOf(m.interest)}-bg)`, color: `var(--tone-${toneOf(m.interest)}-fg)` }}>{m.sign ?? m.title}</em>)}
+                  {items.slice(0, 2).map((m) => <em key={m.id} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)`, color: `var(--tone-${meetupToneOf(m.category)}-fg)` }}>{m.sign ?? m.title}</em>)}
                   {items.length > 2 && <small>+{items.length - 2}</small>}
                 </button>
               )

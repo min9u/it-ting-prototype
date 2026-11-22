@@ -5,6 +5,7 @@
  * - 대분류마다 빠지면 안 되는 것: 3D 가구 연결 · 이펙트 색·입자·글리프 · 질문 · 땅굴 무드 이름 · 블록 색 · 목 인원수
  * - 예전 관심사 v2(65개) → 새 id 옮기기 · 목 데이터가 모두 새 이름을 씀
  */
+import { isMeetupCategory } from '../data/meetupCategory'
 import { describe, expect, it } from 'vitest'
 import { LEGACY_CATEGORIES, LEGACY_SUBS, MAX_PICK, TAG_TREE } from '../data/interestTags'
 import { CATEGORY_3D, SUB_PROP } from '../data/interest3d'
@@ -178,9 +179,9 @@ describe('목 데이터가 모두 확정본 이름을 씀', () => {
     for (const u of Object.values(USERS)) for (const i of u.interests) expect(known(i), `${u.id}: ${i}`).toBe(true)
     for (const r of GUEST_ROOMS) for (const i of r.interests) expect(known(i), `${r.id}: ${i}`).toBe(true)
   })
-  it('모임 대표 관심사 · 태그는 소분류 이름', () => {
+  it('모임 카테고리는 모임 전용 6개(관심사 아님), 태그는 소분류 이름', () => {
     for (const m of [...MEETUPS, ...getMeetupState().list]) {
-      expect(known(m.interest), `${m.id}: ${m.interest}`).toBe(true)
+      expect(isMeetupCategory(m.category), `${m.id}: ${m.category}`).toBe(true)
       for (const t of (m as { tags?: string[] }).tags ?? []) expect(known(t), `${m.id}: ${t}`).toBe(true)
     }
   })

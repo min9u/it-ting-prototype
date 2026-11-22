@@ -19,7 +19,7 @@ beforeEach(async () => {
 /** 시험용 모임. date·start 로 NOW 와의 거리를 정함 */
 function mk(over: Partial<Store.MeetupX> = {}): Store.MeetupX {
   return {
-    id: 't1', title: '시험 모임', interest: '독서', date: '2026-11-10', start: '오후 2:00', end: '오후 4:00', area: '역삼', place: '역삼',
+    id: 't1', title: '시험 모임', category: '취미/문화', date: '2026-11-10', start: '오후 2:00', end: '오후 4:00', area: '역삼', place: '역삼',
     mode: '오프라인', capacity: 6, memberIds: [], hostId: 'kim', intro: '', askMsg: true, tags: [], likes: 0, seq: 1, ...over,
   }
 }
@@ -183,7 +183,7 @@ describe('동작 (저장소)', () => {
     const d: Store.Draft = {
       cap: 6, prep: '', askMsg: true, ymd: '2026-11-20', start: '오후 7:00', end: '', deadline: '',
       mode: '온라인', place: '', placeDetail: '', platform: 'Discord', platformEtc: '', link: ' https://discord.gg/x ',
-      title: '  새 모임  ', intro: '', interest: '독서', tags: ['a', 'b', 'c', 'd'],
+      title: '  새 모임  ', intro: '', category: '취미/문화', tags: ['a', 'b', 'c', 'd'],
     }
     const id = S.createMeetup(d)
     const m = S.findMeetup(id)!

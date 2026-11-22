@@ -14,7 +14,7 @@
 |---|---|---|
 | Q1 🔴 | **차단** 테이블이 없음 (설정 › 차단 관리, 프로필 팝업 차단, 채팅·요청 숨김) | `member_block(member_id, blocked_member_id, created_at)` PK 두 칼럼 |
 | Q2 🔴 | **방명록 길이**: 화면 100자, ERD `content VARCHAR(50)` | VARCHAR(100) 로 (화면 명세가 100) |
-| Q3 🔴 | **모임 관심사 태그(최대 3개)** 저장할 곳이 없고, `meetup.category VARCHAR(20)` 이 이름인지 id 인지 모름 | `meetup.interest_id BIGINT FK` (대표 관심사) + `meetup_tag(meetup_id, interest_id)` |
+| Q3 🔴 | **(2026-11-22 바뀜)** 모임 `category` 는 **관심사가 아니라 모임 전용 6개**(명세 07). `meetup.category` enum(HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS)로 두면 됨. 남은 질문: **모임 관심사 태그(최대 3개)** 는 명세 07 에 없음 → 없앨지 확인 (앱은 아직 유지) | `meetup.category` enum 6개. 태그를 유지하면 `meetup_tag(meetup_id, interest_id)` |
 | Q4 🔴 | **알림 제목 스냅숏**: 원본이 지워진 알림("‘북한산 아침 등산’ 모임이 취소됐어요")의 제목을 만들 데이터가 없음 | `notification.payload JSON` (대상 제목·닉네임 등) 또는 `title VARCHAR(100)`·`body VARCHAR(150)` |
 | Q5 🔴 | **ID 를 JSON 에서 문자열로**, **날짜는 오프셋 붙은 ISO 8601** 로 줄 수 있는지 | api-draft 1.4 · 1.5 (Long → 문자열 직렬화, `OffsetDateTime`/`Instant`) |
 | Q6 🟠 | 대화 요청 카드의 **"땅굴에 다녀갔어요" 맥락**과 땅굴 **방문 기록**이 없음 | `chat_request.context VARCHAR(20)` (BURROW_VISIT · SAME_MEETUP · OTHER). 방문 기록 테이블은 만들지 않고 요청을 보낸 곳만 기록 |
@@ -104,7 +104,7 @@
 | `chat_message.type` | `TEXT` · `SYSTEM` · `MEETUP_SHARE` | `system`, `meetupId` | 시스템 문장(“OO님이 모임에 참여했어요”)을 content 에 넣을지, `SYSTEM` + 코드로 줄지 결정 |
 | `chat_request.status` | `PENDING` · `ACCEPTED` · `DECLINED` · `CANCELED` · `EXPIRED` | 받은/보낸, 5일 | VARCHAR(20) ✓ |
 | `meetup.mode` | `OFFLINE` · `ONLINE` | 오프라인 · 온라인 | VARCHAR(10) ✓ |
-| `meetup.category` | 대표 관심사 (Q3) | 세부 관심사 이름 | id 로 바꾸기 제안 |
+| `meetup.category` | 모임 카테고리 (Q3, 2026-11-22) | 코드 6개 (`HOBBY_CULTURE` …) | enum 으로 확정 제안 |
 | `interest_category.code` · `interest.code` (새 칼럼 제안) | 대분류 12 · 소분류 90 영어 code (예: `food` · `cafe_coffee`) | `data/interestTags.ts` | **2026-11-18 관심사 확정본**. 표 전체와 길이(code 최장 20자 · 이름 최장 12자)는 [interest-enum.md](interest-enum.md) |
 | `meetup.platform` | Zoom · Discord · Gather · (직접 쓴 이름) | `PLATFORMS` | 자유 문자열 VARCHAR(20) |
 | `meetup_application.status` | `PENDING` · `CANCELED`(스스로 취소, 다시 신청 가능) · `REJECTED`(주최자 거절) · `EXPIRED`(자동 미승인) · `APPROVED` · `LEFT`(확정 후 참여 취소, 다시 신청 불가) · `KICKED`(내보내짐) | `pending`·`withdrawn`·`rejected`(+auto)·`joined`·`quit`·`kicked` | M7·M8 규칙. VARCHAR(20) ✓ |

@@ -54,7 +54,8 @@ export type MyMeetupStatus = '참여 확정' | '신청 대기' | '내가 주최'
 export interface Meetup {
   id: string
   title: string
-  interest: string
+  /** 모임 카테고리 이름 (data/meetupCategory.ts 6개 중 하나, 관심사와 관계없음 — 명세 07) */
+  category: string
   /** 달력 날짜 YYYY-MM-DD (Asia/Seoul) */
   date: string
   /** 시작·끝 시각: 만들기 양식 값 그대로 ('오후 2:00', 끝은 '다음 날 오전 11:00' 도 있음). 서버와는 ISO 8601(starts_at·ends_at)로 주고받음 → api/mappers */

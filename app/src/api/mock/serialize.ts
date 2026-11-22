@@ -5,6 +5,7 @@
  */
 import { ME_ID, USERS, categoryOf } from '../../data/mock'
 import { getMyInterests, subOf } from '../../data/interests'
+import { meetupCategoryOf } from '../../data/meetupCategory'
 import { getMyWorn, wornByPart } from '../../data/moleItems'
 import { ME_HOME, affOf, fieldUserOf, locateUser } from '../../data/field'
 import {
@@ -71,7 +72,7 @@ function endMs(m: MeetupX): number | null {
 }
 export function meetupCard(m: MeetupX, s: MeetupState = getMeetupState()): MeetupCardDto {
   return {
-    id: m.id, title: m.title, category: m.interest, tags: m.tags ?? [],
+    id: m.id, title: m.title, category: meetupCategoryOf(m.category)?.code ?? m.category, tags: m.tags ?? [],
     startsAt: toIso(startMs(m)), endsAt: endMs(m) == null ? null : toIso(endMs(m)!),
     recruitDeadlineAt: m.deadline ? toIso(isoMs(m.deadline)) : null,
     mode: m.mode === '온라인' ? 'ONLINE' : 'OFFLINE', place: m.place || null, platform: m.platform ?? null,
@@ -181,7 +182,7 @@ export function chatRoomSummary(r: Room): ChatRoomSummaryDto {
   return {
     id: r.id, type: r.kind === 'dm' ? 'DIRECT' : 'MEETUP', meetupId: r.meetupId ?? null, title: roomTitle(r),
     partner: r.partnerId ? memberSummary(r.partnerId) : null,
-    topic: r.kind === 'group' ? mt?.interest ?? null : partner?.interests[0] ?? null,
+    topic: r.kind === 'group' ? mt?.category ?? null : partner?.interests[0] ?? null,
     memberCount: r.kind === 'group' ? roomMembersOf(r).length : 2,
     lastMessage: last ? {
       id: last.id, type: last.system ? 'SYSTEM' : last.meetupId ? 'MEETUP_SHARE' : 'TEXT',

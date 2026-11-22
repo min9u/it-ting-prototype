@@ -7,7 +7,8 @@ import InterestChip from '../../components/InterestChip'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, ReportDialog, TOAST } from '../../components/Feedback'
 import { CalendarIcon, HeartIcon, HomeIcon, PinIcon } from '../../components/Icons'
-import { ME_ID, USERS, categoryOf, toneOf } from '../../data/mock'
+import { ME_ID, USERS, toneOf } from '../../data/mock'
+import { meetupCategoryOf, meetupToneOf } from '../../data/meetupCategory'
 import { affOf } from '../../data/field'
 import { groupRoomId, leaveRoom, roomOf, useChat } from '../../data/chat'
 import { MEETUP_APPLY_MESSAGE_MAX } from '../../lib/validation'
@@ -59,7 +60,7 @@ function whenText(m: MeetupX) {
 
 /**
  * 모임 – 상세 (Figma 02 F7 1073:9749) + 상태 화면 9개 (미신청 · 신청 대기 · 미승인 · 참여 확정 · 주최자 · 주최자 확정 0명 · 모집 완료 · 지난 · 취소)
- * 1 브레드크럼(모임 탐색 / 대표 관심사 분야) · 대표 관심사 칩 · 모집 상태 (모집 중(남은 자리) / 모집 완료 / 지난 모임 / 취소됨)
+ * 1 브레드크럼(모임 탐색 / 카테고리) · 카테고리 칩 · 모집 상태 (모집 중(남은 자리) / 모집 완료 / 지난 모임 / 취소됨)
  * 2 공유(링크 복사) · 찜  3 대표 이미지(표지판)  4 모집 현황(주최자가 첫 자리, 정원에 주최자 포함, 겹치는 관심사 수)
  * 5 주최자에게 남길 말(메시지를 안 받는 모임은 숨김)  6 참여 신청하기  7 모임 소개  8 모임 정보  9 모임 대화 미리보기(확정자·주최자만)
  * 주최자 카드: 사용자 표시(F0 4) → 프로필 팝업, 겹치는 관심사, 주최자 땅굴, 신고(M10)
@@ -122,7 +123,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
   const count = view === 'hostZero' ? 1 : 1 + mem.length + (meSeat ? 1 : 0)
   const left = Math.max(0, m.capacity - count)
   const rec = recruitOf(m, st)
-  const cat = categoryOf(m.interest)
+  const cat = meetupCategoryOf(m.category)
   const shared = host.id === ME_ID ? [] : host.interests.filter((i) => me.interests.includes(i))
   const overlapMembers = [m.hostId, ...mem].filter((u) => u !== ME_ID && (USERS[u]?.interests ?? []).some((i) => me.interests.includes(i))).length
   const quitOk = canQuit(m)
@@ -154,11 +155,11 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
 
   return (
     <div className={s.detailWrap}>
-      <nav className={s.crumb}><Link to="/meetups">모임 탐색</Link> / <Link to={similar}>{cat?.name ?? m.interest}</Link></nav>
+      <nav className={s.crumb}><Link to="/meetups">모임 탐색</Link> / <Link to={similar}>{cat?.name ?? m.category}</Link></nav>
       <div className={s.titleRow}>
         <div>
           <p className={s.titleChips}>
-            <span className={s.topicChip} style={{ background: `var(--tone-${cat?.tone ?? 'sand'}-bg)`, color: `var(--tone-${cat?.tone ?? 'sand'}-fg)` }}>✓ {m.interest}</span>
+            <span className={s.topicChip} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)`, color: `var(--tone-${meetupToneOf(m.category)}-fg)` }}>{m.category}</span>
             <span className={`${s.recruitChip} ${chip.cls}`}><i aria-hidden />{chip.label}</span>
           </p>
           <h1 className="display">{m.title}</h1>
@@ -230,7 +231,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
               {m.askMsg && <>
                 <label className={s.applyLabel} htmlFor="host-note">주최자에게 남길 말 <em>선택</em></label>
                 <div className={s.applyInput}>
-                  <textarea id="host-note" maxLength={MEETUP_APPLY_MESSAGE_MAX} value={note} onChange={(e) => setNote(e.target.value)} placeholder={m.interest === '독서' ? '어떤 책을 읽고 계신지 알려주세요' : '간단한 인사나 궁금한 점을 남겨 주세요'} />
+                  <textarea id="host-note" maxLength={MEETUP_APPLY_MESSAGE_MAX} value={note} onChange={(e) => setNote(e.target.value)} placeholder={m.category === '취미/문화' && /독서|책/.test(m.title) ? '어떤 책을 읽고 계신지 알려주세요' : '간단한 인사나 궁금한 점을 남겨 주세요'} />
                   <span>{note.length} / 100</span>
                 </div>
               </>}
@@ -266,7 +267,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
             {(view === 'full' || view === 'past' || view === 'cancelled') && <>
               <p className={s.actText}>{view === 'full' ? (deadlinePassed(m) && leftOf(m, st) > 0 ? '모집 마감 시각이 지났어요. 비슷한 모임을 둘러보세요.' : '정원이 모두 찼어요. 비슷한 모임을 둘러보세요.') : view === 'past' ? `${mm}월 ${d}일에 열린 모임이에요.` : '주최자가 모임을 취소했어요.'}</p>
               <button className={`btn btn-block ${s.applyBtn}`} disabled>{view === 'full' ? '모집 완료' : view === 'past' ? '지난 모임' : '취소된 모임'}</button>
-              {view === 'full' && <Link to={similar} className={s.similar}>비슷한 {cat?.name ?? m.interest} 모임 보기 →</Link>}
+              {view === 'full' && <Link to={similar} className={s.similar}>같은 {cat?.name ?? m.category} 모임 보기 →</Link>}
             </>}
             {deadline && ['open', 'pending', 'joined', 'host', 'hostZero', 'blocked'].includes(view) && <span className={s.deadline}>🕑 {deadline}</span>}
           </div>

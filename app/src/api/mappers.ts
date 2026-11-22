@@ -16,6 +16,7 @@ import type { AppNotice, GoneKind, NoticeKind } from '../data/notifications'
 import type { GuestbookEntry, PostCategory, Tone, User } from '../data/types'
 import type { SavedRoom } from '../data/roomLook'
 import { subOf } from '../data/interests'
+import { meetupCategoryOf } from '../data/meetupCategory'
 import { msToWall, parseIso, seoulParts, seoulYmd } from '../lib/time'
 import type {
   ApplicationStatus, BurrowDto, ChatRequestDto, ChatRoomSummaryDto, CommentDto, ContentStatus, GuestbookEntryDto, MeetupCardDto,
@@ -80,7 +81,7 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
   const date = seoulYmd(start)
   const place = d.place ?? ''
   return {
-    id: toId(d.id), title: d.title, interest: d.category, tags: d.tags, date, start: hm(start),
+    id: toId(d.id), title: d.title, category: meetupCategoryOf(d.category)?.name ?? d.category, tags: d.tags, date, start: hm(start),
     end: end == null ? '' : `${seoulYmd(end) !== date ? '다음 날 ' : ''}${hm(end)}`,
     area: d.mode === 'ONLINE' ? '온라인' : d.area ?? (place.split(/\s+/).slice(0, 2).join(' ')),
     place, mode: MODE[d.mode], capacity: d.capacity,
