@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { RoomStyle } from '../data/roomStyle'
 import type { StyleTargetInfo } from './roomStyle'
 import { graphicsTier } from '../lib/graphicsTier'
+import { testParam } from '../lib/testParam'
 import { getLab, type LabState } from '../lib/lowLab'
 import { gpuWasSlow, lowTier, noteGpuSlow, noteRenderCost, wantsRenderCost } from '../lib/deviceTier'
 
@@ -106,10 +107,8 @@ export function timeGpuWork(renderer: THREE.WebGLRenderer, t0: number, kind: str
   setTimeout(poll, 2)
 }
 
-/** 측정용 주소 손잡이 (?maxfps=0 → fps 제한 없음, ?partial=0 → 땅굴 부분 그리기 끔) */
-export function testParam(name: string): string | null {
-  try { return (location.search + location.hash).match(new RegExp(`[?&]${name}=(\\w+)`))?.[1] ?? null } catch { return null }
-}
+/** 측정용 주소 손잡이 (?maxfps=0 → fps 제한 없음, ?partial=0 → 땅굴 부분 그리기 끔). 본체는 lib/testParam.ts (three 없이 쓰도록 따로 둠) */
+export { testParam }
 
 /** 각 장면이 React 쪽에 돌려주는 손잡이 */
 export interface SceneHandle {
