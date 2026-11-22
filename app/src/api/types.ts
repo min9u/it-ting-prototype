@@ -319,17 +319,14 @@ export interface AcceptChatRequestResponse { chatRoomId: Id }
 export interface MeetupCardDto {
   id: Id
   title: string
-  /** meetup.category = 대표 관심사 이름 (VARCHAR(20)) */
+  /** 모임 카테고리 코드 HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS (명세 07, 관심사와 관계없음) */
   category: string
-  /** 관심사 태그 최대 3개 (ERD 에 테이블 없음 → erd-gaps) */
-  tags: string[]
   startsAt: IsoDateTime
   endsAt: IsoDateTime | null
   recruitDeadlineAt: IsoDateTime | null
   mode: MeetupMode
-  /** 오프라인: 장소, 온라인: 플랫폼이 '기타'일 때 직접 쓴 이름 */
+  /** 오프라인: 장소. 온라인은 null (모임에는 플랫폼 이름을 두지 않음 — 명세 07) */
   place: string | null
-  platform: string | null
   capacity: number
   /** 주최자 포함 확정 인원 */
   confirmedCount: number
@@ -370,8 +367,8 @@ export interface MeetupDetailDto extends MeetupCardDto {
 }
 export interface MeetupListQuery {
   q?: string
-  /** interest_category.id 여러 개 (대표 관심사의 분야) */
-  categoryIds?: string[]
+  /** 모임 카테고리 코드 여러 개 (명세 07 리스트 3) */
+  categories?: string[]
   /** 시작일 범위 (YYYY-MM-DD, 서울) */
   from?: IsoDate
   to?: IsoDate
@@ -382,8 +379,8 @@ export interface MeetupListQuery {
 }
 export interface MeetupWriteRequest {
   title: string
+  /** 모임 카테고리 코드 (필수, 하나) */
   category: string
-  tags: string[]
   description: string
   capacity: number
   supplies: string | null
@@ -394,7 +391,6 @@ export interface MeetupWriteRequest {
   mode: MeetupMode
   place: string | null
   placeDetail: string | null
-  platform: string | null
   joinUrl: string | null
 }
 export interface ApplicantDto {

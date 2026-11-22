@@ -16,6 +16,7 @@ import type { AppNotice, GoneKind, NoticeKind } from '../data/notifications'
 import type { GuestbookEntry, PostCategory, Tone, User } from '../data/types'
 import type { SavedRoom } from '../data/roomLook'
 import { subOf } from '../data/interests'
+import { meetupCategoryOf } from '../data/meetupCategory'
 import { msToWall, parseIso, seoulParts, seoulYmd } from '../lib/time'
 import type {
   ApplicationStatus, BurrowDto, ChatRequestDto, ChatRoomSummaryDto, CommentDto, ContentStatus, GuestbookEntryDto, MeetupCardDto,
@@ -80,14 +81,13 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
   const date = seoulYmd(start)
   const place = d.place ?? ''
   return {
-    id: toId(d.id), title: d.title, interest: d.category, tags: d.tags, date, start: hm(start),
+    id: toId(d.id), title: d.title, category: meetupCategoryOf(d.category)?.name ?? d.category, date, start: hm(start),
     end: end == null ? '' : `${seoulYmd(end) !== date ? '다음 날 ' : ''}${hm(end)}`,
     area: d.mode === 'ONLINE' ? '온라인' : d.area ?? (place.split(/\s+/).slice(0, 2).join(' ')),
     place, mode: MODE[d.mode], capacity: d.capacity,
     // 카드 응답에는 참여자 목록이 없음 → 인원은 MeetupCardVM.confirmed 를 씀
     memberIds: [], hostId: toPerson(d.host).id, intro: '',
     sign: d.sign ?? d.title.slice(0, 8), cancelled: d.recruitStatus === 'CANCELED' || undefined,
-    platform: d.platform ?? undefined,
     askMsg: true, deadline: d.recruitDeadlineAt ? msToWall(parseIso(d.recruitDeadlineAt)) : undefined,
     likes: d.likeCount, seq: Math.round(parseIso(d.createdAt) / 1000),
   }

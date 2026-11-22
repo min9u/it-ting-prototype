@@ -1,15 +1,11 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { categoryOf } from '../data/mock'
+import { meetupToneOf } from '../data/meetupCategory'
 import type { Meetup } from '../data/types'
 import { dateLabel } from '../lib/format'
 import InterestChip from './InterestChip'
 import { CalendarIcon, PinIcon } from './Icons'
 import styles from './MeetupCard.module.css'
-
-function emojiOf(interest: string) {
-  return categoryOf(interest)?.emoji ?? '🌱'
-}
 
 /** 모집 상태: 모집 중 / 마감 임박(1자리) / 모집 완료 */
 export function recruitOf(m: Meetup): { label: string; tone: 'open' | 'hot' | 'done' } {
@@ -44,7 +40,7 @@ export default function MeetupCard({ m, badge, actions, people, place, done: don
     <>
       <div className={done ? `${styles.thumb} ${styles.thumbDone}` : styles.thumb}>
         <em className={`${styles.status} ${styles[b.tone]}`}><i aria-hidden />{b.label}</em>
-        <span className={done ? `${styles.sign} ${styles.signDone}` : styles.sign}>{done ? b.label : m.sign ?? m.interest}</span>
+        <span className={done ? `${styles.sign} ${styles.signDone}` : styles.sign}>{done ? b.label : m.sign ?? m.category}</span>
         <span className={styles.post} aria-hidden />
         {wish && (
           <button type="button" className={wish.on ? `${styles.wish} ${styles.wishOn}` : styles.wish} aria-pressed={wish.on} aria-label={wish.on ? '찜 해제' : '찜하기'}
@@ -54,7 +50,7 @@ export default function MeetupCard({ m, badge, actions, people, place, done: don
         )}
       </div>
       <div className={styles.body}>
-        <InterestChip label={m.interest} />
+        <InterestChip label={m.category} tone={meetupToneOf(m.category)} />
         <strong className={styles.title}>{m.title}</strong>
         <span className={styles.when}><CalendarIcon size={14} /> {dateLabel(m.date)} {m.start}</span>
         <span className={styles.meta}>
@@ -75,4 +71,3 @@ export default function MeetupCard({ m, badge, actions, people, place, done: don
   return <Link to={`/meetups/${m.id}`} className={done ? `${styles.card} ${styles.cardDone}` : styles.card}>{body}</Link>
 }
 
-export { emojiOf }

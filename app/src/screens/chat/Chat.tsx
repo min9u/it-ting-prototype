@@ -8,6 +8,7 @@ import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
 import ConnectionStrip from '../../components/ConnectionStrip'
 import { CalendarIcon, ChatIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
 import { ME_ID, USERS, toneOf } from '../../data/mock'
+import { meetupToneOf } from '../../data/meetupCategory'
 import { findMeetup as meetupOf, useMeetups } from '../../data/meetupStore'
 import { getMyWorn } from '../../data/moleItems'
 import { getMyInterests } from '../../data/interests'
@@ -240,7 +241,7 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
         <header className={s.head}>
           {meetup ? (
             <>
-              <Initial text={meetup.title} tone={toneOf(meetup.interest)} size={42} />
+              <Initial text={meetup.title} tone={meetupToneOf(meetup.category)} size={42} />
               <div className={s.headText}>
                 <h2 className="display">{meetup.title} <em>{membersOf(room).length}명</em></h2>
                 <p>{dateLabel(meetup.date)} {meetup.start} · {meetup.place}</p>
@@ -317,7 +318,8 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
         <Modal open={info} onClose={() => setInfo(false)} width={400} labelledBy="meet-info-title">
           <div className={s.info}>
             <h2 id="meet-info-title" className="display">모임 정보</h2>
-            <span className={s.infoTag} style={{ background: `var(--tone-${toneOf(meetup.interest)}-bg)`, color: `var(--tone-${toneOf(meetup.interest)}-fg)` }}>{meetup.interest}</span>
+            <p className={s.infoCat}><span>카테고리</span>
+              <span className={s.infoTag} style={{ background: `var(--tone-${meetupToneOf(meetup.category)}-bg)`, color: `var(--tone-${meetupToneOf(meetup.category)}-fg)` }}>{meetup.category}</span></p>
             <ul className={s.infoList}>
               <li><CalendarIcon size={15} /> {dateLabel(meetup.date)} {meetup.start} – {meetup.end}</li>
               <li><PinIcon size={15} /> {meetup.place}</li>
@@ -410,7 +412,7 @@ function Message({ m, room, topics, onProfile }: { m: ChatMsg; room: Room; topic
         {meetup && (
           <div className={s.msgRow}>
             <div className={s.meetCard}>
-              <div className={s.meetTop} style={{ background: `var(--tone-${toneOf(meetup.interest)}-fg)` }}><span>{meetup.sign ?? meetup.interest}</span></div>
+              <div className={s.meetTop} style={{ background: `var(--tone-${meetupToneOf(meetup.category)}-fg)` }}><span>{meetup.sign ?? meetup.category}</span></div>
               <div className={s.meetBody}>
                 <strong>{meetup.title}</strong>
                 <small>{dateLabel(meetup.date)} {meetup.start} · {meetup.memberIds.length} / {meetup.capacity}명</small>

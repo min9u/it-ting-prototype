@@ -5,7 +5,8 @@ import MeetupCard from '../../components/MeetupCard'
 import Pagination from '../../components/Pagination'
 import InterestChip from '../../components/InterestChip'
 import { ChevronLeft, SearchIcon } from '../../components/Icons'
-import { CATEGORIES, TODAY } from '../../data/mock'
+import { TODAY } from '../../data/mock'
+import { MEETUP_CATEGORIES, meetupToneOf } from '../../data/meetupCategory'
 import { groupRoomId, roomOf, useChat } from '../../data/chat'
 import {
   type MeetupX, applicantsOf, canReapply, confirmedOf, ddayOf, hourLabel, leftOf, mineGroups, myOf, placeLine,
@@ -40,11 +41,11 @@ function weekRange(kind: '이번 주' | '이번 주말'): [string, string] {
 /**
  * 모임 – 리스트 (Figma 02 F7 1071:9749 · 날짜 필터 1074:9747 · 직접 설정 1074:10147 · 정렬 열림 · 개수 보기 열림)
  * 2 검색: 모임 이름·소개 글에서만, 입력하면 바로 (M12)
- * 3 관심사 필터: 전체 / 여러 개 골라 좁힘 (M15: 대표 관심사의 분야로 거름)
+ * 3 카테고리 필터: 전체 / 여러 개 골라 좁힘 (명세 07 — 모임 전용 6개, 관심사와 관계없음. M15 는 명세로 뒤집힘)
  * 4 날짜 · 방식 · 정렬: 모두 AND. 모임에는 캠퍼스가 없어 캠퍼스로는 거르지 않음 (명세 07)
  * 5 카드: 상태 배지(모집 중 / 모집 완료), 모집 완료는 흐리게 맨 뒤, 지난·취소된 모임은 안 보임, 인원 = 주최자 포함 확정 / 정원
  * 6 N개씩 보기 6(기본) / 12 / 24 + 페이지 번호
- * 데모용 쿼리: ?cat=<분야 id>
+ * 데모용 쿼리: ?cat=<카테고리 id>
  */
 export function MeetupList() {
   const [params] = useSearchParams()
@@ -63,7 +64,7 @@ export function MeetupList() {
   // 거르기 · 정렬 · 페이지는 서버가 함 (api/meetups.ts, 목 서버도 같은 규칙). 바꾸면 이전 목록을 보여 주다가 바꿔 낌
   const r = range ?? (date === '오늘' ? [TODAY, TODAY] : date === '이번 주' || date === '이번 주말' ? weekRange(date) : null)
   const query: MeetupListQuery = {
-    q: q.trim() || undefined, categoryIds: cats.length ? cats : undefined,
+    q: q.trim() || undefined, categories: cats.length ? cats.map((id) => MEETUP_CATEGORIES.find((c) => c.id === id)?.code ?? id) : undefined,
     from: r?.[0], to: r?.[1], mode: mode === '전체' ? undefined : mode === '온라인' ? 'ONLINE' : 'OFFLINE',
     sort: SORT_CODE[sort], page, size,
   }
@@ -102,11 +103,11 @@ export function MeetupList() {
           <Dropdown label="정렬" prefix="정렬" value={sort} options={SORTS} onChange={(v) => { setSort(v); reset() }} />
         </div>
       </div>
-      <div className={s.filters} role="group" aria-label="관심사 필터">
-        <span className={s.filterLabel}>관심사</span>
+      <div className={s.filters} role="group" aria-label="카테고리 필터">
+        <span className={s.filterLabel}>카테고리</span>
         <button className={cats.length === 0 ? s.fOn : s.f} aria-pressed={cats.length === 0} onClick={() => { setCats([]); reset() }}>전체</button>
         <span className={s.sep} />
-        {CATEGORIES.map((c) => {
+        {MEETUP_CATEGORIES.map((c) => {
           const on = cats.includes(c.id)
           return (
             <button key={c.id} className={on ? s.tagOn : s.tag} onClick={() => toggleCat(c.id)} aria-pressed={on}
@@ -215,12 +216,12 @@ export function MyMeetups() {
           const closed = isWish && rec === 'closed'
           return (
             <li key={m.id} className={`${s.row} ${closed || m.cancelled || r?.st === 'rejected' ? s.rowDim : ''}`}>
-              <Link to={`/meetups/${m.id}`} className={s.rowThumb}><span>{m.sign ?? m.interest}</span></Link>
+              <Link to={`/meetups/${m.id}`} className={s.rowThumb}><span>{m.sign ?? m.category}</span></Link>
               <div className={s.rowBody}>
                 <p className={s.rowBadges}>
                   <em className={status.cls}>{isWish && rec !== 'closed' && '● '}{status.label}</em>
                   {tab !== 'past' && <em className={s.stDday}>{ddayOf(m.date)}</em>}
-                  <InterestChip label={m.interest} />
+                  <InterestChip label={m.category} tone={meetupToneOf(m.category)} />
                 </p>
                 <Link to={`/meetups/${m.id}`} className={s.rowTitle}>{m.title}</Link>
                 <p className={s.rowMeta}>

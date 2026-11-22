@@ -6,11 +6,12 @@ import { API_MODE } from './config'
 import { http } from './client'
 import { conflict, emptyPage, forbidden, mockRead, mockWrite, notFound, paginate } from './mock/server'
 import { meetupCard, meetupDetail, memberProfile } from './mock/serialize'
-import { categoryOf, ME_ID } from '../data/mock'
+import { ME_ID } from '../data/mock'
+import { meetupCategoryOf } from '../data/meetupCategory'
 import {
   accept, apply, applicantsOf, canQuit, canReapply, cancelMeetup, confirmedOf, deleteMeetup, findMeetup, getMeetupState, kick, leftOf,
   myOf, quit, recruitOf, reject, report, startMs, toggleAlert, toggleWish, withdraw, type MeetupX,
-  PLATFORMS, canEdit, createMeetup, updateMeetup, type Draft,
+  canEdit, createMeetup, updateMeetup, type Draft,
 } from '../data/meetupStore'
 import { msToWall, parseIso, seoulParts, seoulYmd, toIso } from '../lib/time'
 import type { ApplicantDto, Id, MeetupCardDto, MeetupDetailDto, MeetupListQuery, MeetupWriteRequest, PageDto, ReportReason } from './types'
@@ -19,7 +20,7 @@ export type MyMeetupTab = 'UPCOMING' | 'PENDING' | 'HOSTING' | 'LIKED' | 'PAST'
 
 const real = {
   /** GET /meetups — 모임 탐색 (번호 페이지) */
-  list: (q: MeetupListQuery, signal?: AbortSignal) => http.get<PageDto<MeetupCardDto>>('/meetups', { ...q, categoryIds: q.categoryIds }, signal),
+  list: (q: MeetupListQuery, signal?: AbortSignal) => http.get<PageDto<MeetupCardDto>>('/meetups', { ...q, categories: q.categories }, signal),
   /** GET /meetups/{id} */
   get: (id: Id, signal?: AbortSignal) => http.get<MeetupDetailDto>(`/meetups/${id}`, undefined, signal),
   /** POST /meetups/{id}/applications — 참여 신청 (409 MEETUP_FULL · ALREADY_APPLIED · REAPPLY_BLOCKED · RECRUIT_CLOSED) */
@@ -66,7 +67,7 @@ const mock: MeetupsApi = {
     let l = s.list.filter((m) => recruitOf(m, s) !== 'past' && recruitOf(m, s) !== 'cancelled')
     const k = q.q?.trim()
     if (k) l = l.filter((m) => m.title.includes(k) || m.intro.includes(k))
-    if (q.categoryIds?.length) l = l.filter((m) => q.categoryIds!.includes(categoryOf(m.interest)?.id ?? ''))
+    if (q.categories?.length) l = l.filter((m) => q.categories!.includes(meetupCategoryOf(m.category)?.code ?? ''))
     if (q.from) l = l.filter((m) => m.date >= q.from!)
     if (q.to) l = l.filter((m) => m.date <= q.to!)
     if (q.mode) l = l.filter((m) => (q.mode === 'ONLINE' ? m.mode === '온라인' : m.mode === '오프라인'))
@@ -141,13 +142,12 @@ function draftOfRequest(r: MeetupWriteRequest): Draft {
   const start = parseIso(r.startsAt)
   const end = r.endsAt ? parseIso(r.endsAt) : null
   const hm = (t: number) => { const { h, mi } = seoulParts(t); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(mi).padStart(2, '0')}` }
-  const known = (PLATFORMS as readonly string[]).includes(r.platform ?? '')
   return {
     cap: r.capacity, prep: r.supplies ?? '', askMsg: r.acceptsMessage, ymd: seoulYmd(start), start: hm(start), end: end == null ? '' : hm(end),
     deadline: r.recruitDeadlineAt ? msToWall(parseIso(r.recruitDeadlineAt)) : '', mode: r.mode === 'ONLINE' ? '온라인' : '오프라인',
     place: r.place ?? '', placeDetail: r.placeDetail ?? '',
-    platform: r.mode === 'ONLINE' ? (known ? r.platform! : '기타') : 'Zoom', platformEtc: known ? '' : r.platform ?? r.place ?? '', link: r.joinUrl ?? '',
-    title: r.title, intro: r.description, interest: r.category, tags: r.tags,
+    link: r.joinUrl ?? '',
+    title: r.title, intro: r.description, category: meetupCategoryOf(r.category)?.name ?? r.category,
   }
 }
 

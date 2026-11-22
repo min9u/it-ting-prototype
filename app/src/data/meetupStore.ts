@@ -13,24 +13,19 @@
  * - 시간 기준은 목 데이터의 오늘(TODAY) 정오 (채팅과 같음)
  */
 import { useSyncExternalStore } from 'react'
-import { ME_ID, MEETUPS, TODAY, USERS, categoryOf, toneOf } from './mock'
+import { ME_ID, MEETUPS, TODAY, USERS } from './mock'
+import { meetupCategoryOf, meetupToneOf } from './meetupCategory'
 import type { Meetup, Tone } from './types'
 import { seoulParts, wallToMs, ymdDiff, ymdMs } from '../lib/time'
 
 /* ===== 타입 ===== */
-export const PLATFORMS = ['Zoom', 'Discord', 'Gather', '기타'] as const
-
 export interface MeetupX extends Meetup {
   placeDetail?: string
-  /** 온라인 플랫폼 이름 (Zoom / Discord / Gather / 직접 입력) — 필수 (M16) */
-  platform?: string
-  /** 접속 링크 — 참여 확정자에게만 보임 (M16) */
+  /** 접속 링크(선택) — 참여 확정자에게만 보임. 모임에는 플랫폼 이름을 두지 않음 (명세 07, M16 은 명세로 뒤집힘) */
   link?: string
   prep?: string
   /** 신청할 때 메시지 받기 (안 받으면 상세의 "주최자에게 남길 말"을 숨김) */
   askMsg: boolean
-  /** 관심사 태그 최대 3개 (대표 관심사 = interest) (M15) */
-  tags: string[]
   /** 모집 마감 일시 'YYYY-MM-DDTHH:mm' (선택) */
   deadline?: string
   /** 찜한 사람 수 (인기순) */
@@ -46,8 +41,8 @@ export interface Applicant { userId: string; msg: string; at: number }
 export interface Draft {
   cap: number; prep: string; askMsg: boolean
   ymd: string; start: string; end: string; deadline: string
-  mode: '오프라인' | '온라인'; place: string; placeDetail: string; platform: string; platformEtc: string; link: string
-  title: string; intro: string; interest: string; tags: string[]
+  mode: '오프라인' | '온라인'; place: string; placeDetail: string; link: string
+  title: string; intro: string; category: string
 }
 
 interface State {
@@ -100,33 +95,34 @@ export function ddayOf(ymd: string) {
 /* ===== 처음 데이터 ===== */
 // 기본 목 데이터(mock.ts MEETUPS)에 없는 필드: 캠퍼스·마감 일시·준비물 등
 const EXTRA: Record<string, Partial<MeetupX>> = {
-  m1: { prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['시/에세이'] },
+  m1: { prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12 },
   m2: { prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
-  m3: { prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['필름/컴팩트'] },
+  m3: { prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5 },
   m4: { prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
-  m5: { platform: 'Discord', link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
+  m5: { link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
   m6: { prep: '재료비 1만 원', likes: 4 },
   m7: { prep: '러닝화', deadline: '2026-11-12T09:00', likes: 15 },
   m8: { prep: '남는 원두', likes: 7 },
-  m9: { platform: '기타', place: '왓챠 파티', link: 'https://watcha.com/party/ghibli', likes: 11 },
+  m9: { link: 'https://watcha.com/party/ghibli', likes: 11 },
   m10: { prep: '편한 운동복', likes: 18 },
 }
 
 const base: Meetup[] = [
   ...MEETUPS,
   // 이 저장소에만 있는 모임: 지난 모임 · 취소된 모임 · 찜한 모임 예시 (채팅 목 데이터에는 없음)
-  { id: 'x1', title: '망원 필름 산책', interest: '필름/컴팩트', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
-  { id: 'x2', title: '온라인 협동 게임하는 밤', interest: 'PC게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: 'Discord', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
-  { id: 'x3', title: '한강 야간 러닝', interest: '러닝/마라톤', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
-  { id: 'x4', title: '레트로 게임 같이 해요', interest: 'VR/아케이드', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
-  { id: 'p1', title: '10월 독서 모임', interest: '소설', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
-  { id: 'p2', title: '가을 사진 산책', interest: '미러리스/DSLR', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
-  { id: 'p3', title: '수채화 첫걸음', interest: '드로잉/회화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
-  { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
+  { id: 'x1', title: '망원 필름 산책', category: '취미/문화', date: '2026-11-14', start: '오후 3:00', end: '오후 5:00', area: '망원', place: '망원역 2번 출구', mode: '오프라인', capacity: 5, memberIds: ['seoyeon', 'ha', 'park', 'lee'], hostId: 'seoyeon', sign: '필름 산책', intro: '필름 한 롤씩 들고 망원동 골목을 걸어요. 현상은 각자!' },
+  { id: 'x2', title: '온라인 협동 게임하는 밤', category: '게임', date: '2026-11-12', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: '', mode: '온라인', capacity: 4, memberIds: ['mingu', 'lee'], hostId: 'mingu', sign: '협동 게임', intro: '오버쿡드 같이 해요. 음성 채팅만 켜면 돼요.' },
+  { id: 'x3', title: '한강 야간 러닝', category: '운동', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 4, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', sign: '한강 러닝', intro: '5km 천천히. 끝나고 편의점 라면!' },
+  { id: 'x4', title: '레트로 게임 같이 해요', category: '게임', date: '2026-11-27', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼 멀티캠퍼스 근처 오락실', mode: '오프라인', capacity: 6, memberIds: ['me'], hostId: 'me', sign: '오락실', intro: '동전 넣고 한 판씩. 잘 못해도 괜찮아요.' },
+  { id: 'x5', title: '알고리즘 스터디 (온라인)', category: '스터디/프로젝트', date: '2026-11-25', start: '오후 8:00', end: '오후 10:00', area: '온라인', place: '', mode: '온라인', capacity: 6, memberIds: ['lee', 'park'], hostId: 'lee', sign: '알고리즘', intro: '백준 한 문제씩 풀고 풀이를 나눠요. 골드 이상은 따로 안 봐도 돼요.' },
+  { id: 'p1', title: '10월 독서 모임', category: '취미/문화', date: '2026-10-25', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수동 어반플레이스 3층', mode: '오프라인', capacity: 6, memberIds: ['kim', 'lee', 'park'], hostId: 'kim', sign: '독서 모임', intro: '10월의 책을 이야기했어요.' },
+  { id: 'p2', title: '가을 사진 산책', category: '취미/문화', date: '2026-10-18', start: '오전 10:00', end: '오후 12:00', area: '서울숲', place: '서울숲 정문', mode: '오프라인', capacity: 8, memberIds: ['ha', 'seoyeon', 'yerin'], hostId: 'ha', sign: '사진 산책', intro: '단풍 찍으러 가요.' },
+  { id: 'p3', title: '수채화 첫걸음', category: '취미/문화', date: '2026-10-11', start: '오후 3:00', end: '오후 5:00', area: '역삼', place: '역삼 공방', mode: '오프라인', capacity: 5, memberIds: ['me', 'seobeok', 'park'], hostId: 'me', sign: '수채화', intro: '물감 번지는 것만 봐도 즐거워요.' },
+  { id: 'p4', title: '보드게임 번개', category: '게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
 ]
 const EXTRA2: Record<string, Partial<MeetupX>> = {
   x1: { likes: 14, deadline: '2026-11-13T21:00' },
-  x2: { platform: 'Discord', link: 'https://discord.gg/coop-night', likes: 6 },
+  x2: { link: 'https://discord.gg/coop-night', likes: 6 },
   x3: { likes: 19 },
   x4: { likes: 2, deadline: '2026-11-26T18:00' },
   p1: { likes: 9 }, p2: { likes: 7 }, p3: { likes: 3 }, p4: { likes: 2 },
@@ -134,7 +130,7 @@ const EXTRA2: Record<string, Partial<MeetupX>> = {
 
 function init(): State {
   const list: MeetupX[] = base.map((m, i) => ({
-    ...m, askMsg: true, tags: [], likes: 0, seq: i + 1,
+    ...m, askMsg: true, likes: 0, seq: i + 1,
     ...EXTRA[m.id], ...EXTRA2[m.id],
     // 예전 데이터의 past 표시는 쓰지 않고 시작 시각으로 판단 (M14)
     past: undefined,
@@ -209,11 +205,11 @@ export const canEdit = (m: MeetupX) => startMs(m) - NOW >= 12 * HOUR
 /** 취소·삭제는 시작 전까지 */
 export const canCancel = (m: MeetupX) => !isPast(m) && !m.cancelled
 
-/** 대표 관심사 → 분야(카테고리) 이름과 색 */
-export const catNameOf = (interest: string) => categoryOf(interest)?.name ?? interest
-export const toneOfMeetup = (m: Meetup): Tone => toneOf(m.interest)
+/** 모임 카테고리 이름과 색 (관심사와 관계없음 — 명세 07) */
+export const catNameOf = (category: string) => meetupCategoryOf(category)?.name ?? category
+export const toneOfMeetup = (m: Meetup): Tone => meetupToneOf(m.category)
 /** 장소 표시: 오프라인은 캠퍼스를 앞에 */
-export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.area} · 오프라인`)
+export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? '온라인' : `${m.area} · 오프라인`)
 
 /** 내 모임 분류 */
 export function mineGroups(s = state) {
@@ -289,12 +285,12 @@ let seq = 100
 export function createMeetup(d: Draft): string {
   const id = `n${++seq}`
   const m: MeetupX = {
-    id, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    id, title: d.title.trim(), category: d.category, intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
     area: d.mode === '온라인' ? '온라인' : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
-    place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
+    place: d.mode === '온라인' ? '' : d.place.trim(),
     placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
-    platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
+    link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
     capacity: d.cap, memberIds: [ME_ID], hostId: ME_ID, sign: d.title.trim().slice(0, 8),
     prep: d.prep.trim() || undefined, askMsg: d.askMsg, deadline: d.deadline || undefined, likes: 0,
     seq: Math.max(...state.list.map((x) => x.seq)) + 1,
@@ -308,12 +304,12 @@ export function createMeetup(d: Draft): string {
 }
 export function updateMeetup(id: string, d: Draft) {
   state.list = state.list.map((m) => (m.id !== id ? m : {
-    ...m, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    ...m, title: d.title.trim(), category: d.category, intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
     area: d.mode === '온라인' ? '온라인' : m.mode === '오프라인' && m.place === d.place.trim() ? m.area : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
-    place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
+    place: d.mode === '온라인' ? '' : d.place.trim(),
     placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
-    platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
+    link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
     capacity: d.cap, prep: d.prep.trim() || undefined, askMsg: d.askMsg,
   }))
   emit()
@@ -334,12 +330,11 @@ export function clearDraft() { state.draft = null; emit() }
 
 /** 모임 → 만들기·수정 양식 값 */
 export function draftOf(m: MeetupX): Draft {
-  const etc = m.mode === '온라인' && (m.platform === '기타' || !m.platform)
   return {
     cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, deadline: m.deadline ?? '',
     mode: m.mode, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
-    platform: m.mode === '온라인' ? (etc ? '기타' : m.platform!) : 'Zoom', platformEtc: etc ? m.place : '', link: m.link ?? '',
-    title: m.title, intro: m.intro, interest: m.interest, tags: m.tags,
+    link: m.link ?? '',
+    title: m.title, intro: m.intro, category: m.category,
   }
 }
 export const userName = (id: string) => USERS[id]?.nickname ?? '두더지'

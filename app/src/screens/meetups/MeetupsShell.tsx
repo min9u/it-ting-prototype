@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import Footer from '../../components/Footer'
 import { CalendarIcon, ChevronLeft, ChevronRight, PlusIcon } from '../../components/Icons'
-import { TODAY, toneOf } from '../../data/mock'
+import { TODAY } from '../../data/mock'
+import { meetupToneOf } from '../../data/meetupCategory'
 import { type MeetupX, daysLeft, ddayOf, hourLabel, mineGroups, myOf, useMeetups } from '../../data/meetupStore'
 import { dateLabel, dateParts } from '../../lib/format'
 import { CalendarModal, MY_LABEL, TODAY_PARTS, WEEK, monthCells, shiftMonth, ymdOf } from './parts'
@@ -59,7 +60,7 @@ function MiniRow({ m }: { m: MeetupX }) {
   const lab = MY_LABEL[myOf(m.id, st)?.st ?? ''] ?? MY_LABEL.pending
   return (
     <li>
-      <span className={s.miniSign} style={{ background: `var(--tone-${toneOf(m.interest)}-bg)` }} aria-hidden><i /></span>
+      <span className={s.miniSign} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)` }} aria-hidden><i /></span>
       <Link to={`/meetups/${m.id}`}>
         <strong>{m.title}</strong>
         <span>{dateLabel(m.date)} · {m.area}</span>
@@ -110,7 +111,7 @@ function NextCard({ m }: { m?: MeetupX }) {
   )
 }
 
-/** 미니 캘린더: 모임이 있는 날을 대표 관심사 색으로, 오늘은 진한 원 */
+/** 미니 캘린더: 모임이 있는 날을 카테고리 색으로, 오늘은 진한 원 */
 function MiniCalendar({ marks, onCalendar }: { marks: MeetupX[]; onCalendar: () => void }) {
   const [ym, setYm] = useState({ y: TODAY_PARTS.y, m: TODAY_PARTS.m })
   return (
@@ -128,7 +129,7 @@ function MiniCalendar({ marks, onCalendar }: { marks: MeetupX[]; onCalendar: () 
           if (d === null) return <span key={`e${i}`} />
           const ymd = ymdOf(ym.y, ym.m, d)
           const hit = marks.find((m) => m.date === ymd)
-          const t = hit && toneOf(hit.interest)
+          const t = hit && meetupToneOf(hit.category)
           return (
             <span key={d} title={hit?.title} className={`${s.mcDay} ${ymd === TODAY ? s.mcToday : ''} ${ymd < TODAY ? s.mcPast : ''} ${i % 7 === 0 ? s.sun : ''}`}
               style={hit && ymd !== TODAY ? { background: `var(--tone-${t}-bg)`, color: `var(--tone-${t}-fg)` } : undefined}>{d}</span>

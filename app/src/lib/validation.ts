@@ -38,7 +38,6 @@ export const RULES = {
   meetupSupplies: { label: '준비물', max: 40, db: 'meetup.supplies VARCHAR NULL (길이 미정)', spec: 'F7: 선택. 길이 없음 → 40자' },
   meetupPlace: { label: '장소', max: 60, db: 'meetup.place VARCHAR NULL (길이 미정)', spec: 'F7: 오프라인이면 필수. 길이 없음 → 60자' },
   meetupPlaceDetail: { label: '상세 주소', max: 40, db: 'meetup.place_detail VARCHAR NULL (길이 미정)', spec: 'F7: 선택 → 40자' },
-  meetupPlatform: { label: '플랫폼 이름', max: 20, db: 'meetup.platform VARCHAR NULL (길이 미정)', spec: 'F7: 온라인 "기타"면 필수 → 20자' },
   meetupApplyMessage: { label: '주최자에게 남길 말', max: 100, db: 'meetup_application.message VARCHAR NULL (길이 미정)', spec: 'F7 상세 5: 선택, 100자 이내, "0/100"' },
   /* 커뮤니티 · 신고 (F8 · 공통) */
   postTitle: { label: '제목', max: 50, required: true, db: 'post.title VARCHAR(50)', spec: 'F8 글쓰기 2: 필수, 최대 50자' },
