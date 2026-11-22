@@ -91,8 +91,8 @@
 
 **사용자가 할 일**
 - [ ] Jira 티켓: 프론트 도입 티켓 번호 (KAN-25 "nextjs-setup"을 쓸지 새로 만들지)
-- [ ] 커밋 서명: 팀 문서 `docs/commit-convention.md` "커밋 서명" 1~5단계 (SSH 서명 키 만들기 · git 설정 · GitHub에 Signing Key 등록). 팀 규칙상 에이전트는 서명 설정을 바꾸면 안 됨
-- [ ] GitHub CLI: `brew install gh` 후 `gh auth login` (PR 만들기에 씀, 비밀번호 단계라 사람이)
+- [x] (2026-11-22 완료, 키체인 저장만 남음) 커밋 서명: 팀 문서 `docs/commit-convention.md` "커밋 서명" 1~5단계 (SSH 서명 키 만들기 · git 설정 · GitHub에 Signing Key 등록). 팀 규칙상 에이전트는 서명 설정을 바꾸면 안 됨
+- [x] (2026-11-22 완료, 계정 min9u) GitHub CLI: `brew install gh` 후 `gh auth login` (PR 만들기에 씀, 비밀번호 단계라 사람이)
 - [ ] 팀 리포 쓰기 권한 확인 (작업 브랜치 푸시)
 
 **팀과 정할 것**
