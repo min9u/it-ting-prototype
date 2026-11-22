@@ -11,7 +11,7 @@ import MoleAvatar from '../../components/MoleAvatar'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import { ME_ID, USERS } from '../../data/mock'
 import {
-  CAMPUSES, type Draft, MY_CAMPUS, type MeetupX, PLATFORMS, canCancel, canEdit, cancelMeetup, clearDraft, confirmedOf, createMeetup,
+  type Draft, type MeetupX, PLATFORMS, canCancel, canEdit, cancelMeetup, clearDraft, confirmedOf, createMeetup,
   deadlineLabel, deleteMeetup, draftOf, findMeetup, getMeetupState, membersOf, myOf, parseHour, saveDraft, updateMeetup, useMeetups,
 } from '../../data/meetupStore'
 import { dateParts } from '../../lib/format'
@@ -26,7 +26,7 @@ const TIMES = Array.from({ length: 34 }, (_, i) => {
 })
 const EMPTY: Draft = {
   cap: 6, prep: '', askMsg: true, ymd: '', start: '', end: '', deadline: '',
-  mode: '오프라인', campus: MY_CAMPUS, place: '', placeDetail: '', platform: 'Zoom', platformEtc: '', link: '',
+  mode: '오프라인', place: '', placeDetail: '', platform: 'Zoom', platformEtc: '', link: '',
   title: '', intro: '', interest: '', tags: [],
 }
 const same = (a: Draft, b: Draft) => JSON.stringify(a) === JSON.stringify(b)
@@ -38,7 +38,7 @@ const toIso = (ymd: string, t: string) => { const h = parseHour(t); return `${ym
  * 만들기
  *  1 정원 −/+ 2~50명, 기본 6, 주최자 포함(M2) · 준비물(선택) · 신청할 때 메시지 받기(안 받으면 상세의 "주최자에게 남길 말"을 숨김)
  *  2 날짜(오늘 이후) · 시작 시간 · 끝나는 시간(선택, 시작보다 뒤) · 모집 마감(선택, 비우면 모임 시작 때 마감)
- *  3 오프라인 = 캠퍼스(목록에서 하나, 기본 내 캠퍼스) + 장소(직접 입력 또는 주소 찾기) + 상세 주소(선택)
+ *  3 오프라인 = 장소(직접 입력 또는 주소 찾기) + 상세 주소(선택). 모임에는 캠퍼스를 두지 않음 (명세 07)
  *    온라인 = 플랫폼 이름(Zoom / Discord / Gather / 기타 직접 입력, 필수) + 접속 링크(선택, 확정자에게만 보임) (M16)
  *  4 모임 이름(필수) · 소개(선택) · 대표 관심사 1개(필수) + 관심사 태그 최대 3개(선택) (M15)
  *  5 미리보기 카드  6 그만두기 = 임시 저장 후 나감, 다시 들어오면 이어 씀(M3) / 모임 만들기 = 필수값을 채워야 켜짐 → 상세(주최자) + 완료 토스트(M1)
@@ -93,9 +93,9 @@ export default function MeetupNew() {
   const preview: MeetupX = {
     id: 'preview', title: d.title || '모임 이름', interest: d.interest || '관심사', date: d.ymd || `${TODAY_PARTS.y}-11-08`, start: d.start || '오후 2:00', end: d.end,
     area: d.mode === '온라인' ? '온라인' : d.place.split(/\s+/).slice(0, 2).join(' ') || '장소', place: d.place, mode: d.mode, capacity: d.cap,
-    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0, campus: d.campus,
+    memberIds: [ME_ID], hostId: ME_ID, intro: d.intro, sign: (d.title || '모임 이름').slice(0, 8), askMsg: d.askMsg, tags: d.tags, likes: 0, seq: 0,
   }
-  const previewPlace = d.mode === '온라인' ? `온라인 · ${d.platform === '기타' ? d.platformEtc || '플랫폼' : d.platform}` : `${d.campus} · ${preview.area} · 오프라인`
+  const previewPlace = d.mode === '온라인' ? `온라인 · ${d.platform === '기타' ? d.platformEtc || '플랫폼' : d.platform}` : `${preview.area} · 오프라인`
 
   const submit = () => {
     if (!valid || locked) return
@@ -182,10 +182,6 @@ export default function MeetupNew() {
                 <span className="hint">온라인을 고르면 주소 대신 플랫폼과 접속 링크를 받아요.</span>
               </div>
               {d.mode === '오프라인' ? <>
-                <div className="field"><span className="field-label">캠퍼스</span>
-                  <div className={s.seg}>{CAMPUSES.map((c) => <button type="button" key={c} className={d.campus === c ? s.segOn : s.segBtn} onClick={() => set('campus', c)}>{c}</button>)}</div>
-                  <span className="hint">오프라인 모임만 골라요. 기본은 내 캠퍼스예요. 목록은 임시예요.</span>
-                </div>
                 <div className="field"><label htmlFor="pl">장소</label>
                   <div className={s.placeBox}>
                     <PinSvg />
@@ -198,7 +194,6 @@ export default function MeetupNew() {
                 <div className="field"><span className="field-label">플랫폼</span>
                   <div className={s.seg}>{PLATFORMS.map((p) => <button type="button" key={p} className={d.platform === p ? s.segOn : s.segBtn} onClick={() => set('platform', p)}>{p === '기타' ? '기타 직접 입력' : p}</button>)}</div>
                   {d.platform === '기타' && <input className={`input ${s.fill}`} value={d.platformEtc} maxLength={RULES.meetupPlatform.max} onChange={(e) => set('platformEtc', e.target.value)} placeholder="플랫폼 이름 (예: 왓챠 파티)" aria-label="플랫폼 이름" />}
-                  <span className="hint">온라인 모임은 어느 캠퍼스를 골라도 보여요.</span>
                 </div>
                 <div className="field"><label htmlFor="lk">접속 링크 <span className={s.optTag}>선택</span></label><input id="lk" className={`input ${s.fill}`} value={d.link} onChange={(e) => set('link', e.target.value)} placeholder="https://" />
                   <span className="hint">링크는 참여가 확정된 사람에게만 보이고, 모임 대화방에도 안내돼요.</span></div>

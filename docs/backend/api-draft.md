@@ -206,7 +206,7 @@ HTTP/1.1 409 Conflict
 ### 2.6 모임 (F7) — `api.meetups`
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 코드 | 화면 |
 |---|---|---|---|---|---|---|
-| GET | `/meetups` | `?q&categoryIds=1&categoryIds=4&campus&from&to&mode&sort=STARTS_AT·NEWEST·POPULAR·MEMBERS&page&size` | `PageDto<MeetupCardDto>` (지난·취소 제외, 모집 완료는 맨 뒤) | — | `list` | 모임 목록 ✅ |
+| GET | `/meetups` | `?q&categoryIds=1&categoryIds=4&from&to&mode&sort=STARTS_AT·NEWEST·POPULAR·MEMBERS&page&size` | `PageDto<MeetupCardDto>` (지난·취소 제외, 모집 완료는 맨 뒤) | — | `list` | 모임 목록 ✅ |
 | GET | `/meetups/{id}` | — | `MeetupDetailDto` (확정자, 내 신청, 찜, 빈자리 알림, 신고 여부. `joinUrl` 은 확정자·주최자에게만) | 404 MEETUP_NOT_FOUND (삭제) | `get` | 모임 상세 ✅ |
 | POST | `/meetups` | `MeetupWriteRequest` | `MeetupDetailDto` | 400 | `create` | 만들기 |
 | PUT | `/meetups/{id}` | `MeetupWriteRequest` | `MeetupDetailDto` | 409 EDIT_TOO_LATE (시작 12시간 전부터), 403 | `update` | 수정 |
@@ -222,7 +222,7 @@ HTTP/1.1 409 Conflict
 | POST | `/meetups/{id}/applications/{appId}/approve` · `/reject` | — | 204 | 409 MEETUP_FULL | `approve` · `reject` | 신청 관리 |
 | DELETE | `/meetups/{id}/members/{memberId}` | — | 204 (내보내기) | 403 | `kick` | 신청 관리 |
 
-`MeetupWriteRequest`: `{ title, category, tags[≤3], description, capacity, supplies, acceptsMessage, startsAt, endsAt, recruitDeadlineAt, mode, campus, place, placeDetail, platform, joinUrl }`
+`MeetupWriteRequest`: `{ title, category, tags[≤3], description, capacity, supplies, acceptsMessage, startsAt, endsAt, recruitDeadlineAt, mode, place, placeDetail, platform, joinUrl }` (2026-11-22: 모임에는 캠퍼스가 없음 — 명세 07. 목록 `campus` 거르기·`campus` 필드 삭제)
 
 ### 2.7 커뮤니티 (F8) — `api.board`
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 코드 | 화면 |
@@ -291,7 +291,7 @@ HTTP/1.1 409 Conflict
   "id": "42", "title": "주말의 작은 독서 모임", "category": "독서", "tags": ["SF소설"],
   "startsAt": "2026-11-08T14:00:00+09:00", "endsAt": "2026-11-08T16:00:00+09:00",
   "recruitDeadlineAt": "2026-11-08T10:00:00+09:00",
-  "mode": "OFFLINE", "campus": "서울", "place": "성수동 어반플레이스 3층", "platform": null,
+  "mode": "OFFLINE", "place": "성수동 어반플레이스 3층", "platform": null,
   "capacity": 6, "confirmedCount": 5, "likeCount": 12, "liked": false, "recruitStatus": "OPEN",
   "host": { "id": "7", "nickname": "김OO", "status": "ACTIVE", "generation": 13, "campus": "서울", "floor": 3,
             "mole": { "head": null, "face": null, "neck": null, "hand": null } },

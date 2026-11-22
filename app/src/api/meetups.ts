@@ -10,7 +10,7 @@ import { categoryOf, ME_ID } from '../data/mock'
 import {
   accept, apply, applicantsOf, canQuit, canReapply, cancelMeetup, confirmedOf, deleteMeetup, findMeetup, getMeetupState, kick, leftOf,
   myOf, quit, recruitOf, reject, report, startMs, toggleAlert, toggleWish, withdraw, type MeetupX,
-  MY_CAMPUS, PLATFORMS, canEdit, createMeetup, updateMeetup, type Campus, type Draft,
+  PLATFORMS, canEdit, createMeetup, updateMeetup, type Draft,
 } from '../data/meetupStore'
 import { msToWall, parseIso, seoulParts, seoulYmd, toIso } from '../lib/time'
 import type { ApplicantDto, Id, MeetupCardDto, MeetupDetailDto, MeetupListQuery, MeetupWriteRequest, PageDto, ReportReason } from './types'
@@ -67,7 +67,6 @@ const mock: MeetupsApi = {
     const k = q.q?.trim()
     if (k) l = l.filter((m) => m.title.includes(k) || m.intro.includes(k))
     if (q.categoryIds?.length) l = l.filter((m) => q.categoryIds!.includes(categoryOf(m.interest)?.id ?? ''))
-    if (q.campus) l = l.filter((m) => m.mode === '온라인' || m.campus === q.campus)
     if (q.from) l = l.filter((m) => m.date >= q.from!)
     if (q.to) l = l.filter((m) => m.date <= q.to!)
     if (q.mode) l = l.filter((m) => (q.mode === 'ONLINE' ? m.mode === '온라인' : m.mode === '오프라인'))
@@ -146,7 +145,7 @@ function draftOfRequest(r: MeetupWriteRequest): Draft {
   return {
     cap: r.capacity, prep: r.supplies ?? '', askMsg: r.acceptsMessage, ymd: seoulYmd(start), start: hm(start), end: end == null ? '' : hm(end),
     deadline: r.recruitDeadlineAt ? msToWall(parseIso(r.recruitDeadlineAt)) : '', mode: r.mode === 'ONLINE' ? '온라인' : '오프라인',
-    campus: (r.campus ?? MY_CAMPUS) as Campus, place: r.place ?? '', placeDetail: r.placeDetail ?? '',
+    place: r.place ?? '', placeDetail: r.placeDetail ?? '',
     platform: r.mode === 'ONLINE' ? (known ? r.platform! : '기타') : 'Zoom', platformEtc: known ? '' : r.platform ?? r.place ?? '', link: r.joinUrl ?? '',
     title: r.title, intro: r.description, interest: r.category, tags: r.tags,
   }

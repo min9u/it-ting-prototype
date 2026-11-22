@@ -182,7 +182,7 @@ describe('동작 (저장소)', () => {
   it('만들기: 주최자 = 나, 확정 1명, 태그 최대 3개 (M15), 온라인은 플랫폼 이름', () => {
     const d: Store.Draft = {
       cap: 6, prep: '', askMsg: true, ymd: '2026-11-20', start: '오후 7:00', end: '', deadline: '',
-      mode: '온라인', campus: '서울', place: '', placeDetail: '', platform: 'Discord', platformEtc: '', link: ' https://discord.gg/x ',
+      mode: '온라인', place: '', placeDetail: '', platform: 'Discord', platformEtc: '', link: ' https://discord.gg/x ',
       title: '  새 모임  ', intro: '', interest: '독서', tags: ['a', 'b', 'c', 'd'],
     }
     const id = S.createMeetup(d)
@@ -192,7 +192,7 @@ describe('동작 (저장소)', () => {
     expect(m.tags).toEqual(['a', 'b', 'c'])
     expect(m.place).toBe('Discord')
     expect(m.link).toBe('https://discord.gg/x')
-    expect(m.campus).toBeUndefined()
+    expect('campus' in m).toBe(false) // 모임에는 캠퍼스가 없음 (명세 07)
     expect(S.confirmedOf(m)).toBe(1)
     expect(S.myOf(id)?.st).toBe('host')
     expect(S.draftOf(m)).toMatchObject({ mode: '온라인', platform: 'Discord', tags: ['a', 'b', 'c'] })
@@ -234,5 +234,16 @@ describe('내 모임 분류 (내 모임 5탭)', () => {
     // 찜한 모임: 모집 완료는 뒤로
     const closedIdx = g.wished.map((m) => S.recruitOf(m) === 'closed')
     expect([...closedIdx].sort((a, b) => Number(a) - Number(b))).toEqual(closedIdx)
+  })
+})
+
+describe('모임에는 캠퍼스가 없음 (명세 07)', () => {
+  it('저장소·양식 값(Draft)에 캠퍼스가 없고, 오프라인 장소 줄도 캠퍼스를 붙이지 않음', () => {
+    expect('CAMPUSES' in S).toBe(false)
+    expect('MY_CAMPUS' in S).toBe(false)
+    const m = S.getMeetupState().list.find((x) => x.mode === '오프라인')!
+    expect(S.placeLine(m)).toBe(`${m.area} · 오프라인`)
+    expect(S.draftOf(m)).not.toHaveProperty('campus')
+    expect(m).not.toHaveProperty('campus')
   })
 })
