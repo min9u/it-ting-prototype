@@ -17,6 +17,8 @@ import { agoChat, chatListTime, clock, dayDivider, monthDay } from '../../lib/ti
 import { errorText, isNotFound, patch, useOptimistic } from '../../api'
 import { GONE_ID, type Person } from '../../api/common'
 import { useVisitBurrow } from '../../api/explore'
+import { MEETUP_ERRORS, meetupCalls, meetupKeys } from '../../api/meetups'
+import { uploadImage } from '../../api/community'
 import {
   CHAT_ERRORS, CHAT_IMAGES_MAX, CHAT_MESSAGE_MAX, CHAT_NOTICE_MAX, chatCalls, chatKeys, chatMessagesAsc, isNoticeMessage, noticeText, roomPreview,
   useActiveChatRoom, useChatMessages, useChatRequestCount, useChatRequests, useChatRoom, useChatRooms, useMyId, useOutbox, useReadReceipt, useSendMessage,
@@ -241,10 +243,10 @@ function RoomView({ room, onProfile, onToast }: { room: ChatRoomVM; onProfile: (
     if (room.leaveType === 'LEAVE_ROOM') { leaveRoom(); return }
     if (room.leaveType !== 'CANCEL_PARTICIPATION' || !meetup) return
     run.mutate({
-      call: () => chatCalls.cancelMeetupParticipation(meetup.id), errorTitle: '모임에서 나가지 못했어요', errors: CHAT_ERRORS,
+      call: () => meetupCalls.cancelParticipation(meetup.id), errorTitle: '모임에서 나가지 못했어요', errors: { ...MEETUP_ERRORS, ...CHAT_ERRORS },
       patches: [patch<ChatRoomItem[]>(chatKeys.rooms, (l) => l.filter((r) => r.id !== room.id))],
       // 그 사이 모임이 끝나거나 취소되면 leaveType 이 바뀜 → 대화방을 다시 받아 버튼을 맞춤 (명세)
-      invalidate: [chatKeys.rooms, chatKeys.room(room.id), ['meetups']],
+      invalidate: [chatKeys.rooms, chatKeys.room(room.id), meetupKeys.all],
     }, { onSuccess: () => { navigate('/chat'); onToast('모임을 나갔어요') } })
   }
 
@@ -367,7 +369,7 @@ function Composer({ placeholder, onSend, onToast }: { placeholder: string; onSen
       let preview = ''
       try { preview = URL.createObjectURL(f) } catch { /* 무시 */ }
       setPics((l) => [...l, { key, url: '', preview }])
-      chatCalls.uploadImage(f).then(
+      uploadImage(f).then(
         (r) => setPics((l) => l.map((p) => (p.key === key ? { ...p, id: r.id, url: r.url } : p))),
         (err: unknown) => { setPics((l) => l.filter((p) => p.key !== key)); onToast(`사진을 올리지 못했어요. ${errorText(err)}`) },
       )

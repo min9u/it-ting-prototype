@@ -39,6 +39,8 @@ export const chatKeys = {
   roomAll: ['chat', 'room'] as const,
   room: (roomId: string) => ['chat', 'room', roomId] as const,
   messages: (roomId: string) => ['chat', 'messages', roomId] as const,
+  /** 모임 상세의 대화 미리보기 (최근 몇 개만) */
+  preview: (roomId: string, size: number) => ['chat', 'preview', roomId, size] as const,
   requestsAll: ['chat', 'requests'] as const,
   requests: (dir: ChatRequestDirection) => ['chat', 'requests', dir] as const,
   requestCount: ['chat', 'requestCount'] as const,
@@ -80,6 +82,16 @@ export function useChatMessages(roomId: string | undefined) {
     enabled: !!roomId,
   })
 }
+/**
+ * 최근 메시지 몇 개만 (07 모임 상세의 "모임 대화" 미리보기: GET /chat-rooms/{chatRoomId}/messages?size=3).
+ * 오래된 것부터. roomId 는 모임 상세 응답의 chatRoomId (앱 id), 없으면 부르지 않음
+ */
+export function useChatPreview(roomId: string | null | undefined, size = 3) {
+  return useQuery({
+    queryKey: chatKeys.preview(roomId ?? '', size), enabled: !!roomId,
+    queryFn: async ({ signal }) => (await chatApi.messages(toDtoId(roomId!), { size }, signal)).items.map(toChatMessage).reverse(),
+  })
+}
 /** 페이지들 → 오래된 것부터 (같은 id 는 한 번) */
 export function chatMessagesAsc(data: InfiniteData<ChatMessagesPage> | undefined): ChatMessage[] {
   if (!data) return []
@@ -105,10 +117,6 @@ export const chatCalls = {
   accept: async (requestId: string) => toAppId((await chatApi.acceptRequest(toDtoId(requestId))).chatRoomId),
   reject: (requestId: string) => chatApi.rejectRequest(toDtoId(requestId)),
   cancel: (requestId: string) => chatApi.cancelRequest(toDtoId(requestId)),
-  /** 모임 나가기 = 모임의 참여 취소 (07 모임 API, leaveType CANCEL_PARTICIPATION) */
-  cancelMeetupParticipation: (meetupId: string) => chatApi.cancelMeetupParticipation(toDtoId(meetupId)),
-  /** 사진 한 장 올리기 (08 POST /images) → 앱 id · 주소 */
-  uploadImage: async (file: File) => { const r = await chatApi.uploadImage(file); return { id: toAppId(r.imageId), url: r.url } },
 }
 
 /* ===== 캐시 손보기 (소식 · 보내기 결과) ===== */

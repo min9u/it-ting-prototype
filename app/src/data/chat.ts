@@ -1,8 +1,8 @@
 /**
  * 채팅 목 저장소 = 목 서버의 "DB" (명세 06 채팅: docs/backend/team-spec/api/06-chat.md · db/chat.md).
  * 화면은 이 파일을 직접 부르지 않고 api/chat 의 훅 · 함수만 쓴다. 이 파일은 api/chat/mock.ts(목 서버)가 읽고 쓴다.
- * 다른 영역(모임 화면 · 알림 팝업 · 탐색 목 서버)이 아직 몇 가지를 직접 읽는다: groupRoomId · roomOf · useChat · leaveRoom ·
- * liveRequests · personOf · dmRoomWith · sentRequestTo · sendRequest · canQuitMeetup (그 영역 작업자가 API 로 옮기면 지운다)
+ * 다른 영역의 목 서버도 같은 "DB" 로 읽고 쓴다 (서버 안에서 테이블을 같이 쓰는 것과 같음): 모임 목(groupRoomId · roomOf · leaveRoom),
+ * 알림 목(liveRequests · roomOf), 탐색 목(dmRoomWith · sentRequestTo · receivedFrom · sendRequest). 화면은 직접 부르지 않는다
  *
  * 규칙 (명세 그대로)
  * - 대화방은 대화 요청이 수락돼야 생김. 수락 전에는 대화방이 없음 (요청 탭에서만 봄)
@@ -357,18 +357,18 @@ export function receiveRequest(userId: string, message: string): Req {
 }
 
 /**
- * 대화 요청 보내기 (05 탐색 · 방문의 POST /chat-requests 가 하는 일. 탐색 목 서버 · 옛 api.chat.sendRequest 가 부름)
+ * 대화 요청 보내기 (05 탐색 · 방문의 POST /chat-requests 가 하는 일. 탐색 목 서버가 부름). 못 만든 까닭은 명세 409 code 그대로
  * - 열린 1:1 이 있으면 / 내가 보낸 살아 있는 요청이 있으면 / 상대가 먼저 보낸 요청에 답하지 않았으면 → 만들지 않음 (null, 까닭)
  * - 내가 거절한 그 사람의 요청이 살아 있으면 → 새 요청 대신 그것을 수락한 것으로 처리. 내 인사는 대화방의 첫 메시지로
  */
 export type SendRequestResult =
   | { ok: true; chatRequestId: string | null; chatRoomId: string | null }
-  | { ok: false; why: 'ROOM_EXISTS' | 'REQUEST_EXISTS' | 'REQUEST_FROM_PEER' }
+  | { ok: false; why: 'CHAT_ROOM_ALREADY_EXISTS' | 'CHAT_REQUEST_ALREADY_SENT' | 'CHAT_REQUEST_ALREADY_RECEIVED' }
 export function sendRequest(userId: string, message: string): SendRequestResult {
   const open = dmRoomWith(userId)
-  if (open && !open.closed) return { ok: false, why: 'ROOM_EXISTS' }
-  if (sentRequestTo(userId)) return { ok: false, why: 'REQUEST_EXISTS' }
-  if (receivedFrom(userId)) return { ok: false, why: 'REQUEST_FROM_PEER' }
+  if (open && !open.closed) return { ok: false, why: 'CHAT_ROOM_ALREADY_EXISTS' }
+  if (sentRequestTo(userId)) return { ok: false, why: 'CHAT_REQUEST_ALREADY_SENT' }
+  if (receivedFrom(userId)) return { ok: false, why: 'CHAT_REQUEST_ALREADY_RECEIVED' }
   const rej = rejectedFrom(userId)
   if (rej) {
     const id = openDm(userId, ME_ID)

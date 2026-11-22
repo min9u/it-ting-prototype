@@ -221,6 +221,14 @@ describe('방명록 쓰기 (POST /burrows/{burrowId}/guestbook-entries) — 04 �
 })
 
 describe('대화 요청 보내기 (POST /chat-requests)', () => {
+  it('내가 거절한 요청이 남은 사람에게 보내면 새 요청 대신 대화방이 바로 열림 (서버가 하는 일 7)', async () => {
+    const chat = await import('../data/chat')
+    chat.rejectRequest('q1') // seobeok 이 보낸 요청을 내가 거절해 둠
+    const r = await B.sendChatRequest({ receiverId: id('seobeok'), message: '저도 드로잉 좋아해요' })
+    expect(r).toMatchObject({ chatRequestId: null, createdAt: null, expiresAt: null })
+    expect(r.chatRoomId).not.toBeNull()
+    expect((await B.userBurrow(id('seobeok'))).chat).toMatchObject({ status: 'CHATTING', chatRoomId: r.chatRoomId })
+  })
   it('NONE 인 사람에게 보내면 요청이 생기고(만료 5일) 땅굴 상태가 REQUEST_SENT, 또 보내면 409', async () => {
     const ids = ['kim', 'lee', 'park', 'choi', 'mingu', 'yejin', 'ha', 'seoyeon', 'seobeok', 'yerin']
     let target: string | null = null

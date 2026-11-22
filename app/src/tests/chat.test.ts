@@ -87,9 +87,9 @@ describe('대화 요청 (목 저장소 · 영역 규칙 "대화 요청의 상태
     expect(r.messages.map((m) => [m.type, m.authorId, m.text])).toEqual([['ACCEPTED', ME_ID, ''], ['TEXT', ME_ID, '저도 드로잉 좋아해요']])
   })
   it('상대가 먼저 보낸 요청에 답하지 않았으면 / 이미 보냈으면 / 열린 대화가 있으면 만들지 않음', () => {
-    expect(C.sendRequest('ha', '안녕')).toEqual({ ok: false, why: 'REQUEST_FROM_PEER' })
-    expect(C.sendRequest('yejin', '또')).toEqual({ ok: false, why: 'REQUEST_EXISTS' })
-    expect(C.sendRequest('yerin', '이미 대화 중')).toEqual({ ok: false, why: 'ROOM_EXISTS' })
+    expect(C.sendRequest('ha', '안녕')).toEqual({ ok: false, why: 'CHAT_REQUEST_ALREADY_RECEIVED' })
+    expect(C.sendRequest('yejin', '또')).toEqual({ ok: false, why: 'CHAT_REQUEST_ALREADY_SENT' })
+    expect(C.sendRequest('yerin', '이미 대화 중')).toEqual({ ok: false, why: 'CHAT_ROOM_ALREADY_EXISTS' })
     // 상대가 나간(읽기 전용) 1:1 만 있으면 다시 요청할 수 있음
     expect(C.sendRequest('seoyeon', '다시 이야기해요')).toMatchObject({ ok: true })
   })
@@ -174,11 +174,12 @@ describe('목 서버 (명세 DTO · 에러 code)', () => {
     expect(m).toMatchObject({ type: 'TEXT', content: '좋아요!', images: [] })
     expect(emit).toHaveBeenCalledWith('CHAT_MESSAGE_CREATED', expect.objectContaining({ chatRoomId: dto('r-yerin'), message: expect.objectContaining({ id: m.id }) }))
   })
-  it('사진만 보내기 (POST /images 로 올린 id), 3장 넘으면 INVALID_INPUT', async () => {
-    const up = await M.mock.uploadImage(new File(['x'], 'a.png', { type: 'image/png' }))
+  it('사진만 보내기 (08 POST /images 로 올린 id, 한 번 붙이면 다시 못 씀), 3장 넘으면 INVALID_INPUT', async () => {
+    const up = await (await import('../api/community/mock')).mock.uploadImage(new File(['x'], 'a.png', { type: 'image/png' }))
     const m = await M.mock.sendMessage(dto('r-yerin'), { content: null, imageIds: [up.imageId] })
     expect(m.content).toBeNull()
     expect(m.images.map((i) => i.id)).toEqual([up.imageId])
+    expect(await codeOf(M.mock.sendMessage(dto('r-yerin'), { content: null, imageIds: [up.imageId] }))).toBe('INVALID_INPUT')
     expect(await codeOf(M.mock.sendMessage(dto('r-yerin'), { content: null, imageIds: [1, 2, 3, 4] }))).toBe('INVALID_INPUT')
   })
   it('읽음 → 안 읽은 수, 다른 방의 메시지면 INVALID_INPUT', async () => {
@@ -218,8 +219,9 @@ describe('목 서버 (명세 DTO · 에러 code)', () => {
       expect((e as { detail?: unknown }).detail).toEqual({ chatRoomId: dto('r-yerin') })
     }
   })
-  it('모임 나가기(참여 취소): 참여가 취소되고 대화방에서도 빠짐', async () => {
-    expect(await codeOf(M.mock.cancelMeetupParticipation(dto('m1')))).toBe('OK')
+  it('모임 나가기(07 참여 취소 API): 참여가 취소되고 대화방에서도 빠짐', async () => {
+    const meetups = (await import('../api/meetups/mock')).mock
+    expect(await codeOf(meetups.cancelParticipation(dto('m1')))).toBe('OK')
     expect(await codeOf(M.mock.room(dto('g-m1')))).toBe('CHAT_ROOM_NOT_FOUND')
   })
 })
@@ -290,7 +292,7 @@ describe('매퍼 (안내 문구 · 미리보기 · 모임 카드)', () => {
     const rooms = (await M.mock.rooms()).items.map(Q.toChatRoomItem)
     const g = rooms.find((r) => r.id === 'g-m1')!
     expect(Q.roomPreview(g, ME_ID)).toMatch(/^나: /)
-    const up = await M.mock.uploadImage(new File(['x'], 'a.png', { type: 'image/png' }))
+    const up = await (await import('../api/community/mock')).mock.uploadImage(new File(['x'], 'a.png', { type: 'image/png' }))
     await M.mock.sendMessage(I.toDtoId('r-mingu'), { content: null, imageIds: [up.imageId] })
     const r = (await M.mock.rooms()).items.map(Q.toChatRoomItem).find((x) => x.id === 'r-mingu')!
     expect(Q.roomPreview(r, ME_ID)).toBe('사진')

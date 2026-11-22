@@ -20,7 +20,8 @@ import {
   CAMPUS_FLOORS, CURRENT_TERM, TERMS, drawRecommendations, fieldOf, floorId, getRegulars, isNewTermPending, isRegular, locateUser,
   moveMyBurrow, myEntrance, regularSince, resetToday, setRegular, startNewTermDemo, todaysPicks, type Floor,
 } from '../../data/field'
-import { dmRoomWith, receivedFrom, sendRequest, sentRequestTo, REQUEST_TTL_DAYS } from '../../data/chat'
+import { dmRoomWith, receivedFrom, roomOf, sendRequest, sentRequestTo, REQUEST_TTL_DAYS } from '../../data/chat'
+import { emitMessage } from '../chat/mock'
 import { addGuestbookEntry, guestbookCountOf } from '../../data/guestbookStore'
 import type { GuestbookEntry } from '../../data/types'
 import { seoulYmd, toIso } from '../../lib/time'
@@ -212,12 +213,17 @@ export const mock: ExploreApi = {
     const rid = toAppId(req.receiverId)
     if (rid === ME_ID) throw invalidInput({ receiverId: '나에게는 대화를 요청할 수 없습니다.' })
     if (!rawPerson(rid)) throw notFound('USER', '사용자를 찾을 수 없습니다.')
-    const dm = dmRoomWith(rid)
-    if (dm && !dm.closed) throw conflict('CHAT_ROOM_ALREADY_EXISTS', '이미 대화 중인 사람입니다.')
-    if (sentRequestTo(rid)) throw conflict('CHAT_REQUEST_ALREADY_SENT', '이미 대화 요청을 보냈습니다.')
-    if (receivedFrom(rid)) throw conflict('CHAT_REQUEST_ALREADY_RECEIVED', '상대가 이미 대화 요청을 보냈습니다.')
-    // 목 채팅 저장소에는 "내가 거절한 요청"이 남지 않아서 바로 대화방이 열리는 경우(서버가 하는 일 7)는 흉내 내지 않음
-    sendRequest(rid, message ?? '')
+    const res = sendRequest(rid, message ?? '')
+    if (!res.ok) {
+      const text = { CHAT_ROOM_ALREADY_EXISTS: '이미 대화 중인 사람입니다.', CHAT_REQUEST_ALREADY_SENT: '이미 대화 요청을 보냈습니다.', CHAT_REQUEST_ALREADY_RECEIVED: '상대가 이미 대화 요청을 보냈습니다.' }
+      throw conflict(res.why, text[res.why])
+    }
+    // 서버가 하는 일 7: 내가 거절한 그 사람의 요청이 살아 있으면 새 요청 대신 수락 → 대화방이 바로 열림 (첫 메시지 소식도 보냄)
+    if (res.chatRoomId) {
+      const room = roomOf(res.chatRoomId)
+      room?.messages.forEach((m) => emitMessage(room.id, m))
+      return { chatRequestId: null, createdAt: null, expiresAt: null, chatRoomId: toDtoId(res.chatRoomId) }
+    }
     const r = sentRequestTo(rid)!
     return { chatRequestId: toDtoId(r.id), createdAt: toIso(r.at), expiresAt: toIso(r.at + REQUEST_TTL_DAYS * 86_400_000), chatRoomId: null }
   }),

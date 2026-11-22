@@ -4,13 +4,13 @@
  *   'GET /api/v1/me/event-stream' 연결 자체는 공통(api/common ENDPOINTS, realtime/events.ts)이 맡았다
  * - 보내기는 일반 API (POST /chat-rooms/{chatRoomId}/messages)
  * 인자의 id 는 DTO id(숫자). 화면 · 훅은 queries.ts 가 toDtoId 로 바꿔 부른다
+ * 다른 영역 API 는 그 영역 것을 쓴다: 모임 나가기 = 07 meetupCalls.cancelParticipation, 사진 = 08 uploadImage(POST /images), 대화 요청 보내기 = 05 POST /chat-requests
  */
 import { http, seg } from '../client'
 import type { Id } from '../common/types'
-import { toDtoId } from '../common/ids'
 import type {
   AcceptChatRequestResponse, ChatMessageDto, ChatMessagesQuery, ChatNoticeResponse, ChatReadResponse, ChatRequestCountDto, ChatRequestDirection,
-  ChatRequestDto, ChatRoomDetailDto, ChatRoomSummaryDto, SendChatMessageRequest, SendChatRequestResponse, UploadedImageDto,
+  ChatRequestDto, ChatRoomDetailDto, ChatRoomSummaryDto, SendChatMessageRequest,
 } from './types'
 import type { CursorPageDto, ItemsDto } from '../common/types'
 
@@ -60,19 +60,5 @@ export const real = {
   /** POST /chat-requests/{chatRequestId}/cancel — 보낸 요청 취소 (409 CHAT_REQUEST_ALREADY_ACCEPTED + detail.chatRoomId) */
   cancelRequest: (chatRequestId: Id) => http.post<null>(`/chat-requests/${seg(chatRequestId)}/cancel`),
 
-  /* ----- 다른 영역의 API 를 채팅이 잠깐 대신 부르는 것 (ENDPOINTS 에 넣지 않음: 그 영역이 맡음) ----- */
-  /**
-   * POST /meetups/{meetupId}/cancel-participation (07 모임). 모임 나가기 확인 팝업의 "예" (leaveType CANCEL_PARTICIPATION).
-   * 모임 영역이 만들면 그쪽 함수로 바꾼다
-   */
-  cancelMeetupParticipation: (meetupId: Id) => http.post<unknown>(`/meetups/${seg(meetupId)}/cancel-participation`),
-  /** POST /images (08 커뮤니티). 사진 한 장 올리기. 커뮤니티 영역이 만들면 그쪽 함수로 바꾼다 */
-  uploadImage: (file: File) => { const f = new FormData(); f.append('file', file); return http.post<UploadedImageDto>('/images', f) },
-  /**
-   * @deprecated POST /chat-requests (05 탐색 · 방문). 방문자 뷰가 아직 api.chat.sendRequest 를 부른다.
-   * 탐색 작업자가 explore 영역에 만들면 지운다 (옛 인자 context 는 명세에 없어 보내지 않음)
-   */
-  sendRequest: (receiverId: Id | string, message: string, _context?: string) =>
-    http.post<SendChatRequestResponse>('/chat-requests', { receiverId: toDtoId(receiverId), message: message || null }),
 }
 export type ChatApi = typeof real

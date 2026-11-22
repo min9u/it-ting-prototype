@@ -13,13 +13,13 @@ import { conflict, forbidden, invalidInput, items, mockRead, mockWrite, notFound
 import { interestTags, userDisplay } from '../common/mockPeople'
 import { toAppId, toDtoId } from '../common/ids'
 import type { Id } from '../common/types'
-import { accountStore } from '../../data/account'
+import { claimImage, uploadedImage } from '../../data/boardStore'
 import { ME_ID } from '../../data/mock'
-import { confirmedOf, findMeetup, isPast, parseHour, quit as quitMeetup, startMs, canQuit, type MeetupX } from '../../data/meetupStore'
+import { confirmedOf, findMeetup, parseHour, startMs, canQuit, type MeetupX } from '../../data/meetupStore'
 import { meetupCategoryOf } from '../../data/meetupCategory'
 import {
-  acceptRequest, appendMessage, cancelRequest, closeByPartner, groupRoomId, leaveRoom, liveRequests, markReadUpTo, meetupEnded, membersOf,
-  receiveRequest, receivedCount, rejectRequest, roomOf, sendRequest, setNotice, syncGroupRooms, getChatState, unreadOf, requestById,
+  acceptRequest, appendMessage, cancelRequest, closeByPartner, leaveRoom, liveRequests, markReadUpTo, meetupEnded, membersOf,
+  receiveRequest, receivedCount, rejectRequest, roomOf, setNotice, syncGroupRooms, getChatState, unreadOf, requestById,
   GONE_ID, type ChatMsg, type Req, type Room,
 } from '../../data/chat'
 import { mockEvents } from '../../realtime/events'
@@ -120,7 +120,6 @@ function emitCount() {
 }
 
 /* ===== 목 서버 ===== */
-const blockedIds = () => accountStore.get().blocked.map((b) => b.id)
 /** 들어갈 수 있는 대화방 (없거나 나갔거나 모임이 지워졌으면 404, 명세 "대화방에 들어갈 수 있는 사람") */
 function accessRoom(chatRoomId: Id): Room {
   const r = roomOf(toAppId(chatRoomId))
@@ -129,20 +128,14 @@ function accessRoom(chatRoomId: Id): Room {
 }
 function visibleRooms(): Room[] {
   syncGroupRooms()
-  const blocked = blockedIds()
   return getChatState().rooms
-    .filter((r) => !(r.kind === 'dm' && r.partnerId && blocked.includes(r.partnerId)))
     .filter((r) => r.kind === 'dm' || !!findMeetup(r.meetupId!))
     .sort((a, b) => lastAt(b) - lastAt(a))
 }
 function visibleRequests(dir: Req['direction']): Req[] {
-  const blocked = blockedIds()
-  return liveRequests().filter((q) => q.direction === dir && !blocked.includes(q.userId))
+  return liveRequests().filter((q) => q.direction === dir)
 }
 const reqNotFound = () => notFound('CHAT_REQUEST', '대화 요청을 찾을 수 없습니다.')
-/** 목 사진 저장소 (POST /images 흉내): id → 주소 */
-const images = new Map<string, string>()
-let imageSeq = 0
 
 export const mock: ChatApi = {
   rooms: (signal) => mockRead(() => items(visibleRooms().map(roomSummaryDto)), { signal, empty: () => items([]) }),
@@ -158,9 +151,11 @@ export const mock: ChatApi = {
     if (ids.length > CHAT_IMAGES_MAX) throw invalidInput({ imageIds: `사진은 ${CHAT_IMAGES_MAX}장까지 붙일 수 있습니다.` })
     if (!text.trim() && !ids.length) throw invalidInput({ content: '메시지를 입력해 주세요.' })
     if (text.length > CHAT_MESSAGE_MAX) throw invalidInput({ content: `메시지는 ${CHAT_MESSAGE_MAX}자를 넘을 수 없습니다.` })
-    const pics = ids.map((n) => { const id = toAppId(n); const url = images.get(id); if (!url) throw invalidInput({ imageIds: '쓸 수 없는 사진입니다.' }); return { id, url } })
+    // 사진은 08 POST /images 목이 올려 둔 것 (data/boardStore 의 uploaded_image 자리). 붙이면 다른 곳에 다시 못 씀
+    const pics = ids.map((n) => { const id = toAppId(n); const img = uploadedImage(id); if (!img?.url) throw invalidInput({ imageIds: '쓸 수 없는 사진입니다.' }); return { id, url: img.url } })
     const r = accessRoom(chatRoomId)
     if (r.kind === 'dm' && r.closed) throw conflict('CHAT_ROOM_READ_ONLY', '상대가 나가 메시지를 보낼 수 없는 대화방입니다.')
+    for (const p of pics) claimImage(p.id)
     const msg = appendMessage(r.id, { authorId: ME_ID, text: body.content ?? '', images: pics })!
     emitMessage(r.id, msg) // 보낸 사람도 받음 (명세)
     scheduleReply(r.id)
@@ -223,35 +218,6 @@ export const mock: ChatApi = {
     if (!res.ok) throw reqNotFound()
     // 받은 사람에게 가는 CHAT_REQUEST_COUNT_CHANGED 는 목에서 받을 사람이 없음
     return null
-  }),
-  cancelMeetupParticipation: (meetupId) => mockWrite(() => {
-    const m = findMeetup(toAppId(meetupId))
-    if (!m) throw notFound('MEETUP', '모임을 찾을 수 없습니다.')
-    if (m.cancelled || isPast(m) || !canQuit(m)) throw conflict('MEETUP_PARTICIPATION_CANCEL_NOT_ALLOWED', '취소된 모임이거나 시작 24시간 전이 지났습니다.')
-    quitMeetup(m.id)
-    leaveRoom(groupRoomId(m.id)) // 참여가 취소되면 서버가 대화방에서도 뺌 (명세)
-    return null
-  }),
-  uploadImage: (file) => mockWrite(() => {
-    const id = `img-${++imageSeq}`
-    let url = ''
-    try { url = URL.createObjectURL(file) } catch { url = '' }
-    images.set(id, url)
-    return { imageId: toDtoId(id), url }
-  }),
-  sendRequest: (receiverId, message) => mockWrite(() => {
-    const res = sendRequest(toAppId(receiverId), message)
-    if (!res.ok) {
-      if (res.why === 'ROOM_EXISTS') throw conflict('ROOM_EXISTS', '이미 대화방이 있어요.')
-      if (res.why === 'REQUEST_EXISTS') throw conflict('REQUEST_EXISTS', '이미 대화를 요청했어요.')
-      throw conflict('REQUEST_FROM_PEER', '이 분이 먼저 대화를 요청했어요. 채팅 › 요청에서 답해 주세요.')
-    }
-    const q = res.chatRequestId ? requestById(res.chatRequestId) : undefined
-    if (res.chatRoomId) { const r = roomOf(res.chatRoomId); r?.messages.forEach((m) => emitMessage(r.id, m)) }
-    return {
-      chatRequestId: q ? toDtoId(q.id) : null, createdAt: q ? toIso(q.at) : null, expiresAt: q ? toIso(q.at + 5 * DAY) : null,
-      chatRoomId: res.chatRoomId ? toDtoId(res.chatRoomId) : null,
-    }
   }),
 }
 

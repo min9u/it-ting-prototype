@@ -9,7 +9,7 @@ import { CalendarIcon, HeartIcon, HomeIcon, PinIcon } from '../../components/Ico
 import { ME_ID, USERS } from '../../data/mock'
 import { meetupCategoryOf, meetupToneOf } from '../../data/meetupCategory'
 import { affOf } from '../../data/field'
-import { roomOf, useChat } from '../../data/chat'
+import { useChatPreview, useMyId } from '../../api/chat'
 import type { User } from '../../data/types'
 import { type MeetupX, deadlineLabel, hourLabel, parseHour } from '../../data/meetupStore'
 import { patch, useOptimistic } from '../../api'
@@ -81,7 +81,6 @@ export default function MeetupDetail() {
 
 function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
   const [params] = useSearchParams()
-  const chat = useChat()
   const m = data.meetup
   const run = useOptimistic()
   const asParam = params.get('as') as View | null
@@ -137,8 +136,10 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
   const chip = rec === 'cancelled' ? { label: '취소됨', cls: s.chipCancel } : rec === 'past' ? { label: '지난 모임', cls: s.chipDone }
     : rec === 'closed' || view === 'full' ? { label: '모집 완료', cls: s.chipDone } : { label: `모집 중 · ${num(left)} 자리 남았어요`, cls: '' }
 
-  // 모임 대화 미리보기: chatRoomId 가 있는 사람만 (그 밖은 내용을 받지 않음). 메시지는 채팅 영역 것을 읽기만 함
-  const recent = data.chatRoomId ? (roomOf(data.chatRoomId, chat)?.messages ?? []).filter((x) => !x.system).slice(-3) : []
+  // 모임 대화 미리보기: chatRoomId 가 있는 사람만 (그 밖은 내용을 받지 않음). 06 메시지 조회 size=3 (안내 메시지는 문구 없이 빼고 보임)
+  const preview = useChatPreview(data.chatRoomId)
+  const myId = useMyId()
+  const recent = (preview.data ?? []).filter((x) => x.type === 'TEXT')
 
   const titleOf: Record<View, string> = {
     open: `${num(left)} 자리 남았어요`, blocked: `${num(left)} 자리 남았어요`, pending: '신청을 보냈어요', rejected: '참여가 어려워요', joined: '참여가 확정됐어요',
@@ -290,7 +291,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
               <Link to={chatTo} className={s.chatMsgs}>
                 {recent.length === 0 && <span className={s.calEmpty}>아직 대화가 없어요. 먼저 인사해 보세요.</span>}
                 {recent.map((c) => (
-                  <span key={c.id} className={s.chatLine}><small>{c.authorId === ME_ID ? '나' : USERS[c.authorId]?.nickname ?? '두더지'}</small>{c.text || '[모임 카드]'}</span>
+                  <span key={c.id} className={s.chatLine}><small>{c.authorId === myId ? '나' : c.author.nickname}</small>{c.text || (c.card ? '[모임 카드]' : c.images.length ? '[사진]' : '')}</span>
                 ))}
               </Link>
             ) : (

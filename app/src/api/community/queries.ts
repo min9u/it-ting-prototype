@@ -294,10 +294,10 @@ export function useSavePost() {
   })
 }
 /** 사진 한 장 올리기 (POST /images) → { id, url } */
+/** 사진 한 장 올리기 (POST /images) → 앱 id · 주소. 글쓰기(useUploadImage)와 채팅 사진 첨부가 같이 씀 (명세: 파일 올리기는 08 이 맡음) */
+export const uploadImage = async (file: File) => { const r = await communityApi.uploadImage(file); return { id: toAppId(r.imageId), url: r.url } }
 export function useUploadImage() {
-  return useMutation({
-    mutationFn: async (file: File) => { const r = await communityApi.uploadImage(file); return { id: toAppId(r.imageId), url: r.url } },
-  })
+  return useMutation({ mutationFn: uploadImage })
 }
 
 /**

@@ -121,9 +121,6 @@ export interface AcceptChatRequestResponse { chatRoomId: Id }
 /** 409 CHAT_REQUEST_ALREADY_ACCEPTED 의 error.detail */
 export interface ChatRequestAlreadyAcceptedDetail { chatRoomId: Id }
 
-/* ===== 사진 올리기 (08 커뮤니티 POST /images 의 응답. 커뮤니티 영역이 만들면 그것을 씀) ===== */
-export interface UploadedImageDto { imageId: Id; url: string }
-
 /* ===== 실시간 소식 (GET /me/event-stream 으로 옴) ===== */
 export const CHAT_MESSAGE_CREATED = 'CHAT_MESSAGE_CREATED'
 export const CHAT_REQUEST_COUNT_CHANGED = 'CHAT_REQUEST_COUNT_CHANGED'
@@ -135,11 +132,3 @@ export interface ChatMessageCreatedEvent {
 }
 export interface ChatRequestCountChangedEvent { receivedCount: number }
 
-/* ===== 옛 초안 (05 탐색 · 방문의 POST /chat-requests 를 탐색 작업자가 옮기기 전까지 방문자 뷰가 씀) ===== */
-/** @deprecated 05 의 대화 요청 보내기 응답 모양. 탐색 영역으로 옮기면 지운다 */
-export interface SendChatRequestResponse {
-  chatRequestId: Id | null
-  createdAt: UtcInstant | null
-  expiresAt: UtcInstant | null
-  chatRoomId: Id | null
-}
