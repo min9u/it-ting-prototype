@@ -14,7 +14,7 @@
 |---|---|---|
 | Q1 🔴 | **차단** 테이블이 없음 (설정 › 차단 관리, 프로필 팝업 차단, 채팅·요청 숨김) | `member_block(member_id, blocked_member_id, created_at)` PK 두 칼럼 |
 | Q2 🔴 | **방명록 길이**: 화면 100자, ERD `content VARCHAR(50)` | VARCHAR(100) 로 (화면 명세가 100) |
-| Q3 🔴 | **(2026-11-22 바뀜)** 모임 `category` 는 **관심사가 아니라 모임 전용 6개**(명세 07). `meetup.category` enum(HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS)로 두면 됨. 남은 질문: **모임 관심사 태그(최대 3개)** 는 명세 07 에 없음 → 없앨지 확인 (앱은 아직 유지) | `meetup.category` enum 6개. 태그를 유지하면 `meetup_tag(meetup_id, interest_id)` |
+| Q3 🔴 | **(2026-11-22 바뀜)** 모임 `category` 는 **관심사가 아니라 모임 전용 6개**(명세 07). `meetup.category` enum(HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS)로 두면 됨. **모임 관심사 태그(최대 3개)는 명세 07 에 없어 삭제** → `meetup_tag` 테이블 불필요 | `meetup.category` enum 6개 |
 | Q4 🔴 | **알림 제목 스냅숏**: 원본이 지워진 알림("‘북한산 아침 등산’ 모임이 취소됐어요")의 제목을 만들 데이터가 없음 | `notification.payload JSON` (대상 제목·닉네임 등) 또는 `title VARCHAR(100)`·`body VARCHAR(150)` |
 | Q5 🔴 | **ID 를 JSON 에서 문자열로**, **날짜는 오프셋 붙은 ISO 8601** 로 줄 수 있는지 | api-draft 1.4 · 1.5 (Long → 문자열 직렬화, `OffsetDateTime`/`Instant`) |
 | Q6 🟠 | 대화 요청 카드의 **"땅굴에 다녀갔어요" 맥락**과 땅굴 **방문 기록**이 없음 | `chat_request.context VARCHAR(20)` (BURROW_VISIT · SAME_MEETUP · OTHER). 방문 기록 테이블은 만들지 않고 요청을 보낸 곳만 기록 |

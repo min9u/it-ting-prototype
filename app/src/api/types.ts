@@ -321,8 +321,6 @@ export interface MeetupCardDto {
   title: string
   /** 모임 카테고리 코드 HOBBY_CULTURE · MEAL_CAFE · STUDY_PROJECT · ETC · GAME · SPORTS (명세 07, 관심사와 관계없음) */
   category: string
-  /** 관심사 태그 최대 3개 (ERD 에 테이블 없음 → erd-gaps) */
-  tags: string[]
   startsAt: IsoDateTime
   endsAt: IsoDateTime | null
   recruitDeadlineAt: IsoDateTime | null
@@ -383,7 +381,6 @@ export interface MeetupWriteRequest {
   title: string
   /** 모임 카테고리 코드 (필수, 하나) */
   category: string
-  tags: string[]
   description: string
   capacity: number
   supplies: string | null

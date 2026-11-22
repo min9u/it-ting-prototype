@@ -26,8 +26,6 @@ export interface MeetupX extends Meetup {
   prep?: string
   /** 신청할 때 메시지 받기 (안 받으면 상세의 "주최자에게 남길 말"을 숨김) */
   askMsg: boolean
-  /** 관심사 태그 최대 3개 (M15, 명세 07 에는 없음 — 확인 대기) */
-  tags: string[]
   /** 모집 마감 일시 'YYYY-MM-DDTHH:mm' (선택) */
   deadline?: string
   /** 찜한 사람 수 (인기순) */
@@ -44,7 +42,7 @@ export interface Draft {
   cap: number; prep: string; askMsg: boolean
   ymd: string; start: string; end: string; deadline: string
   mode: '오프라인' | '온라인'; place: string; placeDetail: string; link: string
-  title: string; intro: string; category: string; tags: string[]
+  title: string; intro: string; category: string
 }
 
 interface State {
@@ -97,9 +95,9 @@ export function ddayOf(ymd: string) {
 /* ===== 처음 데이터 ===== */
 // 기본 목 데이터(mock.ts MEETUPS)에 없는 필드: 캠퍼스·마감 일시·준비물 등
 const EXTRA: Record<string, Partial<MeetupX>> = {
-  m1: { prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['시/에세이'] },
+  m1: { prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12 },
   m2: { prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
-  m3: { prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['필름/컴팩트'] },
+  m3: { prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5 },
   m4: { prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
   m5: { link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
   m6: { prep: '재료비 1만 원', likes: 4 },
@@ -132,7 +130,7 @@ const EXTRA2: Record<string, Partial<MeetupX>> = {
 
 function init(): State {
   const list: MeetupX[] = base.map((m, i) => ({
-    ...m, askMsg: true, tags: [], likes: 0, seq: i + 1,
+    ...m, askMsg: true, likes: 0, seq: i + 1,
     ...EXTRA[m.id], ...EXTRA2[m.id],
     // 예전 데이터의 past 표시는 쓰지 않고 시작 시각으로 판단 (M14)
     past: undefined,
@@ -287,7 +285,7 @@ let seq = 100
 export function createMeetup(d: Draft): string {
   const id = `n${++seq}`
   const m: MeetupX = {
-    id, title: d.title.trim(), category: d.category, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    id, title: d.title.trim(), category: d.category, intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
     area: d.mode === '온라인' ? '온라인' : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
     place: d.mode === '온라인' ? '' : d.place.trim(),
@@ -306,7 +304,7 @@ export function createMeetup(d: Draft): string {
 }
 export function updateMeetup(id: string, d: Draft) {
   state.list = state.list.map((m) => (m.id !== id ? m : {
-    ...m, title: d.title.trim(), category: d.category, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
+    ...m, title: d.title.trim(), category: d.category, intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
     area: d.mode === '온라인' ? '온라인' : m.mode === '오프라인' && m.place === d.place.trim() ? m.area : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
     place: d.mode === '온라인' ? '' : d.place.trim(),
@@ -336,7 +334,7 @@ export function draftOf(m: MeetupX): Draft {
     cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, deadline: m.deadline ?? '',
     mode: m.mode, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
     link: m.link ?? '',
-    title: m.title, intro: m.intro, category: m.category, tags: m.tags,
+    title: m.title, intro: m.intro, category: m.category,
   }
 }
 export const userName = (id: string) => USERS[id]?.nickname ?? '두더지'

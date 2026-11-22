@@ -179,10 +179,10 @@ describe('목 데이터가 모두 확정본 이름을 씀', () => {
     for (const u of Object.values(USERS)) for (const i of u.interests) expect(known(i), `${u.id}: ${i}`).toBe(true)
     for (const r of GUEST_ROOMS) for (const i of r.interests) expect(known(i), `${r.id}: ${i}`).toBe(true)
   })
-  it('모임 카테고리는 모임 전용 6개(관심사 아님), 태그는 소분류 이름', () => {
+  it('모임 카테고리는 모임 전용 6개(관심사 아님)', () => {
     for (const m of [...MEETUPS, ...getMeetupState().list]) {
       expect(isMeetupCategory(m.category), `${m.id}: ${m.category}`).toBe(true)
-      for (const t of (m as { tags?: string[] }).tags ?? []) expect(known(t), `${m.id}: ${t}`).toBe(true)
+      expect(m, m.id).not.toHaveProperty('tags') // 모임 관심사 태그 없음 (명세 07)
     }
   })
   it('게시글 관심사 태그는 대분류 이름 12개 중에서', () => {

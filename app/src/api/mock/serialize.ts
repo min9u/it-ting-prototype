@@ -72,7 +72,7 @@ function endMs(m: MeetupX): number | null {
 }
 export function meetupCard(m: MeetupX, s: MeetupState = getMeetupState()): MeetupCardDto {
   return {
-    id: m.id, title: m.title, category: meetupCategoryOf(m.category)?.code ?? m.category, tags: m.tags ?? [],
+    id: m.id, title: m.title, category: meetupCategoryOf(m.category)?.code ?? m.category,
     startsAt: toIso(startMs(m)), endsAt: endMs(m) == null ? null : toIso(endMs(m)!),
     recruitDeadlineAt: m.deadline ? toIso(isoMs(m.deadline)) : null,
     mode: m.mode === '온라인' ? 'ONLINE' : 'OFFLINE', place: m.place || null,

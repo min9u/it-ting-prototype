@@ -147,7 +147,7 @@ function draftOfRequest(r: MeetupWriteRequest): Draft {
     deadline: r.recruitDeadlineAt ? msToWall(parseIso(r.recruitDeadlineAt)) : '', mode: r.mode === 'ONLINE' ? '온라인' : '오프라인',
     place: r.place ?? '', placeDetail: r.placeDetail ?? '',
     link: r.joinUrl ?? '',
-    title: r.title, intro: r.description, category: meetupCategoryOf(r.category)?.name ?? r.category, tags: r.tags,
+    title: r.title, intro: r.description, category: meetupCategoryOf(r.category)?.name ?? r.category,
   }
 }
 

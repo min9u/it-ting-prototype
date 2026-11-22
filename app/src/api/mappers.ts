@@ -81,7 +81,7 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
   const date = seoulYmd(start)
   const place = d.place ?? ''
   return {
-    id: toId(d.id), title: d.title, category: meetupCategoryOf(d.category)?.name ?? d.category, tags: d.tags, date, start: hm(start),
+    id: toId(d.id), title: d.title, category: meetupCategoryOf(d.category)?.name ?? d.category, date, start: hm(start),
     end: end == null ? '' : `${seoulYmd(end) !== date ? '다음 날 ' : ''}${hm(end)}`,
     area: d.mode === 'ONLINE' ? '온라인' : d.area ?? (place.split(/\s+/).slice(0, 2).join(' ')),
     place, mode: MODE[d.mode], capacity: d.capacity,

@@ -20,7 +20,7 @@ beforeEach(async () => {
 function mk(over: Partial<Store.MeetupX> = {}): Store.MeetupX {
   return {
     id: 't1', title: '시험 모임', category: '취미/문화', date: '2026-11-10', start: '오후 2:00', end: '오후 4:00', area: '역삼', place: '역삼',
-    mode: '오프라인', capacity: 6, memberIds: [], hostId: 'kim', intro: '', askMsg: true, tags: [], likes: 0, seq: 1, ...over,
+    mode: '오프라인', capacity: 6, memberIds: [], hostId: 'kim', intro: '', askMsg: true, likes: 0, seq: 1, ...over,
   }
 }
 function st(over: Partial<Store.MeetupX> = {}, members: string[] = [], my?: Store.Mine) {
@@ -183,20 +183,20 @@ describe('동작 (저장소)', () => {
     const d: Store.Draft = {
       cap: 6, prep: '', askMsg: true, ymd: '2026-11-20', start: '오후 7:00', end: '', deadline: '',
       mode: '온라인', place: '', placeDetail: '', link: ' https://discord.gg/x ',
-      title: '  새 모임  ', intro: '', category: '취미/문화', tags: ['a', 'b', 'c', 'd'],
+      title: '  새 모임  ', intro: '', category: '취미/문화',
     }
     const id = S.createMeetup(d)
     const m = S.findMeetup(id)!
     expect(m.hostId).toBe(ME_ID)
     expect(m.title).toBe('새 모임')
-    expect(m.tags).toEqual(['a', 'b', 'c'])
+    expect('tags' in m).toBe(false) // 모임 관심사 태그 없음 (명세 07)
     expect(m.place).toBe('') // 온라인은 장소·플랫폼 이름 없이 접속 링크만 (명세 07)
     expect('platform' in m).toBe(false)
     expect(m.link).toBe('https://discord.gg/x')
     expect('campus' in m).toBe(false) // 모임에는 캠퍼스가 없음 (명세 07)
     expect(S.confirmedOf(m)).toBe(1)
     expect(S.myOf(id)?.st).toBe('host')
-    expect(S.draftOf(m)).toMatchObject({ mode: '온라인', link: 'https://discord.gg/x', tags: ['a', 'b', 'c'] })
+    expect(S.draftOf(m)).toMatchObject({ mode: '온라인', link: 'https://discord.gg/x' })
   })
   it('취소하면 기록이 남고(취소됨) 신청 대기는 비움, 삭제하면 목록·내 기록·찜에서 사라짐', () => {
     S.cancelMeetup('m3')
