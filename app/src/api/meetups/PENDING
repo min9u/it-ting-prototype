@@ -2,23 +2,4 @@
 # 이 영역 작업자가 하나를 명세대로 만들면 real.ts 의 ENDPOINTS 에 적고 여기서 지운다.
 # 다 하면 이 파일은 주석만 남긴다. src/tests/api-v1-endpoints.test.ts 가 이 목록을 "할 일(todo)"로 보고,
 # 명세에 있는데 ENDPOINTS 에도 PENDING 에도 없으면 실패한다.
-GET /api/v1/meetups  # 07-meetup.md
-POST /api/v1/meetups  # 07-meetup.md
-GET /api/v1/meetups/{meetupId}  # 07-meetup.md
-PATCH /api/v1/meetups/{meetupId}  # 07-meetup.md
-POST /api/v1/meetups/{meetupId}/cancel  # 07-meetup.md
-DELETE /api/v1/meetups/{meetupId}  # 07-meetup.md
-PUT /api/v1/meetups/{meetupId}/like  # 07-meetup.md
-DELETE /api/v1/meetups/{meetupId}/like  # 07-meetup.md
-PUT /api/v1/meetups/{meetupId}/vacancy-alert  # 07-meetup.md
-DELETE /api/v1/meetups/{meetupId}/vacancy-alert  # 07-meetup.md
-POST /api/v1/meetups/{meetupId}/applications  # 07-meetup.md
-GET /api/v1/meetups/{meetupId}/applications  # 07-meetup.md
-POST /api/v1/meetups/{meetupId}/withdraw-application  # 07-meetup.md
-POST /api/v1/meetups/{meetupId}/cancel-participation  # 07-meetup.md
-POST /api/v1/meetup-applications/{meetupApplicationId}/accept  # 07-meetup.md
-POST /api/v1/meetup-applications/{meetupApplicationId}/reject  # 07-meetup.md
-POST /api/v1/meetup-applications/{meetupApplicationId}/kick  # 07-meetup.md
-GET /api/v1/me/meetups  # 07-meetup.md
-GET /api/v1/me/meetups/summary  # 07-meetup.md
-GET /api/v1/meetup-calendar  # 07-meetup.md
+# 2026-11-22 07 모임 20개 모두 ENDPOINTS 로 옮김 (docs/backend/api-v1/07-meetup.md)

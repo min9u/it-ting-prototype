@@ -1,12 +1,13 @@
 /**
- * 모임 상태 (Figma 02 F7). 서버가 없어서 이 탭 안에서만 기억하는 작은 저장소 (data/chat.ts 와 같은 방식)
- * 리스트·상세·내 모임·만들기·수정이 같은 상태를 봄 → useSyncExternalStore 로 구독
+ * 모임 목 저장소 = 목 서버의 "DB" (api/meetups/mock.ts 가 이 값으로 명세 응답을 만든다).
+ * 화면은 이 파일을 직접 부르지 않고 api/meetups 의 훅 · 함수만 쓴다 (2026-11-22 API v1).
+ * 채팅 · 알림 목 저장소(data/chat.ts · data/notifications.ts)가 아직 여기 값을 읽는다 → 함수 이름을 바꾸지 말 것
  *
- * 규칙 (명세 + docs/meetup-spec-review.md 결정 M1~M17)
+ * 규칙 (백엔드 명세 07 모임 = 기준, docs/backend/team-spec/spec/07-meetup.md)
  * - 정원에는 주최자가 포함된다 (정원 6 = 주최자 1 + 참여자 5). 확정 인원 = 1 + 참여 확정자
- * - 신청 기록 6가지: 신청 대기 / 신청 취소(다시 신청 가능) / 미승인(거절·자동) / 참여 확정 / 참여 취소 / 내보내짐
- *   → 스스로 신청을 취소한 경우만 다시 신청할 수 있다 (M8)
- * - 처리 안 된 신청은 모집 마감 시각에 자동 미승인 (마감 일시가 없으면 정원이 차거나 모임이 시작될 때) (M7)
+ * - 신청 기록 7가지: 신청 대기 / 신청 취소(다시 신청 가능) / 미승인(거절·자동) / 참여 확정 / 참여 취소 / 내보내짐 / 모임 취소로 마감
+ *   → 기록이 없거나 스스로 신청을 취소한 경우만 다시 신청할 수 있다
+ * - 처리 안 된 신청은 모집 마감 시각에 자동 미승인 (마감 일시가 없으면 모임이 시작될 때). 정원이 차도 기다리던 신청은 남는다
  * - 시작 시각이 지나면 바로 지난 모임 (M14). 모집 완료 = 정원이 찼거나 모집 마감 시각이 지남
  * - 참여 취소는 시작 24시간 전까지 (data/chat.ts canQuitMeetup 과 같은 규칙), 수정은 12시간 전까지, 취소는 시작 전까지 (M5)
  * - 참여 확정자(주최자 제외)가 0명이면 삭제, 1명 이상이면 취소(기록 남음)
@@ -34,7 +35,8 @@ export interface MeetupX extends Meetup {
   seq: number
 }
 
-export type MyState = 'pending' | 'withdrawn' | 'rejected' | 'joined' | 'quit' | 'kicked' | 'host'
+/** 내 신청 기록 (명세 meetup_application.status 를 나 기준으로). mcancel = 신청 대기 중 모임이 취소됨(MEETUP_CANCELED) */
+export type MyState = 'pending' | 'withdrawn' | 'rejected' | 'joined' | 'quit' | 'kicked' | 'host' | 'mcancel'
 export interface Mine { st: MyState; note?: string; at?: number; auto?: boolean }
 export interface Applicant { userId: string; msg: string; at: number }
 
@@ -55,9 +57,8 @@ interface State {
   members: Record<string, string[]>
   /** 내가 연 모임의 신청 대기 */
   applicants: Record<string, Applicant[]>
-  /** 신고한 모임 (같은 대상은 한 번만, M10) */
-  reported: string[]
-  draft: Draft | null
+  /** 남의 신청을 주최자가 처리한 기록 ('모임id:사람id' → 거절 · 내보내기). 같은 버튼을 두 번 눌러도 성공으로 답하려고 */
+  appLog: Record<string, 'REJECTED' | 'KICKED'>
 }
 
 /* ===== 시간 (Asia/Seoul 기준, lib/time.ts) ===== */
@@ -158,8 +159,7 @@ function init(): State {
       ],
       x4: [{ userId: 'seoyeon', msg: '오락실 너무 좋아요. 펌프 같이 해요!', at: NOW - 3 * HOUR }],
     },
-    reported: [],
-    draft: null,
+    appLog: {},
   }
 }
 
@@ -188,15 +188,16 @@ export function recruitOf(m: MeetupX, s = state): Recruit {
   if (leftOf(m, s) <= 0 || deadlinePassed(m)) return 'closed'
   return 'open'
 }
-/** 내 신청 기록. 신청 대기인데 마감 조건이 지났으면 자동 미승인 (M7) */
+/** 내 신청 기록. 신청 대기인데 모집 마감 시각(없으면 시작 시각)이 지났으면 자동 미승인 (명세 07 "모집 마감이 지난 신청") */
 export function myOf(id: string, s = state): Mine | undefined {
   const r = s.my[id]
   if (r?.st !== 'pending') return r
   const m = findMeetup(id, s)
   if (!m) return r
-  const expired = m.deadline ? deadlinePassed(m) : leftOf(m, s) <= 0 || isPast(m)
-  return expired ? { ...r, st: 'rejected', auto: true } : r
+  return recruitClosedByTime(m) ? { ...r, st: 'rejected', auto: true } : r
 }
+/** 모집 마감 시각(없으면 시작 시각)이 지났는지 — 처리 안 된 신청이 자동 미승인되는 때 */
+export const recruitClosedByTime = (m: MeetupX) => (m.deadline ? deadlinePassed(m) : isPast(m))
 export const canReapply = (r?: Mine) => !r || r.st === 'withdrawn'
 /** 참여 취소(모임 나가기) — data/chat.ts canQuitMeetup 과 같은 규칙: 주최자 아님 · 시작 24시간 전까지 */
 export function canQuit(m: MeetupX) { return m.hostId !== ME_ID && startMs(m) - NOW >= 24 * HOUR }
@@ -250,17 +251,22 @@ export function quit(id: string) {
   setMembers(id, membersOf(id).filter((u) => u !== ME_ID))
   emit()
 }
-export function toggleWish(id: string) {
-  const on = state.wish.includes(id)
-  state.wish = on ? state.wish.filter((x) => x !== id) : [...state.wish, id]
-  state.list = state.list.map((m) => (m.id === id ? { ...m, likes: Math.max(0, m.likes + (on ? -1 : 1)) } : m))
+/** 찜 켜기 · 끄기 (같은 값이면 그대로). 찜을 풀면 빈자리 알림도 함께 꺼짐 (명세: meetup_like 줄을 지움) */
+export function setWish(id: string, on: boolean) {
+  if (state.wish.includes(id) === on) return
+  state.wish = on ? [...state.wish, id] : state.wish.filter((x) => x !== id)
+  if (!on) state.alerts = state.alerts.filter((x) => x !== id)
+  state.list = state.list.map((m) => (m.id === id ? { ...m, likes: Math.max(0, m.likes + (on ? 1 : -1)) } : m))
   emit()
 }
-export function toggleAlert(id: string) {
-  state.alerts = state.alerts.includes(id) ? state.alerts.filter((x) => x !== id) : [...state.alerts, id]
+export const toggleWish = (id: string) => setWish(id, !state.wish.includes(id))
+/** 빈자리 알림 켜기 · 끄기 (찜한 모임에만 켤 수 있음 — 확인은 목 서버) */
+export function setAlert(id: string, on: boolean) {
+  if (state.alerts.includes(id) === on) return
+  state.alerts = on ? [...state.alerts, id] : state.alerts.filter((x) => x !== id)
   emit()
 }
-export function report(id: string) { if (!state.reported.includes(id)) { state.reported = [...state.reported, id]; emit() } }
+export const toggleAlert = (id: string) => setAlert(id, !state.alerts.includes(id))
 
 /* 신청 관리 (주최자) */
 export const applicantsOf = (id: string, s = state) => s.applicants[id] ?? []
@@ -273,10 +279,12 @@ export function accept(id: string, userId: string) {
 }
 export function reject(id: string, userId: string) {
   state.applicants = { ...state.applicants, [id]: applicantsOf(id).filter((a) => a.userId !== userId) }
+  state.appLog = { ...state.appLog, [`${id}:${userId}`]: 'REJECTED' }
   emit()
 }
 export function kick(id: string, userId: string) {
   setMembers(id, membersOf(id).filter((u) => u !== userId))
+  state.appLog = { ...state.appLog, [`${id}:${userId}`]: 'KICKED' }
   emit()
 }
 
@@ -298,7 +306,6 @@ export function createMeetup(d: Draft): string {
   state.list = [...state.list, m]
   setMy(id, { st: 'host' })
   setMembers(id, [])
-  state.draft = null
   emit()
   return id
 }
@@ -314,19 +321,21 @@ export function updateMeetup(id: string, d: Draft) {
   }))
   emit()
 }
+/** 취소: 기록은 남고(취소됨), 신청 대기는 "모임 취소로 마감"으로. 참여 확정은 그대로 (명세 POST …/cancel) */
 export function cancelMeetup(id: string) {
   state.list = state.list.map((m) => (m.id === id ? { ...m, cancelled: true } : m))
   state.applicants = { ...state.applicants, [id]: [] }
+  if (state.my[id]?.st === 'pending') setMy(id, { ...state.my[id], st: 'mcancel' })
   emit()
 }
+/** 삭제: 어느 목록에도 남지 않음 (명세 DELETE /meetups/{meetupId}) */
 export function deleteMeetup(id: string) {
   state.list = state.list.filter((m) => m.id !== id)
   setMy(id, undefined)
   state.wish = state.wish.filter((x) => x !== id)
+  state.alerts = state.alerts.filter((x) => x !== id)
   emit()
 }
-export function saveDraft(d: Draft) { state.draft = d; emit() }
-export function clearDraft() { state.draft = null; emit() }
 
 /** 모임 → 만들기·수정 양식 값 */
 export function draftOf(m: MeetupX): Draft {

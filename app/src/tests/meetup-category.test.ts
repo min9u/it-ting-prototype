@@ -17,6 +17,9 @@ describe('모임 카테고리 6개', () => {
     expect(MEETUP_CATEGORIES.map((c) => c.name)).toEqual(['취미/문화', '식사/카페', '스터디/프로젝트', '기타', '게임', '운동'])
     for (const k of ['id', 'name', 'code'] as const) expect(new Set(MEETUP_CATEGORIES.map((c) => c[k])).size).toBe(6)
   })
+  it('코드는 백엔드 확정 enum 6개 (api/07 "카테고리")', () => {
+    expect(MEETUP_CATEGORIES.map((c) => c.code)).toEqual(['HOBBY', 'FOOD', 'STUDY', 'ETC', 'GAME', 'EXERCISE'])
+  })
   it('이름 · id · 코드로 찾고, 관심사 이름은 카테고리가 아님', () => {
     expect(meetupCategoryOf('GAME')?.name).toBe('게임')
     expect(meetupCategoryOf('sports')?.name).toBe('운동')
@@ -36,12 +39,13 @@ describe('모임 카테고리 6개', () => {
 
 describe('API: 코드 ↔ 이름', () => {
   it('DTO 코드를 화면 이름으로 바꿔 읽음 (모르는 값은 그대로)', () => {
-    const base = { id: '1', title: 't', startsAt: '2026-11-08T14:00:00+09:00', endsAt: null, recruitDeadlineAt: null, mode: 'OFFLINE', place: 'p', capacity: 4, confirmedCount: 1, recruitStatus: 'OPEN', sign: null, likeCount: 0, createdAt: '2026-11-01T00:00:00+09:00', host: { id: '9', nickname: 'x', status: 'ACTIVE', mole: { head: null, face: null, neck: null, hand: null } } }
-    expect(toMeetup({ ...base, category: 'STUDY_PROJECT' } as never).category).toBe('스터디/프로젝트')
+    const base = { id: 1, title: 't', startsAt: '2026-11-08T05:00:00Z', endsAt: null, mode: 'OFFLINE', place: 'p', capacity: 4, confirmedCount: 1, recruitStatus: 'OPEN' }
+    expect(toMeetup({ ...base, category: 'STUDY' } as never).category).toBe('스터디/프로젝트')
+    expect(toMeetup({ ...base, category: 'EXERCISE' } as never).category).toBe('운동')
     expect(toMeetup({ ...base, category: '새 분류' } as never).category).toBe('새 분류')
   })
   it('목록 거르기: 카테고리 코드 여러 개는 OR', async () => {
-    const r = await meetupsApi.list({ categories: ['GAME', 'SPORTS'], size: 50 })
+    const r = await meetupsApi.list({ categories: ['GAME', 'EXERCISE'], size: 24 })
     expect(r.items.length).toBeGreaterThan(0)
     for (const m of r.items) expect(['게임', '운동']).toContain(meetupCategoryOf(m.category)?.name)
   })
