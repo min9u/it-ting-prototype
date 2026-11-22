@@ -104,7 +104,7 @@ export interface MeetupDetailVM {
   alert: boolean
   reported: boolean
 }
-const MY: Record<ApplicationStatus, Mine['st']> = { PENDING: 'pending', CANCELED: 'withdrawn', REJECTED: 'rejected', EXPIRED: 'rejected', APPROVED: 'joined', LEFT: 'quit', KICKED: 'kicked' }
+const MY: Record<ApplicationStatus, Mine['st']> = { PENDING: 'pending', CANCELED: 'withdrawn', REJECTED: 'rejected', EXPIRED: 'rejected', MEETUP_CANCELED: 'cancelClosed', APPROVED: 'joined', LEFT: 'quit', KICKED: 'kicked' }
 export function toMeetupDetail(d: MeetupDetailDto): MeetupDetailVM {
   const meetup: MeetupX = {
     ...toMeetup(d), intro: d.description ?? '', prep: d.supplies ?? undefined, askMsg: d.acceptsMessage,

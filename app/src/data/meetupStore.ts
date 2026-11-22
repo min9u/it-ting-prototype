@@ -34,7 +34,8 @@ export interface MeetupX extends Meetup {
   seq: number
 }
 
-export type MyState = 'pending' | 'withdrawn' | 'rejected' | 'joined' | 'quit' | 'kicked' | 'host'
+/** 신청 기록 일곱 가지 + 주최자 (명세 07 상태 표). cancelClosed = "모임 취소로 마감": 신청 대기 중에 모임이 취소됨 (다시 신청 불가) */
+export type MyState = 'pending' | 'withdrawn' | 'rejected' | 'joined' | 'quit' | 'kicked' | 'cancelClosed' | 'host'
 export interface Mine { st: MyState; note?: string; at?: number; auto?: boolean }
 export interface Applicant { userId: string; msg: string; at: number }
 
@@ -188,12 +189,16 @@ export function recruitOf(m: MeetupX, s = state): Recruit {
   if (leftOf(m, s) <= 0 || deadlinePassed(m)) return 'closed'
   return 'open'
 }
-/** 내 신청 기록. 신청 대기인데 마감 조건이 지났으면 자동 미승인 (M7) */
+/**
+ * 내 신청 기록. 신청 대기인데 마감 조건이 지났으면 자동 미승인 (M7).
+ * 신청 대기 중에 모임이 취소되면 "모임 취소로 마감"(F7-B1): 미승인이 아님, 다시 신청 불가, 내 모임에 안 나옴
+ */
 export function myOf(id: string, s = state): Mine | undefined {
   const r = s.my[id]
   if (r?.st !== 'pending') return r
   const m = findMeetup(id, s)
   if (!m) return r
+  if (m.cancelled) return { ...r, st: 'cancelClosed' }
   const expired = m.deadline ? deadlinePassed(m) : leftOf(m, s) <= 0 || isPast(m)
   return expired ? { ...r, st: 'rejected', auto: true } : r
 }

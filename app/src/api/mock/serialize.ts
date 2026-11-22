@@ -84,7 +84,7 @@ export function meetupCard(m: MeetupX, s: MeetupState = getMeetupState()): Meetu
     area: m.area || null, sign: m.sign ?? null,
   }
 }
-const APP: Record<string, ApplicationStatus> = { pending: 'PENDING', withdrawn: 'CANCELED', joined: 'APPROVED', quit: 'LEFT', kicked: 'KICKED' }
+const APP: Record<string, ApplicationStatus> = { pending: 'PENDING', withdrawn: 'CANCELED', joined: 'APPROVED', quit: 'LEFT', kicked: 'KICKED', cancelClosed: 'MEETUP_CANCELED' }
 export function meetupDetail(id: string, s: MeetupState = getMeetupState()): MeetupDetailDto {
   const m = findMeetup(id, s)!
   const mine = myOf(id, s)

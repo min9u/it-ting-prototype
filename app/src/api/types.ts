@@ -56,8 +56,8 @@ export type MemberRole = 'USER' | 'ADMIN'
 export type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
 /** meetup.mode */
 export type MeetupMode = 'OFFLINE' | 'ONLINE'
-/** meetup_application.status (프론트 MyState: pending · withdrawn · rejected(+auto) · joined · quit · kicked) */
-export type ApplicationStatus = 'PENDING' | 'CANCELED' | 'REJECTED' | 'EXPIRED' | 'APPROVED' | 'LEFT' | 'KICKED'
+/** meetup_application.status (프론트 MyState: pending · withdrawn · rejected(+auto) · joined · quit · kicked · cancelClosed = MEETUP_CANCELED) */
+export type ApplicationStatus = 'PENDING' | 'CANCELED' | 'REJECTED' | 'EXPIRED' | 'APPROVED' | 'LEFT' | 'KICKED' | 'MEETUP_CANCELED'
 /** 서버가 계산해서 주는 모집 상태 (meetup 에 칼럼 없음 → erd-gaps) */
 export type RecruitStatus = 'OPEN' | 'CLOSED' | 'ENDED' | 'CANCELED'
 /** post.category */
