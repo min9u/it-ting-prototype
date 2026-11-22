@@ -1,73 +1,80 @@
 import { lazy, Suspense, useState } from 'react'
 import SceneBoundary from '../../components/SceneBoundary'
 import Avatar from '../../components/Avatar'
-import type { TeaSeat } from '../../three/TeaRoomCanvas'
+import { testParam } from '../../three/engine'
 import s from './TeaRoom.module.css'
 
-const TeaRoomCanvas = lazy(() => import('../../three/TeaRoomCanvas'))
+const ChatRoomCanvas = lazy(() => import('../../three/ChatRoomCanvas'))
 
 /**
- * 찻방 (Figma 02 F6 ①): 모든 대화가 같이 쓰는 채팅 전용 방. 찻상에 두더지들이 둘러앉음.
- * - 1:1: 나와 상대가 마주 봄 / 모임: 참여자들이 둘러앉음 (5마리까지 그리고 나머지는 "+N") / 대화 선택 전: 나 혼자, 맞은편 자리는 비어 있음
- * - 두더지·이름표를 누르면 프로필 팝업 (나·탈퇴한 사용자는 제외)
- * - 찻방 그림은 디자인이 아직 없어서 명세 밑그림을 따라 2D 로 그림 (창문·전등·선반·러그·찻상)
+ * 찻방 (Figma 02 F6 ①): 모든 대화가 같이 쓰는 채팅 전용 방. 3D 방 가운데 원탁에 두더지들이 방석을 깔고 둘러앉음 (채팅방 3D v1, docs/chat-room-3d.md).
+ * - 1:1 → 2마리, 모임 → 참여자 수만큼 (최대 6자리: "나" + 최근에 말한 5명, 못 앉은 사람은 "+N" 배지), 대화 선택 전 → 나 혼자 앉고 맞은편은 빈자리 표시
+ * - 두더지·이름표를 누르면 프로필 팝업 (나·탈퇴한 사용자는 제외). 메시지를 보내면 그 두더지가 손짓(sit_talk)
+ * - 3D 가 준비되기 전·WebGL 을 못 쓸 때는 예전 2D 찻방 그림(밑그림 + 2D 두더지)을 그대로 보여 줌
  */
 export interface TeaGuest { id: string; name: string; worn: string[]; me?: boolean; gone?: boolean }
 
 const MAX = 5
-// 자리: [x, y, 키, 방향, 깊이]. 0 = 나 (앞 왼쪽)
+// 2D 대체 그림 자리: [x, y, 키, 방향, 깊이]. 0 = 나 (앞 왼쪽)
 const DUO: [number, number, number, number, number][] = [[0.22, 0.88, 0.22, 0.55, 0], [0.78, 0.88, 0.22, -0.55, 0]]
 const GROUP: [number, number, number, number, number][] = [
   [0.2, 0.9, 0.21, 0.5, 0], [0.8, 0.9, 0.21, -0.5, 0],
   [0.3, 0.68, 0.17, 0.3, 1], [0.7, 0.68, 0.17, -0.3, 1], [0.5, 0.63, 0.15, 0, 2],
 ]
 
-export default function TeaRoom({ guests, mode, greet, onPick }: {
+const MOCK_NAMES = ['하린', '서벅이', '민구', '하늘', '서연', '지후', '도윤', '다온']
+const MOCK_WORN = [['hat_beret', 'prop_cup'], ['glasses_round', 'prop_balloon'], ['headphones', 'prop_book'], ['hat_sprout', 'prop_lightstick'], ['hat_mortarboard'], ['scarf_knit', 'prop_gamepad']]
+
+export default function TeaRoom({ guests: given, mode, greet, spoke, roomKey, onPick, onMore }: {
   guests: TeaGuest[]
   mode: 'empty' | 'dm' | 'group'
+  /** 메시지를 보낸(받은) 사람: n 이 바뀔 때마다 그 두더지가 말함 */
   greet?: { id: string; n: number }
+  /** 사용자별 마지막으로 말한 시각 (ms) — 6명 초과일 때 누가 앉을지 */
+  spoke?: Record<string, number>
+  /** 대화방이 바뀌면 3D 방을 새로 만듦 */
+  roomKey?: string
   onPick?: (id: string) => void
+  /** "+N" 배지를 누름 (참여자 목록 열기) */
+  onMore?: () => void
 }) {
+  let guests = given
   const [ready, setReady] = useState(false)
-  const shown = guests.slice(0, MAX)
-  const extra = guests.length - shown.length
+  const [overflow, setOverflow] = useState(0)
+  // 시험 손잡이 ?mockguests=N : 참여자를 N명이 될 때까지 가짜로 채움 (인원별 자리 · 6명 초과 확인용, 손 소품을 든 두더지 포함)
+  const fill = +(testParam('mockguests') ?? 0)
+  if (fill > guests.length) guests = [...guests, ...Array.from({ length: fill - guests.length }, (_, i) => ({ id: `mock${i}`, name: MOCK_NAMES[i % MOCK_NAMES.length], worn: MOCK_WORN[i % MOCK_WORN.length] }))]
   const layout = mode === 'group' ? GROUP : DUO
-  const seats: TeaSeat[] = shown.map((g, i) => {
-    const [x, y, h, yaw, depth] = layout[i]
-    return { id: g.id, worn: g.worn, x, y, h, yaw, depth }
-  })
+  const shown = guests.slice(0, Math.min(MAX, layout.length))
+  const extra = guests.length - shown.length
+  const seats = shown.map((g, i) => ({ g, st: layout[i] }))
   return (
     <section className={s.wrap} aria-label={mode === 'empty' ? '찻방. 아직 고른 대화가 없어 내 두더지만 앉아 있어요' : `찻방. ${guests.map((g) => g.name).join(', ')}`}>
-      <div className={s.box}>
+      {/* 2D 대체 그림 (3D 가 준비되면 숨김) */}
+      <div className={ready ? s.boxHidden : s.box}>
         <RoomArt />
         {mode === 'empty' && <span className={s.emptySeat} style={{ left: '78%', top: '88%' }} aria-hidden />}
-        {/* 발밑 그림자 (2D) */}
-        {seats.map((st) => <span key={`sh-${st.id}`} className={s.shadow} style={{ left: `${st.x * 100}%`, top: `${st.y * 100}%`, width: `${st.h * 70}%` }} aria-hidden />)}
-        {/* 3D 가 준비되기 전·못 쓸 때: 2D 두더지 그림 */}
-        {!ready && seats.map((st) => (
-          <span key={`ph-${st.id}`} className={s.placeholder} style={{ left: `${st.x * 100}%`, top: `${st.y * 100}%`, height: `${st.h * 100}%` }} aria-hidden>
+        {seats.map(({ g, st: [x, y, h] }) => (
+          <span key={`ph-${g.id}`} className={s.placeholder} style={{ left: `${x * 100}%`, top: `${y * 100}%`, height: `${h * 100}%` }} aria-hidden>
             <Avatar size={64} />
           </span>
         ))}
-        <SceneBoundary>
-          <Suspense fallback={null}>
-            <TeaRoomCanvas seats={seats} greet={greet} className={s.canvas} onReady={() => setReady(true)} />
-          </Suspense>
-        </SceneBoundary>
-        {/* 이름표 + 누르는 자리 */}
         {shown.map((g, i) => {
-          const st = seats[i]
-          const clickable = !g.me && !g.gone && !!onPick
-          return (
-            <button key={g.id} type="button" className={s.hit} disabled={!clickable}
-              style={{ left: `${st.x * 100}%`, top: `${st.y * 100}%`, height: `${(st.h + 0.06) * 100}%`, width: `${st.h * 62}%`, zIndex: 3 - st.depth }}
-              onClick={() => clickable && onPick!(g.id)} aria-label={clickable ? `${g.name} 프로필 보기` : g.name}>
-              <span className={g.me ? s.tagMe : s.tag}>{g.me ? '나' : g.name}</span>
-            </button>
-          )
+          const [x, y, h] = layout[i]
+          return <span key={g.id} className={s.hit2d} style={{ left: `${x * 100}%`, top: `${y * 100}%`, height: `${(h + 0.06) * 100}%` }}><span className={g.me ? s.tagMe : s.tag}>{g.me ? '나' : g.name}</span></span>
         })}
         {extra > 0 && <span className={s.more}>+{extra}명</span>}
       </div>
+      <SceneBoundary>
+        <Suspense fallback={null}>
+          <ChatRoomCanvas roomKey={roomKey ?? mode} members={guests} spoke={spoke ?? {}} speak={greet} className={s.canvas}
+            ui={{ tag: s.tag3d, tagMe: s.tag3dMe, tagBtn: s.tag3dBtn }}
+            onPick={(id) => onPick?.(id)} onOverflow={setOverflow} onReady={() => setReady(true)} />
+        </Suspense>
+      </SceneBoundary>
+      {ready && overflow > 0 && (
+        <button type="button" className={s.moreBtn} onClick={onMore} aria-label={`참여자 ${overflow}명이 더 있어요. 참여자 목록 보기`}>+{overflow}</button>
+      )}
     </section>
   )
 }
