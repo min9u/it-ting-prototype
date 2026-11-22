@@ -4,7 +4,8 @@ import Footer from '../../components/Footer'
 import { CalendarIcon, ChevronLeft, ChevronRight, PlusIcon } from '../../components/Icons'
 import { TODAY } from '../../data/mock'
 import { meetupToneOf } from '../../data/meetupCategory'
-import { type MeetupX, daysLeft, ddayOf, hourLabel, mineGroups, myOf, useMeetups } from '../../data/meetupStore'
+import { daysLeft, ddayOf, hourLabel } from '../../data/meetupStore'
+import { useMeetupCalendar, useMyMeetupSummary, useMyMeetups, type MeetupCardVM, type MeetupMyStatus } from '../../api/meetups'
 import { dateLabel, dateParts } from '../../lib/format'
 import { CalendarModal, MY_LABEL, TODAY_PARTS, WEEK, monthCells, shiftMonth, ymdOf } from './parts'
 import s from './Meetups.module.css'
@@ -14,6 +15,8 @@ import s from './Meetups.module.css'
  * 2026-11-16 F7 명세: 리스트 사이드 = 내 모임 위젯(7) + 다가오는 일정(8) + 모임 만들기(1)
  *                    내 모임 사이드 = 다음 모임 카드(6) + 미니 캘린더 · 캘린더로 보기(7) + 모임 만들기(8)
  * 캘린더로 보기 = 캘린더 팝업(기본 보기: 내 모임, M13). 데모용 ?modal=calendar
+ * API: 리스트 사이드 = GET /me/meetups/summary(upcomingItems), 다음 모임 카드 = GET /me/meetups?tab=UPCOMING 첫 모임,
+ *      미니 캘린더 = GET /meetup-calendar?scope=MINE
  */
 export default function MeetupsShell() {
   const loc = useLocation()
@@ -23,8 +26,8 @@ export default function MeetupsShell() {
   const dir = isMe === prev.current ? 'none' : isMe ? 'forward' : 'back'
   useEffect(() => { prev.current = isMe }, [isMe])
   const [calOpen, setCalOpen] = useState(params.get('modal') === 'calendar')
-  const st = useMeetups()
-  const g = mineGroups(st)
+  const sum = useMyMeetupSummary()
+  const active = sum.data?.upcoming ?? []
 
   return (
     <div className={s.shellWrap}>
@@ -35,16 +38,17 @@ export default function MeetupsShell() {
         <aside className={s.side}>
           {!isMe && (
             <div className={s.widget}>
-              <div className={s.widgetHead}><h2 className="display">내 모임 <span className={s.cnt}>{g.active.length}</span></h2><Link to="/meetups/me" className={s.allLink}>전체 보기</Link></div>
+              <div className={s.widgetHead}><h2 className="display">내 모임 <span className={s.cnt}>{active.length}</span></h2><Link to="/meetups/me" className={s.allLink}>전체 보기</Link></div>
               <ul className={s.mineList}>
-                {g.active.length === 0 && <li className={s.sideEmpty}>참여하거나 신청한 모임이 없어요.</li>}
-                {g.active.slice(0, 3).map((m) => <MiniRow key={m.id} m={m} />)}
+                {sum.isSuccess && active.length === 0 && <li className={s.sideEmpty}>참여하거나 신청한 모임이 없어요.</li>}
+                {sum.isError && !sum.data && <li className={s.sideEmpty}>내 모임을 불러오지 못했어요.</li>}
+                {active.slice(0, 3).map((c) => <MiniRow key={c.meetup.id} c={c} />)}
               </ul>
             </div>
           )}
-          {!isMe && <Upcoming list={g.active} onCalendar={() => setCalOpen(true)} />}
-          {isMe && <NextCard m={g.upcoming[0] ?? g.active[0]} />}
-          {isMe && <MiniCalendar marks={[...g.active, ...g.past].filter((m) => !m.cancelled)} onCalendar={() => setCalOpen(true)} />}
+          {!isMe && <Upcoming list={active} onCalendar={() => setCalOpen(true)} />}
+          {isMe && <NextCard />}
+          {isMe && <MiniCalendar onCalendar={() => setCalOpen(true)} />}
           <Link to="/meetups/new" className={`btn btn-cta btn-block ${s.makeBtn}`}><PlusIcon size={18} /> 모임 만들기</Link>
         </aside>
       </div>
@@ -54,10 +58,11 @@ export default function MeetupsShell() {
   )
 }
 
+type Mine = MeetupCardVM & { my: MeetupMyStatus }
 /** 내 모임 위젯 한 줄: 팻말 아이콘 + 제목 + 날짜·동네 + 상태 배지 (참여 확정 / 신청 대기 / 내가 주최) */
-function MiniRow({ m }: { m: MeetupX }) {
-  const st = useMeetups()
-  const lab = MY_LABEL[myOf(m.id, st)?.st ?? ''] ?? MY_LABEL.pending
+function MiniRow({ c }: { c: Mine }) {
+  const m = c.meetup
+  const lab = MY_LABEL[c.my] ?? MY_LABEL.PENDING!
   return (
     <li>
       <span className={s.miniSign} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)` }} aria-hidden><i /></span>
@@ -71,13 +76,13 @@ function MiniRow({ m }: { m: MeetupX }) {
 }
 
 /** 다가오는 일정: 내 모임 중 가까운 일정 (날짜, 제목, 시간·장소, D-day). 누르면 모임 상세 */
-function Upcoming({ list, onCalendar }: { list: MeetupX[]; onCalendar: () => void }) {
+function Upcoming({ list, onCalendar }: { list: Mine[]; onCalendar: () => void }) {
   return (
     <div className={s.widget}>
       <div className={s.widgetHead}><h2 className="display">다가오는 일정</h2></div>
       <ul className={s.upcoming}>
         {list.length === 0 && <li className={s.sideEmpty}>다가오는 일정이 없어요.</li>}
-        {list.slice(0, 3).map((m, i) => {
+        {list.slice(0, 3).map(({ meetup: m }, i) => {
           const { m: mm, d, w } = dateParts(m.date)
           return (
             <li key={m.id}>
@@ -98,9 +103,11 @@ function Upcoming({ list, onCalendar }: { list: MeetupX[]; onCalendar: () => voi
   )
 }
 
-/** 다음 모임 카드: 다가오는 모임 중 가장 가까운 모임까지 남은 날 + 일시 · 장소 */
-function NextCard({ m }: { m?: MeetupX }) {
-  if (!m) return <div className={s.nextCard}><small>다음 모임까지</small><p className={s.nextEmpty}>다가오는 모임이 없어요</p></div>
+/** 다음 모임 카드: 다가오는 모임(tab=UPCOMING)의 첫 모임까지 남은 날 + 일시 · 장소 */
+function NextCard() {
+  const q = useMyMeetups('UPCOMING')
+  const m = q.data?.[0]?.meetup
+  if (!m) return <div className={s.nextCard}><small>다음 모임까지</small><p className={s.nextEmpty}>{q.isPending ? '불러오는 중…' : q.isError ? '불러오지 못했어요' : '다가오는 모임이 없어요'}</p></div>
   const n = daysLeft(m.date)
   return (
     <Link to={`/meetups/${m.id}`} className={s.nextCard}>
@@ -112,8 +119,10 @@ function NextCard({ m }: { m?: MeetupX }) {
 }
 
 /** 미니 캘린더: 모임이 있는 날을 카테고리 색으로, 오늘은 진한 원 */
-function MiniCalendar({ marks, onCalendar }: { marks: MeetupX[]; onCalendar: () => void }) {
+function MiniCalendar({ onCalendar }: { onCalendar: () => void }) {
   const [ym, setYm] = useState({ y: TODAY_PARTS.y, m: TODAY_PARTS.m })
+  const cal = useMeetupCalendar({ year: ym.y, month: ym.m, scope: 'MINE' })
+  const marks = (cal.data?.items ?? []).map((x) => x.meetup)
   return (
     <div className={s.widget}>
       <div className={s.widgetHead}>

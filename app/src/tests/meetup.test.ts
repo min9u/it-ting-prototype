@@ -2,7 +2,7 @@
  * 모임 규칙 (data/meetupStore.ts)
  * 근거: 02 F7 + docs/meetup-spec-review.md 결정 M1~M17, docs/spec-f7.md
  * - M2 정원에 주최자 포함 · M5 수정 12시간 / 참여 취소 24시간 / 취소는 시작 전까지
- * - M7 처리 안 된 신청은 마감 시각에 자동 미승인 (마감이 없으면 정원이 차거나 시작될 때)
+ * - M7 처리 안 된 신청은 마감 시각에 자동 미승인 (마감이 없으면 시작될 때. 정원이 차도 기다리던 신청은 남음 — 백엔드 명세 07)
  * - M8 스스로 신청 취소한 경우만 다시 신청 · M14 시작 시각이 지나면 바로 지난 모임 · M15 태그 최대 3개
  * 시간 기준: 목 데이터의 오늘(TODAY = 2026-11-03) 정오 = NOW
  */
@@ -101,9 +101,9 @@ describe('신청 기록 (M7 자동 미승인 · M8 다시 신청)', () => {
     const { s } = st({ deadline: '2026-11-02T18:00' }, [], pending)
     expect(S.myOf('t1', s)).toMatchObject({ st: 'rejected', auto: true })
   })
-  it('M7 마감 일시가 없으면 정원이 찼을 때 자동 미승인', () => {
+  it('정원이 차도 마감 전이면 신청 대기 유지 (명세 07: 자리가 나면 주최자가 수락할 수 있음)', () => {
     const { s } = st({ capacity: 2 }, ['a'], pending)
-    expect(S.myOf('t1', s)?.st).toBe('rejected')
+    expect(S.myOf('t1', s)?.st).toBe('pending')
   })
   it('M7 마감 일시가 없으면 모임이 시작될 때 자동 미승인', () => {
     const { s } = st({ date: TODAY, start: '오전 9:00' }, [], pending)
@@ -214,9 +214,19 @@ describe('동작 (저장소)', () => {
     S.toggleWish('m6')
     expect(S.findMeetup('m6')!.likes).toBe(before)
   })
-  it('신고는 같은 모임에 한 번만 (M10)', () => {
-    S.report('m6'); S.report('m6')
-    expect(S.getMeetupState().reported).toEqual(['m6'])
+  it('모임 신고는 이번 범위가 아님 (명세 README "이번 범위에 없는 것") → 저장소에 신고 기록이 없음', () => {
+    expect('report' in S).toBe(false)
+    expect('reported' in S.getMeetupState()).toBe(false)
+  })
+  it('찜을 풀면 빈자리 알림도 함께 꺼짐 (명세: meetup_like 줄을 지움)', () => {
+    S.setWish('m6', true); S.setAlert('m6', true)
+    S.setWish('m6', false)
+    expect(S.getMeetupState().alerts).not.toContain('m6')
+  })
+  it('신청 대기 중 모임이 취소되면 "모임 취소로 마감" (MEETUP_CANCELED)', () => {
+    S.cancelMeetup('m2')
+    expect(S.myOf('m2')?.st).toBe('mcancel')
+    expect(S.canReapply(S.myOf('m2'))).toBe(false)
   })
 })
 

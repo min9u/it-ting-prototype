@@ -7,14 +7,15 @@ import fb from '../../components/Feedback.module.css'
 import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
-import { ME_ID, TODAY, USERS, toneOf } from '../../data/mock'
+import { TODAY, toneOf } from '../../data/mock'
 import { meetupToneOf } from '../../data/meetupCategory'
-import { groupRoomId } from '../../data/chat'
 import type { User } from '../../data/types'
+import { type MeetupX, ddayOf, hourLabel, placeLine, startMs } from '../../data/meetupStore'
+import { patch, useOptimistic } from '../../api'
 import {
-  type MeetupX, accept, applicantsOf, confirmedOf, ddayOf, findMeetup, hourLabel, kick, membersOf, mineGroups, myOf,
-  placeLine, reject, startMs, useMeetups,
-} from '../../data/meetupStore'
+  MEETUP_ERRORS, meetupCalls, meetupKeys, useMeetupApplications, useMeetupCalendar, useMyMeetupSummary,
+  type MeetupApplicationVM, type MeetupApplicationsVM, type MeetupCalendarScope, type MeetupMyStatus,
+} from '../../api/meetups'
 import { dateParts } from '../../lib/format'
 import s from './Meetups.module.css'
 
@@ -123,26 +124,29 @@ export function RangePicker({ value, onApply, onReset, onClose }: {
   )
 }
 
-/* ===== 상태 배지 ===== */
-export const MY_LABEL: Record<string, { label: string; cls: string }> = {
-  joined: { label: '참여 확정', cls: s.stOk }, pending: { label: '신청 대기', cls: s.stWait }, host: { label: '내가 주최', cls: s.stHost },
-  rejected: { label: '승인되지 않음', cls: s.stNo },
+/* ===== 상태 배지 (내 상태 = 서버 myStatus) ===== */
+export const MY_LABEL: Partial<Record<MeetupMyStatus, { label: string; cls: string }>> = {
+  CONFIRMED: { label: '참여 확정', cls: s.stOk }, PENDING: { label: '신청 대기', cls: s.stWait }, HOST: { label: '내가 주최', cls: s.stHost },
+  REJECTED: { label: '승인되지 않음', cls: s.stNo },
 }
 
-/* ===== 모임 캘린더 팝업 (1075:12387 · 내 모임 1075:13394): 월 이동, 내 모임 / 전체 모임, 월간 달력, 고른 날의 모임, 이번 달 요약 ===== */
+/* ===== 모임 캘린더 팝업 (1075:12387 · 내 모임 1075:13394): GET /meetup-calendar. 월 이동, 내 모임 / 전체 모임, 월간 달력, 고른 날의 모임, 이번 달 요약 ===== */
 export function CalendarModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const st = useMeetups()
-  const g = mineGroups(st)
-  const [view, setView] = useState<'mine' | 'all'>('mine')
+  const sum = useMyMeetupSummary()
+  const [scope, setScope] = useState<MeetupCalendarScope>('MINE')
   const [ym, setYm] = useState({ y: TODAY_PARTS.y, m: TODAY_PARTS.m })
-  const [day, setDay] = useState<string>(() => g.active[0]?.date ?? TODAY)
-  useEffect(() => { if (open) { setView('mine'); setYm({ y: TODAY_PARTS.y, m: TODAY_PARTS.m }); setDay(mineGroups().active[0]?.date ?? TODAY) } }, [open])
-  const mineIds = new Set([...g.active, ...g.past].map((m) => m.id))
-  const pool = st.list.filter((m) => !m.cancelled && (view === 'mine' ? mineIds.has(m.id) : true))
-  const inMonth = pool.filter((m) => m.date.startsWith(ymdOf(ym.y, ym.m, 1).slice(0, 8)))
-  const picked = pool.filter((m) => m.date === day).sort((a, b) => startMs(a) - startMs(b))
-  const monthMine = st.list.filter((m) => mineIds.has(m.id) && !m.cancelled && m.date.startsWith(ymdOf(ym.y, ym.m, 1).slice(0, 8)))
-  const count = (k: string) => monthMine.filter((m) => myOf(m.id, st)?.st === k).length
+  const [day, setDay] = useState<string>(TODAY)
+  const firstMine = sum.data?.upcoming[0]?.meetup.date
+  // 열 때마다 기본 보기(내 모임) · 이번 달 · 가장 가까운 내 모임 날로
+  const [touched, setTouched] = useState(false)
+  useEffect(() => { if (open) { setScope('MINE'); setYm({ y: TODAY_PARTS.y, m: TODAY_PARTS.m }); setDay(firstMine ?? TODAY); setTouched(false) } }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 요약이 늦게 오면 (팝업을 먼저 연 경우) 날을 고르기 전까지 가장 가까운 내 모임 날로
+  useEffect(() => { if (open && !touched && firstMine) setDay(firstMine) }, [firstMine]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cal = useMeetupCalendar({ year: ym.y, month: ym.m, scope }, open)
+  const all = cal.data?.items ?? []
+  const byDay = (ymd: string) => all.filter((x) => x.meetup.date === ymd)
+  const picked = byDay(day).sort((a, b) => startMs(a.meetup) - startMs(b.meetup))
+  const sm = cal.data?.summary
   return (
     <Modal open={open} onClose={onClose} width={960} labelledBy="cal-title" hideClose>
       <div className={s.calPop}>
@@ -152,23 +156,23 @@ export function CalendarModal({ open, onClose }: { open: boolean; onClose: () =>
           <strong className={s.calYm}>{ym.y}년 {ym.m}월</strong>
           <button type="button" className={s.navBtn} onClick={() => setYm(shiftMonth(ym.y, ym.m, 1))} aria-label="다음 달"><ChevronRight size={16} /></button>
           <div className={s.seg} style={{ marginLeft: 'auto' }} role="tablist" aria-label="보기 전환">
-            {(['mine', 'all'] as const).map((v) => <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? s.segOn : s.segBtn} onClick={() => setView(v)}>{v === 'mine' ? '내 모임' : '전체 모임'}</button>)}
+            {(['MINE', 'ALL'] as const).map((v) => <button key={v} type="button" role="tab" aria-selected={scope === v} className={scope === v ? s.segOn : s.segBtn} onClick={() => setScope(v)}>{v === 'MINE' ? '내 모임' : '전체 모임'}</button>)}
           </div>
           <button type="button" className={s.closeSq} onClick={onClose} aria-label="닫기">✕</button>
         </header>
         <div className={s.calBody}>
-          <div className={s.bigCal}>
+          <div className={s.bigCal} aria-busy={cal.isFetching}>
             {WEEK.map((w, i) => <span key={w} className={`${s.bcWeek} ${i === 0 ? s.sun : ''}`}>{w}</span>)}
             {monthCells(ym.y, ym.m).map((d, i) => {
               if (d === null) return <span key={`e${i}`} className={s.bcEmpty} />
               const ymd = ymdOf(ym.y, ym.m, d)
-              const items = inMonth.filter((m) => m.date === ymd)
+              const list = byDay(ymd)
               return (
-                <button key={d} type="button" onClick={() => setDay(ymd)} aria-pressed={ymd === day}
+                <button key={d} type="button" onClick={() => { setDay(ymd); setTouched(true) }} aria-pressed={ymd === day}
                   className={`${s.bcDay} ${ymd === day ? s.bcOn : ''} ${ymd < TODAY ? s.bcPast : ''} ${i % 7 === 0 ? s.sun : ''}`}>
                   <span className={ymd === TODAY ? s.bcToday : s.bcNum}>{d}</span>
-                  {items.slice(0, 2).map((m) => <em key={m.id} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)`, color: `var(--tone-${meetupToneOf(m.category)}-fg)` }}>{m.sign ?? m.title}</em>)}
-                  {items.length > 2 && <small>+{items.length - 2}</small>}
+                  {list.slice(0, 2).map(({ meetup: m }) => <em key={m.id} style={{ background: `var(--tone-${meetupToneOf(m.category)}-bg)`, color: `var(--tone-${meetupToneOf(m.category)}-fg)` }}>{m.sign ?? m.title}</em>)}
+                  {list.length > 2 && <small>+{list.length - 2}</small>}
                 </button>
               )
             })}
@@ -176,32 +180,31 @@ export function CalendarModal({ open, onClose }: { open: boolean; onClose: () =>
           <aside className={s.calSide}>
             <h3 className="display">{fullDate(day)}</h3>
             <p className={s.calSub}>{ddayOf(day)} · 모임 {picked.length}개</p>
-            {picked.length === 0 && <p className={s.calEmpty}>이 날은 {view === 'mine' ? '내 ' : ''}모임이 없어요.</p>}
+            {cal.isError && !cal.data && <p className={s.calEmpty}>달력을 불러오지 못했어요. <button type="button" className={s.linkBtn} onClick={() => void cal.refetch()}>다시 시도</button></p>}
+            {picked.length === 0 && !cal.isError && <p className={s.calEmpty}>이 날은 {scope === 'MINE' ? '내 ' : ''}모임이 없어요.</p>}
             <div className={s.calItems}>
-              {picked.map((m) => {
-                const r = myOf(m.id, st)
-                const lab = r && MY_LABEL[r.st]
-                const chat = r?.st === 'joined' || r?.st === 'host'
+              {picked.map(({ meetup: m, confirmed, my, chatRoomId }) => {
+                const lab = MY_LABEL[my]
                 return (
                   <div key={m.id} className={s.calItem}>
                     {lab && <em className={lab.cls}>{lab.label}</em>}
                     <strong>{m.title}</strong>
-                    <span>🕑 {m.start} – {m.end}</span>
+                    <span>🕑 {m.start}{m.end && ` – ${m.end}`}</span>
                     <span>📍 {placeLine(m)}</span>
-                    <span>👥 {confirmedOf(m, st)} / {m.capacity}명</span>
+                    <span>👥 {confirmed} / {m.capacity}명</span>
                     <div className={s.calActions}>
                       <Link to={`/meetups/${m.id}`} className="btn btn-line btn-sm" onClick={onClose}>모임 상세</Link>
-                      {chat && <Link to={`/chat/${groupRoomId(m.id)}`} className="btn btn-primary btn-sm" onClick={onClose}>모임 채팅</Link>}
+                      {chatRoomId && <Link to={`/chat/${chatRoomId}`} className="btn btn-primary btn-sm" onClick={onClose}>모임 채팅</Link>}
                     </div>
                   </div>
                 )
               })}
             </div>
             <div className={s.calSum}>
-              <strong>이번 달 내 모임 {monthMine.length}개</strong>
-              <span><i className={s.dotOk} />참여 확정 {count('joined')}</span>
-              <span><i className={s.dotWait} />신청 대기 {count('pending')}</span>
-              <span><i className={s.dotHost} />내가 연 모임 {count('host')}</span>
+              <strong>이번 달 내 모임 {sm ? sm.confirmed + sm.pending + sm.hosting : 0}개</strong>
+              <span><i className={s.dotOk} />참여 확정 {sm?.confirmed ?? 0}</span>
+              <span><i className={s.dotWait} />신청 대기 {sm?.pending ?? 0}</span>
+              <span><i className={s.dotHost} />내가 연 모임 {sm?.hosting ?? 0}</span>
             </div>
           </aside>
         </div>
@@ -210,58 +213,72 @@ export function CalendarModal({ open, onClose }: { open: boolean; onClose: () =>
   )
 }
 
-/* ===== 신청 관리 팝업 (740:5113): 내 모임 › 내가 연 모임 카드에서만 연다. 거절·내보내기 확인 팝업 (972:9020 · 972:9522) ===== */
+/* ===== 신청 관리 팝업 (740:5113): 내 모임 › 내가 연 모임 카드에서만 연다. 거절·내보내기 확인 팝업 (972:9020 · 972:9522) =====
+ * GET /meetups/{id}/applications → 수락 · 거절 · 내보내기 (신청 id). 화면을 먼저 바꾸고 실패하면 되돌림, 끝나면 모임 캐시를 새로 받음 */
 export function ManageModal({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const st = useMeetups()
-  const m = id ? findMeetup(id, st) : undefined
-  const [ask, setAsk] = useState<null | { kind: 'reject' | 'kick'; userId: string }>(null)
+  const q = useMeetupApplications(id)
+  const run = useOptimistic()
+  const [ask, setAsk] = useState<null | { kind: 'reject' | 'kick'; row: MeetupApplicationVM }>(null)
   const [profile, setProfile] = useState<User | null>(null)
-  const me = USERS[ME_ID]
-  if (!m) return null
-  const apps = applicantsOf(m.id, st)
-  const mem = membersOf(m.id, st)
-  const full = confirmedOf(m, st) >= m.capacity
-  const overlap = (u: string) => (USERS[u]?.interests ?? []).filter((i) => me.interests.includes(i)).length
-  const row = (u: string, sub: ReactNode, actions: ReactNode) => (
-    <li key={u} className={s.mgRow}>
-      <button type="button" className={s.mgWho} onClick={() => setProfile(USERS[u] ?? null)} aria-label={`${USERS[u]?.nickname}님 프로필`}>
-        <span className={s.mgAva} style={{ background: `var(--tone-${toneOf(USERS[u]?.interests[0] ?? '')}-bg)` }}>{USERS[u]?.nickname.slice(0, 1)}</span>
+  const v = q.data
+  if (!id) return null
+  const key = meetupKeys.applications(id)
+  const act = (kind: 'accept' | 'reject' | 'kick', row: MeetupApplicationVM) => run.mutate({
+    call: () => meetupCalls[kind](row.id), errors: MEETUP_ERRORS, invalidate: [meetupKeys.all],
+    errorTitle: kind === 'accept' ? '수락하지 못했어요' : kind === 'reject' ? '거절하지 못했어요' : '내보내지 못했어요',
+    patches: [patch<MeetupApplicationsVM>(key, (o) => {
+      const pending = o.pending.filter((x) => x.id !== row.id)
+      if (kind === 'accept') return { ...o, pending, pendingCount: pending.length, confirmed: o.confirmed + 1, confirmedList: [...o.confirmedList, row] }
+      if (kind === 'reject') return { ...o, pending, pendingCount: pending.length }
+      return { ...o, confirmed: o.confirmed - 1, confirmedList: o.confirmedList.filter((x) => x.id !== row.id) }
+    }, true)],
+  })
+  const full = !!v && v.confirmed >= v.capacity
+  const off = !v?.canManage || run.isPending
+  const row = (r: MeetupApplicationVM, sub: ReactNode, actions: ReactNode) => (
+    <li key={r.id} className={s.mgRow}>
+      <button type="button" className={s.mgWho} onClick={() => setProfile(r.person)} aria-label={`${r.person.nickname}님 프로필`}>
+        <span className={s.mgAva} style={{ background: `var(--tone-${toneOf(r.person.interests[0] ?? '')}-bg)` }}>{r.person.nickname.slice(0, 1)}</span>
       </button>
       <div className={s.mgBody}>
-        <p><button type="button" className={s.mgName} onClick={() => setProfile(USERS[u] ?? null)}>{USERS[u]?.nickname}</button><em>겹치는 관심사 {overlap(u)}개</em></p>
+        <p><button type="button" className={s.mgName} onClick={() => setProfile(r.person)}>{r.person.nickname}</button><em>겹치는 관심사 {r.shared}개</em></p>
         <span>{sub}</span>
       </div>
       <div className={s.mgActions}>{actions}</div>
     </li>
   )
-  const askName = ask ? USERS[ask.userId]?.nickname : ''
   return (
     <>
-      <Modal open={!!id && !profile} onClose={onClose} width={600} labelledBy="manage-title">
+      <Modal open={!profile} onClose={onClose} width={600} labelledBy="manage-title">
         <div className={s.manage}>
           <h2 id="manage-title" className="display">신청 관리</h2>
-          <p className={s.manageSub}>{m.title} · 확정 {confirmedOf(m, st)} / {m.capacity}명 · 대기 {apps.length}명</p>
-          <h3 className={s.mgSection}>신청 대기 {apps.length}</h3>
-          <ul className={s.mgList}>
-            {apps.length === 0 && <li className={s.manageEmpty}>확인을 기다리는 신청이 없어요.</li>}
-            {apps.map((a) => row(a.userId, a.msg || '(남긴 말 없음)', <>
-              <button type="button" className={`btn btn-line btn-sm ${s.cancelBtn}`} onClick={() => setAsk({ kind: 'reject', userId: a.userId })}>거절</button>
-              <button type="button" className="btn btn-cta btn-sm" disabled={full} title={full ? '정원이 다 찼어요' : undefined} onClick={() => accept(m.id, a.userId)}>수락</button>
-            </>))}
-          </ul>
-          {full && apps.length > 0 && <p className={s.capWarn}>정원(주최자 포함)이 다 차서 수락할 수 없어요. 자리가 나면 수락할 수 있어요.</p>}
-          <h3 className={s.mgSection}>참여 확정 {mem.length}</h3>
-          <ul className={s.mgList}>
-            {mem.length === 0 && <li className={s.manageEmpty}>아직 확정된 참여자가 없어요.</li>}
-            {mem.map((u) => row(u, '참여 확정', <button type="button" className={`btn btn-line btn-sm ${s.cancelBtn}`} onClick={() => setAsk({ kind: 'kick', userId: u })}>내보내기</button>))}
-          </ul>
-          <p className={s.manageNote}>거절하면 결과가 안내되고, 수락하면 참여가 확정돼요. 확정자를 내보내면 자리가 다시 열려요.</p>
+          {q.isPending ? <p className={s.manageSub}>신청 목록을 불러오는 중…</p>
+            : q.isError && !v ? <p className={s.manageSub}>신청 목록을 불러오지 못했어요. <button type="button" className={s.linkBtn} onClick={() => void q.refetch()}>다시 시도</button></p>
+            : v && <>
+              <p className={s.manageSub}>{v.title} · 확정 {v.confirmed} / {v.capacity}명 · 대기 {v.pendingCount}명</p>
+              {!v.canManage && <p className={s.capWarn}>취소되었거나 이미 시작한 모임이라 신청을 처리할 수 없어요.</p>}
+              <h3 className={s.mgSection}>신청 대기 {v.pending.length}</h3>
+              <ul className={s.mgList}>
+                {v.pending.length === 0 && <li className={s.manageEmpty}>확인을 기다리는 신청이 없어요.</li>}
+                {v.pending.map((r) => row(r, r.message || '(남긴 말 없음)', <>
+                  <button type="button" className={`btn btn-line btn-sm ${s.cancelBtn}`} disabled={off} onClick={() => setAsk({ kind: 'reject', row: r })}>거절</button>
+                  <button type="button" className="btn btn-cta btn-sm" disabled={off || full} title={full ? '정원이 다 찼어요' : undefined} onClick={() => act('accept', r)}>수락</button>
+                </>))}
+              </ul>
+              {full && v.pending.length > 0 && <p className={s.capWarn}>정원(주최자 포함)이 다 차서 수락할 수 없어요. 자리가 나면 수락할 수 있어요.</p>}
+              <h3 className={s.mgSection}>참여 확정 {v.confirmedList.length}</h3>
+              <ul className={s.mgList}>
+                {v.confirmedList.length === 0 && <li className={s.manageEmpty}>아직 확정된 참여자가 없어요.</li>}
+                {v.confirmedList.map((r) => row(r, '참여 확정', <button type="button" className={`btn btn-line btn-sm ${s.cancelBtn}`} disabled={off} onClick={() => setAsk({ kind: 'kick', row: r })}>내보내기</button>))}
+              </ul>
+              <p className={s.manageNote}>거절하면 결과가 안내되고, 수락하면 참여가 확정돼요. 확정자를 내보내면 자리가 다시 열려요.</p>
+            </>}
         </div>
       </Modal>
       <ConfirmDialog open={ask?.kind === 'reject'} onClose={() => setAsk(null)} title="거절하시겠습니까?" desc="거절하시면 신청자에게 미승인 알림이 갑니다." confirmLabel="거절"
-        onConfirm={() => ask && reject(m.id, ask.userId)} />
-      <ConfirmDialog open={ask?.kind === 'kick'} onClose={() => setAsk(null)} title={`${askName}님을 내보낼까요?`} desc="내보내면 되돌릴 수 없고 상대에게 알림이 가요." confirmLabel="내보내기"
-        onConfirm={() => ask && kick(m.id, ask.userId)} />
+        onConfirm={() => ask && act('reject', ask.row)} />
+      <ConfirmDialog open={ask?.kind === 'kick'} onClose={() => setAsk(null)} title={`${ask?.row.person.nickname ?? ''}님을 내보낼까요?`} desc="내보내면 되돌릴 수 없고 상대에게 알림이 가요." confirmLabel="내보내기"
+        onConfirm={() => ask && act('kick', ask.row)} />
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />
     </>
   )
