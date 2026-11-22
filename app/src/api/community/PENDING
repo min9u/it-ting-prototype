@@ -2,26 +2,4 @@
 # 이 영역 작업자가 하나를 명세대로 만들면 real.ts 의 ENDPOINTS 에 적고 여기서 지운다.
 # 다 하면 이 파일은 주석만 남긴다. src/tests/api-v1-endpoints.test.ts 가 이 목록을 "할 일(todo)"로 보고,
 # 명세에 있는데 ENDPOINTS 에도 PENDING 에도 없으면 실패한다.
-GET /api/v1/posts  # 08-community.md
-GET /api/v1/posts/highlights  # 08-community.md
-POST /api/v1/posts  # 08-community.md
-GET /api/v1/posts/{postId}  # 08-community.md
-PATCH /api/v1/posts/{postId}  # 08-community.md
-DELETE /api/v1/posts/{postId}  # 08-community.md
-POST /api/v1/posts/{postId}/views  # 08-community.md
-GET /api/v1/posts/{postId}/related-posts  # 08-community.md
-PUT /api/v1/posts/{postId}/like  # 08-community.md
-DELETE /api/v1/posts/{postId}/like  # 08-community.md
-PUT /api/v1/posts/{postId}/bookmark  # 08-community.md
-DELETE /api/v1/posts/{postId}/bookmark  # 08-community.md
-GET /api/v1/posts/{postId}/comments  # 08-community.md
-POST /api/v1/posts/{postId}/comments  # 08-community.md
-PATCH /api/v1/comments/{commentId}  # 08-community.md
-DELETE /api/v1/comments/{commentId}  # 08-community.md
-PUT /api/v1/comments/{commentId}/like  # 08-community.md
-DELETE /api/v1/comments/{commentId}/like  # 08-community.md
-GET /api/v1/me/posts  # 08-community.md
-GET /api/v1/me/posts/summary  # 08-community.md
-GET /api/v1/me/linkable-meetups  # 08-community.md
-POST /api/v1/images  # 08-community.md
-POST /api/v1/reports  # 08-community.md
+# (08 커뮤니티 23개 모두 ENDPOINTS 로 옮김, 2026-11-22)

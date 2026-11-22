@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../../components/Avatar'
 import Footer from '../../components/Footer'
@@ -6,121 +6,81 @@ import InterestChip from '../../components/InterestChip'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, ReportDialog, TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import { CalendarIcon, ChatIcon, ChevronLeft, ChevronRight, HomeIcon } from '../../components/Icons'
-import { ME_ID, USERS, toneOf } from '../../data/mock'
-import { getMyInterests } from '../../data/interests'
+import { toneOf } from '../../data/mock'
+import { isApiError } from '../../api'
+import type { Person } from '../../api/common'
 import {
-  COMMENT_MAX, COMMENT_PAGE, ago, bigOf, commentCount, dateLabel, isGone, isMine, likesOf, meetupWhen, nickOf,
-  type BoardComment,
-} from '../../data/boardStore'
+  COMMENT_PAGE_SIZE, flattenComments, useBookmark, useComments, usePostActions, usePostDetail, usePostView, useRelatedPosts, useReport,
+  type CommentThreadVM, type CommentVM, type LinkedMeetupVM, type PostDetailVM,
+} from '../../api/community'
+import { DetailSkeleton, ErrorState, QueryGate } from '../../components/AsyncState'
+import { clock, monthDay } from '../../lib/time'
 import {
-  BookmarkIcon, CatPill, GonePage, HeartFill, MoreMenu, POST_DELETED_TOAST, SAVE_TOAST, ShareIcon, UNSAVE_TOAST, Who, affLine,
-  useArrivalToast, type MenuItem,
+  ALREADY_REPORTED_TOAST, BookmarkIcon, COMMENT_MAX, CatPill, GonePage, HeartFill, MoreMenu, POST_DELETED_TOAST, Photo, SAVE_TOAST, ShareIcon,
+  UNSAVE_TOAST, Who, affLine, ago, bigOf, dateLabel, isGone, useArrivalToast, type MenuItem,
 } from './parts'
 import s from './Board.module.css'
-import { api, isApiError, patch, useOptimistic } from '../../api'
-import { communityKeys, reportBody, usePostDetail, usePostList, type BoardPostVM } from '../../api/community'
-import { DetailSkeleton, ErrorState, QueryGate } from '../../components/AsyncState'
-
-type Post = BoardPostVM
-
-const ALREADY: ToastSpec = { title: '이미 신고했어요' }
 
 /**
- * 커뮤니티 – 글 상세 (Desktop) · 확정(시안 B) — Figma 02 F8-04 1~17
+ * 커뮤니티 – 글 상세 (Desktop) — 명세 08 글 상세 1~17
+ * 열 때: GET /posts/{id} + POST /posts/{id}/views + GET /posts/{id}/comments + GET /posts/{id}/related-posts
  * 대표 사진(폭 전체) → 왼쪽 액션 레일(따라옴) + 가운데 본문 카드(댓글 포함) → 다음 읽을 글 → 푸터
  */
 export function BoardPost() {
   const { postId = '' } = useParams()
   const { hash } = useLocation()
-  // 서버에서 받기 (api/queries). 로딩 · 오류(다시 시도) · 진짜 없음(404) 을 나눠 그림 → 위험 B1
   const q = usePostDetail(postId)
-  // 조회수: 글을 열 때 한 번 (같은 사람 중복은 서버가 거름). 특정 댓글로 오면(#댓글id) 댓글 쪽에서 스크롤하므로 맨 위로 올리지 않음
-  useEffect(() => { api.community.view(postId).catch(() => {}); if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 조회수: 글을 열 때마다 +1 (작성자도 셈). 글 수정 화면은 부르지 않음
+  const viewed = usePostView(postId)
+  // 특정 댓글로 오면(#댓글id) 댓글 쪽에서 스크롤하므로 맨 위로 올리지 않음
+  useEffect(() => { if (!hash) window.scrollTo(0, 0) }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 404 = 없거나 삭제된 글, 403 POST_HIDDEN = 신고로 가려진 남의 글
+  // 404 POST_NOT_FOUND = 없거나 삭제된 글, 404 POST_HIDDEN = 신고로 가려진 남의 글 (00 공통 21 안내 화면)
   return (
     <QueryGate q={q} skeleton={<DetailSkeleton label="글을 불러오는 중" />}
-      notFound={<GonePage message="삭제된 글이에요" />}
-      error={(retry, e) => (isApiError(e) && e.code === 'POST_HIDDEN'
-        ? <GonePage message="신고로 가려진 글이에요" />
-        : <div className={s.wrap}><ErrorState error={e} onRetry={retry} retrying={q.isFetching} title="글을 불러오지 못했어요" /></div>)}>
-      {(p) => (p.status === 'deleted' ? <GonePage message="삭제된 글이에요" /> : <PostView key={p.id} p={p} />)}
+      notFound={(e) => <GonePage message={isApiError(e) && e.code === 'POST_HIDDEN' ? '신고로 가려진 글이에요' : '삭제된 글이에요'} />}
+      error={(retry, e) => <div className={s.wrap}><ErrorState error={e} onRetry={retry} retrying={q.isFetching} title="글을 불러오지 못했어요" /></div>}>
+      {(p) => <PostView key={p.id} p={p} viewed={viewed} />}
     </QueryGate>
   )
 }
 
-/** 글 · 댓글 쓰기: 캐시를 먼저 바꾸고(낙관적) 실패하면 되돌림 + 오류 토스트 (api/queries useOptimistic) */
-function usePostActions(p: Post, onToast: (t: ToastSpec | null) => void) {
-  const run = useOptimistic()
-  const key = communityKeys.detail(p.id)
-  const edit = (f: (o: Post) => Post) => patch<Post>(key, f)
-  const mapC = (f: (l: BoardComment[]) => BoardComment[]) => edit((o) => ({ ...o, comments: f(o.comments) }))
-  const mapOne = (cid: string, f: (c: BoardComment) => BoardComment) =>
-    mapC((l) => l.map((c) => (c.id === cid ? f(c) : { ...c, replies: c.replies.map((r) => (r.id === cid ? f(r) : r)) })))
-  const temp = (text: string, mention?: string): BoardComment => ({ id: `tmp-${Date.now()}`, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] })
-  const all = [communityKeys.all]
-  return {
-    like: () => { const on = !p.liked; run.mutate({ call: () => api.community.setLike(p.id, on), patches: [edit((o) => ({ ...o, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
-    save: () => {
-      const on = !p.savedAt
-      onToast(on ? SAVE_TOAST : UNSAVE_TOAST)
-      run.mutate({ call: () => api.community.setBookmark(p.id, on), patches: [edit((o) => ({ ...o, savedAt: on ? Date.now() : undefined }))], invalidate: all, errorTitle: on ? '글을 저장하지 못했어요' : '저장을 취소하지 못했어요' }, { onError: () => onToast(null) })
-    },
-    remove: (then: () => void) => run.mutate({ call: () => api.community.remove(p.id), invalidate: all, errorTitle: '게시물을 삭제하지 못했어요' }, { onSuccess: then }),
-    report: (why: string) => run.mutate({
-      call: () => { const b = reportBody('POST', p.id, why); return api.community.report(p.id, b.reason, b.detail) },
-      patches: [edit((o) => ({ ...o, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
-    }, { onSuccess: () => onToast(TOAST.reported) }),
-    comment: (text: string) => run.mutate({ call: () => api.community.addComment(p.id, { content: text }), patches: [mapC((l) => [...l, temp(text)])], invalidate: all, errorTitle: '댓글을 등록하지 못했어요' }),
-    reply: (parentId: string, text: string, mention?: string) => run.mutate({
-      call: () => api.community.addComment(p.id, { content: text, parentId, mentionNickname: mention ?? null, mentionMemberId: mention ? Object.values(USERS).find((u) => u.nickname === mention)?.id ?? null : null }),
-      patches: [mapC((l) => l.map((c) => (c.id === parentId ? { ...c, replies: [...c.replies, temp(text, mention)] } : c)))], invalidate: all, errorTitle: '답글을 등록하지 못했어요',
-    }),
-    editComment: (cid: string, text: string) => run.mutate({ call: () => api.community.editComment(p.id, cid, text), patches: [mapOne(cid, (c) => ({ ...c, text, editedAt: Date.now() }))], invalidate: all, errorTitle: '댓글을 고치지 못했어요' }),
-    deleteComment: (cid: string) => run.mutate({
-      call: () => api.community.deleteComment(p.id, cid), invalidate: all, errorTitle: '댓글을 삭제하지 못했어요',
-      patches: [mapC((l) => l.filter((c) => c.id !== cid).map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== cid) })))],
-    }, { onSuccess: () => onToast({ title: '댓글을 삭제했어요' }) }),
-    likeComment: (c: BoardComment) => { const on = !c.liked; run.mutate({ call: () => api.community.setCommentLike(p.id, c.id, on), patches: [mapOne(c.id, (x) => ({ ...x, liked: on }))], invalidate: all, errorTitle: '좋아요를 반영하지 못했어요' }) },
-    reportComment: (cid: string, why: string) => run.mutate({
-      call: () => { const b = reportBody('COMMENT', cid, why); return api.community.reportComment(cid, b.reason, b.detail) },
-      patches: [mapOne(cid, (x) => ({ ...x, reportedByMe: true }))], invalidate: all, errorTitle: '신고를 접수하지 못했어요',
-    }, { onSuccess: () => onToast(TOAST.reported) }),
-  }
-}
-type PostActions = ReturnType<typeof usePostActions>
+const meetupWhen = (m: LinkedMeetupVM) => `${monthDay(m.startsAt)} ${clock(m.startsAt)}`
+const RECRUIT_LABEL = { closed: '모집 마감', past: '지난 모임', cancelled: '취소된 모임' } as const
 
-function PostView({ p }: { p: Post }) {
+function PostView({ p, viewed }: { p: PostDetailVM; viewed: number | null }) {
   const nav = useNavigate()
   const loc = useLocation()
-  const mine = isMine(p)
-  const hidden = p.status === 'hidden'
   const [toast, setToast] = useArrivalToast()
   const [dialog, setDialog] = useState<'delete' | 'report' | null>(null)
   const [unfold, setUnfold] = useState(false)
-  const [profile, setProfile] = useState<string | null>(null)
+  const [profile, setProfile] = useState<Person | null>(null)
   const commentsRef = useRef<HTMLElement>(null)
-  const myPicks = getMyInterests(USERS[ME_ID].interests)
-  const authorPicks = isGone(p.authorId) ? [] : USERS[p.authorId].interests
-  const overlap = mine ? [] : authorPicks.filter((i) => myPicks.includes(i))
-  const card = p.meetupCard
-  const meetup = card?.meetup
+  const act = usePostActions(p.id)
+  const bookmark = useBookmark()
+  const report = useReport()
   const main = p.interests[0]
-  // 다음 읽을 글: 같은 대분류 인기 글 3개 (목록 API 재사용. 실패하면 이 칸만 안 보임)
-  const related = usePostList({ interest: main, sort: 'POPULAR', size: 4 }, !!main)
-  const next = useMemo(() => (related.data?.items ?? []).filter((x) => x.id !== p.id).slice(0, 3), [related.data, p.id])
-  const act = usePostActions(p, (t) => setToast(t))
-  const folded = p.reportedByMe && !unfold && !hidden
+  const related = useRelatedPosts(p.id)
+  const next = related.data ?? []
+  const folded = p.reportedByMe && !unfold && !p.hidden
+  const views = Math.max(p.views, viewed ?? 0)
 
-  const menu: MenuItem[] = mine
-    ? [...(hidden ? [] : [{ label: '수정', onClick: () => nav(`/board/${p.id}/edit`) }]), { label: '삭제', danger: true, onClick: () => setDialog('delete') }]
-    : [{ label: '신고', danger: true, onClick: () => (p.reportedByMe ? setToast(ALREADY) : setDialog('report')) }]
+  // 더보기: 내 글이면 수정(고칠 수 있을 때만) · 삭제, 남의 글이면 신고
+  const menu: MenuItem[] = p.mine
+    ? [...(p.canEdit ? [{ label: '수정', onClick: () => nav(`/board/${p.id}/edit`) }] : []), { label: '삭제', danger: true, onClick: () => setDialog('delete') }]
+    : [{ label: '신고', danger: true, onClick: () => (p.reportedByMe ? setToast(ALREADY_REPORTED_TOAST) : setDialog('report')) }]
 
+  const onSave = () => {
+    const on = !p.bookmarked
+    setToast(on ? SAVE_TOAST : UNSAVE_TOAST)
+    bookmark(p.id, on, () => setToast(null))
+  }
   const share = async () => {
     try { await navigator.clipboard.writeText(window.location.href); setToast({ title: '링크를 복사했어요', desc: '붙여 넣어 글을 나눠 보세요' }) }
     catch { setToast({ title: '링크를 복사하지 못했어요', desc: '주소창의 주소를 복사해 주세요' }) }
   }
-  const hero = p.photos[0]
+  const hero = p.images[0]
+  const m = p.meetup
 
   return (
     <div className={s.wrap}>
@@ -132,23 +92,22 @@ function PostView({ p }: { p: Post }) {
       </div>
 
       <div className={s.detail}>
-        {/* 3 액션 레일: 좋아요 · 댓글 · 저장 · 공유. 스크롤해도 따라옴 */}
+        {/* 3 액션 레일: 좋아요 · 댓글 · 저장 · 공유. 스크롤해도 따라옴. 가려진 글에는 좋아요 · 저장을 못 함 */}
         <nav className={s.rail} aria-label="글 반응">
-          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={!!p.liked} onClick={act.like} disabled={hidden} aria-label={`좋아요 ${likesOf(p)}개`}>
-            <span><HeartFill on={p.liked} size={18} /></span><em>{likesOf(p)}</em>
+          <button type="button" className={p.liked ? s.railOn : undefined} aria-pressed={p.liked} onClick={() => act.setLike(!p.liked)} disabled={p.hidden} aria-label={`좋아요 ${p.likes}개`}>
+            <span><HeartFill on={p.liked} size={18} /></span><em>{p.likes}</em>
           </button>
-          <button type="button" onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={`댓글 ${commentCount(p)}개 보기`}>
-            <span><ChatIcon size={18} /></span><em>{commentCount(p)}</em>
+          <button type="button" onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={`댓글 ${p.comments}개 보기`}>
+            <span><ChatIcon size={18} /></span><em>{p.comments}</em>
           </button>
-          <button type="button" className={p.savedAt ? s.railOn : undefined} aria-pressed={!!p.savedAt} disabled={hidden}
-            onClick={act.save}>
-            <span><BookmarkIcon on={!!p.savedAt} size={18} /></span><em>저장</em>
+          <button type="button" className={p.bookmarked ? s.railOn : undefined} aria-pressed={p.bookmarked} disabled={p.hidden} onClick={onSave}>
+            <span><BookmarkIcon on={p.bookmarked} size={18} /></span><em>저장</em>
           </button>
-          <button type="button" onClick={share} disabled={hidden}><span><ShareIcon /></span><em>공유</em></button>
+          <button type="button" onClick={share} disabled={p.hidden}><span><ShareIcon /></span><em>공유</em></button>
         </nav>
 
         <article className={s.paper}>
-          {hidden && (
+          {p.hidden && (
             <p className={s.hiddenNote}>신고로 가려진 글이에요. 다른 사람에게는 보이지 않고, 수정할 수 없어요. 열어 보거나 삭제할 수는 있어요.</p>
           )}
           {/* 4 위치 · 카테고리 */}
@@ -168,47 +127,47 @@ function PostView({ p }: { p: Post }) {
               <h1 className={`display ${s.title}`}>{p.title}</h1>
               {/* 6 작성자 · 7 더보기 */}
               <div className={s.author}>
-                <Who id={p.authorId} onOpen={setProfile} className={s.authorAva}><Avatar size={40} empty={isGone(p.authorId)} /></Who>
+                <Who user={p.author} onOpen={setProfile} className={s.authorAva}><Avatar size={40} empty={isGone(p.author)} /></Who>
                 <div className={s.authorText}>
                   <p className={s.authorName}>
-                    <Who id={p.authorId} onOpen={setProfile} className={s.authorNick} />
-                    {overlap.map((i) => <InterestChip key={i} label={`✓ ${i}`} tone={toneOf(i)} shared />)}
+                    <Who user={p.author} onOpen={setProfile} className={s.authorNick} />
+                    {p.sharedInterests.map((i) => <InterestChip key={i} label={`✓ ${i}`} tone={toneOf(i)} shared />)}
                   </p>
                   <p className={s.authorSub}>
-                    {[affLine(p.authorId), dateLabel(p.at)].filter(Boolean).join(' · ')}
-                    {p.editedAt && <span className={s.edited}>수정됨</span>}
-                    {` · 조회 ${p.views}`}
-                    {overlap.length > 0 && ` · 나와 겹치는 관심사 ${overlap.length}개`}
+                    {[affLine(p.author), dateLabel(p.createdAt)].filter(Boolean).join(' · ')}
+                    {p.edited && <span className={s.edited}>수정됨</span>}
+                    {` · 조회 ${views}`}
+                    {p.sharedInterests.length > 0 && ` · 나와 겹치는 관심사 ${p.sharedInterests.length}개`}
                   </p>
                 </div>
-                {!mine && !isGone(p.authorId) && (
-                  <Link to={`/burrow/${p.authorId}`} className={s.visit}><HomeIcon size={15} /> 땅굴 놀러 가기</Link>
+                {!p.mine && !isGone(p.author) && (
+                  <Link to={`/burrow/${p.author.id}`} className={s.visit}><HomeIcon size={15} /> 땅굴 놀러 가기</Link>
                 )}
                 <MoreMenu items={menu} label="작성자 더보기" />
               </div>
               <div className={s.body}>
-                {p.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}
+                {p.content.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}
               </div>
-              {p.photos.length > 1 && (
+              {p.images.length > 1 && (
                 <div className={s.morePhotos}>
-                  {p.photos.slice(1).map((ph, i) => (
-                    <span key={i} style={{ background: `var(--tone-${ph.tone}-bg)` }}>{ph.url ? <img src={ph.url} alt={`사진 ${i + 2}`} /> : `사진 ${i + 2}`}</span>
+                  {p.images.slice(1).map((ph, i) => (
+                    <span key={ph.id || i} style={{ background: `var(--tone-${ph.tone}-bg)` }}>{ph.url ? <img src={ph.url} alt={`사진 ${i + 2}`} /> : `사진 ${i + 2}`}</span>
                   ))}
                 </div>
               )}
-              {/* 8 글에 나온 모임 */}
-              {meetup && (
+              {/* 8 글에 나온 모임: 지금의 모집 상태 (모임이 삭제되면 카드 없음) */}
+              {m && (
                 <div className={s.meetup}>
-                  <span className={s.meetupSign}><span>{meetup.sign ?? meetup.title}</span></span>
+                  <span className={s.meetupSign}><span>{m.title}</span></span>
                   <div className={s.meetupText}>
                     <p className={s.meetupState}>
-                      {card?.recruit === 'open' ? <em className={s.recruiting}>● 모집 중</em> : <em className={s.closed}>{card?.recruit === 'cancelled' ? '취소된 모임' : card?.recruit === 'past' ? '끝난 모임' : '모집 마감'}</em>}
+                      {m.recruit === 'open' ? <em className={s.recruiting}>● 모집 중</em> : <em className={s.closed}>{RECRUIT_LABEL[m.recruit]}</em>}
                       <span>글에 나온 모임</span>
                     </p>
-                    <strong>{meetup.title}</strong>
-                    <p className={s.meetupInfo}><span><CalendarIcon size={13} /> {meetupWhen(meetup)}</span><span>👤 {card?.confirmed} / {meetup.capacity}명</span></p>
+                    <strong>{m.title}</strong>
+                    <p className={s.meetupInfo}><span><CalendarIcon size={13} /> {meetupWhen(m)}</span><span>👤 {m.confirmed} / {m.capacity}명</span></p>
                   </div>
-                  <Link to={`/meetups/${meetup.id}`} className={`btn btn-sm ${s.meetupGo}`}>모임 보기 <ChevronRight size={14} /></Link>
+                  <Link to={`/meetups/${m.id}`} className={`btn btn-sm ${s.meetupGo}`}>모임 보기 <ChevronRight size={14} /></Link>
                 </div>
               )}
               {/* 9 태그: 관심사(대분류) · 카테고리. 누르면 그 태그 글 목록 */}
@@ -226,24 +185,24 @@ function PostView({ p }: { p: Post }) {
         </article>
       </div>
 
-      {/* 14 다음 읽을 글: 같은 대분류 인기 글 3개 */}
-      {next.length > 0 && main && (
+      {/* 14 다음 읽을 글: 같은 관심사 대분류의 인기 글 3개 */}
+      {next.length > 0 && (
         <section className={s.next} aria-label="다음 읽을 글">
           <header>
-            <h2 className="display">{main} 이야기 더 보기</h2>
-            <Link to={`/board?interest=${encodeURIComponent(main)}`}>전체 보기</Link>
+            <h2 className="display">{main ? `${main} 이야기 더 보기` : '다른 이야기 더 보기'}</h2>
+            <Link to={main ? `/board?interest=${encodeURIComponent(main)}` : '/board'}>전체 보기</Link>
           </header>
           <ul>
             {next.map((x) => (
               <li key={x.id}>
                 <Link to={`/board/${x.id}`} className={s.nextCard}>
-                  <span className={s.nextArt} style={{ background: `var(--tone-${x.photos[0]?.tone ?? bigOf(main)?.tone ?? 'sand'}-bg)` }} aria-hidden>
-                    {x.photos[0]?.url ? <img src={x.photos[0].url} alt="" /> : bigOf(x.interests[0] ?? '')?.emoji}
-                  </span>
+                  {x.thumb
+                    ? <Photo ph={x.thumb} interest={x.interests[0]} className={s.nextArt} />
+                    : <span className={s.nextArt} style={{ background: `var(--tone-${bigOf(x.interests[0] ?? main ?? '')?.tone ?? 'sand'}-bg)` }} aria-hidden>{bigOf(x.interests[0] ?? '')?.emoji}</span>}
                   <span className={s.nextText}>
                     <em>{x.category}</em>
-                    <strong>{x.title}</strong>
-                    <small>댓글 {commentCount(x)} · 좋아요 {likesOf(x)}</small>
+                    <strong>{x.reportedByMe ? '신고한 게시물이에요' : x.title}</strong>
+                    <small>댓글 {x.comments} · 좋아요 {x.likes}</small>
                   </span>
                 </Link>
               </li>
@@ -253,75 +212,92 @@ function PostView({ p }: { p: Post }) {
       )}
       <Footer />
 
-      <ProfilePopup user={profile ? USERS[profile] : null} onClose={() => setProfile(null)} />
+      <ProfilePopup user={profile} onClose={() => setProfile(null)} />
       <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)}
-        onConfirm={() => act.remove(() => nav('/board', { state: { toast: POST_DELETED_TOAST } }))}
+        onConfirm={() => act.removePost.mutate(undefined, { onSuccess: () => nav('/board', { state: { toast: POST_DELETED_TOAST } }) })}
         title="게시물을 삭제할까요?" desc="게시물에 달린 댓글과 답글도 함께 사라지고 되돌릴 수 없어요." />
       <ReportDialog open={dialog === 'report'} target="게시물" onClose={() => setDialog(null)}
-        onConfirm={act.report} />
+        onConfirm={(why) => report.mutate({ type: 'POST', id: p.id, picked: why, onAlready: () => setToast(ALREADY_REPORTED_TOAST) }, { onSuccess: () => setToast(TOAST.reported) })} />
       <Toast open={!!toast} {...(toast ?? { title: '' })} onClose={() => setToast(null)} />
     </div>
   )
 }
 
 /* ===== 댓글 (10 · 11 · 13) ===== */
-type Pending = { kind: 'delete' | 'report'; c: BoardComment; hasReplies: boolean } | null
+type PostActions = ReturnType<typeof usePostActions>
+type Pending = { kind: 'delete' | 'report'; c: CommentVM; hasReplies: boolean } | null
+/** 답글 입력창: thread(그 댓글) 아래에 열리고, target(답하는 댓글이나 답글)에 답함 */
+type ReplyTo = { thread: string; target: string; to: string }
 
 function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
-  p: Post; act: PostActions; hash: string; onToast: (t: ToastSpec) => void; onOpenUser: (id: string) => void; ref_: React.RefObject<HTMLElement | null>
+  p: PostDetailVM; act: PostActions; hash: string; onToast: (t: ToastSpec) => void; onOpenUser: (u: Person) => void; ref_: React.RefObject<HTMLElement | null>
 }) {
-  const top = p.comments.filter((c) => c.status !== 'deleted')
-  // 알림·댓글 단 글에서 특정 댓글로 오면 그 댓글이 보이도록 펼침
-  const target = hash ? top.findIndex((c) => c.id === hash || c.replies.some((r) => r.id === hash)) : -1
-  const [shown, setShown] = useState(Math.max(COMMENT_PAGE, Math.ceil((target + 1) / COMMENT_PAGE) * COMMENT_PAGE))
+  const cq = useComments(p.id)
+  const top = flattenComments(cq.data)
+  const report = useReport()
   const [draft, setDraft] = useState('')
-  const [replyTo, setReplyTo] = useState<{ parent: string; mention?: string } | null>(null)
+  const [replyTo, setReplyTo] = useState<ReplyTo | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [pending, setPending] = useState<Pending>(null)
   const [peek, setPeek] = useState<string[]>([])
   const [discard, setDiscard] = useState<null | (() => void)>(null)
-  const disabled = p.status !== 'public'
+  const disabled = p.hidden
+  const found = !!hash && top.some((c) => c.id === hash || c.replies.some((r) => r.id === hash))
+  const scrolled = useRef('')
 
+  // 댓글 단 글 · 알림에서 특정 댓글로 오면 그 댓글이 나올 때까지 이어 받고 그 자리로 (api 08 GET comments)
   useEffect(() => {
-    if (!hash) return
+    if (!hash || scrolled.current === hash) return
+    if (!found) { if (cq.hasNextPage && !cq.isFetchingNextPage) void cq.fetchNextPage(); return }
     const el = document.getElementById(hash)
-    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add(s.flash) }
-  }, [hash])
+    if (el) { scrolled.current = hash; el.scrollIntoView({ block: 'center' }); el.classList.add(s.flash) }
+  }, [hash, found, cq.hasNextPage, cq.isFetchingNextPage]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const submit = () => { const t = draft.trim(); if (!t) return; act.comment(t); setDraft('') }
+  const submit = () => {
+    const t = draft.trim()
+    if (!t || act.addComment.isPending) return
+    act.addComment.mutate({ content: t, replyTo: null }, { onSuccess: () => setDraft('') })
+  }
 
-  const row = (c: BoardComment, parent: BoardComment) => {
-    const mineC = c.authorId === ME_ID
-    if (c.status === 'hidden') return <p className={s.cHidden}>신고로 가려진 댓글이에요</p>
+  const row = (c: CommentVM, thread: CommentThreadVM) => {
+    const isThread = c.id === thread.id
+    // 가려진 댓글: 본문 없이 자리만. 내 것이면 지울 수는 있음(고칠 수는 없음)
+    if (c.hidden) {
+      return (
+        <p className={s.cHidden}>신고로 가려진 댓글이에요
+          {c.mine && !disabled && <MoreMenu small label="댓글 더보기" items={[{ label: '삭제', danger: true, onClick: () => setPending({ kind: 'delete', c, hasReplies: isThread && thread.replies.length > 0 }) }]} />}
+        </p>
+      )
+    }
     if (c.reportedByMe && !peek.includes(c.id)) {
       return <p className={s.cHidden}>신고한 댓글이에요 <button type="button" onClick={() => setPeek((l) => [...l, c.id])}>보기</button></p>
     }
-    const items: MenuItem[] = mineC
-      ? [{ label: '수정', onClick: () => { setEditing(c.id); setReplyTo(null) } }, { label: '삭제', danger: true, onClick: () => setPending({ kind: 'delete', c, hasReplies: c === parent && c.replies.some((r) => r.status !== 'deleted') }) }]
-      : [{ label: '신고', danger: true, onClick: () => (c.reportedByMe ? onToast(ALREADY) : setPending({ kind: 'report', c, hasReplies: false })) }]
+    const items: MenuItem[] = c.mine
+      ? [{ label: '수정', onClick: () => { setEditing(c.id); setReplyTo(null) } }, { label: '삭제', danger: true, onClick: () => setPending({ kind: 'delete', c, hasReplies: isThread && thread.replies.length > 0 }) }]
+      : [{ label: '신고', danger: true, onClick: () => (c.reportedByMe ? onToast(ALREADY_REPORTED_TOAST) : setPending({ kind: 'report', c, hasReplies: false })) }]
     return (
       <div className={s.comment}>
-        <Who id={c.authorId} onOpen={onOpenUser} className={s.cAva}><Avatar size={32} empty={isGone(c.authorId)} /></Who>
+        <Who user={c.author} onOpen={onOpenUser} className={s.cAva}><Avatar size={32} empty={isGone(c.author)} /></Who>
         <div className={s.cMain}>
           <p className={s.cMeta}>
-            <Who id={c.authorId} onOpen={onOpenUser} className={s.cNick} />
-            {c.authorId === p.authorId && <em>글쓴이</em>}
-            <span>{ago(c.at)}</span>
-            {c.editedAt && <span className={s.edited}>수정됨</span>}
+            <Who user={c.author} onOpen={onOpenUser} className={s.cNick} />
+            {c.author.id === p.author.id && !isGone(c.author) && <em>글쓴이</em>}
+            <span>{ago(c.createdAt)}</span>
+            {c.edited && <span className={s.edited}>수정됨</span>}
             {!disabled && <MoreMenu small items={items} label="댓글 더보기" />}
           </p>
           {editing === c.id ? (
-            <EditBox initial={c.text} onCancel={(changed) => (changed ? setDiscard(() => () => setEditing(null)) : setEditing(null))}
+            <EditBox initial={c.content ?? ''} onCancel={(changed) => (changed ? setDiscard(() => () => setEditing(null)) : setEditing(null))}
               onSave={(t) => { act.editComment(c.id, t); setEditing(null) }} />
           ) : (
             <>
-              <p className={s.cText}>{c.mention && <span className={s.mention}>@{c.mention} </span>}{c.text}</p>
+              <p className={s.cText}>{c.mention && <span className={s.mention}>@{c.mention} </span>}{c.content}</p>
               <p className={s.cActions}>
-                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={!!c.liked} disabled={disabled || c.id.startsWith('tmp-')} onClick={() => act.likeComment(c)} aria-label={`댓글 좋아요 ${c.likes + (c.liked ? 1 : 0)}개`}>
-                  <HeartFill on={c.liked} size={13} /> {c.likes + (c.liked ? 1 : 0)}
+                <button type="button" className={c.liked ? s.cLiked : undefined} aria-pressed={c.liked} disabled={disabled} onClick={() => act.setCommentLike(c, !c.liked)} aria-label={`댓글 좋아요 ${c.likes}개`}>
+                  <HeartFill on={c.liked} size={13} /> {c.likes}
                 </button>
                 {!disabled && (
-                  <button type="button" onClick={() => { setReplyTo({ parent: parent.id, mention: c === parent ? undefined : nickOf(c.authorId) }); setEditing(null) }}>답글</button>
+                  <button type="button" onClick={() => { setReplyTo({ thread: thread.id, target: c.id, to: c.author.nickname }); setEditing(null) }}>답글</button>
                 )}
               </p>
             </>
@@ -333,7 +309,7 @@ function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
 
   return (
     <section ref={ref_} className={s.comments} aria-label="댓글">
-      <h2 className={`display ${s.cHead}`}>댓글 <span>{commentCount(p)}</span></h2>
+      <h2 className={`display ${s.cHead}`}>댓글 <span>{p.comments}</span></h2>
       {!disabled && (
         <form className={s.commentForm} onSubmit={(e) => { e.preventDefault(); submit() }}>
           <Avatar size={32} />
@@ -342,20 +318,24 @@ function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } }} />
             <span className={s.commentFoot}>
               <small>{draft.length} / {COMMENT_MAX}</small>
-              <button className="btn btn-primary btn-sm" disabled={!draft.trim()}>등록</button>
+              <button className="btn btn-primary btn-sm" disabled={!draft.trim() || act.addComment.isPending}>등록</button>
             </span>
           </div>
         </form>
       )}
-      {top.length ? (
+      {cq.isPending ? (
+        <p className={s.cEmpty} aria-busy>댓글을 불러오는 중이에요…</p>
+      ) : cq.isError && !cq.data ? (
+        <p className={s.cEmpty}>댓글을 불러오지 못했어요. <button type="button" className="btn btn-line btn-sm" onClick={() => void cq.refetch()}>다시 시도</button></p>
+      ) : top.length ? (
         <ul className={s.cList}>
-          {top.slice(0, shown).map((c) => (
+          {top.map((c) => (
             <li key={c.id} id={c.id}>
               {row(c, c)}
-              {c.replies.filter((r) => r.status !== 'deleted').map((r) => <div key={r.id} id={r.id} className={s.reply}>{row(r, c)}</div>)}
-              {replyTo?.parent === c.id && (
-                <ReplyBox key={`${c.id}-${replyTo.mention ?? ''}`} to={replyTo.mention ?? nickOf(c.authorId)} onCancel={() => setReplyTo(null)}
-                  onSubmit={(t) => { act.reply(c.id, t, replyTo.mention); setReplyTo(null) }} />
+              {c.replies.map((r) => <div key={r.id} id={r.id} className={s.reply}>{row(r, c)}</div>)}
+              {replyTo?.thread === c.id && (
+                <ReplyBox key={replyTo.target} to={replyTo.to} busy={act.addComment.isPending} onCancel={() => setReplyTo(null)}
+                  onSubmit={(t) => act.addComment.mutate({ content: t, replyTo: replyTo.target }, { onSuccess: () => setReplyTo(null) })} />
               )}
             </li>
           ))}
@@ -363,17 +343,17 @@ function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
       ) : (
         <p className={s.cEmpty}>아직 댓글이 없어요. 글 속 이야기 하나를 골라 첫 댓글로 말을 걸어 보세요.</p>
       )}
-      {top.length > shown && (
-        <button type="button" className={s.moreComments} onClick={() => setShown((n) => n + COMMENT_PAGE)}>
-          댓글 {Math.min(COMMENT_PAGE, top.length - shown)}개 더 보기
+      {cq.hasNextPage && (
+        <button type="button" className={s.moreComments} disabled={cq.isFetchingNextPage} onClick={() => void cq.fetchNextPage()}>
+          {cq.isFetchingNextPage ? '불러오는 중…' : `댓글 ${COMMENT_PAGE_SIZE}개 더 보기`}
         </button>
       )}
 
       <ConfirmDialog open={pending?.kind === 'delete'} onClose={() => setPending(null)}
-        onConfirm={() => { if (pending) act.deleteComment(pending.c.id) }}
+        onConfirm={() => { if (pending) act.deleteComment.mutate(pending.c.id, { onSuccess: () => onToast({ title: '댓글을 삭제했어요' }) }) }}
         title="댓글을 삭제할까요?" desc={pending?.hasReplies ? '달린 답글도 함께 사라지고 되돌릴 수 없어요.' : '삭제한 댓글은 되돌릴 수 없어요.'} />
       <ReportDialog open={pending?.kind === 'report'} target="댓글" onClose={() => setPending(null)}
-        onConfirm={(why) => { if (pending) act.reportComment(pending.c.id, why) }} />
+        onConfirm={(why) => { if (pending) report.mutate({ type: 'COMMENT', id: pending.c.id, picked: why, onAlready: () => onToast(ALREADY_REPORTED_TOAST) }, { onSuccess: () => onToast(TOAST.reported) }) }} />
       {/* 00 공통 18 저장 전 취소 (댓글 수정 중 취소) */}
       <ConfirmDialog open={!!discard} onClose={() => setDiscard(null)} onConfirm={() => discard?.()}
         title="아직 저장되지 않았습니다" desc="나가면 고친 내용이 사라져요." confirmLabel="나가기" cancelLabel="계속 수정" />
@@ -398,18 +378,19 @@ function EditBox({ initial, onCancel, onSave }: { initial: string; onCancel: (ch
   )
 }
 
-function ReplyBox({ to, onCancel, onSubmit }: { to: string; onCancel: () => void; onSubmit: (t: string) => void }) {
+function ReplyBox({ to, busy, onCancel, onSubmit }: { to: string; busy: boolean; onCancel: () => void; onSubmit: (t: string) => void }) {
   const [t, setT] = useState('')
+  const send = () => { if (t.trim() && !busy) onSubmit(t.trim()) }
   return (
-    <form className={s.replyForm} onSubmit={(e) => { e.preventDefault(); if (t.trim()) onSubmit(t.trim()) }}>
+    <form className={s.replyForm} onSubmit={(e) => { e.preventDefault(); send() }}>
       <span className={s.replyTarget}>↳ {to}님에게 답글</span>
       <textarea autoFocus value={t} maxLength={COMMENT_MAX} onChange={(e) => setT(e.target.value)} placeholder="답글 남기기" aria-label={`${to}님에게 답글`}
-        onKeyDown={(e) => { if (e.key === 'Escape' && !t) onCancel(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (t.trim()) onSubmit(t.trim()) } }} />
+        onKeyDown={(e) => { if (e.key === 'Escape' && !t) onCancel(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send() } }} />
       <span className={s.commentFoot}>
         <small>{t.length} / {COMMENT_MAX}</small>
         <span className={s.replyBtns}>
           <button type="button" className="btn btn-line btn-sm" onClick={onCancel}>취소</button>
-          <button className="btn btn-primary btn-sm" disabled={!t.trim()}>등록</button>
+          <button className="btn btn-primary btn-sm" disabled={!t.trim() || busy}>등록</button>
         </span>
       </span>
     </form>
