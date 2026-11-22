@@ -1,4 +1,4 @@
-import { shadowFixedPos } from './contactShadow'
+import { markShadows } from './contactShadow'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
@@ -123,21 +123,6 @@ const DUST_MAX = 4, DUST_MIN_GAP = .06
 const ZOOM_MIN = 3.2, ZOOM_MAX = 7.6
 // 확대할수록 바라보는 높이를 천장(2.04)에서 두더지·가구 높이(1.0)로 내림 → 가까이 가도 두더지가 화면에 남음
 const TARGET_Y = 2.04, TARGET_Y_NEAR = 1.0
-
-/** 접촉 그림자 판(shadow_*): 깊이를 안 써서 위에 놓인 것을 가리지 않게, 먼저 그림 */
-function markShadows(root: THREE.Object3D) {
-  root.traverse((o) => {
-    const m = o as THREE.Mesh
-    if (m.isMesh && /^shadow_/.test(m.name)) {
-      (m.material as THREE.Material).depthWrite = false; m.renderOrder = 1
-      // 판이 가구에서 떨어져 방 바깥에 뜨는 디자이너 파일 문제 바로잡기 (three/contactShadow.ts)
-      m.geometry.computeBoundingBox()
-      const b = m.geometry.boundingBox!
-      const np = shadowFixedPos({ x: (b.min.x + b.max.x) / 2, z: (b.min.z + b.max.z) / 2 }, m.scale, m.position)
-      m.position.x = np.x; m.position.z = np.z
-    }
-  })
-}
 
 /** 모델이 아직 없는 행(status todo)을 대신하는 둥근 블록 (HANDOFF_v3 3번). 원점 = 바닥 가운데, 동물은 알 모양 */
 function makeBlock(row: FurnitureRow, size: { w: number; d: number; h: number }, color: string) {

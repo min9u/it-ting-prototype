@@ -25,6 +25,8 @@ const SOCKET: Record<string, string> = { 머리: 'socket_head', 얼굴: 'socket_
 
 export interface MoleDress {
   setWorn(ids: string[]): void
+  /** 손 소품을 통째로 숨김 (채팅방 4명 이상, handHiddenInChat). 동작에 따른 숨김과 따로 겹쳐 적용 */
+  setHandsHidden(hidden: boolean): void
   /** mixer.update 다음에 부름. clip = 지금 두더지가 하는 동작 이름 (손 소품 숨김용), moving = 걷는 중 (리본 흔들림 세기) */
   update(dt: number, clip: string, moving?: boolean): void
   dispose(): void
@@ -32,6 +34,7 @@ export interface MoleDress {
 
 export function createMoleDress(model: THREE.Object3D, acc: GLTF): MoleDress {
   let worn: string[] = []
+  let handsHidden = false
   const on = new Map<string, THREE.Object3D>()
   let ribbonMixer: THREE.AnimationMixer | null = null
   let ribbonAction: THREE.AnimationAction | null = null
@@ -77,7 +80,7 @@ export function createMoleDress(model: THREE.Object3D, acc: GLTF): MoleDress {
     }
     for (const [id, o] of on) {
       const item = itemOf(id)
-      if (item?.part === '손') o.visible = handVisible(clip, worn)
+      if (item?.part === '손') o.visible = !handsHidden && handVisible(clip, worn)
       if (BALLOONS.has(id) && o.parent) {
         model.updateWorldMatrix(true, true)
         root.getWorldQuaternion(qRoot)
@@ -89,6 +92,7 @@ export function createMoleDress(model: THREE.Object3D, acc: GLTF): MoleDress {
 
   return {
     setWorn, update,
+    setHandsHidden(h) { handsHidden = h },
     dispose() { ribbonMixer?.stopAllAction(); for (const o of on.values()) o.removeFromParent(); on.clear() },
   }
 }
