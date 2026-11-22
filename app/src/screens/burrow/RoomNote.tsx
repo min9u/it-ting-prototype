@@ -53,26 +53,29 @@ export function NotePanel({ panel, title, children }: { panel: NotePanelState; t
 /**
  * 방노트 내용: 프로필(64px 원) · 자기소개 · 관심사(칩 + 나와 같은 관심사 범례) · [children] · Q&A 3개
  * children 은 관심사 바로 아래·Q&A 위 (탐색은 "땅굴 놀러가기" 버튼, 방문자 뷰는 없음)
- * mine 이면 겹침이 없어 범례를 빼고 "접속 중" 도 안 보임
- * onReport 를 주면(방문자 뷰) "접속 중" 대신 프로필 오른쪽 위에 신고 깃발 버튼 (Figma 510:13152)
+ * mine 이면 겹침이 없어 범례를 뺌. "접속 중" 표시는 없음 (명세 README "이번 범위에 없는 것")
+ * onReport 를 주면(방문자 뷰) 프로필 오른쪽 위에 신고 깃발 버튼 (Figma 510:13152)
+ * intro={false} 면 자기소개 칸을 뺌 (탐색의 가까운 주인 정보: 05 탐색 3 은 닉네임 · 소속 · 관심사 · 질문과 답변만, 들판 API 도 자기소개를 주지 않음)
  */
-export function RoomNoteBody({ owner, shared, mine = false, onReport, children }: { owner: User; shared: string[]; mine?: boolean; onReport?: () => void; children?: ReactNode }) {
+export function RoomNoteBody({ owner, shared, mine = false, onReport, intro = true, children }: { owner: User; shared: string[]; mine?: boolean; onReport?: () => void; intro?: boolean; children?: ReactNode }) {
   return (
     <>
       <div className={s.profile}>
         <Avatar size={64} circle />
         <div>
-          <p className={`display ${s.nick}`}>{owner.nickname} {owner.online && !mine && !onReport && <small className={s.online}>● 접속 중</small>}</p>
+          <p className={`display ${s.nick}`}>{owner.nickname}</p>
           <p className={s.aff}>{affOf(owner)}</p>
         </div>
         {onReport && (
           <button className={s.flagBtn} onClick={onReport} aria-label={`${owner.nickname}님 신고`} title="신고"><FlagIcon size={18} /></button>
         )}
       </div>
-      <div className={`${s.introBox} ${s.introRead}`}>
-        <span className={s.introHead}><strong>자기소개</strong></span>
-        <p className={s.introP}>{owner.intro || '아직 작성한 자기소개가 없어요.'}</p>
-      </div>
+      {intro && (
+        <div className={`${s.introBox} ${s.introRead}`}>
+          <span className={s.introHead}><strong>자기소개</strong></span>
+          <p className={s.introP}>{owner.intro || '아직 작성한 자기소개가 없어요.'}</p>
+        </div>
+      )}
       {/* 제목 줄(관심사 N · 가는 선 · 범례) + 전부 색 칩. 나와 겹치는 건 칩 테두리 + ✓ (00 공통 5) */}
       <section className={s.noteInterests} aria-label="관심사">
         <div className={s.noteInterestsHead}>

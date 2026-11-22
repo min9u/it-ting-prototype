@@ -27,16 +27,20 @@ export interface Floor {
   floor: number
   /** 학기 (예: 2026 하반기) */
   term: string
+  /** 이번 학기 들판인지 (API 의 term.isCurrent). 없으면 term === CURRENT_TERM 으로 봄 (목 데이터) */
+  current?: boolean
 }
 
 export const CURRENT_TERM = '2026 하반기'
+/** 들판이 열린 학기 (최근에 열린 것부터, 목 서버의 GET /terms). 이름이 곧 목 학기 id */
+export const TERMS = [CURRENT_TERM, '2026 상반기'] as const
 /** 캠퍼스 · 층 목록은 data/campusFloors.ts 한 곳 (회원가입 3 · 내 정보 수정과 같이 씀) */
 export { CAMPUS_FLOORS } from './campusFloors'
 
 export const floorId = (term: string, campus: string, floor: number) => `${term}|${campus}|${floor}`
 export const floorName = (f: Pick<Floor, 'campus' | 'floor'>) => `${f.campus}-${f.floor}층`
 /** 지금 학기 들판이면 "서울-2층", 지난 학기면 "2026 상반기 서울-2층" */
-export const floorLabel = (f: Floor) => (f.term === CURRENT_TERM ? floorName(f) : `${f.term} ${floorName(f)}`)
+export const floorLabel = (f: Floor) => ((f.current ?? f.term === CURRENT_TERM) ? floorName(f) : `${f.term} ${floorName(f)}`)
 export function parseFloor(id: string): Floor | null {
   const [term, campus, fl] = id.split('|')
   if (!term || !campus || !fl) return null
@@ -73,13 +77,53 @@ export function cropOf(f: Pick<Floor, 'campus' | 'floor'>): Crop {
   return ROTATION[(i >= 0 ? i : hash(`${f.campus}|${f.floor}`)) % ROTATION.length]
 }
 
-/** 내 소속 (내 정보 수정에서 바꾸는 값. 기수는 SSAFY 인증 값) */
+/** 내 소속 (내 정보 수정에서 바꾸는 값. 기수는 SSAFY 인증 값). 목 서버의 user_profile — 이사(moveMyBurrow)하면 이 객체의 값이 바뀜 */
 export const ME_HOME = { campus: '서울', gen: 16, floor: 2 }
-/** 이번 학기 내 땅굴이 있는 들판, 그리고 내가 지난 학기에 땅굴이 있던 들판 */
+/**
+ * 이번 학기 내 땅굴이 있는 들판, 그리고 내가 지난 학기에 땅굴이 있던 들판.
+ * MY_FLOOR 는 목 서버의 burrow_entrance 라서 이사(moveMyBurrow)하면 이 객체의 값이 바뀜 (화면은 API 로 받은 값을 쓸 것)
+ */
 export const MY_FLOOR: Floor = { id: floorId(CURRENT_TERM, '서울', 2), term: CURRENT_TERM, campus: '서울', floor: 2 }
 export const MY_PAST_FLOORS: Floor[] = [{ id: floorId('2026 상반기', '서울', 12), term: '2026 상반기', campus: '서울', floor: 12 }]
-/** 내 자리 번호 (이번 학기 들판) */
+/** 처음 내 자리 번호 (이번 학기 서울-2층 들판) */
 export const MY_SEAT = 13
+/** 지금 내 자리 번호 (이사하면 그 들판의 다음 번호) */
+let mySeatNow = MY_SEAT
+
+/**
+ * 새 학기 안내 시연 (05 새 학기 안내, 목 서버 전용). true 면 "새 학기 들판이 열렸는데 아직 고르지 않은 계정":
+ * 내 땅굴 입구가 지난 학기 들판(2026 상반기 · 지금 소속 캠퍼스-층)에 있고, 탐색 API 는 403 NEW_TERM_INCOMPLETE (api/explore/mock.ts).
+ * 이사(moveMyBurrow)하면 false. 메모리에만 둠 (새로고침하면 처음 상태)
+ */
+let newTermPending = false
+export const isNewTermPending = () => newTermPending
+/** 새 학기 안내 시연 시작 (?newterm=demo). 내 입구를 지난 학기 들판으로 */
+export function startNewTermDemo() {
+  if (newTermPending) return
+  newTermPending = true
+  mySeatNow = MY_SEAT
+  residentCache.clear()
+}
+/** 지금 내 땅굴 입구가 놓인 들판 · 자리 (목 서버의 burrow_entrance) */
+export function myEntrance(): { floor: Floor; seat: number } {
+  if (newTermPending) {
+    const term = TERMS[1]
+    return { floor: { id: floorId(term, ME_HOME.campus, ME_HOME.floor), term, campus: ME_HOME.campus, floor: ME_HOME.floor }, seat: mySeatNow }
+  }
+  return { floor: MY_FLOOR, seat: mySeatNow }
+}
+/**
+ * 내 땅굴을 이번 학기의 고른 캠퍼스-층으로 옮김 (05 POST /me/burrow/move · 04 내 정보 수정의 캠퍼스-층 저장).
+ * 프로필의 캠퍼스 · 층(ME_HOME)도 같이 바뀜. 자리는 그 들판의 다음 번호 (처음 자리인 서울-2층으로 돌아오면 13번)
+ */
+export function moveMyBurrow(campus: string, floor: number) {
+  newTermPending = false
+  ME_HOME.campus = campus; ME_HOME.floor = floor
+  Object.assign(MY_FLOOR, { id: floorId(CURRENT_TERM, campus, floor), campus, floor })
+  residentCache.clear()
+  const fill = FLOOR_FILL[MY_FLOOR.id]
+  mySeatNow = campus === '서울' && floor === 2 ? MY_SEAT : (fill?.max ?? 5 + (hash(MY_FLOOR.id) % 30)) + 1
+}
 
 /* ---------- 시드 난수 ---------- */
 function hash(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
@@ -153,7 +197,15 @@ const FLOOR_FILL: Record<string, { max: number; vacant?: number[] }> = {
   [floorId('2026 상반기', '서울', 12)]: { max: 44 },
 }
 
-export interface Resident { seat: number; user: FieldUser; mine?: boolean }
+export interface Resident {
+  seat: number
+  user: FieldUser
+  mine?: boolean
+  /** 나와 겹치는 관심사 이름 (API 의 isShared). 없으면 화면이 내 관심사와 비교 (목 데이터를 바로 쓰는 시안 B·C·D) */
+  shared?: string[]
+  /** 땅굴 id (API 의 burrowId, 앱 id) */
+  burrowId?: string
+}
 export interface FieldData { floor: Floor; residents: Resident[]; /** 배정된 가장 큰 번호 */ maxSeat: number; zones: number; mySeat: number | null }
 
 const residentCache = new Map<string, FieldData>()
@@ -179,7 +231,9 @@ export function fieldOf(f: Floor): FieldData {
   const hit = residentCache.get(f.id)
   if (hit) return hit
   const fill = FLOOR_FILL[f.id] ?? { max: 5 + (hash(f.id) % 30) }
-  const isMine = f.id === MY_FLOOR.id
+  const home = myEntrance()
+  const isMine = f.id === home.floor.id
+  const mySeat = home.seat
   const residents: Resident[] = []
   const known = Object.entries(KNOWN).filter(([, k]) => f.term === CURRENT_TERM && k.campus === f.campus && k.floor === f.floor)
   // 목 사용자의 기수: 처음 MIN_PER_GEN × 기수 수 명은 기수를 돌아가며 (어느 기수를 골라도 추천 후보가 3명 이상), 그 뒤는 16기가 가장 많게
@@ -193,14 +247,16 @@ export function fieldOf(f: Floor): FieldData {
   }
   for (let seat = 1; seat <= fill.max; seat++) {
     if (fill.vacant?.includes(seat)) continue
-    if (isMine && seat === MY_SEAT) { residents.push({ seat, user: me(), mine: true }); continue }
+    if (isMine && seat === mySeat) { residents.push({ seat, user: me(), mine: true }); continue }
     const k = known.find(([, v]) => v.seat === seat)
     const user: FieldUser = k ? { ...USERS[k[0]], campus: k[1].campus, gen: k[1].gen, floor: k[1].floor } : makeUser(f, seat, genFor(seat))
     if (!k) { byId.set(user.id, user); USERS[user.id] ??= user }
     residents.push({ seat, user })
   }
-  const maxSeat = Math.max(fill.max, isMine ? MY_SEAT : 0)
-  const data: FieldData = { floor: f, residents, maxSeat, zones: Math.max(1, Math.ceil(maxSeat / 25)), mySeat: isMine ? MY_SEAT : null }
+  // 내 자리가 배정된 번호보다 뒤면 (이사해 와서 다음 번호를 받음) 맨 뒤에 둠
+  if (isMine && mySeat > fill.max) residents.push({ seat: mySeat, user: me(), mine: true })
+  const maxSeat = Math.max(fill.max, isMine ? mySeat : 0)
+  const data: FieldData = { floor: f, residents, maxSeat, zones: Math.max(1, Math.ceil(maxSeat / 25)), mySeat: isMine ? mySeat : null }
   residentCache.set(f.id, data)
   return data
 }
@@ -234,7 +290,7 @@ export function fieldUserOf(id: string): User | undefined {
 
 /** 이번 학기에 그 사람 땅굴이 있는 들판과 자리 (방문자 뷰에서 "탐색"을 누르면 그 들판의 그 구멍으로 — 00 공통 13) */
 export function locateUser(id: string): { floor: Floor; seat: number } | null {
-  if (id === ME_ID) return { floor: MY_FLOOR, seat: MY_SEAT }
+  if (id === ME_ID) return myEntrance()
   for (const f of allCurrentFloors()) {
     const r = fieldOf(f).residents.find((x) => x.user.id === id)
     if (r) return { floor: f, seat: r.seat }
@@ -258,13 +314,21 @@ function save(key: string, v: unknown) { try { localStorage.setItem(key, JSON.st
 
 /* 단골 땅굴: 상대 수락 없이 추가, 해제해도 상대에게 알리지 않음 (F5 방문자 뷰 · 단골 땅굴 목록) */
 const REG_KEY = 'digul.regulars'
+const REG_AT_KEY = 'digul.regulars.at'
 let regulars: string[] = load(REG_KEY, ['yerin', 'seobeok'])
+/** 단골로 담은 시각 (ms, regular_burrow.created_at). 처음 목 데이터는 하루씩 앞으로 */
+let regularAt: Record<string, number> = load(REG_AT_KEY, {})
 const regSubs = new Set<() => void>()
+/** 단골 주인 id (최근에 담은 것부터) */
 export const getRegulars = () => regulars
 export const isRegular = (id: string) => regulars.includes(id)
+export const regularSince = (id: string) => regularAt[id] ?? Date.now() - (regulars.indexOf(id) + 1) * 86_400_000
 export function setRegular(id: string, on: boolean) {
-  regulars = on ? [id, ...regulars.filter((x) => x !== id)] : regulars.filter((x) => x !== id)
-  save(REG_KEY, regulars); regSubs.forEach((f) => f())
+  if (on === regulars.includes(id)) return // 이미 그 상태면 바꾸지 않음 (PUT · DELETE 멱등)
+  regulars = on ? [id, ...regulars] : regulars.filter((x) => x !== id)
+  if (on) regularAt = { ...regularAt, [id]: Date.now() }
+  else { const next = { ...regularAt }; delete next[id]; regularAt = next }
+  save(REG_KEY, regulars); save(REG_AT_KEY, regularAt); regSubs.forEach((f) => f())
 }
 export const subscribeRegulars = (f: () => void) => { regSubs.add(f); return () => { regSubs.delete(f) } }
 

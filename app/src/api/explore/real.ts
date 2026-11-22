@@ -1,45 +1,79 @@
 /**
- * 05 탐색 · 방문 (+ 00 학기) — 실제 서버 호출. 명세: docs/backend/team-spec/api/05-explore-visit.md
- * 남의 땅굴 · 방명록 쓰기 · 단골 · 들판 · 오늘의 추천 · 대화 요청 보내기(POST /chat-requests, 05 문서)
+ * 05 탐색 · 방문 (+ 00 학기) — 실제 서버 호출. 명세: docs/backend/team-spec/api/05-explore-visit.md, 00-common.md "GET /api/v1/terms"
+ * 학기 · 들판 · 이사 · 단골 · 오늘의 추천 · 남의 땅굴 · 방명록 쓰기 · 대화 요청 보내기
  *
- * ENDPOINTS: 명세대로 구현한 API 만. 아직 안 한 것은 ./PENDING
- * 아래 real 의 주소는 옛 초안(api-draft.md) 주소다. 땅굴 주소는 회원 id 로 연다 (/burrow/:userId)
+ * ENDPOINTS: 명세대로 구현한 API ("메서드 주소", id 자리는 명세 이름). src/tests/api-v1-endpoints.test.ts 가 명세 제목과 비교
+ *
+ * 다리 (04 영역 API, ENDPOINTS 에 안 적음): 방문자 뷰의 방명록 목록 · 지우기는 명세상 04 내 땅굴 API 를 같이 쓴다.
+ * 04 작업자(api/burrow)가 같은 API 를 만들면 guestbookPage · deleteGuestbookEntry 를 지우고 api/burrow 것을 쓴다
  */
-import { http } from '../client'
-import type { LegacyId as Id, MemberProfileDto } from '../common/legacy'
-import type { CursorPageDto } from '../common/types'
-import type { ReportReason } from '../community/types'
+import { http, seg } from '../client'
+import type { Id } from '../common/types'
 import { RULES } from '../../lib/validation'
-import type { BurrowDto, CampusFloorDto, DailyRecommendationDto, FieldDto, GuestbookEntryDto, RecommendRequestDto } from './types'
+import type {
+  ChatRequestCreateRequest, ChatRequestCreatedDto, DailyRecommendationDto, DailyRecommendationRequest, FieldDto, FieldStatusesDto,
+  GuestbookEntryDto, GuestbookPageDto, MoveBurrowDto, MoveBurrowRequest, RegularBurrowsDto, RegularStateDto, TermsDto, UserBurrowDto,
+} from './types'
 
-export const ENDPOINTS: readonly string[] = []
+export const ENDPOINTS: readonly string[] = [
+  'GET /api/v1/terms',
+  'GET /api/v1/terms/{termId}/fields',
+  'GET /api/v1/terms/{termId}/fields/{campusFloorId}',
+  'POST /api/v1/me/burrow/move',
+  'GET /api/v1/me/regular-burrows',
+  'PUT /api/v1/burrows/{burrowId}/regular',
+  'DELETE /api/v1/burrows/{burrowId}/regular',
+  'GET /api/v1/me/daily-recommendation',
+  'POST /api/v1/me/daily-recommendation',
+  'GET /api/v1/users/{userId}/burrow',
+  'POST /api/v1/burrows/{burrowId}/guestbook-entries',
+  'POST /api/v1/chat-requests',
+]
 
-/** 방명록 글자 수 (lib/validation) */
+/** 방명록 글자 수 (lib/validation, 명세 1 ~ 50자) */
 export const GUESTBOOK_MAX = RULES.guestbook.max
 
 export const real = {
-  /** GET /burrows/{memberId} — 땅굴 방문 (주인·관계). 탈퇴·없는 사람 404 BURROW_NOT_FOUND */
-  get: (memberId: Id, signal?: AbortSignal) => http.get<BurrowDto>(`/burrows/${memberId}`, undefined, signal),
-  /** GET /burrows/{memberId}/guestbook — 신고로 가려진 글만 빼고 전부, 최신순 (커서) */
-  guestbook: (memberId: Id, cursor?: string | null, size = 20, signal?: AbortSignal) =>
-    http.get<CursorPageDto<GuestbookEntryDto>>(`/burrows/${memberId}/guestbook`, { cursor, size }, signal),
-  /** POST /burrows/{memberId}/guestbook */
-  writeGuestbook: (memberId: Id, content: string) => http.post<GuestbookEntryDto>(`/burrows/${memberId}/guestbook`, { content }),
-  /** DELETE /guestbook/{entryId} — 땅굴 주인·글쓴이 */
-  deleteGuestbook: (entryId: Id) => http.delete<void>(`/guestbook/${entryId}`),
-  /** POST /reports (targetType GUESTBOOK) — 409 ALREADY_REPORTED */
-  reportGuestbook: (entryId: Id, reason: ReportReason, detail: string | null) => http.post<void>('/reports', { targetType: 'GUESTBOOK', targetId: entryId, reason, detail }),
-  /** PUT·DELETE /burrows/{memberId}/regular — 단골 */
-  setRegular: (memberId: Id, on: boolean) => (on ? http.put<void>(`/burrows/${memberId}/regular`) : http.delete<void>(`/burrows/${memberId}/regular`)),
-  /** GET /me/regulars — 단골 땅굴 목록 */
-  regulars: (signal?: AbortSignal) => http.get<MemberProfileDto[]>('/me/regulars', undefined, signal),
-  /** GET /campus-floors — 캠퍼스-층 목록 (명세는 GET /campuses, api/common) */
-  campusFloors: (signal?: AbortSignal) => http.get<CampusFloorDto[]>('/campus-floors', undefined, signal),
-  /** GET /fields/{campusFloorId}?termId= — 들판 한 장 (자리 150개) */
-  field: (campusFloorId: Id, termId?: Id, signal?: AbortSignal) => http.get<FieldDto>(`/fields/${campusFloorId}`, { termId }, signal),
-  /** GET /me/recommendations/today — 아직 안 받았으면 404 */
-  todayRecommendation: (signal?: AbortSignal) => http.get<DailyRecommendationDto>('/me/recommendations/today', undefined, signal),
-  /** POST /me/recommendations/today — 하루 한 번 */
-  drawRecommendation: (req: RecommendRequestDto) => http.post<DailyRecommendationDto>('/me/recommendations/today', req),
+  /* ----- 00 학기 ----- */
+  /** GET /terms — 열린 학기 (최근 것부터, 첫 번째가 이번 학기). 새 학기를 고르기 전에도 */
+  terms: (signal?: AbortSignal) => http.get<TermsDto>('/terms', undefined, signal),
+
+  /* ----- 들판 ----- */
+  /** GET /terms/{termId}/fields — 그 학기 들판마다 비어 있는지 (캠퍼스-층 고르기의 "비어 있음"). 404 TERM_NOT_FOUND */
+  fieldStatuses: (termId: Id, signal?: AbortSignal) => http.get<FieldStatusesDto>(`/terms/${seg(termId)}/fields`, undefined, signal),
+  /** GET /terms/{termId}/fields/{campusFloorId} — 들판 하나의 땅굴 입구 전부 (안내판 · 주인 카드 값 포함). 404 TERM_NOT_FOUND · CAMPUS_FLOOR_NOT_FOUND */
+  field: (termId: Id, campusFloorId: Id, signal?: AbortSignal) =>
+    http.get<FieldDto>(`/terms/${seg(termId)}/fields/${seg(campusFloorId)}`, undefined, signal),
+  /** POST /me/burrow/move — 새 학기 안내 "이 층으로 정하기". 두 번 불러도 한 번만 옮김. 404 CAMPUS_FLOOR_NOT_FOUND */
+  moveBurrow: (req: MoveBurrowRequest) => http.post<MoveBurrowDto>('/me/burrow/move', req),
+
+  /* ----- 단골 ----- */
+  /** GET /me/regular-burrows — 내 단골 (최근에 담은 것부터, 한 번에 모두) */
+  regularBurrows: (signal?: AbortSignal) => http.get<RegularBurrowsDto>('/me/regular-burrows', undefined, signal),
+  /** PUT /burrows/{burrowId}/regular — 단골로 담기 (멱등). 403 OWN_BURROW_NOT_ALLOWED · 404 BURROW_NOT_FOUND */
+  addRegular: (burrowId: Id) => http.put<RegularStateDto>(`/burrows/${seg(burrowId)}/regular`),
+  /** DELETE /burrows/{burrowId}/regular — 단골에서 빼기 (멱등). 404 BURROW_NOT_FOUND */
+  removeRegular: (burrowId: Id) => http.delete<RegularStateDto>(`/burrows/${seg(burrowId)}/regular`),
+
+  /* ----- 오늘의 추천 ----- */
+  /** GET /me/daily-recommendation — 오늘 받았는지와 받은 결과 (탐색에 들어올 때, 빨간 점) */
+  dailyRecommendation: (signal?: AbortSignal) => http.get<DailyRecommendationDto>('/me/daily-recommendation', undefined, signal),
+  /** POST /me/daily-recommendation — 추천 받기 (하루 한 번, 이미 받았으면 그 결과 200). 400 INVALID_INPUT · 404 CAMPUS_FLOOR_NOT_FOUND */
+  drawRecommendation: (req: DailyRecommendationRequest) => http.post<DailyRecommendationDto>('/me/daily-recommendation', req),
+
+  /* ----- 남의 땅굴 ----- */
+  /** GET /users/{userId}/burrow — 방문자 뷰 · 방노트. 404 BURROW_NOT_FOUND */
+  userBurrow: (userId: Id, signal?: AbortSignal) => http.get<UserBurrowDto>(`/users/${seg(userId)}/burrow`, undefined, signal),
+  /** POST /burrows/{burrowId}/guestbook-entries — 방명록 쓰기 (201). 400 INVALID_INPUT · 403 OWN_BURROW_NOT_ALLOWED · 404 BURROW_NOT_FOUND */
+  writeGuestbook: (burrowId: Id, content: string) => http.post<GuestbookEntryDto>(`/burrows/${seg(burrowId)}/guestbook-entries`, { content }),
+  /** POST /chat-requests — 대화 요청 보내기 (201). 404 USER_NOT_FOUND · 409 CHAT_ROOM_ALREADY_EXISTS · CHAT_REQUEST_ALREADY_SENT · CHAT_REQUEST_ALREADY_RECEIVED */
+  sendChatRequest: (req: ChatRequestCreateRequest) => http.post<ChatRequestCreatedDto>('/chat-requests', req),
+
+  /* ----- 다리: 04 내 땅굴 API (api/burrow 가 만들면 지움) ----- */
+  /** GET /burrows/{burrowId}/guestbook-entries — 방명록 목록 (최신순, 페이지 기본 5) */
+  guestbookPage: (burrowId: Id, page = 1, size = 5, signal?: AbortSignal) =>
+    http.get<GuestbookPageDto>(`/burrows/${seg(burrowId)}/guestbook-entries`, { page, size }, signal),
+  /** DELETE /guestbook-entries/{guestbookEntryId} — 방명록 지우기 (방문자는 내가 쓴 글만). 404 GUESTBOOK_ENTRY_NOT_FOUND · 403 FORBIDDEN */
+  deleteGuestbookEntry: (entryId: Id) => http.delete<null>(`/guestbook-entries/${seg(entryId)}`),
 }
 export type ExploreApi = typeof real

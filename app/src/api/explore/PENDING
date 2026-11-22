@@ -2,15 +2,4 @@
 # 이 영역 작업자가 하나를 명세대로 만들면 real.ts 의 ENDPOINTS 에 적고 여기서 지운다.
 # 다 하면 이 파일은 주석만 남긴다. src/tests/api-v1-endpoints.test.ts 가 이 목록을 "할 일(todo)"로 보고,
 # 명세에 있는데 ENDPOINTS 에도 PENDING 에도 없으면 실패한다.
-GET /api/v1/terms  # 00-common.md
-GET /api/v1/terms/{termId}/fields  # 05-explore-visit.md
-GET /api/v1/terms/{termId}/fields/{campusFloorId}  # 05-explore-visit.md
-POST /api/v1/me/burrow/move  # 05-explore-visit.md
-GET /api/v1/me/regular-burrows  # 05-explore-visit.md
-PUT /api/v1/burrows/{burrowId}/regular  # 05-explore-visit.md
-DELETE /api/v1/burrows/{burrowId}/regular  # 05-explore-visit.md
-GET /api/v1/me/daily-recommendation  # 05-explore-visit.md
-POST /api/v1/me/daily-recommendation  # 05-explore-visit.md
-GET /api/v1/users/{userId}/burrow  # 05-explore-visit.md
-POST /api/v1/burrows/{burrowId}/guestbook-entries  # 05-explore-visit.md
-POST /api/v1/chat-requests  # 05-explore-visit.md
+# 2026-11-22: 05 탐색 · 방문 11개 + 00 GET /terms 를 모두 만듦 (real.ts ENDPOINTS)

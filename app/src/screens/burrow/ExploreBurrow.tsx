@@ -1,11 +1,17 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import RoomModeToggle from '../../components/RoomModeToggle'
 import SceneButton from '../../components/SceneButton'
 import { EmptyMole, Toast } from '../../components/Feedback'
 import { HomeIcon } from '../../components/Icons'
+import { ErrorState } from '../../components/AsyncState'
 import { getMyWorn } from '../../data/moleItems'
-import { MY_FLOOR, cropOf, fieldOf, floorLabel, me, parseFloor, todaysPicks, type Floor } from '../../data/field'
+import { cropOf, floorLabel, me } from '../../data/field'
+import {
+  exploreKeys, parsePlace, placeId, resetDailyRecommendationDemo, samePlace, useDailyRecommendation, useField, useHomePlace,
+  type FieldPlace, type FieldVM,
+} from '../../api/explore'
 import type { HoleFieldHandle } from '../../three/holeField'
 import { ZOOM_LEVELS, ZOOM_NAME, type ZoomLevel } from '../../three/fieldCam'
 import { FloorPickerModal, RecommendModal, RegularsModal } from './ExploreModals'
@@ -40,13 +46,41 @@ const WHEEL_STEP = 80, WHEEL_QUIET = 250
  * - 줌 (3D 핸드오프 v3.10, docs/explore-field-v3-10.md): 가까이·중간·멀리 3단계. 휠(누적 ±80 이면 한 단계, 250ms 쉼) · +/− 키 · 오른쪽 아래 버튼.
  *   전환 0.5초. 주소 ?zoom=mid|far 로 기억 (땅굴에 들어갔다 뒤로 오면 같은 단계)
  * - 작물: 층마다 한 종류 (data/field.ts cropOf)
- * 데모용 쿼리: ?panel=open (방노트 펼친 채로) · ?modal=regulars|recommend|floor · ?recommend=reset (오늘 받은 추천 지우기) · ?zoom=mid|far
+ * - 2026-11-22 API v1 (docs/backend/api-v1/05-explore-visit.md): 들판 = GET /terms/{termId}/fields/{campusFloorId} (입구 · 주인 카드 값 한 번에),
+ *   주소 ?floor=<학기 id>|<캠퍼스-층 id>, 없으면 내 땅굴의 들판(이번 학기 + 내 캠퍼스-층). 추천 친구 빨간 점 = GET /me/daily-recommendation 의 hasReceived.
+ *   "접속 중" 표시는 없음 (명세 README "이번 범위에 없는 것"). 주인 카드에 자기소개는 없음 (탐색 3)
+ * 데모용 쿼리: ?panel=open (방노트 펼친 채로) · ?modal=regulars|recommend|floor · ?recommend=reset (오늘 받은 추천 지우기, 목 서버) · ?zoom=mid|far
  */
 export default function ExploreBurrow() {
+  const [params] = useSearchParams()
+  const home = useHomePlace()
+  const asked = parsePlace(params.get('floor'))
+  const place = asked ?? home.place
+  const q = useField(place)
+  const field = q.data
+  if (!field) {
+    const err = q.error ?? (!place ? home.error : null)
+    return (
+      <main className={s.page}>
+        <div className={`${rv.scene} ${x.sceneBg}`}>
+          {err ? (
+            <div className={x.emptyField} style={{ left: '50%' }}>
+              <ErrorState error={err} onRetry={() => void q.refetch()} retrying={q.isFetching} title="들판을 불러오지 못했어요" />
+              {asked && <Link className="btn btn-line" to="/burrow/explore">내 들판으로</Link>}
+            </div>
+          ) : <span className={x.loading} style={{ left: '50%' }} role="status">들판으로 나가는 중…</span>}
+        </div>
+      </main>
+    )
+  }
+  return <ExploreField field={field} home={home.place} />
+}
+
+function ExploreField({ field, home }: { field: FieldVM; home: FieldPlace | null }) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const floor: Floor = parseFloor(params.get('floor') ?? '') ?? MY_FLOOR
-  const field = useMemo(() => fieldOf(floor), [floor.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const qc = useQueryClient()
+  const floor = field.floor
   const bySeat = useMemo(() => new Map(field.residents.map((r) => [r.seat, r])), [field])
   const occupied = useMemo(() => field.residents.map((r) => r.seat), [field])
   const others = field.residents.filter((r) => !r.mine).length
@@ -81,15 +115,16 @@ export default function ExploreBurrow() {
   const handle = useRef<HoleFieldHandle | null>(null)
   const mapRef = useRef<MinimapHandle | null>(null)
   const worn = useMemo(() => getMyWorn(), [])
-  // 오늘의 추천을 받았는지 (팝업을 닫을 때 다시 읽음)
-  const [recTick, setRecTick] = useState(0)
-  const recDone = useMemo(() => !!todaysPicks(), [recTick])
+  // 오늘의 추천을 받았는지 (GET /me/daily-recommendation, 받는 중에는 점을 안 띄움)
+  const daily = useDailyRecommendation()
+  const recDone = daily.data?.hasReceived ?? true
   const seatInUrl = useRef(params.get('seat'))
 
   const here = bySeat.get(seat)
   const owner = here?.user
   const mine = me()
-  const shared = owner && !here?.mine ? owner.interests.filter((i) => mine.interests.includes(i)) : []
+  // 나와 같은 관심사 (서버의 isShared)
+  const shared = owner && !here?.mine ? here?.shared ?? [] : []
   const focusX = panelOpen ? 0.403 : 0.5
   const fieldStill = stillFor('field')
 
@@ -143,19 +178,20 @@ export default function ExploreBurrow() {
   }, [modal, leaving])
 
   useEffect(() => {
-    if (params.get('recommend') === 'reset') import('../../data/field').then((m) => { m.resetToday(); setRecTick((n) => n + 1) })
+    if (params.get('recommend') === 'reset' && resetDailyRecommendationDemo()) void qc.invalidateQueries({ queryKey: exploreKeys.daily })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goFloor = (f: Floor, seatNo?: number) => {
+  const goFloor = (p: FieldPlace, seatNo?: number) => {
     setModal(null)
     const next = new URLSearchParams(params)
-    next.set('floor', f.id)
+    next.set('floor', placeId(p))
     if (seatNo) next.set('seat', String(seatNo)); else next.delete('seat')
     next.delete('modal')
     setParams(next)
   }
+  const atHomeField = !home || samePlace(field.place, home)
   const goHome = () => {
-    if (floor.id !== MY_FLOOR.id) { goFloor(MY_FLOOR, field.mySeat ?? undefined); return }
+    if (!atHomeField && home) { goFloor(home); return }
     if (field.mySeat) handle.current?.goSeat(field.mySeat)
   }
 
@@ -211,7 +247,6 @@ export default function ExploreBurrow() {
         {hover && hoverUser && (
           <span className={x.nameTag} style={{ left: hover.x, top: hover.y }}>
             {hoverUser.mine ? '내 땅굴' : hoverUser.user.nickname}
-            {!hoverUser.mine && hoverUser.user.online && <i className={x.onDot} aria-label="접속 중" />}
           </span>
         )}
 
@@ -236,7 +271,7 @@ export default function ExploreBurrow() {
           </div>
         )}
 
-        {(floor.id !== MY_FLOOR.id || (field.mySeat && seat !== field.mySeat)) && (
+        {(!atHomeField || (field.mySeat && seat !== field.mySeat)) && (
           <SceneButton tone="cream" className={x.homeBtn} onClick={goHome} disabled={moving}>
             <HomeIcon size={16} /> 내 땅굴로 돌아가기
           </SceneButton>
@@ -268,7 +303,7 @@ export default function ExploreBurrow() {
       {/* 방노트: 가장 가까운(서 있는) 땅굴 주인 정보 + 땅굴 놀러가기. 접힌 동안은 오른쪽 위 "방노트" 버튼만 (MyBurrow 와 같은 모양) */}
       <NotePanel panel={note} title={!owner ? '빈 들판' : here?.mine ? '내 땅굴' : `${owner.nickname}님 땅굴`}>
         {owner ? (
-          <RoomNoteBody owner={owner} shared={shared} mine={!!here?.mine}>
+          <RoomNoteBody owner={owner} shared={shared} mine={!!here?.mine} intro={false}>
             {/* 땅굴 놀러가기: 두더지 옆 안내판 대신 여기, 관심사 바로 아래·Q&A 위. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
             <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
               {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>
@@ -280,8 +315,8 @@ export default function ExploreBurrow() {
       </NotePanel>
 
       <RegularsModal open={modal === 'regulars'} onClose={() => setModal(null)} onRemoved={(n) => setToast(`${n}님을 단골에서 뺐어요`)} />
-      <RecommendModal open={modal === 'recommend'} onClose={() => { setModal(null); setRecTick((n) => n + 1) }} />
-      <FloorPickerModal open={modal === 'floor'} current={floor} onClose={() => setModal(null)} onPick={(f) => goFloor(f, f.id === MY_FLOOR.id ? field.mySeat ?? undefined : undefined)} />
+      <RecommendModal open={modal === 'recommend'} onClose={() => setModal(null)} />
+      <FloorPickerModal open={modal === 'floor'} current={field.place} onClose={() => setModal(null)} onPick={(p) => goFloor(p)} />
       <Toast open={!!toast} onClose={() => setToast(null)} title={toast ?? ''} />
 
       {/* 땅굴로 들어갈 때 어두워짐 · 들판에 나올 때(땅굴에서 나옴·처음 들어옴) 어두운 화면에서 밝아짐 */}
