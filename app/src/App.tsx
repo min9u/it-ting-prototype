@@ -29,6 +29,7 @@ import Onboarding from './screens/onboarding/Onboarding'
 import ScreenIndex from './screens/ScreenIndex'
 import { ApiKnobBadge, ApiToaster } from './components/AsyncState'
 import { MockServerSync } from './api/queries'
+import { NewTermGate } from './screens/burrow/NewTermNotice'
 
 /** 로그인 뒤 화면: 헤더(GNB) + 내용 + 쓰기 실패 토스트 · 목 서버 손잡이 배지. 채팅·알림 실시간 연결은 여기 들어올 때 시작 (src/realtime, 로그아웃 때 stopChatRealtime) */
 function AppLayout() {
@@ -40,6 +41,7 @@ function AppLayout() {
       <ApiToaster />
       <ApiKnobBadge />
       <MockServerSync />
+      <NewTermGate />
     </>
   )
 }

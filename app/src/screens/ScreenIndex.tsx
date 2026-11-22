@@ -21,6 +21,7 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
   { title: '땅굴', items: [
     ['내 땅굴 (스크린샷 대조 완료)', '/burrow', '454:6900', true],
     ['내 땅굴 – 사이드바 접힘', '/burrow?panel=closed', '454:7053', true],
+    ['내 땅굴 – 새 학기 안내 (닫을 수 없음, ?newterm=1)', '/burrow?newterm=1', '1465:15925'],
     ['내 땅굴 – 방명록 0개', '/burrow?guestbook=0', '506:7960', true],
     ['내 땅굴 – 방명록 전체보기 모달', '/burrow?modal=guestbook', '454:7748', true],
     ['탐색하기 (돌아다니기)', '/burrow/explore', '477:12524 · 493:12616'],

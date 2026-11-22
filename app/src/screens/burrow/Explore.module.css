@@ -242,3 +242,8 @@ button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
 .pfGo { width: 112px; height: 40px; border-radius: 10px; background: var(--cta); color: #fff9f2; font-family: var(--font-display); font-size: 17px; line-height: 24px; }
 .pfGo:hover:not(:disabled) { background: var(--cta-hover); }
 .pfGo:disabled { opacity: .45; cursor: default; }
+/* 새 학기 안내 (명세 05): 안내 문장 + 넓은 "이 층으로 정하기" 버튼 */
+.newTermLead { margin: -8px 0 0; font-size: 14px; line-height: 22px; color: #6e5444; }
+.pfGoWide { height: 40px; padding: 0 22px; border-radius: 10px; background: var(--cta); color: #fff9f2; font-family: var(--font-display); font-size: 17px; line-height: 24px; white-space: nowrap; }
+.pfGoWide:hover:not(:disabled) { background: var(--cta-hover); }
+.pfGoWide:disabled { opacity: .45; cursor: default; }
