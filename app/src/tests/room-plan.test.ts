@@ -8,7 +8,7 @@
  * - 예전 가중치 규칙 Σ(1 + 1000/인원) — 남의 땅굴 벽지에만 남아 있다가 2026-11-18 지움 (data/roomLook.ts 한 곳)
  */
 import { describe, expect, it } from 'vitest'
-import { ACCESSORY_CATEGORY, INTEREST_CATS, INTEREST_SUBS, MAX_PICK, categoriesOf, subOf, toSubIds } from '../data/interests'
+import { INTEREST_CATS, INTEREST_SUBS, MAX_PICK, categoriesOf, subOf, toSubIds } from '../data/interests'
 import { DROP_LEN, DROP_SPAN, FURNITURE_CATALOG, SLOTS, planRoom } from '../data/roomPlan'
 import { CATEGORIES } from '../data/mock'
 import { DEFAULT_WALLPAPER, wallpaperForCategory } from '../data/wallpapers'
@@ -48,10 +48,8 @@ describe('관심사 목록 (2026-11-18 확정본, 자세한 것은 interest-tags
   it('카테고리 순서(order)는 1부터 빈틈없이', () => {
     expect(INTEREST_CATS.map((c) => c.order)).toEqual(INTEREST_CATS.map((_, i) => i + 1))
   })
-  it('전용 액세서리는 카테고리 하나에만 묶임', () => {
-    const all = INTEREST_CATS.flatMap((c) => c.accessories)
-    expect(new Set(all).size).toBe(all.length)
-    for (const a of all) expect(ACCESSORY_CATEGORY[a]).toBeDefined()
+  it('카테고리에 관심사 전용 액세서리 연결이 없음 (액세서리 v1.2: 관심사와 따로 고름)', () => {
+    for (const c of INTEREST_CATS) expect(c, c.id).not.toHaveProperty('accessories')
   })
 })
 

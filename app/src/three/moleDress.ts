@@ -6,13 +6,19 @@ import { loadGlb } from './glb'
 import { handVisible, itemOf } from '../data/moleItems'
 
 /*
- * 두더지 액세서리 입히기 (design/digul_3d_handoff_v1_1 accessories_v1.glb, 규칙 v2 accessories.md)
+ * 두더지 액세서리 입히기 (design/digul_3d_handoff_accessories_v1_2 accessories_v1_2.glb 43개, 규칙 docs/accessories_v1_2.md)
  * - 액세서리 노드는 원점이 소켓 위치에 맞춰져 있어서 소켓(socket_head·face·neck·hand_R)의 자식으로 그대로 붙임
  * - 등 리본은 뼈가 있어서 SkeletonUtils.clone + ribbon_back_sway 반복 (서 있을 때 약하게)
  * - 풍선 3종은 매 프레임 위로 세움 (5번)
  * - 손 소품은 동작에 따라 숨김 (2-2번, data/moleItems handVisible)
+ * - 채팅방 4명 이상이면 손 소품을 숨김 (v1.2 새 규칙, 아래 handHiddenInChat). 채팅방 3D 연결은 채팅방 3D 적용 때
  */
 export const loadAccessories = () => loadGlb(accUrl)
+
+/** 채팅방에서 손 소품을 숨기기 시작하는 인원 (옆 두더지 몸에 박혀서: 4명에서 최대 8.4cm, 2·3명은 겹침 0) */
+export const HAND_HIDE_FROM_SEATED = 4
+/** 채팅방에 앉은 두더지가 이 수 이상이면 모든 손 소품(hand)을 숨겨야 하는지 */
+export const handHiddenInChat = (seated: number) => seated >= HAND_HIDE_FROM_SEATED
 
 const BALLOONS = new Set(['prop_balloon', 'prop_balloon_star', 'prop_balloon_heart'])
 const SOCKET: Record<string, string> = { 머리: 'socket_head', 얼굴: 'socket_face', 목: 'socket_neck', 손: 'socket_hand_R' }
