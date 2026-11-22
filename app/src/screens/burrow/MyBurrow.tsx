@@ -11,10 +11,11 @@ import { GUESTBOOK } from '../../data/mock'
 import { getMyWorn, setMyWorn } from '../../data/moleItems'
 import { getMyInterests, setMyInterests, toSubIds } from '../../data/interests'
 import {
-  MY_REGULARS_COUNT, defaultFurniture, getMyFurnChoice, getMyProfile, getMyRoomPick, myAffiliation, pruneChoice, qnaOf, setMyFurnChoice, setMyProfile, setMyRoomPick,
+  MY_REGULARS_COUNT, getMyFurnChoice, getMyProfile, getMyRoomPick, myAffiliation, pruneChoice, qnaOf, setMyFurnChoice, setMyProfile, setMyRoomPick,
   type FurnChoice,
 } from '../../data/myBurrow'
 import { roomLookOf } from '../../data/roomLook'
+import { placeWords } from '../../data/roomPlanV38'
 import { USERS, ME_ID } from '../../data/mock'
 import { visibleGuestbook } from '../../lib/format'
 import GuestbookModal from './GuestbookModal'
@@ -70,7 +71,8 @@ export default function MyBurrow() {
 
   const startDecor = (t: DecorTab = 'furniture') => { setWornDraft(worn); setFurnDraft(furn); setThemeDraft(roomPick.themeId); setTab(t); setMode('decor'); setHintOn(false) }
   const decorDirty = wornDraft.join(',') !== worn.join(',') || JSON.stringify(furnDraft) !== JSON.stringify(furn) || themeDraft !== roomPick.themeId
-  const firstSub = useMemo(() => toSubIds(interests).find((id) => defaultFurniture(id)) ?? null, [interests])
+  // 꾸미기를 열면 처음 하이라이트할 관심사 = 방에 가구(소품)가 실제로 놓이는 첫 관심사 (v3.8: 소분류마다 모델 하나, data/roomPlanV38 placeWords. 예전 defaultFurniture 는 비어 있었음)
+  const firstSub = useMemo(() => placeWords(toSubIds(interests), furn).placed[0]?.sub ?? null, [interests, furn])
   const highlight = mode === 'decor' && tab === 'furniture' ? focusSub ?? firstSub : null
   const showPanel = panelOpen || mode !== 'info'
   const focusX = showPanel ? 0.403 : 0.5
