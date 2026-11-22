@@ -189,7 +189,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
               <div><dt><PinIcon size={18} /><span>어디서</span></dt><dd>
                 {m.mode === '오프라인'
                   ? <>{m.place}{m.placeDetail && `, ${m.placeDetail}`}</>
-                  : <>{m.platform === '기타' || !m.platform ? m.place : m.platform}
+                  : <>온라인
                     <span className={s.linkLine}>{member ? (m.link ? <>접속 링크 <a href={m.link} target="_blank" rel="noreferrer">{m.link}</a></> : '접속 링크는 주최자가 모임 대화방에서 알려줘요') : '접속 링크는 참여가 확정되면 보여요'}</span></>}
               </dd></div>
               <div><dt><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg><span>어떻게</span></dt><dd>{m.mode}</dd></div>

@@ -224,7 +224,7 @@ HTTP/1.1 409 Conflict
 | POST | `/meetups/{id}/applications/{appId}/approve` · `/reject` | — | 204 | 409 MEETUP_FULL | `approve` · `reject` | 신청 관리 |
 | DELETE | `/meetups/{id}/members/{memberId}` | — | 204 (내보내기) | 403 | `kick` | 신청 관리 |
 
-`MeetupWriteRequest`: `{ title, category, tags[≤3], description, capacity, supplies, acceptsMessage, startsAt, endsAt, recruitDeadlineAt, mode, place, placeDetail, platform, joinUrl }` (2026-11-22: 모임에는 캠퍼스가 없음 — 명세 07. 목록 `campus` 거르기·`campus` 필드 삭제)
+`MeetupWriteRequest`: `{ title, category, tags[≤3], description, capacity, supplies, acceptsMessage, startsAt, endsAt, recruitDeadlineAt, mode, place, placeDetail, joinUrl }` (2026-11-22: 모임에는 캠퍼스와 플랫폼 이름이 없음 — 명세 07. 목록 `campus` 거르기·`campus`·`platform` 필드 삭제. 온라인 모임은 `place` 가 null, `joinUrl`(선택)만)
 
 ### 2.7 커뮤니티 (F8) — `api.board`
 | 메서드 | 경로 | 본문/쿼리 | 응답 | 에러 | 코드 | 화면 |
@@ -293,7 +293,7 @@ HTTP/1.1 409 Conflict
   "id": "42", "title": "주말의 작은 독서 모임", "category": "HOBBY_CULTURE", "tags": ["SF소설"],
   "startsAt": "2026-11-08T14:00:00+09:00", "endsAt": "2026-11-08T16:00:00+09:00",
   "recruitDeadlineAt": "2026-11-08T10:00:00+09:00",
-  "mode": "OFFLINE", "place": "성수동 어반플레이스 3층", "platform": null,
+  "mode": "OFFLINE", "place": "성수동 어반플레이스 3층",
   "capacity": 6, "confirmedCount": 5, "likeCount": 12, "liked": false, "recruitStatus": "OPEN",
   "host": { "id": "7", "nickname": "김OO", "status": "ACTIVE", "generation": 13, "campus": "서울", "floor": 3,
             "mole": { "head": null, "face": null, "neck": null, "hand": null } },

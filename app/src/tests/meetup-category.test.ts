@@ -36,7 +36,7 @@ describe('모임 카테고리 6개', () => {
 
 describe('API: 코드 ↔ 이름', () => {
   it('DTO 코드를 화면 이름으로 바꿔 읽음 (모르는 값은 그대로)', () => {
-    const base = { id: '1', title: 't', tags: [], startsAt: '2026-11-08T14:00:00+09:00', endsAt: null, recruitDeadlineAt: null, mode: 'OFFLINE', place: 'p', platform: null, capacity: 4, confirmedCount: 1, recruitStatus: 'OPEN', sign: null, likeCount: 0, createdAt: '2026-11-01T00:00:00+09:00', host: { id: '9', nickname: 'x', status: 'ACTIVE', mole: { head: null, face: null, neck: null, hand: null } } }
+    const base = { id: '1', title: 't', tags: [], startsAt: '2026-11-08T14:00:00+09:00', endsAt: null, recruitDeadlineAt: null, mode: 'OFFLINE', place: 'p', capacity: 4, confirmedCount: 1, recruitStatus: 'OPEN', sign: null, likeCount: 0, createdAt: '2026-11-01T00:00:00+09:00', host: { id: '9', nickname: 'x', status: 'ACTIVE', mole: { head: null, face: null, neck: null, hand: null } } }
     expect(toMeetup({ ...base, category: 'STUDY_PROJECT' } as never).category).toBe('스터디/프로젝트')
     expect(toMeetup({ ...base, category: '새 분류' } as never).category).toBe('새 분류')
   })

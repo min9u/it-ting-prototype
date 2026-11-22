@@ -327,9 +327,8 @@ export interface MeetupCardDto {
   endsAt: IsoDateTime | null
   recruitDeadlineAt: IsoDateTime | null
   mode: MeetupMode
-  /** 오프라인: 장소, 온라인: 플랫폼이 '기타'일 때 직접 쓴 이름 */
+  /** 오프라인: 장소. 온라인은 null (모임에는 플랫폼 이름을 두지 않음 — 명세 07) */
   place: string | null
-  platform: string | null
   capacity: number
   /** 주최자 포함 확정 인원 */
   confirmedCount: number
@@ -395,7 +394,6 @@ export interface MeetupWriteRequest {
   mode: MeetupMode
   place: string | null
   placeDetail: string | null
-  platform: string | null
   joinUrl: string | null
 }
 export interface ApplicantDto {

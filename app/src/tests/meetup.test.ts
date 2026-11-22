@@ -182,7 +182,7 @@ describe('동작 (저장소)', () => {
   it('만들기: 주최자 = 나, 확정 1명, 태그 최대 3개 (M15), 온라인은 플랫폼 이름', () => {
     const d: Store.Draft = {
       cap: 6, prep: '', askMsg: true, ymd: '2026-11-20', start: '오후 7:00', end: '', deadline: '',
-      mode: '온라인', place: '', placeDetail: '', platform: 'Discord', platformEtc: '', link: ' https://discord.gg/x ',
+      mode: '온라인', place: '', placeDetail: '', link: ' https://discord.gg/x ',
       title: '  새 모임  ', intro: '', category: '취미/문화', tags: ['a', 'b', 'c', 'd'],
     }
     const id = S.createMeetup(d)
@@ -190,12 +190,13 @@ describe('동작 (저장소)', () => {
     expect(m.hostId).toBe(ME_ID)
     expect(m.title).toBe('새 모임')
     expect(m.tags).toEqual(['a', 'b', 'c'])
-    expect(m.place).toBe('Discord')
+    expect(m.place).toBe('') // 온라인은 장소·플랫폼 이름 없이 접속 링크만 (명세 07)
+    expect('platform' in m).toBe(false)
     expect(m.link).toBe('https://discord.gg/x')
     expect('campus' in m).toBe(false) // 모임에는 캠퍼스가 없음 (명세 07)
     expect(S.confirmedOf(m)).toBe(1)
     expect(S.myOf(id)?.st).toBe('host')
-    expect(S.draftOf(m)).toMatchObject({ mode: '온라인', platform: 'Discord', tags: ['a', 'b', 'c'] })
+    expect(S.draftOf(m)).toMatchObject({ mode: '온라인', link: 'https://discord.gg/x', tags: ['a', 'b', 'c'] })
   })
   it('취소하면 기록이 남고(취소됨) 신청 대기는 비움, 삭제하면 목록·내 기록·찜에서 사라짐', () => {
     S.cancelMeetup('m3')
@@ -245,5 +246,17 @@ describe('모임에는 캠퍼스가 없음 (명세 07)', () => {
     expect(S.placeLine(m)).toBe(`${m.area} · 오프라인`)
     expect(S.draftOf(m)).not.toHaveProperty('campus')
     expect(m).not.toHaveProperty('campus')
+  })
+})
+
+describe('모임에는 플랫폼 이름이 없음 (명세 07 만들기 3, M16 은 명세로 뒤집힘)', () => {
+  it('저장소·양식 값에 플랫폼이 없고, 온라인 장소 줄은 "온라인" 하나', () => {
+    expect('PLATFORMS' in S).toBe(false)
+    for (const m of S.getMeetupState().list.filter((x) => x.mode === '온라인')) {
+      expect(m).not.toHaveProperty('platform')
+      expect(m.place, m.id).toBe('')
+      expect(S.placeLine(m)).toBe('온라인')
+      expect(S.draftOf(m)).not.toHaveProperty('platform')
+    }
   })
 })

@@ -183,11 +183,11 @@ export const MEETUPS: Meetup[] = [
     memberIds: ['yerin', 'ha', 'kim', 'seoyeon', 'mingu'], hostId: 'yerin', myStatus: '참여 확정', sign: '가평 캠핑',
     intro: '장비 없어도 괜찮아요. 공용 텐트 두 동 준비했어요.',
   },
-  { id: 'm5', title: '시티팝 LP 듣는 밤', category: '취미/문화', date: '2026-11-19', start: '오후 8:00', end: '오후 10:00', area: '온라인', place: '디스코드', mode: '온라인', capacity: 10, memberIds: ['seoyeon', 'yejin'], hostId: 'seoyeon', myStatus: '찜', sign: 'LP 듣는 밤', intro: '각자 좋아하는 한 곡씩 틀어요.' },
+  { id: 'm5', title: '시티팝 LP 듣는 밤', category: '취미/문화', date: '2026-11-19', start: '오후 8:00', end: '오후 10:00', area: '온라인', place: '', mode: '온라인', capacity: 10, memberIds: ['seoyeon', 'yejin'], hostId: 'seoyeon', myStatus: '찜', sign: 'LP 듣는 밤', intro: '각자 좋아하는 한 곡씩 틀어요.' },
   { id: 'm6', title: '테라리움 같이 만들어요', category: '기타', date: '2026-11-23', start: '오후 3:00', end: '오후 5:00', area: '연남동', place: '연남동 공방', mode: '오프라인', capacity: 5, memberIds: ['choi'], hostId: 'choi', sign: '테라리움', intro: '재료비 1만 원. 작은 유리병 하나씩 가져가요.' },
   { id: 'm7', title: '역삼 점심 러닝 크루', category: '운동', date: '2026-11-12', start: '오후 12:10', end: '오후 12:50', area: '역삼', place: '선릉공원 입구', mode: '오프라인', capacity: 12, memberIds: ['ha', 'mingu', 'lee', 'park'], hostId: 'ha', myStatus: '찜', sign: '점심 러닝', intro: '3km 천천히 뛰어요.' },
   { id: 'm8', title: '홈카페 원두 나눔회', category: '식사/카페', date: '2026-11-29', start: '오후 2:00', end: '오후 4:00', area: '성수동', place: '성수 카페거리', mode: '오프라인', capacity: 6, memberIds: ['yejin', 'seoyeon'], hostId: 'yejin', myStatus: '찜', sign: '원두 나눔', intro: '집에 남는 원두 가져와서 바꿔 마셔요.' },
-  { id: 'm9', title: '지브리 영화 같이 보기', category: '취미/문화', date: '2026-11-07', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: '왓챠 파티', mode: '온라인', capacity: 8, memberIds: ['yerin', 'seobeok', 'park'], hostId: 'seobeok', sign: '지브리', intro: '이번 주는 하울의 움직이는 성!' },
+  { id: 'm9', title: '지브리 영화 같이 보기', category: '취미/문화', date: '2026-11-07', start: '오후 9:00', end: '오후 11:00', area: '온라인', place: '', mode: '온라인', capacity: 8, memberIds: ['yerin', 'seobeok', 'park'], hostId: 'seobeok', sign: '지브리', intro: '이번 주는 하울의 움직이는 성!' },
   { id: 'm10', title: '한강 5km 같이 뛰어요', category: '운동', date: '2026-11-07', start: '오후 8:00', end: '오후 9:00', area: '반포', place: '반포 한강공원 달빛광장', mode: '오프라인', capacity: 10, memberIds: ['ha', 'mingu', 'lee', 'park', 'kim', 'choi', 'yejin', 'seoyeon', 'yerin'], hostId: 'ha', myStatus: '신청 대기', sign: '러닝', intro: '페이스 느려도 괜찮아요. 끝까지 같이 뛰어요.', myNote: '페이스는 느린 편인데 끝까지 같이 뛰어보고 싶어요!' },
 ]
 

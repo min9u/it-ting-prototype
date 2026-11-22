@@ -1,5 +1,7 @@
 # F7 모임: 명세 구현
 
+> **2026-11-22 갱신**: 아래 "관심사 필터 · 대표 관심사 · 플랫폼(M15·M16)" 줄은 **명세로 뒤집힘** — 모임 분류는 모임 전용 카테고리 6개(관심사와 관계없음), 온라인은 플랫폼 이름 없이 접속 링크(선택)만. [meetup-category-2026-11-22.md](meetup-category-2026-11-22.md)
+
 - 날짜: 2026-11-16
 - 요청: Figma 02 "스켈레톤 기능 명세"의 F7 모임 요구사항을 빠짐없이 구현하고, 디자인은 03 Screens를 참고해 완성. 02 명세(기능)가 우선이고 [meetup-spec-review.md](meetup-spec-review.md)의 결정 M1~M17을 따름
 - 자료: `design/figma/spec/f7/*.png` (28장), `design/figma/spec/f7-now.md`, `design/figma/spec/f5/f0-common.png` (00 공통)

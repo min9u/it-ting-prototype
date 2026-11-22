@@ -75,7 +75,7 @@ export function meetupCard(m: MeetupX, s: MeetupState = getMeetupState()): Meetu
     id: m.id, title: m.title, category: meetupCategoryOf(m.category)?.code ?? m.category, tags: m.tags ?? [],
     startsAt: toIso(startMs(m)), endsAt: endMs(m) == null ? null : toIso(endMs(m)!),
     recruitDeadlineAt: m.deadline ? toIso(isoMs(m.deadline)) : null,
-    mode: m.mode === '온라인' ? 'ONLINE' : 'OFFLINE', place: m.place || null, platform: m.platform ?? null,
+    mode: m.mode === '온라인' ? 'ONLINE' : 'OFFLINE', place: m.place || null,
     capacity: m.capacity, confirmedCount: confirmedOf(m, s), likeCount: m.likes, liked: s.wish.includes(m.id),
     recruitStatus: RECRUIT[recruitOf(m, s)], host: memberSummary(m.hostId),
     // 등록 순서(seq)를 등록 시각으로 (최신등록순)

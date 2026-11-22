@@ -88,7 +88,6 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
     // 카드 응답에는 참여자 목록이 없음 → 인원은 MeetupCardVM.confirmed 를 씀
     memberIds: [], hostId: toPerson(d.host).id, intro: '',
     sign: d.sign ?? d.title.slice(0, 8), cancelled: d.recruitStatus === 'CANCELED' || undefined,
-    platform: d.platform ?? undefined,
     askMsg: true, deadline: d.recruitDeadlineAt ? msToWall(parseIso(d.recruitDeadlineAt)) : undefined,
     likes: d.likeCount, seq: Math.round(parseIso(d.createdAt) / 1000),
   }

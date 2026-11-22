@@ -51,7 +51,7 @@
 | 자동 미승인 🟠 | 마감 지나면 신청 대기 → "승인되지 않음" | `myOf()` 계산 | status | 마감 시각에 배치로 `EXPIRED` + 알림 (M7). 배치 전에도 조회는 계산값으로 |
 | 모임 관심사 태그 🔴 | 만들기 "관심사 태그 최대 3개" (M15) | `tags: string[]` | 없음 | Q3 |
 | 모임 팻말 글자 · 짧은 지역 🟢 | 카드 위 나무 팻말 "독서 모임", "성수동" | `sign`, `area` | 없음 | 프론트가 계산 (제목 앞 8자, 장소 앞 두 낱말). 디자이너가 따로 정하는 값이면 `sign VARCHAR(8)` |
-| 모임 플랫폼 "기타" 🟢 | 온라인: Zoom · Discord · Gather · 직접 입력 | `platform`='기타' + `place`=직접 쓴 이름 | `platform VARCHAR`, `place` | 직접 쓴 이름을 `platform` 에 그대로 넣는 것으로 통일 제안 (기타 표시 불필요) |
+| 모임 플랫폼 🟢 | **(2026-11-22 없어짐)** 명세 07: 모임에는 플랫폼 이름을 두지 않음. 온라인은 접속 링크(선택)만 | — | `platform VARCHAR` | 컬럼 삭제 제안 |
 | 모임 신청 메시지 받기 🟢 | 상세 "주최자에게 남길 말" 숨김 | `askMsg` | `accepts_message` | 됨 |
 | 모임 신고 🟢 | 상세 ⋯ › 모임 신고 | `reported` | report 주석에 모임 없음 | Q12 |
 | 단골 수 🟢 | 내 땅굴 "단골 8" (`MY_REGULARS_COUNT`) | 상수 | `regular_burrow` | `COUNT(burrow_id = 내 땅굴)` 서버 계산 |
@@ -106,7 +106,7 @@
 | `meetup.mode` | `OFFLINE` · `ONLINE` | 오프라인 · 온라인 | VARCHAR(10) ✓ |
 | `meetup.category` | 모임 카테고리 (Q3, 2026-11-22) | 코드 6개 (`HOBBY_CULTURE` …) | enum 으로 확정 제안 |
 | `interest_category.code` · `interest.code` (새 칼럼 제안) | 대분류 12 · 소분류 90 영어 code (예: `food` · `cafe_coffee`) | `data/interestTags.ts` | **2026-11-18 관심사 확정본**. 표 전체와 길이(code 최장 20자 · 이름 최장 12자)는 [interest-enum.md](interest-enum.md) |
-| `meetup.platform` | Zoom · Discord · Gather · (직접 쓴 이름) | `PLATFORMS` | 자유 문자열 VARCHAR(20) |
+| `meetup.platform` | (2026-11-22 없어짐 — 명세 07) | — | 컬럼 삭제 제안 |
 | `meetup_application.status` | `PENDING` · `CANCELED`(스스로 취소, 다시 신청 가능) · `REJECTED`(주최자 거절) · `EXPIRED`(자동 미승인) · `APPROVED` · `LEFT`(확정 후 참여 취소, 다시 신청 불가) · `KICKED`(내보내짐) | `pending`·`withdrawn`·`rejected`(+auto)·`joined`·`quit`·`kicked` | M7·M8 규칙. VARCHAR(20) ✓ |
 | (계산) 모집 상태 | `OPEN` · `CLOSED` · `ENDED` · `CANCELED` | `open`·`closed`·`past`·`cancelled` | 칼럼 아님, 응답 값 |
 | `post.category` | `MEETUP_PROMO` · `MEETUP_REVIEW` · `FREE` | 모임 홍보 · 모임 후기 · 자유 | VARCHAR(20) ✓ |
@@ -137,7 +137,7 @@
 | 모임 소개 | 300자 | `description TEXT` | ✓ | 서버 검사 300 |
 | 준비물 | 40자 | `supplies VARCHAR` | ? | VARCHAR(40) |
 | 장소 · 상세 주소 | 60자 · 40자 | `place` · `place_detail VARCHAR` | ? | VARCHAR(60) · VARCHAR(40) |
-| 온라인 플랫폼(직접 입력) | 20자 | `platform VARCHAR` | ? | VARCHAR(20) |
+| 온라인 플랫폼(직접 입력) | (2026-11-22 없어짐) | — | — | — |
 | 접속 링크 | 제한 없음 | `join_url VARCHAR` | ? | VARCHAR(500) + URL 형식 검사 |
 | 모임 신청 남길 말 | 100자 | `meetup_application.message VARCHAR` | ? | VARCHAR(100) |
 | 모임 정원 | 2~50명 (만들기 화면 +/−, 수정 때는 확정 인원보다 적게 못 줄임) | `capacity INT` | ✓ | 서버도 2~50 · 수정 때 하한(확정 인원) 검사 |
