@@ -3,16 +3,8 @@ import { createStore } from '../lib/store'
 /**
  * F10 계정 — 목 서버의 "DB" (api/settings/mock.ts · api/auth/mock.ts 만 쓴다. 화면은 api/settings 를 거친다).
  * 가입 방식 · Google 연동 · 비밀번호(목) · 관리자 역할. 프로토타입이라 브라우저(localStorage)에만 저장한다.
- *
- * 차단(blocked)은 팀 명세에서 뺀 기능이다(spec/README "이번 범위에 없는 것"). 설정의 차단 화면과 API 초안은 지웠고,
- * 아래 blocked · blockUser · isBlocked · useBlocked 는 아직 다른 영역(채팅 목 · 프로필 팝업)이 써서 남겨 둔 것 → 그쪽에서 빼면 지운다
+ * 차단은 팀 명세에서 뺀 기능이라(spec/README "이번 범위에 없는 것") 저장소에도 두지 않는다 (2026-11-22 모두 지움)
  */
-export interface BlockedUser {
-  id: string
-  nickname: string
-  /** YYYY.MM.DD */
-  blockedAt: string
-}
 
 export type SignupMethod = 'email' | 'google'
 
@@ -23,7 +15,6 @@ interface AccountState {
   googleEmail: string | null
   /** 목 비밀번호 (현재 비밀번호 확인용) */
   password: string
-  blocked: BlockedUser[]
   /** 관리자 역할 (DB에서 직접 줌. 프로토타입은 /admin?as=admin 으로 켬) */
   admin: boolean
 }
@@ -35,17 +26,11 @@ const INIT: AccountState = {
   signup: 'email',
   googleEmail: null,
   password: MOCK_PASSWORD,
-  blocked: [
-    { id: 'b-star', nickname: '별빛두더지', blockedAt: '2026.11.05' },
-    { id: 'b-potato', nickname: '책읽는감자', blockedAt: '2026.11.03' },
-    { id: 'b-rabbit', nickname: '산책토끼', blockedAt: '2026.10.28' },
-  ],
   admin: false,
 }
 
 export const accountStore = createStore<AccountState>(INIT, 'digul.account.v1')
 export const useAccount = () => accountStore.use()
-export const useBlocked = () => accountStore.use().blocked
 
 export const hasPassword = (s = accountStore.get()) => s.signup === 'email'
 export const isGoogleOnly = (s = accountStore.get()) => s.signup === 'google'
@@ -55,14 +40,6 @@ const today = () => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
-export function isBlocked(userId: string) { return accountStore.get().blocked.some((b) => b.id === userId) }
-export function blockUser(u: { id: string; nickname: string }) {
-  if (isBlocked(u.id)) return
-  accountStore.set((s) => ({ blocked: [{ id: u.id, nickname: u.nickname, blockedAt: today() }, ...s.blocked] }))
-}
-export function unblockUser(userId: string) {
-  accountStore.set((s) => ({ blocked: s.blocked.filter((b) => b.id !== userId) }))
-}
 
 export function linkGoogle(email: string) { accountStore.set({ googleEmail: email }) }
 export function unlinkGoogle() { if (hasPassword()) accountStore.set({ googleEmail: null }) }
