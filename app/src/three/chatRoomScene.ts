@@ -7,6 +7,7 @@ import decoUrl from '../assets/models/room/room_deco_v1_draco_webp.glb?url'
 import shelvesUrl from '../assets/models/room/room_shelves_v1_1_draco_webp.glb?url'
 import moleChatUrl from '../assets/models/mole_chat.glb?url'
 import { loadGlb } from './glb'
+import { fixChatMoleEyeTracks } from './chatMoleClips'
 import { markShadows } from './contactShadow'
 import { applyWallpaper } from './roomScene'
 import { approach, createRenderer, destroyRenderer, quality, startLoop, testParam } from './engine'
@@ -446,6 +447,7 @@ export function mountChatRoom(el: HTMLElement, init: ChatRoomInit): ChatRoomHand
   Promise.all([loadGlb(shellUrl), loadGlb(baseUrl), loadGlb(decoUrl), loadGlb(shelvesUrl), loadGlb(moleChatUrl), loadAccessories().catch(() => undefined)])
     .then(([shell, base, deco, shelves, mole, acc]) => {
       if (dead) return
+      fixChatMoleEyeTracks(mole.animations) // mole_chat.glb 클립의 틀린 눈 트랙 (docs/chat-mole-eyes.md)
       moleG = mole; accG = acc
       // 벽: 땅굴 방 01 기본 벽지(단색 #F0B47A × 구운 음영). 껍데기 원본 재질은 허옇게 나와서 핸드오프 사진(복숭아색)과 다름
       const shellRoot = shell.scene.clone()
