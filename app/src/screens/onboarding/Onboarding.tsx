@@ -115,7 +115,7 @@ function Check({ size = 12 }: { size?: number }) {
 const PREVIEW_SIZE = 200, PREVIEW_OVERFLOW = 72
 const PREVIEW_BLEED = { top: 328 - 28 - PREVIEW_SIZE + PREVIEW_OVERFLOW, right: 30, bottom: 28, left: 30 }
 /**
- * 1 제목·안내 / 2 닉네임: 필수, 최대 12자 "n / 12", 겹치면 오류 문구 / 3 두더지 꾸미기: 머리·얼굴·목·손 하나씩("없음" 가능), 관심사 아이템도 고를 수 있음
+ * 1 제목·안내 / 2 닉네임: 필수, 최대 12자 "n / 12", 겹치면 오류 문구 / 3 두더지 꾸미기: 머리·얼굴·목·손 하나씩("없음" 가능), 43개 모두 바로 고를 수 있음(관심사 연결 없음, 액세서리 v1.2)
  * 4 랜덤으로 꾸미기 / 5 미리보기(천천히 돌려 봄) / 6 고른 아이템(부위와 함께, ×로 해제) / 7 다음: 닉네임을 입력하면 활성
  */
 function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; onNext: () => void }) {

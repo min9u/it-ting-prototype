@@ -17,34 +17,32 @@ export interface Category3D {
   kit: string
   /** 방에 놓을 대분류 가구 (카탈로그 행 id, 첫 번째가 주 가구 = 이펙트 입자를 내는 가구). 자리는 행의 slot.name */
   furniture: string[]
-  /** 이 대분류의 세부 관심사를 하나라도 고르면 열리는 두더지 전용 액세서리 (interest_catalog accessories 를 새 대분류로 옮김) */
-  accessories: string[]
   /** 맞는 세트가 없어 빌려 쓰는 경우 이유 (임시) */
   substitute?: string
 }
 
 export const CATEGORY_3D: Readonly<Record<string, Category3D>> = {
-  food: { kit: 'tea_coffee', furniture: [], accessories: ['hat_chef', 'prop_cup'] },
+  food: { kit: 'tea_coffee', furniture: [] },
   sports: {
-    kit: 'outdoor', furniture: [], accessories: ['headband_sport'],
+    kit: 'outdoor', furniture: [],
     substitute: '스포츠 가구가 없어 아웃도어 세트(벽걸이 자전거·캠핑 의자)를 같이 씀. 카탈로그의 러닝머신·덤벨 랙은 모델이 없음(unused)',
   },
-  culture: { kit: 'movie', furniture: [], accessories: ['glasses_3d'] },
-  game: { kit: 'game', furniture: [], accessories: ['prop_gamepad'] },
-  music_dance: { kit: 'music', furniture: [], accessories: ['headphones'] },
-  outdoor: { kit: 'outdoor', furniture: [], accessories: ['prop_suitcase', 'hat_straw'] },
+  culture: { kit: 'movie', furniture: [] },
+  game: { kit: 'game', furniture: [] },
+  music_dance: { kit: 'music', furniture: [] },
+  outdoor: { kit: 'outdoor', furniture: [] },
   language_selfdev: {
-    kit: 'book', furniture: [], accessories: [],
+    kit: 'book', furniture: [],
     substitute: '외국어·자기계발 가구가 없어 책 세트(책장·독서등)를 같이 씀 (공부하는 자리)',
   },
-  book: { kit: 'book', furniture: [], accessories: ['prop_book'] },
-  photo_video: { kit: 'photo', furniture: [], accessories: ['camera_neck'] },
-  art_craft: { kit: 'craft', furniture: [], accessories: ['prop_palette', 'hat_beret'] },
+  book: { kit: 'book', furniture: [] },
+  photo_video: { kit: 'photo', furniture: [] },
+  art_craft: { kit: 'craft', furniture: [] },
   fandom_collect: {
-    kit: 'science', furniture: [], accessories: [],
+    kit: 'science', furniture: [],
     substitute: '덕질·수집 가구가 없어 우주·과학 세트의 광물 진열 벤치만 진열대로 씀 (망원경은 안 씀)',
   },
-  pet_plant: { kit: 'nature', furniture: [], accessories: ['hat_sprout'] },
+  pet_plant: { kit: 'nature', furniture: [] },
 }
 
 /**

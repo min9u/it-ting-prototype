@@ -3,7 +3,7 @@
  * - 00 공통 9 비밀번호 규칙 (F2 회원가입 2 · F10 비밀번호 변경) — data/auth.ts 와 data/account.ts 두 곳에 있어 서로 같은지도 봄
  * - F2 이메일 형식 · 재설정 링크(30분, 한 번만, 다시 보내면 이전 링크 무효)
  * - F3 1-2 닉네임 12자 · 겹침, 3-3 질문 답변 10~50자, 추천 질문 3개
- * - 두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2): 부위마다 하나 · 최대 4개 · 같이 못 끼는 조합 · 관심사 전용 잠금 · 손 소품 숨김
+ * - 두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2): 부위마다 하나 · 최대 4개 · 같이 못 끼는 조합 · 관심사 연결 없음 · 손 소품 숨김(인사·채팅방 4명 이상)
  * - F9 알림 4·8: 최근 30일, 안 읽은 것 먼저 → 최신순, 종류별로 끄기
  * - F8 커뮤니티 10 인기 글(최근 7일 · 좋아요+댓글+저장 · 같으면 최신) · 신고 4(서로 다른 3명이면 가려짐, 같은 사람은 한 번)
  */
@@ -14,7 +14,8 @@ import { passwordChecks, passwordOk } from '../data/account'
 import { ANSWER_MAX, ANSWER_MIN, QUESTIONS, answerOk, recommendedQuestions } from '../data/questions'
 import { NICK_MAX, nickTaken } from '../data/myBurrow'
 import { INTEREST_SUBS } from '../data/interests'
-import { BLOCKED_PAIRS, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, handVisible, itemOf, lockOf, wornByPart } from '../data/moleItems'
+import { BLOCKED_PAIRS, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, handVisible, itemOf, NONE_ICON, wornByPart } from '../data/moleItems'
+import { handHiddenInChat } from '../three/moleDress'
 import { NOTICE_TTL_DAYS, visibleNotices, type AppNotice, type NoticeKind } from '../data/notifications'
 import { HIDE_AT, getPost, hotPosts, reportPost, scoreOf, usePosts, type BoardPost } from '../data/boardStore'
 import { USERS } from '../data/mock'
@@ -112,9 +113,14 @@ describe('온보딩 입력 (F3)', () => {
 })
 
 describe('두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2)', () => {
-  it('액세서리 41개, id 하나씩, 부위 4곳 모두 1개 이상, 최대 4개 = 부위 수', () => {
-    expect(MOLE_ITEMS).toHaveLength(41)
-    expect(new Set(MOLE_ITEMS.map((x) => x.id)).size).toBe(41)
+  it('액세서리 43개(머리 19 · 얼굴 6 · 목 5 · 손 13), id 하나씩, 부위 4곳 모두 1개 이상, 최대 4개 = 부위 수', () => {
+    expect(MOLE_ITEMS).toHaveLength(43)
+    expect(new Set(MOLE_ITEMS.map((x) => x.id)).size).toBe(43)
+    const n = (part: string) => MOLE_ITEMS.filter((x) => x.part === part).length
+    expect([n('머리'), n('얼굴'), n('목'), n('손')]).toEqual([19, 6, 5, 13])
+    for (const id of ['hat_mortarboard', 'prop_lightstick']) expect(itemOf(id), id).toBeTruthy()
+    expect(itemOf('hat_mortarboard')!.part).toBe('머리')
+    expect(itemOf('prop_lightstick')!.part).toBe('손')
     for (const p of MOLE_PARTS) expect(MOLE_ITEMS.some((x) => x.part === p.part), p.part).toBe(true)
     expect(MAX_WORN).toBe(MOLE_PARTS.length)
   })
@@ -129,15 +135,30 @@ describe('두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2)', () => {
     expect(blockedBy(b, [a])).toBe(a)
     expect(blockedBy(a, [])).toBeNull()
   })
-  it('관심사 전용: 관심사를 고르기 전(온보딩 1)은 열려 있고, 그 분야를 하나도 안 골랐으면 잠김', () => {
-    const special = MOLE_ITEMS.find((x) => x.interestCat)!
-    expect(lockOf(special)).toBeNull()
-    const other = INTEREST_SUBS.find((s) => s.category !== special.interestCat)!
-    const same = INTEREST_SUBS.find((s) => s.category === special.interestCat)!
-    expect(lockOf(special, { picks: [other.id] })).toContain(special.interest!)
-    expect(lockOf(special, { picks: [same.name_ko] })).toBeNull()
-    const basic = MOLE_ITEMS.find((x) => !x.interestCat)!
-    expect(lockOf(basic, { picks: [] })).toBeNull()
+  it('관심사 연결 없음 (v1.2): 아이템에 관심사 전용 표시가 없음', () => {
+    for (const x of MOLE_ITEMS) expect(Object.keys(x).sort(), x.id).toEqual(['icon', 'id', 'name', 'part'])
+  })
+  it('채팅방 4명 이상이면 손 소품 숨김 (2·3명은 보임)', () => {
+    expect([1, 2, 3, 4, 5, 6].map(handHiddenInChat)).toEqual([false, false, false, true, true, true])
+  })
+  it('accessories.glb 의 루트 노드 43개 이름이 아이템 id 와 같음, 노드마다 socket 이 부위와 맞음', async () => {
+    const FS = 'node:fs' // 브라우저 타입에 node 가 없어서 문자열로 불러옴 (data-json.test 와 같은 방식)
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string): Uint8Array }
+    const raw = fs.readFileSync('src/assets/models/accessories.glb')
+    const jsonLen = new DataView(raw.buffer, raw.byteOffset, raw.byteLength).getUint32(12, true) // glb 머리 12바이트 뒤 첫 청크(JSON) 길이
+    const json = JSON.parse(new TextDecoder().decode(raw.subarray(20, 20 + jsonLen)))
+    const roots: number[] = json.scenes[json.scene ?? 0].nodes
+    const names = roots.map((i) => json.nodes[i].name as string)
+    expect([...names].sort()).toEqual(MOLE_ITEMS.map((x) => x.id).sort())
+    const sock = Object.fromEntries(MOLE_PARTS.map((p) => [p.part, p.socket]))
+    for (const i of roots) {
+      const n = json.nodes[i], it = itemOf(n.name)!
+      expect(n.extras?.socket, n.name).toBe(sock[it.part])
+      expect(n.extras?.interest, `${n.name} extras.interest 는 앱이 안 씀(있어도 무시)`).toBeUndefined()
+    }
+  })
+  it('아이템 아이콘이 43개 모두 있음 (없음 아이콘으로 떨어지지 않음)', () => {
+    for (const x of MOLE_ITEMS) expect(x.icon, x.id).not.toBe(NONE_ICON)
   })
   it('손 소품: 인사·커피 동작은 늘 숨김, 엉덩이 씰룩은 막대 사탕 + 니트 목도리일 때만 숨김', () => {
     expect(handVisible('mole_idle', ['prop_palette'])).toBe(true)

@@ -1,22 +1,20 @@
 import { lazy, Suspense, useState, type CSSProperties } from 'react'
 import SceneBoundary from './SceneBoundary'
 import MoleAvatar from './MoleAvatar'
-import { MAX_WORN, MOLE_ITEMS, MOLE_PARTS, NONE_ICON, blockedBy, itemOf, lockOf, partTotal, type MolePart } from '../data/moleItems'
+import { MAX_WORN, MOLE_ITEMS, MOLE_PARTS, NONE_ICON, blockedBy, itemOf, partTotal, type MolePart } from '../data/moleItems'
 import { CloseIcon } from './Icons'
 import styles from './MoleDresser.module.css'
 
 /**
  * 두더지 꾸미기 — 부위 탭 + 아이템 격자 (온보딩 1 408:18310 · 꾸미기 모드 682:7764 공용)
- * 규칙 (3D 핸드오프 v2 accessories.md v1.2): 부위마다 하나, 최대 4개.
- * 못 고르는 경우: 관심사 전용(picks 를 넘기면 그 관심사가 있어야 열림) / 같이 못 끼는 조합(등 리본 + 캐리어). 레벨 잠금은 없음(Figma 기준)
+ * 규칙 (3D 핸드오프 accessories v1.2): 부위마다 하나, 최대 4개.
+ * 못 고르는 경우: 같이 못 끼는 조합(등 리본 + 캐리어)뿐. 관심사 연결 · 레벨 잠금은 없음
  * - compact: 꾸미기 사이드바용 (착용 칩을 위에)
  */
-export default function MoleDresser({ worn, onChange, compact, picks }: {
+export default function MoleDresser({ worn, onChange, compact }: {
   worn: string[]
   onChange: (ids: string[]) => void
   compact?: boolean
-  /** 고른 관심사 태그. 없으면(온보딩 1단계, 관심사를 고르기 전) 관심사 아이템을 열어 둠 */
-  picks?: string[]
 }) {
   const [part, setPart] = useState<MolePart>('머리')
   const [msg, setMsg] = useState<string | null>(null)
@@ -29,7 +27,7 @@ export default function MoleDresser({ worn, onChange, compact, picks }: {
     const rest = worn.filter((w) => itemOf(w)?.part !== part)
     if (id === null || partWorn === id) return onChange(rest)
     const x = itemOf(id)!
-    const why = lockOf(x, { picks }) ?? (blockedBy(id, rest) ? `${itemOf(blockedBy(id, rest)!)?.name}와(과) 같이 쓸 수 없어요` : null)
+    const why = blockedBy(id, rest) ? `${itemOf(blockedBy(id, rest)!)?.name}와(과) 같이 쓸 수 없어요` : null
     if (why) { setMsg(`${x.name}: ${why}`); return }
     onChange([...rest, id])
   }
@@ -56,14 +54,12 @@ export default function MoleDresser({ worn, onChange, compact, picks }: {
         {items.map((x) => {
           const on = worn.includes(x.id)
           const rest = worn.filter((w) => itemOf(w)?.part !== part)
-          const lock = on ? null : lockOf(x, { picks })
-          const blocked = on || lock ? null : blockedBy(x.id, rest)
-          const off = !!lock || !!blocked
+          const blocked = on ? null : blockedBy(x.id, rest)
+          const off = !!blocked
           return (
             <button key={x.id} className={on ? styles.itemOn : off ? `${styles.item} ${styles.locked}` : styles.item}
               onClick={() => pick(x.id)} aria-pressed={on} aria-disabled={off}
-              title={lock ?? (blocked ? `${itemOf(blocked)?.name}와(과) 같이 쓸 수 없어요` : x.name)}>
-              {x.interest && <em className={styles.badge}>{x.interest}</em>}
+              title={blocked ? `${itemOf(blocked)?.name}와(과) 같이 쓸 수 없어요` : x.name}>
               <img src={x.icon} alt="" /><span>{x.name}</span>
               {on && <b className={styles.check} aria-hidden>✓</b>}
             </button>
@@ -71,11 +67,6 @@ export default function MoleDresser({ worn, onChange, compact, picks }: {
         })}
       </div>
       {msg && <p className={styles.notice} role="status">ⓘ {msg}</p>}
-      {!compact && (
-        <p className={styles.legend}>
-          <i aria-hidden /> 관심사 아이템{picks ? ' · 그 관심사를 고르면 열려요' : ' · 바로 고를 수 있어요'}
-        </p>
-      )}
     </div>
   )
 }

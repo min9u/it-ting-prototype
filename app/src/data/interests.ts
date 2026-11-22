@@ -25,8 +25,6 @@ export interface InterestCategory {
   furniture: string[]
   /** 가구마다 놓일 자리 (카탈로그 행의 slot.name) */
   furniture_slots: string[]
-  /** 이 대분류를 하나라도 고르면 열리는 전용 액세서리 */
-  accessories: string[]
   /** 맞는 3D 세트가 없어 빌려 쓰면 그 이유 (임시) */
   substitute?: string
   max_pick: number
@@ -50,11 +48,11 @@ const CATALOG = catalogRaw as unknown as CatalogRow[]
 const rowOf = (id: string | null | undefined) => (id ? CATALOG.find((r) => r.id === id) : undefined)
 
 export const INTEREST_CATS: InterestCategory[] = TAG_TREE.map((c, i) => {
-  const d = CATEGORY_3D[c.id] ?? { kit: c.id, furniture: [], accessories: [] }
+  const d = CATEGORY_3D[c.id] ?? { kit: c.id, furniture: [] }
   return {
     type: 'category', id: c.id, name_ko: c.name, order: i + 1, emoji: c.emoji, tone: c.tone, kit: d.kit,
     furniture: [...d.furniture], furniture_slots: d.furniture.map((f) => rowOf(f)?.slot?.name ?? ''),
-    accessories: [...d.accessories], ...(d.substitute ? { substitute: d.substitute } : {}), max_pick: MAX_PICK,
+    ...(d.substitute ? { substitute: d.substitute } : {}), max_pick: MAX_PICK,
   }
 })
 export const INTEREST_SUBS: InterestSub[] = TAG_TREE.flatMap((c) => c.subs.map(([id, name]): InterestSub => {
@@ -86,11 +84,6 @@ export function toSubIds(list: string[]): string[] {
 export function categoriesOf(list: string[]): string[] {
   return [...new Set(toSubIds(list).map((id) => byId.get(id)!.category))]
 }
-
-/** 액세서리 id → 그 액세서리를 여는 대분류 */
-export const ACCESSORY_CATEGORY: Record<string, InterestCategory> = Object.fromEntries(
-  INTEREST_CATS.flatMap((c) => c.accessories.map((a) => [a, c] as const)),
-)
 
 /* ---------- 예전 값 옮기기 (관심사 v2 → 2026-11-18 확정본) ---------- */
 const LEGACY = new Map<string, string | null>(LEGACY_SUBS.flatMap(([oldId, oldName, next]) => [[oldId, next], [oldName, next]] as const))

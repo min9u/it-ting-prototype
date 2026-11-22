@@ -1,14 +1,13 @@
 /**
- * 두더지 꾸미기 액세서리 41개 (3D 핸드오프 v1.1 accessories_v1.glb, 규칙은 v2 accessories.md v1.2)
+ * 두더지 꾸미기 액세서리 43개 (3D 핸드오프 accessories v1.2, 규칙은 같은 핸드오프 docs/accessories_v1_2.md)
  * - 부위 4곳(머리·얼굴·목·손)마다 하나씩, 최대 4개
  * - 같이 못 끼는 조합: 등 리본 + 작은 캐리어 (하나를 끼면 다른 하나는 못 고름)
- * - 구분: 기본 / 관심사 전용 (레벨 잠금은 2026-11-12 제거: Figma 에 없음. 모두 바로 고를 수 있음)
- *   관심사 전용은 3D 핸드오프 v3 interest_catalog.json 카테고리의 accessories 로 정함 (glb 안 userData.interest 는 옛 값이라 안 씀)
- * - 아이콘: design/digul_3d_handoff_v1_1/icons (512px) → 160px WebP (assets/mole-items/)
+ * - 관심사 연결 없음(v1.2): 43개 모두 처음부터 고를 수 있음. 레벨 잠금도 없음(2026-11-12 제거: Figma 에 없음).
+ *   glb 안 userData.interest · interest_catalog 의 accessories 는 안 씀
+ * - 아이콘: design/digul_3d_handoff_accessories_v1_2/icons (512px) → 160px WebP (assets/mole-items/)
  * - id = glb 노드 이름. 3D 착용은 src/three/moleDress.ts
  */
 import none from '../assets/mole-items/none.png'
-import { ACCESSORY_CATEGORY, categoriesOf } from './interests'
 
 const ICONS = import.meta.glob<string>('../assets/mole-items/*.webp', { eager: true, query: '?url', import: 'default' })
 const iconOf = (id: string) => ICONS[`../assets/mole-items/${id}.webp`] ?? none
@@ -27,15 +26,11 @@ export interface MoleItem {
   name: string
   part: MolePart
   icon: string
-  /** 관심사 전용: 이 카테고리 이름 (배지·안내 문구) */
-  interest?: string
-  /** 관심사 전용: 이 카테고리 id 의 세부 관심사를 하나라도 고르면 열림 */
-  interestCat?: string
 }
 
 type Row = [id: string, name: string, part: MolePart]
 const ROWS: Row[] = [
-  // 머리 18
+  // 머리 19
   ['hat_beret', '베레모', '머리'],
   ['hat_beanie', '비니', '머리'],
   ['hat_straw', '밀짚모자', '머리'],
@@ -54,6 +49,7 @@ const ROWS: Row[] = [
   ['headband_sport', '땀 밴드', '머리'],
   ['hat_chef', '요리사 모자', '머리'],
   ['hat_sprout', '새싹', '머리'],
+  ['hat_mortarboard', '학사모', '머리'],
   // 얼굴 6
   ['glasses_round', '동그란 안경', '얼굴'],
   ['glasses_sun', '선글라스', '얼굴'],
@@ -67,7 +63,7 @@ const ROWS: Row[] = [
   ['scarf_knit', '니트 목도리', '목'],
   ['ribbon_back', '등 리본', '목'],
   ['camera_neck', '목걸이 카메라', '목'],
-  // 손 12
+  // 손 13
   ['prop_flower', '꽃 한 송이', '손'],
   ['prop_cup', '커피잔', '손'],
   ['prop_balloon', '풍선', '손'],
@@ -80,12 +76,10 @@ const ROWS: Row[] = [
   ['prop_gamepad', '게임패드', '손'],
   ['prop_palette', '물감 팔레트', '손'],
   ['prop_suitcase', '작은 캐리어', '손'],
+  ['prop_lightstick', '응원봉', '손'],
 ]
 
-export const MOLE_ITEMS: MoleItem[] = ROWS.map(([id, name, part]) => {
-  const cat = ACCESSORY_CATEGORY[id]
-  return { id, name, part, icon: iconOf(id), ...(cat ? { interest: cat.name_ko, interestCat: cat.id } : {}) }
-})
+export const MOLE_ITEMS: MoleItem[] = ROWS.map(([id, name, part]) => ({ id, name, part, icon: iconOf(id) }))
 export const NONE_ICON = none
 export const itemOf = (id: string) => MOLE_ITEMS.find((x) => x.id === id)
 export const partTotal = (part: MolePart) => MOLE_ITEMS.filter((x) => x.part === part).length
@@ -94,14 +88,6 @@ export const partTotal = (part: MolePart) => MOLE_ITEMS.filter((x) => x.part ===
 export const BLOCKED_PAIRS: [string, string][] = [['ribbon_back', 'prop_suitcase']]
 export const blockedBy = (id: string, worn: string[]) =>
   BLOCKED_PAIRS.map(([a, b]) => (a === id ? b : b === id ? a : null)).find((x) => x && worn.includes(x)) ?? null
-
-/** 잠금 이유. null 이면 고를 수 있음. picks(세부 관심사 이름 또는 id)가 없으면(관심사를 고르기 전, 온보딩 1단계) 관심사 아이템은 열어 둠 */
-export function lockOf(item: MoleItem, o: { picks?: string[] } = {}): string | null {
-  if (item.interestCat && o.picks && !categoriesOf(o.picks).includes(item.interestCat)) {
-    return `'${item.interest}' 관심사를 하나라도 고르면 열려요`
-  }
-  return null
-}
 
 /** 부위별 착용 (없으면 null) */
 export function wornByPart(worn: string[]) {
