@@ -14,6 +14,7 @@ import { interestTags, rawPerson, userDisplay } from '../common/mockPeople'
 import { toAppId, toDtoId } from '../common/ids'
 import type { Id, InterestTagDto } from '../common/types'
 import { ME_ID } from '../../data/mock'
+import { getMyFurnChoice } from '../../data/myBurrow'
 import { GENERATIONS } from '../../data/auth'
 import { campusesInOrder } from '../../data/campusFloors'
 import {
@@ -120,6 +121,8 @@ export function userBurrowDto(userId: string): UserBurrowDto {
     burrowId: burrowIdOf(userId), isMine: mine, owner: userDisplay(userId), intro: u.intro || null,
     interests: interestTags(userId), answers: answersOf(userId), guestbookCount: guestbookCountOf(userId),
     isRegular: !mine && isRegular(userId), chat: chatStatusOf(userId), entrance: entranceDto(spot),
+    // ⚠ 목 전용 (PENDING): 내가 고른 가구. 다른 사람은 저장한 값이 없어 모두 맨 앞 단어
+    ...(mine ? { furniture: getMyFurnChoice() } : {}),
   }
 }
 /** 방명록 글 (보는 사람 = 나). 주인은 모든 글을 지울 수 있고, 방문자는 자기 글만 */
