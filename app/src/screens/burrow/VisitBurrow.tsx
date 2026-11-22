@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import NotFound from '../../components/NotFound'
 import { roomLookOf } from '../../data/roomLook'
-import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import RoomView from '../../components/RoomView'
 import { getMyWorn } from '../../data/moleItems'
 import RoomModeToggle from '../../components/RoomModeToggle'
@@ -15,6 +15,7 @@ import GuestbookModal from './GuestbookModal'
 import { NotePanel, RoomNoteBody, useNotePanel } from './RoomNote'
 import SceneButton from '../../components/SceneButton'
 import { Link } from 'react-router-dom'
+import type { SendChatRequestResponse } from '../../api/types'
 import { exploreHref } from '../../data/field'
 import { toIso } from '../../lib/time'
 import { api } from '../../api'
@@ -79,6 +80,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const pendingReq = b.pendingRequestId
   const me = USERS[ME_ID]
   const run = useOptimistic()
+  const navigate = useNavigate()
   const gb = useGuestbook(owner.id)
   const entries: GuestbookEntry[] = gb.data ?? []
   // 방노트: 들어오면 접혀 있음 (?panel=open 이면 펼친 채로)
@@ -139,9 +141,15 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
       quietCodes: ['REQUEST_FROM_PEER'], // 오류가 아니라 안내: 상대가 먼저 보낸 요청이 있음 (F6-B3·B4)
       patches: [patch<BurrowVM>(qk.burrow(owner.id), (o) => ({ ...o, pendingRequestId: o.pendingRequestId ?? 'tmp' }), true)],
     }, {
-      onSuccess: () => { setReqMsg(''); setSent(true) },
+      onSuccess: (data) => {
+        const r = data as SendChatRequestResponse
+        setReqMsg('')
+        // 내가 거절한 요청이 남아 있던 사람 → 요청이 아니라 대화방이 바로 열림: 팝업을 닫은 채 그 대화방으로 (명세 05 대화 요청 팝업 3)
+        if (r.chatRoomId) navigate(`/chat/${r.chatRoomId}`)
+        else setSent(true)
+      },
       onError: (e) => {
-        if (isApiError(e) && e.code === 'REQUEST_FROM_PEER') { setReqMsg(''); setRegToast('상대가 먼저 대화를 요청했어요. 채팅에서 확인해 보세요') } // 팝업은 닫은 채로, 안내만
+        if (isApiError(e) && e.code === 'REQUEST_FROM_PEER') { setReqMsg(''); setRegToast('이미 나에게 요청한 사람입니다. 알림창에 가서 확인하세요.') } // 팝업은 닫은 채로, 안내만
         else setReqOpen(true)
       },
     })

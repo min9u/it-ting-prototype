@@ -9,9 +9,9 @@ import { conflict, mockRead, mockWrite, notFound } from './mock/server'
 import { chatRequestDto, chatRoomSummary } from './mock/serialize'
 import { accountStore } from '../data/account'
 import {
-  acceptRequest, dmRoomWith, dropRequest, getChatState, liveRequests, receivedFrom, roomTitle, sendRequest, sentRequestTo,
+  acceptRequest, dmRoomWith, dropRequest, getChatState, liveRequests, receivedFrom, rejectRequest, roomTitle, sendRequest, sentRequestTo,
 } from '../data/chat'
-import type { AcceptChatRequestResponse, ChatRequestDto, ChatRoomSummaryDto, ChatRoomType, Id } from './types'
+import type { AcceptChatRequestResponse, ChatRequestDto, ChatRoomSummaryDto, ChatRoomType, Id, SendChatRequestResponse } from './types'
 
 export interface ChatRoomQuery { type?: ChatRoomType; q?: string }
 
@@ -20,8 +20,8 @@ const real = {
   rooms: (q: ChatRoomQuery = {}, signal?: AbortSignal) => http.get<ChatRoomSummaryDto[]>('/chat/rooms', { ...q }, signal),
   /** GET /chat/requests — 받은·보낸 대화 요청 (PENDING, 5일 안) */
   requests: (signal?: AbortSignal) => http.get<ChatRequestDto[]>('/chat/requests', { status: 'PENDING' }, signal),
-  /** POST /chat/requests — 대화 요청 보내기 (409 REQUEST_EXISTS · ROOM_EXISTS, 403 BLOCKED) */
-  sendRequest: (receiverId: Id, message: string, context: ChatRequestDto['context']) => http.post<ChatRequestDto>('/chat/requests', { receiverId, message, context }),
+  /** POST /chat/requests — 대화 요청 보내기 (409 REQUEST_EXISTS · ROOM_EXISTS · REQUEST_FROM_PEER). 내가 거절한 요청이 남은 사람이면 대화방이 바로 열려 chatRoomId 가 옴 */
+  sendRequest: (receiverId: Id, message: string, context: ChatRequestDto['context']) => http.post<SendChatRequestResponse>('/chat/requests', { receiverId, message, context }),
   /** POST /chat/requests/{id}/accept → 만들어진 1:1 대화방 */
   acceptRequest: (id: Id) => http.post<AcceptChatRequestResponse>(`/chat/requests/${id}/accept`),
   /** POST /chat/requests/{id}/decline — 상대에게 알리지 않음 */
@@ -55,14 +55,16 @@ const mock: ChatApi = {
     if (sentRequestTo(receiverId)) throw conflict('REQUEST_EXISTS', '이미 대화를 요청했어요.')
     // 상대가 먼저 보낸 요청에 아직 답하지 않았으면 새 요청을 만들지 않고 알림(토스트)으로 안내
     if (receivedFrom(receiverId)) throw conflict('REQUEST_FROM_PEER', '이 분이 먼저 대화를 요청했어요. 채팅 › 요청에서 답해 주세요.')
-    sendRequest(receiverId, message, context === 'BURROW_VISIT' ? '땅굴에 다녀갔어요' : context === 'SAME_MEETUP' ? '같은 모임 참여 예정' : undefined)
-    return chatRequestDto(sentRequestTo(receiverId)!)
+    const roomId = sendRequest(receiverId, message, context === 'BURROW_VISIT' ? '땅굴에 다녀갔어요' : context === 'SAME_MEETUP' ? '같은 모임 참여 예정' : undefined)
+    if (roomId) return { chatRequestId: null, createdAt: null, expiresAt: null, chatRoomId: roomId } // 거절했던 요청을 수락한 것으로 처리 → 대화방이 바로 열림
+    const d = chatRequestDto(sentRequestTo(receiverId)!)
+    return { chatRequestId: d.id, createdAt: d.createdAt, expiresAt: d.expiresAt, chatRoomId: null }
   }),
   acceptRequest: (id) => mockWrite(() => {
     if (!findReq(id)) throw notFound('대화 요청')
     return { chatRoomId: acceptRequest(id)! }
   }),
-  declineRequest: (id) => mockWrite(() => { if (!findReq(id)) throw notFound('대화 요청'); dropRequest(id) }),
+  declineRequest: (id) => mockWrite(() => { if (!findReq(id)) throw notFound('대화 요청'); rejectRequest(id) }),
   cancelRequest: (id) => mockWrite(() => { if (!findReq(id)) throw notFound('대화 요청'); dropRequest(id) }),
 }
 

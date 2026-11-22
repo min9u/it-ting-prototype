@@ -314,6 +314,11 @@ export interface ChatRequestDto {
   chatRoomId: Id | null
 }
 export interface AcceptChatRequestResponse { chatRoomId: Id }
+/**
+ * POST /chat-requests 응답 (명세 api 05). 요청을 새로 만들었으면 chatRoomId 가 null, **내가 거절한 요청이 남아 있는 사람에게 보내면**
+ * 요청을 만들지 않고 그 요청을 수락한 것으로 처리해 대화방이 바로 열림 → 요청 값은 null, chatRoomId 에 그 방
+ */
+export interface SendChatRequestResponse { chatRequestId: Id | null; createdAt: IsoDateTime | null; expiresAt: IsoDateTime | null; chatRoomId: Id | null }
 
 /* ===== 모임 ===== */
 export interface MeetupCardDto {

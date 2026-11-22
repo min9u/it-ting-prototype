@@ -73,6 +73,11 @@ export interface Req {
   at: number
   /** "땅굴에 다녀갔어요" 같은 맥락 */
   context: string
+  /**
+   * 내가 거절한 받은 요청 (명세 06 받은 요청 5 · api 06 REJECTED). 받은 요청 목록·숫자에서는 빠지지만 만료(5일) 전까지 남아 있다가,
+   * 내가 그 사람에게 대화 요청을 보내면 "거절했던 요청을 수락한 것"으로 처리됨. 보낸 사람 쪽에는 거절이 안 드러남(그대로 "답변 기다리는 중")
+   */
+  rejected?: boolean
 }
 
 export const REQUEST_TTL_DAYS = 5
@@ -179,8 +184,12 @@ export function useChat() { return useSyncExternalStore(subscribe, () => state) 
 /** 훅 바깥에서 지금 상태 (목 서버 api/chat.ts 가 방·요청 목록을 만들 때) */
 export const getChatState = () => state
 
-const live = (r: Req) => Date.now() - r.at < REQUEST_TTL_DAYS * day
+const fresh = (r: Req) => Date.now() - r.at < REQUEST_TTL_DAYS * day
+/** 목록에 보이는 요청 = 만료 전 + 내가 거절하지 않은 것 */
+const live = (r: Req) => fresh(r) && !r.rejected
 export const liveRequests = (s = state) => s.requests.filter(live).sort((a, b) => b.at - a.at)
+/** 내가 거절했고 아직 만료되지 않은, 그 사람이 보낸 요청 */
+export const rejectedFrom = (userId: string, s = state) => s.requests.find((r) => r.direction === 'received' && r.rejected && r.userId === userId && fresh(r))
 export const receivedCount = (s = state) => liveRequests(s).filter((r) => r.direction === 'received').length
 export const roomOf = (id: string, s = state) => s.rooms.find((r) => r.id === (ALIAS[id] ?? id))
 export const dmRoomWith = (userId: string, s = state) => s.rooms.find((r) => r.kind === 'dm' && r.partnerId === userId)
@@ -434,7 +443,7 @@ export function setNotice(id: string, text: string | null) {
 }
 
 /** 받은 요청 수락 → 1:1 대화방이 생기고 그 방 id 를 돌려줌 */
-export function acceptRequest(reqId: string): string | null {
+export function acceptRequest(reqId: string, myFirstMessage = ''): string | null {
   const q = state.requests.find((r) => r.id === reqId)
   if (!q) return null
   const u = personOf(q.userId)
@@ -447,6 +456,8 @@ export function acceptRequest(reqId: string): string | null {
     messages: [
       { id: mid(), authorId: 'system', system: true, text: `${u.nickname}님의 대화 요청을 수락했어요`, at: t },
       ...(q.message ? [{ id: mid(), authorId: q.userId, text: q.message, at: q.at }] : []),
+      // 거절했던 요청을 다시 보내며 쓴 인사는 내가 보낸 첫 메시지로 (명세 05 대화 요청 팝업 3)
+      ...(myFirstMessage.trim() ? [{ id: mid(), authorId: ME_ID, text: myFirstMessage.trim(), at: t + 1 }] : []),
     ],
   }
   state.requests = state.requests.filter((r) => r !== q)
@@ -463,17 +474,26 @@ export function dropRequest(reqId: string) {
   state.requests = state.requests.filter((r) => r.id !== reqId)
   emit()
 }
+/** 받은 요청 거절: 내 목록에서는 사라지지만 만료 전까지 "거절한 요청"으로 남김 (그 사람에게 내가 요청하면 수락 처리). 상대에게 알리지 않음 */
+export function rejectRequest(reqId: string) {
+  state.requests = state.requests.map((r) => (r.id === reqId && r.direction === 'received' ? { ...r, rejected: true } : r))
+  emit()
+}
 /** 상대가 먼저 나에게 보냈고 내가 아직 답하지 않은 요청 (받은 요청에 남아 있는 것) */
 export const receivedFrom = (userId: string, s = state) => liveRequests(s).find((r) => r.direction === 'received' && r.userId === userId)
 /**
  * 방문자 뷰 "대화 요청하기" → 보낸 요청.
  * 상대가 먼저 나에게 보낸 요청에 내가 아직 답하지 않았으면 새 요청을 만들지 않는다(화면은 토스트로 안내, F5 방문자 뷰 4 · F6 11-20).
- * 내가 거절해서 사라진 요청은 여기서 안 막음
+ * 내가 거절한 요청이 만료 전이면 새 요청을 만들지 않고 그 요청을 수락한 것으로 처리 → 바로 1:1 대화방 (인사는 내 첫 메시지, F6-B2).
+ * 돌려주는 값: 그렇게 바로 열린 대화방 id (새 요청을 만들었거나 막혔으면 null)
  */
-export function sendRequest(userId: string, message: string, context = '내가 먼저 대화를 요청했어요') {
-  if (sentRequestTo(userId) || dmRoomWith(userId) || receivedFrom(userId)) return
+export function sendRequest(userId: string, message: string, context = '내가 먼저 대화를 요청했어요'): string | null {
+  if (sentRequestTo(userId) || dmRoomWith(userId) || receivedFrom(userId)) return null
+  const rejected = rejectedFrom(userId)
+  if (rejected) return acceptRequest(rejected.id, message)
   state.requests = [{ id: mid(), direction: 'sent', userId, message, at: Date.now(), context }, ...state.requests]
   emit()
+  return null
 }
 
 /** 모임 공유(+ 버튼)에 보일 내 모임: 참여 확정·내가 주최, 끝나지 않은 것 */
