@@ -6,7 +6,7 @@ import { questionOf as localQuestion, type Question } from '../../data/questions
 import { toAppId } from '../common/ids'
 import { toPersonFromDisplay, type Person } from '../common/mappers'
 import type { ItemsDto } from '../common/types'
-import { wornOfMole } from './moleCodes'
+import { wornOfMole } from '../common/moleCodes'
 import { appInterestName, categoryCodeOfId, type InterestCatalog } from './interestMap'
 import type { IntroQuestionDto, UserProfileDto } from './types'
 
@@ -42,10 +42,10 @@ export interface ProfileVM {
 export function toProfile(d: UserProfileDto): ProfileVM {
   const person = toPersonFromDisplay(d.user, d.interests)
   const interests = d.interests.map((i) => appInterestName(i.name))
-  // 두더지 코드는 대문자(명세) → 앱 아이템 id 로 (./moleCodes)
+  // 두더지 코드는 대문자(명세) → 앱 아이템 id 로 (common/moleCodes)
   return { person: { ...person, interests, worn: wornOfMole(d.user.mole) }, interests, shared: d.interests.filter((i) => i.isShared).map((i) => appInterestName(i.name)) }
 }
 
 /* ===== 두더지 ===== */
 /** toMoleDto: 입은 아이템 id 목록 → 요청 본문 mole (대문자 코드) · wornOfMole: 응답 mole → 입은 아이템 id (모르는 코드는 "없음") */
-export { moleDto as toMoleDto, wornOfMole, moleCodeOf, itemIdOfCode, MOLE_CODE } from './moleCodes'
+export { moleDto as toMoleDto, wornOfMole, moleCodeOf, itemIdOfCode, MOLE_CODE } from '../common/moleCodes'

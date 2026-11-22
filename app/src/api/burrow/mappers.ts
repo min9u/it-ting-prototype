@@ -1,6 +1,6 @@
 /**
  * 04 내 땅굴 DTO → 앱 모양 (화면은 이 결과만 쓴다), 화면 값 → 요청 본문.
- * 관심사 id ↔ 앱 이름은 api/onboarding interestMap (이름으로 잇기), 두더지 코드는 api/onboarding moleCodes (대문자)
+ * 관심사 id ↔ 앱 이름은 api/onboarding interestMap (이름으로 잇기), 두더지 코드는 api/common/moleCodes (대문자)
  */
 import { toAppId, toDtoId } from '../common/ids'
 import { toPersonFromDisplay, type CampusOption, type Person } from '../common/mappers'

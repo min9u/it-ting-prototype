@@ -9,6 +9,7 @@
 import { USERS } from '../../data/mock'
 import type { User } from '../../data/types'
 import { toAppId } from './ids'
+import { wornOfMole } from './moleCodes'
 import type { CampusDto, GenerationDto, InterestTagDto, ItemsDto, MoleDto, UserDisplayDto } from './types'
 import type { MemberProfileDto, MemberSummaryDto } from './legacy'
 
@@ -29,8 +30,8 @@ export function rememberPerson(u: Person, full: boolean) {
   else if (full && !old.interests.length) USERS[u.id] = { ...old, ...u }
 }
 
-/** 두더지 코드 → 앱의 입은 아이템 목록 (모르는 코드는 화면이 "없음"으로 그림) */
-export const wornOf = (m: MoleDto): string[] => [m.head, m.face, m.neck, m.hand].filter((x): x is string => !!x)
+/** 두더지 코드(명세 대문자 CAP_RED) → 앱의 입은 아이템 id 목록. 모르는 코드 · 부위가 틀린 코드는 빼서 "없음"으로 그림 (common/moleCodes) */
+export const wornOf = (m: MoleDto | null | undefined): string[] => wornOfMole(m)
 
 /** "SSAFY 16기 · 서울 · 2층" */
 export const affiliationOf = (campus: string | null, gen: number | null, floor: number | null) => (campus ? `SSAFY ${gen ?? ''}기 · ${campus} · ${floor ?? ''}층` : '')

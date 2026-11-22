@@ -8,7 +8,8 @@
  */
 import { ME_ID, USERS, categoryOf } from '../../data/mock'
 import { getMyInterests, subOf } from '../../data/interests'
-import { getMyWorn, wornByPart } from '../../data/moleItems'
+import { getMyWorn } from '../../data/moleItems'
+import { moleDto as moleDtoOf } from './moleCodes'
 import { ME_HOME, affOf, fieldUserOf } from '../../data/field'
 import type { User } from '../../data/types'
 import { toDtoId } from './ids'
@@ -29,11 +30,8 @@ export function affParts(id: string, u: User): { gen: number | null; campus: str
   const m = /(\d+)기\s*·\s*([^·]+?)\s*·\s*(\d+)층/.exec(affOf(u))
   return m ? { gen: +m[1], campus: m[2].trim(), floor: +m[3] } : { gen: null, campus: null, floor: null }
 }
-/** 입은 아이템 id 목록 → 부위별 코드 */
-export function moleDto(worn: string[]): MoleDto {
-  const by = wornByPart(worn)
-  return { head: by.머리, face: by.얼굴, neck: by.목, hand: by.손 }
-}
+/** 입은 아이템 id 목록 → 부위별 코드 (명세 대문자, common/moleCodes) */
+export const moleDto = (worn: string[]): MoleDto => moleDtoOf(worn)
 const wornOf = (id: string, u: User) => (id === ME_ID ? getMyWorn() : u.worn ?? [])
 const NO_MOLE: MoleDto = { head: null, face: null, neck: null, hand: null }
 

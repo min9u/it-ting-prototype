@@ -9,7 +9,7 @@ import { RULES } from '../../lib/validation'
 import { conflict, invalidInput, notFound } from '../mock/server'
 import { toAppId } from '../common/ids'
 import type { FieldError, Id, MoleDto } from '../common/types'
-import { MOLE_CODE, itemIdOfCode } from './moleCodes'
+import { MOLE_CODE, itemIdOfCode } from '../common/moleCodes'
 import type { AnswerRequest } from './types'
 
 const MIN_PICK = 3

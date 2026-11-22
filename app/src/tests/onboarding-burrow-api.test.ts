@@ -8,7 +8,7 @@ import { toAppId, toDtoId } from '../api/common/ids'
 import { mock as onboarding } from '../api/onboarding/mock'
 import { mock as burrow } from '../api/burrow/mock'
 import { toInterestCatalog, toProfile, toQuestions } from '../api/onboarding/mappers'
-import { itemIdOfCode, moleDto, wornOfMole } from '../api/onboarding/moleCodes'
+import { itemIdOfCode, moleDto, wornOfMole } from '../api/common/moleCodes'
 import { campusFloorIdOf, toGuestbookPage, toMyBurrow, toProfileUpdate } from '../api/burrow/mappers'
 import { ME_ID } from '../data/mock'
 import { getMyInterests } from '../data/interests'
@@ -33,6 +33,14 @@ describe('두더지 코드 (명세: 영어 대문자 · 숫자 · 밑줄)', () =
   })
   it('부위가 틀린 코드(머리 자리에 손 아이템)는 뺌', () => {
     expect(wornOfMole({ head: 'PROP_CUP', face: null, neck: null, hand: null })).toEqual([])
+  })
+  it('공통 사람 직렬화 · 매퍼도 같은 변환 (목 사용자 표시는 대문자, 화면 모양은 앱 아이템 id)', async () => {
+    const { userDisplay } = await import('../api/common/mockPeople')
+    const { toPersonFromDisplay, wornOf } = await import('../api/common/mappers')
+    const d = userDisplay(ME_ID)
+    for (const c of [d.mole.head, d.mole.face, d.mole.neck, d.mole.hand]) if (c) expect(c).toMatch(/^[A-Z0-9_]+$/)
+    expect(toPersonFromDisplay(d).worn).toEqual(wornOfMole(d.mole))
+    expect(wornOf({ head: 'HAT_BERET', face: null, neck: null, hand: null })).toEqual(['hat_beret'])
   })
 })
 

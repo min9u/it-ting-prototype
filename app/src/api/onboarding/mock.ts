@@ -15,7 +15,7 @@ import { toAppId, toDtoId } from '../common/ids'
 import { interestTags, rawPerson, userDisplay } from '../common/mockPeople'
 import type { FieldError, UserDisplayDto } from '../common/types'
 import { getMyWorn } from '../../data/moleItems'
-import { moleDto } from './moleCodes'
+import { moleDto } from '../common/moleCodes'
 import {
   answersErrors, interestIdsError, interestNamesOf, moleErrors, nicknameError, questionsOf, throwIfInvalid, throwIfNicknameTaken, wornFromMole,
 } from './mockRules'
