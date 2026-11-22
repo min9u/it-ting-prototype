@@ -4,8 +4,8 @@
   "width": 2048,
   "height": 1536,
   "alpha": true,
-  "bytes": 143308,
-  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "bytes": 132482,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
   "note": "랜딩 방 (관심사 6개, 연출 없음) = 내 땅굴·온보딩 미리 보기 대신"
  },
  {
@@ -13,8 +13,8 @@
   "width": 2032,
   "height": 1524,
   "alpha": true,
-  "bytes": 120928,
-  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "bytes": 112434,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
   "note": "남의 땅굴 (집주인 + 나)"
  },
  {

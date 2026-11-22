@@ -327,8 +327,6 @@ export interface MeetupCardDto {
   endsAt: IsoDateTime | null
   recruitDeadlineAt: IsoDateTime | null
   mode: MeetupMode
-  /** campus.name (오프라인) */
-  campus: string | null
   /** 오프라인: 장소, 온라인: 플랫폼이 '기타'일 때 직접 쓴 이름 */
   place: string | null
   platform: string | null
@@ -374,8 +372,6 @@ export interface MeetupListQuery {
   q?: string
   /** interest_category.id 여러 개 (대표 관심사의 분야) */
   categoryIds?: string[]
-  /** 캠퍼스 이름 (그 캠퍼스 오프라인 + 모든 온라인) */
-  campus?: string
   /** 시작일 범위 (YYYY-MM-DD, 서울) */
   from?: IsoDate
   to?: IsoDate
@@ -396,7 +392,6 @@ export interface MeetupWriteRequest {
   endsAt: IsoDateTime | null
   recruitDeadlineAt: IsoDateTime | null
   mode: MeetupMode
-  campus: string | null
   place: string | null
   placeDetail: string | null
   platform: string | null

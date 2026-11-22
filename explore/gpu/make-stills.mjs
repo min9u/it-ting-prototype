@@ -10,12 +10,15 @@ const outDir = path.join(here, '..', '..', 'app', 'src', 'assets', 'stills')
 fs.mkdirSync(outDir, { recursive: true })
 const BASE = process.env.BASE || 'http://localhost:5341/#'
 const DSF = +(process.env.DSF || 1.5)
+// 맥: CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' CHROME_FLAGS='--use-angle=metal --enable-gpu' PYTHON=python3 BASE=http://localhost:5199 (개발 서버, # 없는 브라우저 라우터)
 const exe = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+const extraFlags = (process.env.CHROME_FLAGS || '').split(' ').filter(Boolean)
+const py = process.env.PYTHON || 'python'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 찍을 것: 주소, 자를 곳(box = 땅굴 4:3 상자, canvas = 캔버스 사각형, sel = 그 요소), 기다릴 시간, 줄일 긴 변 */
 const SHOTS = [
-  { name: 'room', url: '/start?s=3&stillshot=1', clip: 'box', wait: 3500, maxw: 2048, note: '랜딩 방 (관심사 6개, 연출 없음) = 내 땅굴·온보딩 미리 보기 대신' },
+  { name: 'room', url: '/start?stillshot=1', clip: 'box', wait: 3500, maxw: 2048, note: '랜딩 방 (관심사 6개, 연출 없음) = 내 땅굴·온보딩 미리 보기 대신' },
   { name: 'visit', url: '/burrow/yerin?stillshot=1', clip: 'box', wait: 6000, maxw: 2048, note: '남의 땅굴 (집주인 + 나)' },
   { name: 'field', url: '/burrow/explore?stillshot=1', clip: 'canvas', wait: 5000, maxw: 1920, note: '탐색 들판 (서울-2층, 내 자리)' },
   { name: 'landing', url: '/start?stillshot=1', clip: 'canvas', wait: 5000, maxw: 1920, note: '랜딩·둘러보기 밭' },
@@ -27,7 +30,7 @@ const only = process.argv.slice(2)
 async function shoot(s) {
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'stills-'))
   const port = 9300 + Math.floor(Math.random() * 500)
-  const chrome = spawn(exe, [`--user-data-dir=${prof}`, `--remote-debugging-port=${port}`, '--headless=new', '--no-first-run', '--window-size=1920,1080', 'about:blank'], { stdio: 'ignore' })
+  const chrome = spawn(exe, [`--user-data-dir=${prof}`, `--remote-debugging-port=${port}`, '--headless=new', '--no-first-run', ...extraFlags, '--window-size=1920,1080', 'about:blank'], { stdio: 'ignore' })
   let targets; for (let i = 0; i < 60; i++) { try { targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (targets.find((t) => t.type === 'page')) break } catch {} await sleep(200) }
   const ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl); await new Promise((r) => ws.addEventListener('open', r))
   let id = 0; const pending = new Map()
@@ -55,7 +58,7 @@ try{localStorage.setItem('digul.gpuNotice.dismissed','1')}catch(e){}` })
   fs.writeFileSync(raw, Buffer.from(shot.result.data, 'base64'))
   // 줄이고 webp 로 (알파 유지)
   const out = path.join(outDir, `${s.name}.webp`)
-  const info = execFileSync('python', ['-I', '-c', `
+  const info = execFileSync(py, ['-I', '-c', `
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert('RGBA')

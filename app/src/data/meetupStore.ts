@@ -18,14 +18,9 @@ import type { Meetup, Tone } from './types'
 import { seoulParts, wallToMs, ymdDiff, ymdMs } from '../lib/time'
 
 /* ===== 타입 ===== */
-export const CAMPUSES = ['서울', '대전', '구미', '광주', '부울경'] as const
-export type Campus = (typeof CAMPUSES)[number]
 export const PLATFORMS = ['Zoom', 'Discord', 'Gather', '기타'] as const
-export const MY_CAMPUS: Campus = '서울'
 
 export interface MeetupX extends Meetup {
-  /** 오프라인 모임의 캠퍼스 (00 공통 19 캠퍼스 목록에서 하나) */
-  campus?: Campus
   placeDetail?: string
   /** 온라인 플랫폼 이름 (Zoom / Discord / Gather / 직접 입력) — 필수 (M16) */
   platform?: string
@@ -51,7 +46,7 @@ export interface Applicant { userId: string; msg: string; at: number }
 export interface Draft {
   cap: number; prep: string; askMsg: boolean
   ymd: string; start: string; end: string; deadline: string
-  mode: '오프라인' | '온라인'; campus: Campus; place: string; placeDetail: string; platform: string; platformEtc: string; link: string
+  mode: '오프라인' | '온라인'; place: string; placeDetail: string; platform: string; platformEtc: string; link: string
   title: string; intro: string; interest: string; tags: string[]
 }
 
@@ -105,16 +100,16 @@ export function ddayOf(ymd: string) {
 /* ===== 처음 데이터 ===== */
 // 기본 목 데이터(mock.ts MEETUPS)에 없는 필드: 캠퍼스·마감 일시·준비물 등
 const EXTRA: Record<string, Partial<MeetupX>> = {
-  m1: { campus: '서울', prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['시/에세이'] },
-  m2: { campus: '서울', prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
-  m3: { campus: '서울', prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['필름/컴팩트'] },
-  m4: { campus: '서울', prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
+  m1: { prep: '읽고 있는 책 한 권', deadline: '2026-11-08T10:00', likes: 12, tags: ['시/에세이'] },
+  m2: { prep: '없어요. 몸만 오세요', deadline: '2026-11-06T15:00', likes: 8 },
+  m3: { prep: '연필, 스케치북', deadline: '2026-11-21T18:00', likes: 5, tags: ['필름/컴팩트'] },
+  m4: { prep: '침낭 (없으면 빌려드려요)', deadline: '2026-11-13T23:59', likes: 21 },
   m5: { platform: 'Discord', link: 'https://discord.gg/lp-night', likes: 9, deadline: '2026-11-19T18:00' },
-  m6: { campus: '서울', prep: '재료비 1만 원', likes: 4 },
-  m7: { campus: '서울', prep: '러닝화', deadline: '2026-11-12T09:00', likes: 15 },
-  m8: { campus: '서울', prep: '남는 원두', likes: 7 },
+  m6: { prep: '재료비 1만 원', likes: 4 },
+  m7: { prep: '러닝화', deadline: '2026-11-12T09:00', likes: 15 },
+  m8: { prep: '남는 원두', likes: 7 },
   m9: { platform: '기타', place: '왓챠 파티', link: 'https://watcha.com/party/ghibli', likes: 11 },
-  m10: { campus: '서울', prep: '편한 운동복', likes: 18 },
+  m10: { prep: '편한 운동복', likes: 18 },
 }
 
 const base: Meetup[] = [
@@ -130,11 +125,11 @@ const base: Meetup[] = [
   { id: 'p4', title: '보드게임 번개', interest: '보드게임', date: '2026-11-10', start: '오후 7:00', end: '오후 9:00', area: '역삼', place: '역삼역 보드게임 카페', mode: '오프라인', capacity: 6, memberIds: ['mingu', 'yejin'], hostId: 'mingu', sign: '보드게임', intro: '퇴근하고 한 판!', cancelled: true },
 ]
 const EXTRA2: Record<string, Partial<MeetupX>> = {
-  x1: { campus: '서울', likes: 14, deadline: '2026-11-13T21:00' },
+  x1: { likes: 14, deadline: '2026-11-13T21:00' },
   x2: { platform: 'Discord', link: 'https://discord.gg/coop-night', likes: 6 },
-  x3: { campus: '서울', likes: 19 },
-  x4: { campus: '서울', likes: 2, deadline: '2026-11-26T18:00' },
-  p1: { campus: '서울', likes: 9 }, p2: { campus: '서울', likes: 7 }, p3: { campus: '서울', likes: 3 }, p4: { campus: '서울', likes: 2 },
+  x3: { likes: 19 },
+  x4: { likes: 2, deadline: '2026-11-26T18:00' },
+  p1: { likes: 9 }, p2: { likes: 7 }, p3: { likes: 3 }, p4: { likes: 2 },
 }
 
 function init(): State {
@@ -218,7 +213,7 @@ export const canCancel = (m: MeetupX) => !isPast(m) && !m.cancelled
 export const catNameOf = (interest: string) => categoryOf(interest)?.name ?? interest
 export const toneOfMeetup = (m: Meetup): Tone => toneOf(m.interest)
 /** 장소 표시: 오프라인은 캠퍼스를 앞에 */
-export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.campus ? `${m.campus} · ` : ''}${m.area} · 오프라인`)
+export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? `온라인 · ${m.platform === '기타' || !m.platform ? m.place : m.platform}` : `${m.area} · 오프라인`)
 
 /** 내 모임 분류 */
 export function mineGroups(s = state) {
@@ -296,10 +291,9 @@ export function createMeetup(d: Draft): string {
   const m: MeetupX = {
     id, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
-    area: d.mode === '온라인' ? '온라인' : (d.place.trim().split(/\s+/).slice(0, 2).join(' ') || d.campus),
+    area: d.mode === '온라인' ? '온라인' : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
     place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
     placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
-    campus: d.mode === '오프라인' ? d.campus : undefined,
     platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
     capacity: d.cap, memberIds: [ME_ID], hostId: ME_ID, sign: d.title.trim().slice(0, 8),
     prep: d.prep.trim() || undefined, askMsg: d.askMsg, deadline: d.deadline || undefined, likes: 0,
@@ -316,10 +310,9 @@ export function updateMeetup(id: string, d: Draft) {
   state.list = state.list.map((m) => (m.id !== id ? m : {
     ...m, title: d.title.trim(), interest: d.interest, tags: d.tags.slice(0, 3), intro: d.intro.trim(),
     date: d.ymd, start: d.start, end: d.end, mode: d.mode,
-    area: d.mode === '온라인' ? '온라인' : m.mode === '오프라인' && m.place === d.place.trim() ? m.area : (d.place.trim().split(/\s+/).slice(0, 2).join(' ') || d.campus),
+    area: d.mode === '온라인' ? '온라인' : m.mode === '오프라인' && m.place === d.place.trim() ? m.area : (d.place.trim().split(/\s+/).slice(0, 2).join(' ')),
     place: d.mode === '온라인' ? (d.platform === '기타' ? d.platformEtc.trim() : d.platform) : d.place.trim(),
     placeDetail: d.mode === '오프라인' ? d.placeDetail.trim() || undefined : undefined,
-    campus: d.mode === '오프라인' ? d.campus : undefined,
     platform: d.mode === '온라인' ? d.platform : undefined, link: d.mode === '온라인' ? d.link.trim() || undefined : undefined,
     capacity: d.cap, prep: d.prep.trim() || undefined, askMsg: d.askMsg,
   }))
@@ -344,7 +337,7 @@ export function draftOf(m: MeetupX): Draft {
   const etc = m.mode === '온라인' && (m.platform === '기타' || !m.platform)
   return {
     cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, deadline: m.deadline ?? '',
-    mode: m.mode, campus: m.campus ?? MY_CAMPUS, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
+    mode: m.mode, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
     platform: m.mode === '온라인' ? (etc ? '기타' : m.platform!) : 'Zoom', platformEtc: etc ? m.place : '', link: m.link ?? '',
     title: m.title, intro: m.intro, interest: m.interest, tags: m.tags,
   }

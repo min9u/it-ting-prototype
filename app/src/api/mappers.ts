@@ -82,12 +82,12 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
   return {
     id: toId(d.id), title: d.title, interest: d.category, tags: d.tags, date, start: hm(start),
     end: end == null ? '' : `${seoulYmd(end) !== date ? '다음 날 ' : ''}${hm(end)}`,
-    area: d.mode === 'ONLINE' ? '온라인' : d.area ?? (place.split(/\s+/).slice(0, 2).join(' ') || d.campus || ''),
+    area: d.mode === 'ONLINE' ? '온라인' : d.area ?? (place.split(/\s+/).slice(0, 2).join(' ')),
     place, mode: MODE[d.mode], capacity: d.capacity,
     // 카드 응답에는 참여자 목록이 없음 → 인원은 MeetupCardVM.confirmed 를 씀
     memberIds: [], hostId: toPerson(d.host).id, intro: '',
     sign: d.sign ?? d.title.slice(0, 8), cancelled: d.recruitStatus === 'CANCELED' || undefined,
-    campus: (d.campus ?? undefined) as MeetupX['campus'], platform: d.platform ?? undefined,
+    platform: d.platform ?? undefined,
     askMsg: true, deadline: d.recruitDeadlineAt ? msToWall(parseIso(d.recruitDeadlineAt)) : undefined,
     likes: d.likeCount, seq: Math.round(parseIso(d.createdAt) / 1000),
   }

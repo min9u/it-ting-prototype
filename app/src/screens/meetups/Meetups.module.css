@@ -485,7 +485,6 @@
 .heroHole .heroMole { left: 66px; top: -60px; }
 
 /* 상세: 행동 카드 · 주최자 카드 · 모임 대화 */
-.campusTag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 4px; background: var(--surface-sunken); font-family: var(--font-display); font-size: 13px; }
 .linkLine { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-500); }
 .linkLine a { color: var(--accent); text-decoration: underline; word-break: break-all; }
 .ddHint { margin-left: 8px; font-size: 11px; color: var(--ink-400); }

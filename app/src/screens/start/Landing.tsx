@@ -2,25 +2,40 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FieldView from '../../components/FieldView'
 import RoomView from '../../components/RoomView'
+import { planRoom } from '../../data/roomPlan'
+import { toSubIds } from '../../data/interests'
 import { ROOM_FRAME } from '../../three/roomFrame'
 import StartHeader from './StartHeader'
 import s from './Start.module.css'
 
+// 랜딩 방에 놓는 관심사 (2026-11-18 확정본 이름)
+const ROOM_INTERESTS = ['콘솔게임', '소설', 'JPOP/OST', '드로잉/회화', '필름/컴팩트', '캠핑/글램핑']
+
 /**
  * 랜딩 03 가구 라벨 (Figma Furniture Label, 1440×900 기준 px).
- * x, y = 가구 위 점, bx, by = 이름표 상자 왼쪽 위 (점 기준), w = 상자 폭.
- * 점 위치는 RoomView(three.js 방)의 가구 자리에 맞춤. 상자 오프셋은 시안 그대로.
+ * 이름은 하드코딩하지 않고 **랜딩 방에 실제로 놓이는 v3.8 소품**(data/roomPlan planRoom(ROOM_INTERESTS))의 모델 이름을 씀 (2026-11-22):
+ * 콘솔게임 → 게임기 · 소설 → 소설책 · 드로잉/회화 → 물감 상자 (선반 3칸), JPOP/OST → 카세트 워크맨 · 필름/컴팩트 → 필름 카메라 (바닥 소품), 캠핑/글램핑 → 캠핑 의자.
+ * 예전(침대·빈백·오락기 방): 오락기 · 책장 · 스피커 · 이젤 · 카메라 · 배낭.
+ * x, y = 소품 위 점(시안 좌표. 화면 px 로는 0.7774x + 160.3, 0.7773y - 9.9 @1440×900, 아래 inRoom), bx, by = 이름표 상자 왼쪽 위 (점 기준 px).
+ * 점 위치는 3D 방의 소품 자리(slots.json)에 맞춤 → 자리·이름이 바뀌면 tests/landing-pins.test.ts 가 알려 줌
  */
-const LABELS = [
-  { cat: '게임', item: '오락기', x: 430, y: 600, bx: -121, by: -111, w: 54 },
-  { cat: '독서', item: '책장', x: 520, y: 560, bx: 40, by: -141, w: 43 },
-  { cat: '음악', item: '스피커', x: 1010, y: 650, bx: 30, by: -191, w: 54 },
-  { cat: '그림', item: '이젤', x: 1120, y: 590, bx: 60, by: -161, w: 43 },
-  { cat: '사진', item: '카메라', x: 1080, y: 482, bx: 40, by: -131, w: 54 },
-  { cat: '캠핑', item: '배낭', x: 318, y: 575, bx: -121, by: -81, w: 43 },
+export const LABELS: { tag: string; cat: string; x: number; y: number; bx: number; by: number }[] = [
+  { tag: '콘솔게임', cat: '게임', x: 665, y: 568, bx: -150, by: -40 },
+  { tag: '소설', cat: '독서', x: 705, y: 550, bx: 4, by: -80 },
+  { tag: '드로잉/회화', cat: '그림', x: 740, y: 575, bx: 70, by: -40 },
+  { tag: 'JPOP/OST', cat: '음악', x: 488, y: 907, bx: -125, by: -60 },
+  { tag: '필름/컴팩트', cat: '사진', x: 919, y: 898, bx: 40, by: -70 },
+  { tag: '캠핑/글램핑', cat: '캠핑', x: 514, y: 746, bx: -150, by: -110 },
 ]
-// 2026-11-18 확정본 이름 (예전 레트로게임 · SF소설 · 시티팝 · 수채화 · 필름카메라 · 캠핑과 같은 가구 세트·소품이라 이름표 자리 그대로)
-const ROOM_INTERESTS = ['콘솔게임', '소설', 'JPOP/OST', '드로잉/회화', '필름/컴팩트', '캠핑/글램핑']
+/** 랜딩 방에 놓이는 소품 이름 (관심사 이름 → 모델 이름) */
+export const roomItemNames = (): Record<string, string> => {
+  const plan = planRoom(ROOM_INTERESTS)
+  return Object.fromEntries(ROOM_INTERESTS.map((tag) => {
+    const sub = toSubIds([tag])[0]
+    return [tag, plan.items.find((i) => i.sub === sub && i.row.type !== 'pet')?.row.name_ko ?? '']
+  }))
+}
+const ITEM_NAME = roomItemNames()
 
 /** 랜딩 04 이웃 태그 (Neighbour Tag, 1440×900 기준 왼쪽 위) */
 const NEIGHBORS = [
@@ -114,13 +129,15 @@ export default function Landing() {
           <div className={s.shadeLeft} />
           <div className={s.pinBox} style={{ top: `${PIN_BOX.top * 100}%`, height: `${PIN_BOX.h * 100}%` }}>
           {LABELS.map((l, i) => {
-            const bx = l.bx < 0 ? l.bx + l.w : l.bx, by = l.by + 44
+            const item = ITEM_NAME[l.tag]
+            const w = item.length * 15 + 10 // 이름표 상자 폭 (선이 상자 가장자리에 닿게)
+            const bx = l.bx < 0 ? l.bx + w : l.bx, by = l.by + 44
             const on = sec === 2 && roomOn
             return (
-              <div key={l.item} className={s.pin} style={{ ...inRoom(l.x, l.y), transitionDelay: on ? `${0.3 + i * 0.08}s` : '0s', opacity: on ? 1 : 0 }}>
+              <div key={l.tag} className={s.pin} style={{ ...inRoom(l.x, l.y), transitionDelay: on ? `${0.3 + i * 0.08}s` : '0s', opacity: on ? 1 : 0 }}>
                 <svg className={s.pinLine} aria-hidden><line x1={0} y1={0} x2={bx} y2={by} /></svg>
                 <span className={s.pinDot} />
-                <span className={s.pinLabel} style={{ left: l.bx, top: l.by }}><small>{l.cat}</small>{l.item}</span>
+                <span className={s.pinLabel} style={{ left: l.bx, top: l.by }}><small>{l.cat}</small>{item}</span>
               </div>
             )
           })}
