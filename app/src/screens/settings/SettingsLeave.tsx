@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { setAuthState } from '../../data/auth'
 import { stopChatRealtime } from '../../data/chat'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../../components/Feedback'
 import { hasPassword, LEAVE_REASONS, useAccount, withdraw } from '../../data/account'
-import { MEETUPS, ME_ID } from '../../data/mock'
+import { ME_ID } from '../../data/mock'
+import { isPast, useMeetups } from '../../data/meetupStore'
 import { dateLabel } from '../../lib/format'
 import { GoogleSignInDialog, PageHead, PwInput, useUnsavedGuard } from './SettingsParts'
 import s from './Settings.module.css'
@@ -13,10 +14,13 @@ import s from './Settings.module.css'
  * 설정 – 회원 탈퇴 · Google 계정 · 탈퇴 확인 (F10)
  * - 탈퇴 안내: 지워지는 것 / 남는 것("탈퇴한 사용자"로 표시) / 내가 연 예정 모임이 있으면 탈퇴 불가
  * - 탈퇴 사유: 선택. 골라도 안 골라도 됨
- * - 본인 확인: 이메일 계정은 비밀번호, Google로만 가입한 계정은 "Google로 다시 인증"(가입한 계정이어야 함)
+ * - 본인 확인: 이메일 계정은 비밀번호(맞는지는 확인 팝업의 "탈퇴하기"를 누를 때 확인, 틀리면 칸 아래 안내), Google로만 가입한 계정은 "Google로 다시 인증"(가입한 계정이어야 함, 인증은 10분 유효)
  * - 동의 체크 + 본인 확인이 끝나야 "회원 탈퇴" → 확인 팝업 → 탈퇴하기 → 로그아웃되고 랜딩(F1)
  * 데모용 쿼리: ?hosting=0 (내가 연 예정 모임이 없는 경우)
  */
+/** Google 인증이 유효한 시간 (명세 10 · 회원 탈퇴 · Google 계정 1) */
+export const GOOGLE_AUTH_MINUTES = 10
+
 export function LeavePage() {
   const acc = useAccount()
   const navigate = useNavigate()
@@ -27,6 +31,7 @@ export function LeavePage() {
   const [pwErr, setPwErr] = useState(false)
   const [gDone, setGDone] = useState(false)
   const [gErr, setGErr] = useState(false)
+  const [gExpired, setGExpired] = useState(false)
   const [gOpen, setGOpen] = useState(false)
   const [agree, setAgree] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -34,14 +39,25 @@ export function LeavePage() {
   const guard = useUnsavedGuard(!leaving && !!(reason || pw || agree || gDone))
 
   // 내가 연 예정 모임 (지나지 않았고 취소되지 않은 것)
-  const hosting = params.get('hosting') === '0' ? [] : MEETUPS.filter((m) => m.hostId === ME_ID && !m.past && !m.cancelled)
+  // 모임 저장소의 지금 상태(취소·삭제하면 바로 사라짐). ?hosting=0 은 시연용으로 숨김
+  const meetups = useMeetups()
+  const hosting = params.get('hosting') === '0' ? [] : meetups.list.filter((m) => m.hostId === ME_ID && !isPast(m) && !m.cancelled)
+  // Google 인증은 10분 동안만 유효, 지나면 다시 받음
+  useEffect(() => {
+    if (!gDone) return
+    const t = setTimeout(() => { setGDone(false); setGExpired(true); setConfirm(false) }, GOOGLE_AUTH_MINUTES * 60_000)
+    return () => clearTimeout(t)
+  }, [gDone])
   const authed = pwAccount ? !!pw : gDone
   const ready = authed && agree && hosting.length === 0
 
   const submit = () => {
     if (!ready) return
-    if (pwAccount && pw !== acc.password) { setPwErr(true); return }
-    setConfirm(true)
+    setConfirm(true) // 비밀번호는 팝업의 "탈퇴하기"에서 확인
+  }
+  const doLeave = () => {
+    if (pwAccount && pw !== acc.password) { setConfirm(false); setPwErr(true); return } // 틀리면 탈퇴하지 않고 칸 아래에 안내
+    setLeaving(true); withdraw(reason || null); setAuthState('guest'); stopChatRealtime(); setTimeout(() => navigate('/start', { replace: true }), 0)
   }
 
   return (
@@ -58,6 +74,7 @@ export function LeavePage() {
               <li>내가 연 예정 모임이 있으면 먼저 삭제하거나 취소해야 탈퇴할 수 있어요.</li>
               <li>참여 확정 · 신청 대기 중인 예정 모임은 탈퇴와 함께 참여 취소 · 신청 취소로 처리돼요.</li>
               <li>찜 · 좋아요 · 저장은 지워지고, 지난 모임 기록에는 “탈퇴한 사용자”로 남아요.</li>
+              <li>탈퇴한 뒤 같은 Mattermost 계정으로 다시 가입할 수 있어요. 새 계정으로 시작하고, 탈퇴 전에 남긴 글 · 댓글 · 메시지 · 모임 기록과는 이어지지 않아요.</li>
             </ul>
           </div>
         </div>
@@ -67,9 +84,8 @@ export function LeavePage() {
             {hosting.map((m, i) => (
               <span key={m.id}>{i > 0 && ', '}<Link to={`/meetups/${m.id}`}>‘{m.title}’</Link> ({dateLabel(m.date)})</span>
             ))}
-            . 모임을 삭제하거나 취소한 뒤 다시 와 주세요.
-            {/* 프로토타입: 모임 쪽 삭제가 저장되지 않아 흐름을 보려면 건너뛰기 */}
-            <button type="button" onClick={() => setParams({ hosting: '0' })}>(프로토타입) 모임이 없는 경우 보기</button>
+            . 먼저 모임을 삭제하거나 취소해 주세요(참여 확정자가 있으면 삭제 대신 취소).
+            <button type="button" onClick={() => setParams({ hosting: '0' })}>(시연) 모임이 없는 경우 보기</button>
           </div>
         )}
         <div className={s.divider} />
@@ -97,8 +113,9 @@ export function LeavePage() {
                   {gDone ? '인증 완료' : 'Google로 다시 인증'}
                 </button>
                 {gDone ? <span className={s.authDone}>{acc.googleEmail} 계정으로 인증했어요.</span>
-                  : <span className={s.fieldHint} style={{ marginTop: 0 }}>인증을 마치면 “회원 탈퇴” 버튼이 켜져요.</span>}
+                  : <span className={s.fieldHint} style={{ marginTop: 0 }}>인증을 마치면 “회원 탈퇴” 버튼이 켜져요. 인증은 {GOOGLE_AUTH_MINUTES}분 동안 유효해요.</span>}
               </div>
+              {gExpired && !gDone && <p className={s.fieldMsg}>인증 시간이 지났어요. 다시 인증해 주세요.</p>}
               {gErr && <p className={s.fieldMsg}>가입한 Google 계정({acc.googleEmail})으로 인증해 주세요.</p>}
             </div>
           </div>
@@ -116,10 +133,10 @@ export function LeavePage() {
       {guard}
       <GoogleSignInDialog open={gOpen} onClose={() => setGOpen(false)} onPick={(email) => {
         setGOpen(false)
-        if (email === acc.googleEmail) { setGDone(true); setGErr(false) } else setGErr(true)
+        if (email === acc.googleEmail) { setGDone(true); setGErr(false); setGExpired(false) } else setGErr(true)
       }} />
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)}
-        onConfirm={() => { setLeaving(true); withdraw(reason || null); setAuthState('guest'); stopChatRealtime(); setTimeout(() => navigate('/start', { replace: true }), 0) }}
+        onConfirm={doLeave}
         title="정말 탈퇴할까요?" desc="탈퇴하면 계정을 되돌릴 수 없어요." confirmLabel="탈퇴하기" />
     </>
   )
