@@ -186,6 +186,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-22 [F6~F10 확인부터 묶음](docs/f6-f10-gaps-2026-11-21.md): 명세 대조 결과 고친 것 = 모임 나가기 버튼 꺼진 채 보임(F6-B5) · 빈자리 알림 발송(F7-B3) · 회원 탈퇴(비밀번호는 팝업에서 확인 · Google 10분 · 내가 연 모임 저장소 기준 · 재가입 문구, F10-B3). 이미 같아서 확인 완료 = F8-B5 · F8-B6 · F9-B2 · F10-B4. 브랜치 fix/f6-f10-check
 - 2026-11-22 [새 학기 안내](docs/new-term-notice-2026-11-22.md): 새 학기가 열렸는데 이번 학기 캠퍼스·층을 안 고른 계정은 내 땅굴 위에 **닫을 수 없는** 안내(× · 나중에 · Esc · 바깥 클릭 없음), 이 층으로 정하기 → 땅굴 이사·프로필 변경·토스트(`data/newTerm.ts`, `screens/burrow/NewTermNotice.tsx`). 내 정보 수정에서 캠퍼스·층을 바꿔도 땅굴 이사(`moveMyBurrow`). 시연 `/burrow?newterm=1`(탭 메모리만, 저장 안 함). 브랜치 feat/new-term-notice
 - 2026-11-22 [첫 화면 JS 줄이기](docs/first-load-2026-11-22.md): 첫 화면 JS gzip **822.7 → 295.4KB**(예산 360 → 320), 첫 화면 CSS 66.8 → 24.6KB(예산 35). 원인 = `TeaRoom` 이 `testParam` 을 `three/engine` 에서 가져와 three 본체가 첫 화면에 딸려 옴(→ `lib/testParam.ts`) + 모든 화면 정적 import(→ `App.tsx` route lazy `lz()`, 땅굴 청크가 소품 썸네일 data URL 285KB 로 가장 큼). three 본체는 `three` 청크, Worker(D) 실험 사본은 `three-worker`. 남은 후보(아이콘 data URL 빼기 등)는 문서 5번. 브랜치 perf/first-load
+- 2026-11-22 **용어 통일: 화면에 보이는 "소품" → "가구"**(사용자 결정): 꾸미기 모드 "가구" 탭 · "○○ 가구 고르기" · 안내문 · 방문자 뷰 첫 인사 안내 · 랜딩 방 구간 부제 "책을 좋아하면 소설책이, 음악을 좋아하면 카세트 워크맨이 놓여요". 코드 이름(PropTab · prop · sub_prop · prop-thumbs)과 주석은 그대로. 바꾸지 않은 것: 관심사 이름 "다꾸/소품/문구"와 그 단어 "소품"(관심사 자체 이름), 두더지 2D 아바타 손 소품 라벨(`MoleAvatar` ACCESSORIES.prop, 화면에 안 나오는 옛 코드). 브랜치 fix/term-furniture
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

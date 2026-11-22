@@ -158,7 +158,7 @@ export default function Landing() {
           {sec === 2 && (
             <>
               <h1>나의 관심사가<br />내 땅굴의 가구가 돼요</h1>
-              <p>책을 좋아하면 책장이,<br />음악을 좋아하면 스피커가 놓여요</p>
+              <p>책을 좋아하면 소설책이,<br />음악을 좋아하면 카세트 워크맨이 놓여요</p>
               <span className={s.scrollHint}>스크롤해서 이웃 땅굴 보기 ↓</span>
             </>
           )}

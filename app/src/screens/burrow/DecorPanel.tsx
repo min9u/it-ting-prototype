@@ -15,12 +15,12 @@ import m from './MyBurrow.module.css'
 export type DecorTab = 'furniture' | 'mole' | 'color'
 
 /**
- * 땅굴 – 꾸미기 모드 (02 F4 · 소품 탭 / 두더지 탭, 2026-11-21 v3.8 5단계)
- * 소품 탭 (탭 값은 'furniture' 그대로: MyBurrow 연결을 안 건드리려고. 화면 글자만 "소품")
- *  3 안내: "/"로 묶인 관심사마다 소품(단어)을 하나씩 고름. 처음 값 = 첫 단어. 한 단어짜리 관심사는 소품이 고정이라 칩에 안 나옴
+ * 땅굴 – 꾸미기 모드 (02 F4 · 가구 탭 / 두더지 탭, 2026-11-21 v3.8 5단계. 2026-11-22 용어를 "가구"로 통일: 화면 글자는 모두 "가구", 코드 이름 PropTab·prop 은 그대로)
+ * 가구 탭 (탭 값은 'furniture')
+ *  3 안내: "/"로 묶인 관심사마다 가구(단어)을 하나씩 고름. 처음 값 = 첫 단어. 한 단어짜리 관심사는 가구이 고정이라 칩에 안 나옴
  *  4 내 관심사 칩 중 고를 수 있는 것만(90개 중 57개). 누르면 그 관심사의 단어 후보
- *  5 후보(단어마다 모델 1개: 썸네일 + 모델 이름)를 고르면 땅굴의 그 소품이 바로 바뀜 (방이 새 선택으로 배치를 다시 계산)
- *  6 지금 고르는 소품을 땅굴 위에 점선 + "관심사 · 소품 이름" (RoomView highlight → three/roomScene)
+ *  5 후보(단어마다 모델 1개: 썸네일 + 모델 이름)를 고르면 땅굴의 그 가구이 바로 바뀜 (방이 새 선택으로 배치를 다시 계산)
+ *  6 지금 고르는 가구을 땅굴 위에 점선 + "관심사 · 가구 이름" (RoomView highlight → three/roomScene)
  * 두더지 탭: 지금 착용 중 / 부위 탭 / 부위마다 하나("없음"이면 벗기). 아이템 규칙은 온보딩 1과 같음(43개 모두 바로 고를 수 있음, 관심사 연결 없음)
  * 색 탭 (2026-11-18 실험, docs/room-diversity-2-2026-11-18.md): 땅굴 색 묶음(벽 · 바닥 · 러그 · 가구 색)을 고름. "자동" = 대표 관심사 대분류의 묶음.
  *   이불·러그 무늬와 가구 모양은 그대로(내 id 씨앗), 색만 바뀜. 고른 값은 저장한 방의 themeId (남이 볼 때도 같음). 명세에 없는 탭이라 확인받을 것
@@ -46,7 +46,7 @@ export default function DecorPanel({ tab, setTab, picks, worn, setWorn, furn, se
         <button className={s.closeBtn} onClick={leave} aria-label="꾸미기 닫기"><CloseIcon size={18} /></button>
       </div>
       <div className={s.segment} role="tablist" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <button role="tab" aria-selected={tab === 'furniture'} className={tab === 'furniture' ? s.segOn : s.seg} onClick={() => setTab('furniture')}>소품</button>
+        <button role="tab" aria-selected={tab === 'furniture'} className={tab === 'furniture' ? s.segOn : s.seg} onClick={() => setTab('furniture')}>가구</button>
         <button role="tab" aria-selected={tab === 'color'} className={tab === 'color' ? s.segOn : s.seg} onClick={() => setTab('color')}>색</button>
         <button role="tab" aria-selected={tab === 'mole'} className={tab === 'mole' ? s.segOn : s.seg} onClick={() => setTab('mole')}>두더지</button>
       </div>
@@ -132,15 +132,15 @@ function PropTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: strin
   const placed = useMemo(() => (cur ? placeWords(toSubIds(picks), furn).placed.find((p) => p.sub === cur)?.word.word : undefined), [cur, picks, furn])
   return (
     <div className={s.furnTab}>
-      <p className={s.furnInfo}>ⓘ "/"로 묶인 관심사마다 소품을 하나씩 골라요.<br />관심사를 바꾸면 소품도 자동으로 바뀌어요.</p>
-      {subs.length === 0 ? <p className={s.formNote}>고를 수 있는 소품이 없어요. "/"로 묶인 관심사(예: 카페/커피)를 고르면 소품을 고를 수 있어요.</p> : (
+      <p className={s.furnInfo}>ⓘ "/"로 묶인 관심사마다 가구를 하나씩 골라요.<br />관심사를 바꾸면 가구도 자동으로 바뀌어요.</p>
+      {subs.length === 0 ? <p className={s.formNote}>고를 수 있는 가구가 없어요. "/"로 묶인 관심사(예: 카페/커피)를 고르면 가구를 고를 수 있어요.</p> : (
         <>
-          <div className={s.furnCats} role="tablist" aria-label="소품을 고를 수 있는 내 관심사">
+          <div className={s.furnCats} role="tablist" aria-label="가구를 고를 수 있는 내 관심사">
             {subs.map((id) => (
               <button key={id} role="tab" aria-selected={id === cur} className={id === cur ? s.furnCatOn : s.furnCat} onClick={() => setFocusSub(id)}>{subOf(id)?.name_ko}</button>
             ))}
           </div>
-          <p className={s.furnHead}><strong>{sub?.name_ko} 소품 고르기</strong><span>{words.length}개 중 1개</span></p>
+          <p className={s.furnHead}><strong>{sub?.name_ko} 가구 고르기</strong><span>{words.length}개 중 1개</span></p>
           <ul className={s.furnGrid}>
             {words.map((w, i) => {
               const on = chosen === w.word
@@ -158,8 +158,8 @@ function PropTab({ picks, furn, setFurn, focusSub, setFocusSub }: { picks: strin
               )
             })}
           </ul>
-          {placed && chosen && placed !== chosen && <p className={s.formNote}>자리가 없어서 "{placed}" 소품이 대신 놓여요.</p>}
-          <p className={s.formNote}>소품 자리는 정해져 있어서 옮기거나 뺄 수 없어요.</p>
+          {placed && chosen && placed !== chosen && <p className={s.formNote}>자리가 없어서 "{placed}" 가구가 대신 놓여요.</p>}
+          <p className={s.formNote}>가구 자리는 정해져 있어서 옮기거나 뺄 수 없어요.</p>
         </>
       )}
     </div>

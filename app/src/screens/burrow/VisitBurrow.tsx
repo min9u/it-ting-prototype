@@ -193,7 +193,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
           <h2 id="req-title" className="display">대화 요청하기</h2>
           <div className={s.reqField}>
             <textarea value={reqMsg} maxLength={CHAT_REQUEST_MAX} onChange={(e) => setReqMsg(e.target.value)} aria-label="첫 인사" aria-describedby="req-count"
-              placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
+              placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 가구 이야기로 시작하면 쉬워요.`} />
             <div className={s.reqFieldFoot}>
               <span id="req-count">{reqMsg.length} / {CHAT_REQUEST_MAX}</span>
               <span>겹치는 관심사 {overlapCount(owner.interests, me.interests)}개</span>
