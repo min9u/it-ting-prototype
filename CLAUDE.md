@@ -184,6 +184,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-22 [팀 리포로 프론트엔드 옮기기 계획](docs/team-repo-migration.md): API v1 맞추기를 이 리포에서 끝낸 뒤 **Next.js(App Router)로 바꿔** 팀 리포 `frontend/`에 넣음. 예전 이력은 안 옮김(서명·다른 팀원 커밋·메시지 형식), **화면·기능 하나에 커밋 하나(약 30개) PR 하나**. 팀 규칙(브랜치 `chore/fe/KAN-…`, 커밋 제목 형식, 커밋마다 빌드 통과, 서명 필수)과 남은 준비(Jira 번호, 이 맥 서명 설정)
 - 2026-11-22 [F6~F10 중간 묶음](docs/f6-f10-gaps-2026-11-21.md): 채팅 사진 첨부(3장·5MB) · 거절한 요청 재요청 → 수락 · 모임 신청 7번째 상태 "모임 취소로 마감" · 글쓰기 모임 연결 규칙(홍보·후기·자유) · **차단 기능 전체 제거**(명세에 없음). 브랜치 fix/f6-f10-mid
 - 2026-11-22 [F6~F10 확인부터 묶음](docs/f6-f10-gaps-2026-11-21.md): 명세 대조 결과 고친 것 = 모임 나가기 버튼 꺼진 채 보임(F6-B5) · 빈자리 알림 발송(F7-B3) · 회원 탈퇴(비밀번호는 팝업에서 확인 · Google 10분 · 내가 연 모임 저장소 기준 · 재가입 문구, F10-B3). 이미 같아서 확인 완료 = F8-B5 · F8-B6 · F9-B2 · F10-B4. 브랜치 fix/f6-f10-check
+- 2026-11-22 [새 학기 안내](docs/new-term-notice-2026-11-22.md): 새 학기가 열렸는데 이번 학기 캠퍼스·층을 안 고른 계정은 내 땅굴 위에 **닫을 수 없는** 안내(× · 나중에 · Esc · 바깥 클릭 없음), 이 층으로 정하기 → 땅굴 이사·프로필 변경·토스트(`data/newTerm.ts`, `screens/burrow/NewTermNotice.tsx`). 내 정보 수정에서 캠퍼스·층을 바꿔도 땅굴 이사(`moveMyBurrow`). 시연 `/burrow?newterm=1`(탭 메모리만, 저장 안 함). 브랜치 feat/new-term-notice
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
