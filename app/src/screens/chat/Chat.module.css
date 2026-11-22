@@ -117,8 +117,6 @@
 }
 .failedTools button:last-child { color: var(--ink-500); }
 .failedTools button:hover { background: #fff; }
-.typing { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-400); }
-.typing img { border-radius: 6px !important; }
 
 /* 모임 카드 */
 .meetCard { width: 260px; border-radius: 14px; overflow: hidden; background: #fff; border: 1px solid #efdccb; }
@@ -128,8 +126,24 @@
 .meetBody strong { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--ink-900); }
 .meetBody small { font-size: 11.5px; color: var(--ink-500); margin-bottom: 8px; }
 
-/* 입력창 */
-.composer { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); background: var(--surface); }
+/* 입력창 (사진 첨부 줄 + 입력 줄) */
+.composerWrap { flex: none; border-top: 1px solid var(--line); background: var(--surface); }
+.composer { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
+.attach { display: flex; gap: 8px; padding: 12px 18px 0; }
+.attach li { position: relative; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; background: #f3e4d6; }
+.attach li[data-busy] { opacity: .55; }
+.attach img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.attach button { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(40, 28, 20, .7); color: #fff; }
+.plus:disabled { opacity: .45; cursor: default; }
+/* 보낸 사진 (메시지 하나에 3장까지) */
+.pics { display: flex; gap: 6px; flex-wrap: wrap; max-width: 300px; }
+.pics a { display: block; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; background: #efdfcf; border: 1px solid #efdccb; }
+.pics img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pics[data-status='sending'] { opacity: .62; }
+.msgMine .pics { justify-content: flex-end; }
+/* 위로 올려 이전 메시지 불러오기 */
+.older { align-self: center; padding: 4px 12px; border-radius: 999px; font-size: 12px; color: var(--ink-500); background: #efdfcf; }
+.older:hover:not(:disabled) { background: #e8d4c0; }
 .pop { position: relative; display: inline-flex; }
 .plus { width: 44px; height: 44px; border-radius: 10px; background: #f3e4d6; color: var(--ink-700); display: grid; place-items: center; }
 .plus:hover { background: #ecd8c6; }
@@ -140,16 +154,6 @@
 .send { flex: none; width: 46px; height: 44px; border-radius: 10px; background: var(--cta); color: #fff; display: grid; place-items: center; }
 .send:hover:not(:disabled) { background: var(--cta-hover); }
 .send:disabled { opacity: .45; cursor: default; }
-.menu {
-  position: absolute; bottom: 52px; left: 0; z-index: 20; width: 300px; padding: 8px;
-  border-radius: 12px; background: #fff; box-shadow: var(--shadow-pop); display: flex; flex-direction: column;
-}
-.menuHead { padding: 6px 8px; font-size: 12px; font-weight: 700; color: var(--ink-700); }
-.menu button { display: flex; align-items: center; gap: 8px; padding: 9px 8px; border-radius: 8px; text-align: left; font-size: 13px; color: var(--ink-900); }
-.menu button span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menu button small { flex: none; font-size: 11px; color: var(--ink-400); }
-.menu button:hover { background: var(--surface-item); }
-.menuNote { padding: 6px 8px 2px; font-size: 11px; color: var(--ink-400); line-height: 1.5; }
 .emojis {
   position: absolute; bottom: 40px; right: -8px; z-index: 20; width: 228px; padding: 8px;
   border-radius: 12px; background: #fff; box-shadow: var(--shadow-pop); display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
@@ -176,7 +180,8 @@
 .hostTag { background: #f8dccc; color: #a5412f; }
 .meTag { background: #f6e5c9; color: #7a5a1e; }
 .quit { align-self: flex-start; margin-top: 12px; font-size: 12.5px; color: var(--ink-400); text-decoration: underline; text-underline-offset: 3px; }
-.quit:hover { color: var(--danger); }
+.quit:hover:not(:disabled) { color: var(--danger); }
+.quit:disabled { opacity: .5; cursor: default; text-decoration: none; }
 .quitNote { margin-top: 12px; font-size: 12px; color: var(--ink-400); }
 
 /* ===== 요청 ===== */

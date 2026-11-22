@@ -1,49 +1,40 @@
 /**
- * 채팅 상태 (Figma 02 F6 · 00 공통 14). 서버가 없어서 이 탭 안에서만 기억하는 작은 저장소.
- * 채팅 화면·방문자 뷰(대화 요청하기)·알림 등 여러 화면이 같은 상태를 봄 → useSyncExternalStore 로 구독
+ * 채팅 목 저장소 = 목 서버의 "DB" (명세 06 채팅: docs/backend/team-spec/api/06-chat.md · db/chat.md).
+ * 화면은 이 파일을 직접 부르지 않고 api/chat 의 훅 · 함수만 쓴다. 이 파일은 api/chat/mock.ts(목 서버)가 읽고 쓴다.
+ * 다른 영역(모임 화면 · 알림 팝업 · 탐색 목 서버)이 아직 몇 가지를 직접 읽는다: groupRoomId · roomOf · useChat · leaveRoom ·
+ * liveRequests · personOf · dmRoomWith · sentRequestTo · sendRequest · canQuitMeetup (그 영역 작업자가 API 로 옮기면 지운다)
  *
  * 규칙 (명세 그대로)
  * - 대화방은 대화 요청이 수락돼야 생김. 수락 전에는 대화방이 없음 (요청 탭에서만 봄)
- * - 요청은 보낸 지 5일이 지나면 만료 → 양쪽에서 사라짐
- * - 거절·취소는 상대에게 알리지 않음
- * - 1:1 대화 나가기: 내 목록에서 사라짐. 상대 쪽 대화는 남되 읽기 전용("상대방이 대화방을 나갔습니다")
- * - 상대가 탈퇴: 내 목록에 남고 읽기 전용("상대방이 탈퇴했습니다"), 상대는 "탈퇴한 사용자"
- * - 모임 대화: 참여 확정된 사람끼리. 공지는 하나, 주최자만 쓰기·고치기·지우기
- * - 모임 나가기 = 모임 상세의 "참여 취소" (시작 24시간 전까지, 주최자는 없음). 끝나거나 취소된 모임은 참여 취소 없이 대화방만 나감
- *
- * 메시지 주고받기는 실시간 계층(src/realtime)을 거침 (2026-11-16, docs/frontend-hardening.md "실시간"):
- * - 보내기: clientId(UUID)를 만들어 "보내는 중"으로 먼저 그림 → 서버 확인이 오면 서버 메시지로 교체, 시간 안에 못 보내면 "실패 · 다시 보내기"
- * - 받기: 방마다 구독. 실시간·다시 받기·내 확인이 섞여 와도 realtime/order.ts 가 중복 제거·seq 순서로 합침
- * - 입력 중: 상대 "입력 중…"은 서버 이벤트로 (목 서버가 답장 전에 보냄)
- * - 지금은 목 서버(realtime/mockTransport.ts)가 상대 답장까지 흉내. VITE_REALTIME=stomp 면 실제 서버
+ * - 요청 상태: PENDING · REJECTED · ACCEPTED · CANCELED. 만료는 저장하지 않고 보낸 지 5일이 지났는지로 셈
+ *   받은 쪽에는 PENDING 만, 보낸 쪽에는 PENDING · REJECTED 가 똑같이 "답변 기다리는 중"으로 보임 (거절을 드러내지 않음)
+ * - 내가 거절한 요청이 살아 있는 사람에게 내가 요청하면: 새 요청 대신 그 요청을 수락한 것으로 처리 → 대화방
+ * - 메시지 종류: TEXT · ACCEPTED(대화 시작) · JOINED(모임 참여) · LEFT(나감) · WITHDRAWN(탈퇴). TEXT 가 아닌 것은 안내 메시지
+ * - 안 읽은 수 = 마지막으로 읽은 메시지(lastReadId) 뒤의, 남이 보낸 TEXT 수. 읽음은 읽음 API 로만 옮김
+ * - 1:1 에서 상대가 나가거나 탈퇴하면 읽기 전용. 모임 대화방은 읽기 전용이 되지 않음
+ * - 메시지 지우기 · 읽음 표시 · 입력 중 · 접속 중은 없음 (명세 README "이번 범위에 없는 것")
  */
 import { useSyncExternalStore } from 'react'
 import { ME_ID, USERS } from './mock'
-import { realtime, SendFailure, setMockDirectory, type WireMessage } from '../realtime'
-import { maxSeq, mergeMessage, newClientId } from '../realtime/order'
-import { TIMING } from '../realtime/protocol'
-import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf, quit as quitMeetup } from './meetupStore'
+import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf } from './meetupStore'
+import { stopEventStream } from '../realtime/events'
 import type { User } from './types'
 
+export type MsgType = 'TEXT' | 'ACCEPTED' | 'JOINED' | 'LEFT' | 'WITHDRAWN'
+export interface ChatImage { id: string; url: string }
 export interface ChatMsg {
-  /** 서버 id. 보내는 중·실패한 내 메시지는 clientId 와 같음 */
+  /** 메시지 id. 숫자 글자 ("1004"). 같은 방 안에서 클수록 나중 (명세) */
   id: string
-  /** 방 안 순서 (서버가 매김). 보내는 중·실패면 없음 → 맨 아래 */
-  seq?: number
-  /** 내가 보낸 메시지의 클라이언트 id (서버 확인과 짝짓기·다시 보내기 멱등) */
-  clientId?: string
-  /** 내 메시지 전송 상태. 없으면 서버가 받음 */
-  status?: 'sending' | 'failed'
-  /** 실패 까닭 (화면 문구) */
-  error?: string
-  /** 'system' = 가운데 안내 */
+  type: MsgType
+  /** 보낸 사람, 또는 안내를 일으킨 사람 */
   authorId: string
+  /** 본문. 안내 메시지와 사진만 보낸 메시지는 '' */
   text: string
+  images: ChatImage[]
   /** ms */
   at: number
+  /** 안내 메시지 (type 이 TEXT 가 아님). 모임 상세의 대화 미리보기가 씀 */
   system?: boolean
-  /** 모임 링크를 보낸 메시지 → 모임 카드 */
-  meetupId?: string
 }
 export interface Room {
   id: string
@@ -51,136 +42,176 @@ export interface Room {
   partnerId?: string
   meetupId?: string
   messages: ChatMsg[]
+  /** 내가 마지막으로 읽은 메시지 id (0 = 없음) */
+  lastReadId: number
+  /** 안 읽은 수 (저장소가 바꿀 때마다 다시 셈. 모임 목록 화면이 읽음) */
   unread: number
-  /** 상대가 나감 / 탈퇴 → 읽기 전용 */
+  /** 상대가 나감 / 탈퇴 → 읽기 전용 (1:1 만) */
   closed?: 'left' | 'gone'
   /** 모임 공지 (주최자만 씀) */
   notice?: string
-  /** 모임이 끝났거나 취소됨 → 참여 취소 없이 대화방만 나감 */
-  ended?: boolean
-  /** 1:1 대화 시작 때 함께 이야기할 관심사 */
-  topics?: string[]
+  /** 만든 시각 (메시지가 없는 방의 정렬) */
+  createdAt: number
 }
+export type ReqStatus = 'PENDING' | 'REJECTED' | 'ACCEPTED' | 'CANCELED'
 export interface Req {
   id: string
   direction: 'received' | 'sent'
   userId: string
+  /** 요청에 붙인 인사 (없으면 '') */
   message: string
   at: number
-  /** "땅굴에 다녀갔어요" 같은 맥락 */
-  context: string
+  status: ReqStatus
+  /** 수락돼 만들어진 대화방 */
+  chatRoomId?: string
 }
 
 export const REQUEST_TTL_DAYS = 5
 export const GONE_ID = 'gone'
 export const GONE_USER: User = { id: GONE_ID, nickname: '탈퇴한 사용자', affiliation: '', intro: '', interests: [] }
+/** 목 메시지 본문에 넣는 모임 링크의 앞부분 (모임 상세의 "링크 복사"와 같은 모양: …/meetups/<id>) */
+export const MOCK_LINK_BASE = 'https://it-ting.example'
 
-const now = Date.now()
 const min = 60_000, hour = 60 * min, day = 24 * hour
-/** N분 전 */
-const rel = (minutes: number) => now - minutes * min
-let seq = 0
-const mid = () => `c${Date.now().toString(36)}${(seq++).toString(36)}`
+let msgSeq = 1000
+const nextMsgId = () => String(++msgSeq)
+let reqSeq = 0
+const nextReqId = () => `q${Date.now().toString(36)}${(reqSeq++).toString(36)}`
 
 /** 그룹 대화방 id: 모임 id 로 정해짐 (모임 상세·목록의 "모임 채팅" 링크가 씀) */
 export const groupRoomId = (meetupId: string) => `g-${meetupId}`
 /** 예전 링크(알림 목 데이터의 /chat/r-book) */
 const ALIAS: Record<string, string> = { 'r-book': 'g-m1' }
 
-function seed(): { rooms: Room[]; requests: Req[]; leftGroups: string[]; typing: Record<string, string[]> } {
+type Seed = Omit<ChatMsg, 'id' | 'images' | 'system'> & { images?: ChatImage[] }
+const msgOf = (m: Seed): ChatMsg => ({ ...m, id: nextMsgId(), images: m.images ?? [], ...(m.type !== 'TEXT' ? { system: true } : {}) })
+
+function seed() {
+  const now = Date.now()
+  const rel = (minutes: number) => now - minutes * min
+  const T = (authorId: string, text: string, at: number, images?: ChatImage[]): Seed => ({ type: 'TEXT', authorId, text, at, images })
+  const N = (type: Exclude<MsgType, 'TEXT'>, authorId: string, at: number): Seed => ({ type, authorId, text: '', at })
+  const room = (r: Omit<Room, 'messages' | 'lastReadId' | 'unread' | 'createdAt'> & { messages: Seed[]; unreadFrom?: number }): Room => {
+    const messages = r.messages.map(msgOf)
+    // unreadFrom: 몇 번째 메시지부터 안 읽었는지 (없으면 다 읽음)
+    const lastReadId = r.unreadFrom == null ? +(messages[messages.length - 1]?.id ?? 0) : +(messages[r.unreadFrom - 1]?.id ?? 0)
+    const { unreadFrom: _u, ...rest } = r
+    void _u
+    return withUnread({ ...rest, messages, lastReadId, unread: 0, createdAt: messages[0]?.at ?? now })
+  }
   const rooms: Room[] = [
-    {
-      id: 'r-yerin', kind: 'dm', partnerId: 'yerin', unread: 0, topics: ['캠핑/글램핑', '콘솔게임', '드로잉/회화'],
+    room({
+      id: 'r-yerin', kind: 'dm', partnerId: 'yerin',
       messages: [
-        { id: 'y0', authorId: 'system', system: true, text: '예린님이 대화 요청을 수락했어요', at: rel(40) },
-        { id: 'y1', authorId: 'me', text: '안녕하세요! 땅굴에 캠핑 가구 있는 거 보고 반가웠어요 ㅎㅎ', at: rel(39) },
-        { id: 'y2', authorId: 'yerin', text: '안녕하세요! 저도 캠핑 좋아해요. 다음에 같이 캠핑 모임 가실래요?', at: rel(27) },
-        { id: 'y3', authorId: 'me', text: '좋아요! 저 텐트는 있는데 침낭이 없어서… 초보도 괜찮은 모임이면 좋겠어요', at: rel(27) },
-        { id: 'y4', authorId: 'yerin', text: '마침 가평 1박 캠핑 모임이 초보 환영이래요. 같이 신청해볼까요?', at: rel(24) },
-        { id: 'y5', authorId: 'yerin', text: '', at: rel(24), meetupId: 'm4' },
+        N('ACCEPTED', 'yerin', rel(40)),
+        T(ME_ID, '안녕하세요! 땅굴에 캠핑 가구 있는 거 보고 반가웠어요 ㅎㅎ', rel(39)),
+        T('yerin', '안녕하세요! 저도 캠핑 좋아해요. 다음에 같이 캠핑 모임 가실래요?', rel(27)),
+        T(ME_ID, '좋아요! 저 텐트는 있는데 침낭이 없어서… 초보도 괜찮은 모임이면 좋겠어요', rel(27)),
+        T('yerin', `마침 가평 1박 캠핑 모임이 초보 환영이래요. 같이 신청해볼까요? ${MOCK_LINK_BASE}/meetups/m4`, rel(24)),
       ],
-    },
-    {
-      id: 'r-mingu', kind: 'dm', partnerId: 'mingu', unread: 2, topics: ['소설', '콘솔게임'],
+    }),
+    room({
+      id: 'r-mingu', kind: 'dm', partnerId: 'mingu', unreadFrom: 3,
       messages: [
-        { id: 'k0', authorId: 'system', system: true, text: '민구님의 대화 요청을 수락했어요', at: now - 2 * day },
-        { id: 'k1', authorId: 'mingu', text: '레트로게임 좋아하신다길래 반가워서 요청했어요!', at: now - 2 * day + 5 * min },
-        { id: 'k2', authorId: 'me', text: '반가워요! 요즘은 오락실 게임 위주로 해요', at: now - 2 * day + 20 * min },
-        { id: 'k3', authorId: 'mingu', text: '오 저도요. 혹시 이번 주말 캠핑 모임 갈래요?', at: rel(50) },
-        { id: 'k4', authorId: 'mingu', text: '보드게임도 챙겨 간대요 ㅋㅋ', at: rel(48) },
+        N('ACCEPTED', ME_ID, now - 2 * day),
+        T('mingu', '레트로게임 좋아하신다길래 반가워서 요청했어요!', now - 2 * day + 5 * min),
+        T(ME_ID, '반가워요! 요즘은 오락실 게임 위주로 해요', now - 2 * day + 20 * min),
+        T('mingu', '오 저도요. 혹시 이번 주말 캠핑 모임 갈래요?', rel(50)),
+        T('mingu', '보드게임도 챙겨 간대요 ㅋㅋ', rel(48)),
       ],
-    },
-    {
-      id: 'g-m1', kind: 'group', meetupId: 'm1', unread: 5,
+    }),
+    room({
+      id: 'g-m1', kind: 'group', meetupId: 'm1', unreadFrom: 1,
       notice: '읽고 있는 책 한 권 챙겨오세요. 3층 세미나실 입구에서 만나요!',
       messages: [
-        { id: 'g0', authorId: 'system', system: true, text: '닉네임님이 모임에 참여했어요', at: rel(75) },
-        { id: 'g1', authorId: 'kim', text: '다들 이번 주에 뭐 읽고 계세요?', at: rel(65) },
-        { id: 'g2', authorId: 'lee', text: '저는 이번 주에 SF 단편집 가져갈게요', at: rel(48) },
-        { id: 'g3', authorId: 'park', text: '저는 에세이요! 다 못 읽어도 괜찮다고 해서 마음이 편해요 ㅎㅎ', at: rel(50) },
-        { id: 'g4', authorId: 'me', text: '저도 반쯤 읽은 소설 들고 갈게요. 일요일에 봬요!', at: rel(43) },
+        N('JOINED', ME_ID, rel(75)),
+        T('kim', '다들 이번 주에 뭐 읽고 계세요?', rel(65)),
+        T('park', '저는 에세이요! 다 못 읽어도 괜찮다고 해서 마음이 편해요 ㅎㅎ', rel(50)),
+        T('lee', '저는 이번 주에 SF 단편집 가져갈게요', rel(48)),
+        T(ME_ID, '저도 반쯤 읽은 소설 들고 갈게요. 일요일에 봬요!', rel(43)),
       ],
-    },
-    {
-      id: 'g-m3', kind: 'group', meetupId: 'm3', unread: 0,
+    }),
+    room({
+      id: 'g-m3', kind: 'group', meetupId: 'm3',
       messages: [
-        { id: 'd0', authorId: 'system', system: true, text: '서벅이님이 모임에 참여했어요', at: now - day - 3 * hour },
-        { id: 'd1', authorId: 'seobeok', text: '연필 4B 하나면 될까요?', at: now - day - 2 * hour },
-        { id: 'd2', authorId: 'park', text: '저는 색연필도 챙겨 갈게요 🎨', at: now - day - hour },
+        N('JOINED', 'seobeok', now - day - 3 * hour),
+        T('seobeok', '연필 4B 하나면 될까요?', now - day - 2 * hour),
+        T('park', '저는 색연필도 챙겨 갈게요 🎨', now - day - hour),
       ],
-    },
-    {
-      id: 'g-m9', kind: 'group', meetupId: 'm9', unread: 0, ended: true,
-      notice: '이번 주는 하울의 움직이는 성!',
+    }),
+    // 끝난 모임(10월 독서 모임)의 대화방: 계속 남고, 나가기는 대화방에서만 (참여 취소 없이)
+    room({
+      id: 'g-p1', kind: 'group', meetupId: 'p1',
+      notice: '다음 달 책은 투표로 정해요!',
       messages: [
-        { id: 'h1', authorId: 'seobeok', text: '다들 즐거웠어요! 다음에 또 봐요', at: now - 3 * day },
-        { id: 'h2', authorId: 'system', system: true, text: '모임이 끝났어요. 대화는 계속 남아 있어요', at: now - 3 * day + hour },
+        N('JOINED', ME_ID, now - 30 * day),
+        T('kim', '다들 즐거웠어요! 다음에 또 봐요', now - 3 * day),
       ],
-    },
-    {
-      id: 'r-seoyeon', kind: 'dm', partnerId: 'seoyeon', unread: 0, closed: 'left', topics: ['필름/컴팩트'],
+    }),
+    room({
+      id: 'r-seoyeon', kind: 'dm', partnerId: 'seoyeon', closed: 'left',
       messages: [
-        { id: 'z0', authorId: 'system', system: true, text: '서연님이 대화 요청을 수락했어요', at: now - 6 * day },
-        { id: 'z1', authorId: 'seoyeon', text: '필름카메라 어떤 거 쓰세요?', at: now - 6 * day + 10 * min },
-        { id: 'z2', authorId: 'me', text: '올림푸스 뮤2요! 사진 스터디 자료 공유해 드릴게요', at: now - 6 * day + 30 * min },
+        N('ACCEPTED', 'seoyeon', now - 6 * day),
+        T('seoyeon', '필름카메라 어떤 거 쓰세요?', now - 6 * day + 10 * min),
+        T(ME_ID, '올림푸스 뮤2요! 사진 스터디 자료 공유해 드릴게요', now - 6 * day + 30 * min),
+        N('LEFT', 'seoyeon', now - 5 * day),
       ],
-    },
-    {
-      id: 'r-gone', kind: 'dm', partnerId: GONE_ID, unread: 0, closed: 'gone',
+    }),
+    room({
+      id: 'r-gone', kind: 'dm', partnerId: GONE_ID, closed: 'gone',
       messages: [
-        { id: 'w1', authorId: GONE_ID, text: '주말에 같이 산책해요!', at: now - 9 * day },
-        { id: 'w2', authorId: 'me', text: '좋아요 :)', at: now - 9 * day + hour },
+        T(GONE_ID, '주말에 같이 산책해요!', now - 9 * day),
+        T(ME_ID, '좋아요 :)', now - 9 * day + hour),
+        N('WITHDRAWN', GONE_ID, now - 8 * day),
       ],
-    },
+    }),
   ]
   const requests: Req[] = [
-    { id: 'q1', direction: 'received', userId: 'seobeok', context: '땅굴에 다녀갔어요', at: now - 12 * min, message: '땅굴에 이젤 있는 거 보고 반가워서요! 주말에 같이 드로잉해요' },
-    { id: 'q2', direction: 'received', userId: 'ha', context: '같은 모임 참여 예정', at: now - hour, message: '가평 캠핑 모임 같이 가시는 거 맞죠? 장비 얘기 나눠요' },
+    { id: 'q1', direction: 'received', userId: 'seobeok', status: 'PENDING', at: now - 12 * min, message: '땅굴에 이젤 있는 거 보고 반가워서요! 주말에 같이 드로잉해요' },
+    { id: 'q2', direction: 'received', userId: 'ha', status: 'PENDING', at: now - hour, message: '가평 캠핑 모임 같이 가시는 거 맞죠? 장비 얘기 나눠요' },
     // 6일 전 요청 → 5일이 지나 만료 (목록에 안 보임)
-    { id: 'q0', direction: 'received', userId: 'choi', context: '땅굴에 다녀갔어요', at: now - 6 * day, message: '테라리움 같이 만들어요' },
-    { id: 'q3', direction: 'sent', userId: 'yejin', context: '내가 먼저 대화를 요청했어요', at: now - 5 * min, message: '땅굴에 찻병 선반 있는 거 보고 반가워서요! 핸드드립 이야기 같이 나눠요' },
+    { id: 'q0', direction: 'received', userId: 'choi', status: 'PENDING', at: now - 6 * day, message: '테라리움 같이 만들어요' },
+    { id: 'q3', direction: 'sent', userId: 'yejin', status: 'PENDING', at: now - 5 * min, message: '땅굴에 찻병 선반 있는 거 보고 반가워서요! 핸드드립 이야기 같이 나눠요' },
+    // 상대가 거절한 보낸 요청: 나에게는 그대로 "답변 기다리는 중" (거절을 드러내지 않음)
+    { id: 'q4', direction: 'sent', userId: 'lee', status: 'REJECTED', at: now - 2 * day, message: '' },
   ]
-  for (const r of rooms) r.messages = r.messages.map((m, i) => ({ ...m, seq: i + 1 }))
-  return { rooms, requests, leftGroups: [] as string[], typing: {} as Record<string, string[]> }
+  return { rooms, requests, leftGroups: [] as string[] }
 }
 
 /* ---------- 저장소 ---------- */
-/** 모임 정보는 모임 저장소(data/meetupStore.ts)에서 읽음 (새로 만든 모임 포함) */
 const meetupOf = (id: string) => findMeetup(id)
 let state = seed()
 const subs = new Set<() => void>()
 const emit = () => { state = { ...state }; subs.forEach((f) => f()) }
 const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+/** 저장소 구독 (목 모드에서 바뀌면 채팅 캐시를 새로 받는 데 씀: api/chat/queries useChatMockSync) */
 export function useChat() { return useSyncExternalStore(subscribe, () => state) }
-/** 훅 바깥에서 지금 상태 (목 서버 api/chat.ts 가 방·요청 목록을 만들 때) */
+/** 훅 바깥에서 지금 상태 */
 export const getChatState = () => state
 
-const live = (r: Req) => Date.now() - r.at < REQUEST_TTL_DAYS * day
-export const liveRequests = (s = state) => s.requests.filter(live).sort((a, b) => b.at - a.at)
+/** 안 읽은 수: lastReadId 뒤의, 남이 보낸 TEXT */
+export function unreadOf(r: Pick<Room, 'messages' | 'lastReadId'>) { return r.messages.filter((m) => +m.id > r.lastReadId && m.type === 'TEXT' && m.authorId !== ME_ID).length }
+function withUnread(r: Room): Room { const unread = unreadOf(r); return r.unread === unread ? r : { ...r, unread } }
+
+const isLive = (r: Req) => Date.now() - r.at < REQUEST_TTL_DAYS * day
+/** 나에게 보이는 요청 (받은 PENDING, 보낸 PENDING · REJECTED, 5일 안), 최신순 */
+export const liveRequests = (s = state) => s.requests
+  .filter((r) => isLive(r) && (r.status === 'PENDING' || (r.direction === 'sent' && r.status === 'REJECTED')))
+  .sort((a, b) => b.at - a.at)
 export const receivedCount = (s = state) => liveRequests(s).filter((r) => r.direction === 'received').length
+export const sentCount = (s = state) => liveRequests(s).filter((r) => r.direction === 'sent').length
 export const roomOf = (id: string, s = state) => s.rooms.find((r) => r.id === (ALIAS[id] ?? id))
-export const dmRoomWith = (userId: string, s = state) => s.rooms.find((r) => r.kind === 'dm' && r.partnerId === userId)
+/** 그 사람과의 1:1 (읽기 전용이 아닌 것 먼저) */
+export const dmRoomWith = (userId: string, s = state) =>
+  s.rooms.find((r) => r.kind === 'dm' && r.partnerId === userId && !r.closed) ?? s.rooms.find((r) => r.kind === 'dm' && r.partnerId === userId)
+/** 내가 그 사람에게 보낸 살아 있는 요청 */
 export const sentRequestTo = (userId: string, s = state) => liveRequests(s).find((r) => r.direction === 'sent' && r.userId === userId)
+/** 그 사람이 나에게 보냈고 내가 아직 답하지 않은 요청 */
+export const receivedFrom = (userId: string, s = state) => liveRequests(s).find((r) => r.direction === 'received' && r.userId === userId)
+/** 그 사람이 보냈고 내가 거절한, 아직 만료되지 않은 요청 */
+export const rejectedFrom = (userId: string, s = state) => s.requests.find((r) => r.direction === 'received' && r.userId === userId && r.status === 'REJECTED' && isLive(r))
+export const requestById = (id: string, s = state) => s.requests.find((r) => r.id === id)
+export const isRequestLive = isLive
 
 export const personOf = (id: string): User => (id === GONE_ID ? GONE_USER : USERS[id] ?? GONE_USER)
 
@@ -190,10 +221,15 @@ export function membersOf(room: Room): string[] {
   if (!m) return [ME_ID]
   return [...new Set([m.hostId, ...meetupMembers(m.id), ME_ID])]
 }
+/** 모임이 끝났거나 취소됨 (모임 저장소 기준) */
+export function meetupEnded(room: Room): boolean {
+  const m = room.meetupId ? meetupOf(room.meetupId) : undefined
+  return !!m && (isPast(m) || !!m.cancelled)
+}
 
 /**
  * 모임 저장소와 맞추기: 참여 확정·내가 주최인 모임은 모두 대화방이 있음 (새로 만든 모임·새로 확정된 모임 포함).
- * 내가 나간 모임 대화방은 다시 만들지 않음. 채팅 화면이 모임 상태가 바뀔 때마다 부름
+ * 내가 나간 모임 대화방은 다시 만들지 않음 (한 번 나간 대화방에는 다시 들어갈 수 없음, 명세). 목 서버가 목록을 줄 때마다 부름
  */
 export function syncGroupRooms() {
   const ms = getMeetupState()
@@ -203,304 +239,149 @@ export function syncGroupRooms() {
     if (st !== 'joined' && st !== 'host') continue
     const id = groupRoomId(m.id)
     if (state.rooms.some((r) => r.id === id) || state.leftGroups.includes(id)) continue
-    const ended = isPast(m) || !!m.cancelled
-    add.push({ id, kind: 'group', meetupId: m.id, unread: 0, ended, messages: [{ id: `j-${m.id}`, authorId: 'system', system: true, text: st === 'host' ? '모임을 만들었어요. 참여가 확정된 사람이 이 대화방에 들어와요' : '닉네임님이 모임에 참여했어요', at: Date.now() - 4 * day }] })
+    const at = Date.now() - 4 * day
+    const messages = st === 'joined' ? [msgOf({ type: 'JOINED', authorId: ME_ID, text: '', at })] : []
+    add.push({ id, kind: 'group', meetupId: m.id, lastReadId: +(messages[0]?.id ?? 0), unread: 0, createdAt: at, messages })
   }
-  // 모임이 끝났거나 취소되면 끝난 대화방으로
-  let changed = false
-  const rooms = state.rooms.map((r) => {
-    if (r.kind !== 'group' || r.ended) return r
-    const m = meetupOf(r.meetupId!)
-    if (m && (isPast(m) || m.cancelled)) { changed = true; return { ...r, ended: true } }
-    return r
-  })
-  if (add.length || changed) { state.rooms = [...rooms, ...add]; emit() }
+  if (add.length) { state.rooms = [...state.rooms, ...add]; emit() }
 }
 
 export function roomTitle(r: Room) {
   if (r.kind === 'group') return meetupOf(r.meetupId!)?.title ?? '모임'
   return personOf(r.partnerId!).nickname
 }
-export const lastMsg = (r: Room) => r.messages[r.messages.length - 1]
+export const lastMsg = (r: Room) => r.messages[r.messages.length - 1] as ChatMsg | undefined
 
-/* ---------- 동작 ---------- */
-export function markRead(id: string) {
-  const r = roomOf(id)
-  if (!r) return
-  if (r.unread) { state.rooms = state.rooms.map((x) => (x === r ? { ...x, unread: 0 } : x)); emit() }
-  // 서버에는 마지막으로 읽은 서버 메시지 id (안 읽은 수 계산용. 화면에 읽음 표시는 없음, 명세)
-  const last = [...r.messages].reverse().find((m) => m.seq != null && !m.status)
-  if (last) realtime().markRead(r.id, last.id)
-}
-
-/** 방 하나를 바꿈 */
+/* ---------- 동작 (목 서버가 부름) ---------- */
 function patchRoom(roomId: string, f: (r: Room) => Room) {
   const r = roomOf(roomId)
   if (!r) return
-  const next = f(r)
+  const next = withUnread(f(r))
   if (next === r) return
   state.rooms = state.rooms.map((x) => (x === r ? next : x))
   emit()
 }
 
-/**
- * 보내기. 모임 링크(…/meetups/m4)가 들어 있으면 모임 카드도 붙음.
- * 화면에는 바로 "보내는 중"으로 보이고, 서버가 확인하면 서버 메시지로 바뀜. 실패하면 "다시 보내기"
- */
-export function send(roomId: string, text: string, meetupId?: string) {
+/** 메시지 한 건 넣기 (보내기 · 안내 · 목 상대 답장). 내가 보낸 것이면 내 읽은 자리도 그 메시지로 (명세) */
+export function appendMessage(roomId: string, m: { type?: MsgType; authorId: string; text?: string; images?: ChatImage[] }): ChatMsg | null {
   const r = roomOf(roomId)
-  if (!r || r.closed) return
-  const link = /\/meetups\/(m\d+)/.exec(text)?.[1]
-  const card = meetupId ?? (link && meetupOf(link) ? link : undefined)
-  const clientId = newClientId()
-  const msg: ChatMsg = { id: clientId, clientId, status: 'sending', authorId: ME_ID, text: card && !meetupId ? text.replace(/\S*\/meetups\/m\d+\S*/, '').trim() : text, at: Date.now(), meetupId: card }
-  patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages, msg] }))
-  deliverOut(r.id, msg)
+  if (!r) return null
+  const msg = msgOf({ type: m.type ?? 'TEXT', authorId: m.authorId, text: m.text ?? '', images: m.images, at: Date.now() })
+  patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages, msg], lastReadId: m.authorId === ME_ID ? +msg.id : x.lastReadId }))
+  return msg
 }
 
-/** 실시간 계층으로 보내고 결과를 반영 */
-function deliverOut(roomId: string, msg: ChatMsg) {
-  realtime().sendMessage({ clientMessageId: msg.clientId!, roomId, type: msg.meetupId ? 'MEETUP' : 'TEXT', content: msg.text, meetupId: msg.meetupId })
-    .then((w) => receive(w))
-    .catch((e: unknown) => {
-      const why = e instanceof SendFailure ? e.message : '보내지 못했어요'
-      patchRoom(roomId, (x) => {
-        const i = x.messages.findIndex((m) => m.clientId === msg.clientId && m.status === 'sending')
-        if (i < 0) return x // 그 사이 서버 확인이 다른 길(다시 받기)로 와서 이미 바뀜
-        const messages = x.messages.slice()
-        messages[i] = { ...messages[i], status: 'failed', error: why }
-        return { ...x, messages }
-      })
-    })
+/** 읽음: 내 읽은 자리를 messageId 로 (이미 더 뒤까지 읽었으면 그대로) */
+export function markReadUpTo(roomId: string, messageId: number) {
+  patchRoom(roomId, (x) => (messageId > x.lastReadId ? { ...x, lastReadId: messageId } : x))
 }
 
-/** 실패한 메시지 다시 보내기 (같은 clientId → 서버가 한 번만 저장) */
-export function retrySend(roomId: string, clientId: string) {
+/** 1:1 상대가 나감 · 탈퇴 (목 손잡이 · 시험용) → 읽기 전용 + 안내 메시지 */
+export function closeByPartner(roomId: string, why: 'left' | 'gone') {
   const r = roomOf(roomId)
-  const m = r?.messages.find((x) => x.clientId === clientId && x.status === 'failed')
-  if (!r || !m || r.closed) return
-  const again: ChatMsg = { ...m, status: 'sending', error: undefined }
-  // 다시 보내면 맨 아래로 (보낸 순서)
-  patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages.filter((y) => y !== m), again] }))
-  deliverOut(r.id, again)
+  if (!r || r.kind !== 'dm' || r.closed) return null
+  const msg = appendMessage(r.id, { type: why === 'gone' ? 'WITHDRAWN' : 'LEFT', authorId: r.partnerId! })
+  patchRoom(r.id, (x) => ({ ...x, closed: why }))
+  return msg
 }
 
-/** 실패한 메시지 지우기 (서버에 간 적 없는 것만) */
-export function discardFailed(roomId: string, clientId: string) {
-  patchRoom(roomId, (x) => ({ ...x, messages: x.messages.filter((m) => !(m.clientId === clientId && m.status === 'failed')) }))
-}
-
-/* ---------- 실시간 받기 ---------- */
-const fromWire = (w: WireMessage): ChatMsg => ({
-  id: w.id,
-  seq: w.seq,
-  clientId: w.clientMessageId,
-  authorId: w.type === 'SYSTEM' ? 'system' : w.senderId,
-  system: w.type === 'SYSTEM' ? true : undefined,
-  text: w.content ?? '',
-  meetupId: w.meetupId,
-  at: Date.parse(w.createdAt) || Date.now(),
-})
-
-/** 지금 보고 있는 방 (안 읽은 수를 늘리지 않음). 채팅 화면이 알려 줌 */
-let activeRoom: string | null = null
-export function setActiveRoom(id: string | null) { activeRoom = id }
-const looking = (roomId: string) => activeRoom === roomId && (typeof document === 'undefined' || !document.hidden)
-
-/** 서버 메시지 한 건 반영 (실시간 · 다시 받기 · 내 확인 모두 여기로) */
-function receive(w: WireMessage) {
-  const r = roomOf(w.roomId)
-  if (!r) return // 모르는 방 (새 대화방은 목록 다시 받기로. 문서 "남은 일")
-  const m = fromWire(w)
-  // 이미 받은 서버 메시지 (내 확인이 약속 풀림·방송 두 길로 오는 경우 등) → 다시 그리지 않음
-  if (r.messages.some((x) => x.id === m.id && !x.status)) return
-  const known = r.messages.some((x) => x.id === m.id || (!!m.clientId && x.clientId === m.clientId))
-  const messages = mergeMessage(r.messages, m)
-  if (messages === r.messages) return
-  const fromOther = !known && !m.system && m.authorId !== ME_ID
-  // 상대 메시지가 오면 그 사람의 "입력 중"은 끝
-  const cur = state.typing[r.id] ?? []
-  const typing = fromOther && cur.includes(m.authorId) ? cur.filter((u) => u !== m.authorId) : cur
-  state.rooms = state.rooms.map((x) => (x === r ? { ...x, messages, unread: fromOther && !looking(r.id) ? x.unread + 1 : x.unread } : x))
-  if (typing !== cur) state.typing = { ...state.typing, [r.id]: typing }
-  emit()
-}
-
-const typingTimers = new Map<string, ReturnType<typeof setTimeout>>()
-function onTyping(roomId: string, userId: string, on: boolean) {
-  if (userId === ME_ID) return
-  const key = `${roomId}:${userId}`
-  clearTimeout(typingTimers.get(key))
-  const cur = state.typing[roomId] ?? []
-  const next = on ? (cur.includes(userId) ? cur : [...cur, userId]) : cur.filter((u) => u !== userId)
-  // "끝" 이벤트를 놓쳐도 저절로 꺼짐
-  if (on) typingTimers.set(key, setTimeout(() => onTyping(roomId, userId, false), TIMING.typingExpire))
-  if (next.length === cur.length && next.every((u, i) => u === cur[i])) return
-  state.typing = { ...state.typing, [roomId]: next }
-  emit()
-}
-/** 이 방에서 지금 입력 중인 사람 */
-export const typingIn = (roomId: string, s = state) => s.typing[roomId] ?? []
-
-/** 내 입력 중 알리기 (입력창이 부름. 실시간 계층이 3초에 한 번만 보냄) */
-export function setMyTyping(roomId: string, on: boolean) { realtime().setTyping(roomId, on) }
-
-/** 방 구독: 열린 대화방마다 하나 (나간 방·읽기 전용 방은 끊음) */
-const joined = new Map<string, () => void>()
-function syncJoins() {
-  const want = new Set(state.rooms.filter((r) => !r.closed).map((r) => r.id))
-  for (const [id, off] of joined) if (!want.has(id)) { off(); joined.delete(id) }
-  for (const id of want) {
-    if (joined.has(id)) continue
-    joined.set(id, realtime().joinRoom(id, {
-      onMessage: receive,
-      onTyping: (e) => onTyping(e.roomId, e.userId, e.typing),
-      onRoomEvent: (e) => {
-        if (e.kind === 'MEMBER_LEFT' || e.kind === 'MEMBER_GONE') patchRoom(e.roomId, (x) => ({ ...x, closed: e.kind === 'MEMBER_GONE' ? 'gone' : 'left' }))
-        if (e.kind === 'NOTICE') patchRoom(e.roomId, (x) => ({ ...x, notice: typeof e.payload === 'string' && e.payload ? e.payload : undefined }))
-      },
-      lastSeq: () => { const r = roomOf(id); return r ? maxSeq(r.messages) : undefined },
-    }))
-  }
-}
-
-/** 목 서버 답장 문구 (팀 시연용. 실제 서비스엔 없음) */
-const REPLIES = ['오 좋아요! 😊', '헉 저도 그 생각 했어요 ㅋㅋ', '좋아요, 그럼 그때 봬요!', '앗 그거 완전 궁금했어요', '그거 저도 해 보고 싶었어요!']
-
-let rtStarted = false
-/**
- * 채팅 실시간 시작: 목 서버에 방 정보 알려 주기 → 방 구독 → 연결.
- * 로그인 영역(App.tsx AppLayout)에 들어올 때. 여러 번 불러도 됨
- */
-export function startChatRealtime() {
-  if (!rtStarted) {
-    rtStarted = true
-    setMockDirectory({
-      meId: ME_ID,
-      roomInfo: (id) => {
-        const r = roomOf(id)
-        if (!r) return undefined
-        const others = r.kind === 'dm' ? [r.partnerId!] : membersOf(r).filter((x) => x !== ME_ID)
-        return { kind: r.kind, others, closed: !!r.closed || !!r.ended, lastSeq: maxSeq(r.messages) }
-      },
-      replyText: () => REPLIES[Math.floor(Math.random() * REPLIES.length)],
-    })
-    subs.add(syncJoins)
-    syncJoins()
-  }
-  realtime().start()
-}
-/** 로그아웃: 연결을 끊음 (보내는 중이던 것은 실패로) */
-export function stopChatRealtime() { realtime().stop() }
-
-/** 대화 나가기 → 내 목록에서 사라짐. 모임 대화방은 다시 생기지 않게 기억 */
+/** 대화방에서 나가기 → 내 목록에서 사라짐. 모임 대화방은 다시 생기지 않게 기억 */
 export function leaveRoom(id: string) {
   const r = roomOf(id)
+  if (!r) return
   state.rooms = state.rooms.filter((x) => x !== r)
-  if (r?.kind === 'group') state.leftGroups = [...state.leftGroups, r.id]
+  if (r.kind === 'group') state.leftGroups = [...state.leftGroups, r.id]
   emit()
 }
-/** 모임 나가기: 끝나지 않은 모임이면 참여 취소(모임 저장소) + 대화방 나가기, 끝난 모임은 대화방만 */
-export function quitGroup(id: string) {
-  const r = roomOf(id)
-  if (r?.meetupId && !r.ended) quitMeetup(r.meetupId)
-  leaveRoom(id)
-}
 
-/** 모임 나가기(참여 취소) 가능 여부: 주최자 아님 · 끝나지 않음 · 시작 24시간 전 */
+/** 모임 나가기(참여 취소) 가능 여부: 주최자 아님 · 끝나지 않음 · 시작 24시간 전 (모임 상세의 "참여 취소"와 같은 규칙) */
 export function canQuitMeetup(room: Room): { ok: boolean; why?: string } {
   const m = room.meetupId ? meetupOf(room.meetupId) : undefined
   if (!m) return { ok: false }
-  if (room.ended || m.cancelled || isPast(m)) return { ok: true } // 대화방만 나감
+  if (m.cancelled || isPast(m)) return { ok: true } // 대화방만 나감
   if (m.hostId === ME_ID) return { ok: false, why: '주최자는 모임을 나갈 수 없어요' }
-  // 모임 상세의 "참여 취소"와 같은 규칙 (data/meetupStore.ts canQuit, 시간 기준은 목 데이터의 오늘)
   if (!canQuit(m)) return { ok: false, why: '시작 24시간 전부터는 나갈 수 없어요' }
   return { ok: true }
 }
 
 export function setNotice(id: string, text: string | null) {
-  const r = roomOf(id)
-  if (!r) return
-  state.rooms = state.rooms.map((x) => (x === r ? { ...x, notice: text?.trim() || undefined } : x))
-  emit()
+  patchRoom(id, (x) => ({ ...x, notice: text?.trim() || undefined }))
 }
 
-/** 받은 요청 수락 → 1:1 대화방이 생기고 그 방 id 를 돌려줌 */
+/** 1:1 대화방 만들기 (수락). ACCEPTED 안내는 수락한 사람 이름으로. 요청의 인사는 옮기지 않음 (명세) */
+function openDm(userId: string, acceptedBy: string): string {
+  const id = `r-${userId}-${Date.now().toString(36)}`
+  const at = Date.now()
+  const first = msgOf({ type: 'ACCEPTED', authorId: acceptedBy, text: '', at })
+  state.rooms = [{ id, kind: 'dm', partnerId: userId, lastReadId: +first.id, unread: 0, createdAt: at, messages: [first] }, ...state.rooms]
+  return id
+}
+
+/** 받은 요청 수락 → 1:1 대화방 id. 이미 수락한 요청은 그때 만든 방. 없거나 만료 · 거절 · 취소면 null */
 export function acceptRequest(reqId: string): string | null {
-  const q = state.requests.find((r) => r.id === reqId)
-  if (!q) return null
-  const u = personOf(q.userId)
-  const me = USERS[ME_ID]
-  const id = `r-${q.userId}`
-  const t = Date.now()
-  const room: Room = {
-    id, kind: 'dm', partnerId: q.userId, unread: 0,
-    topics: u.interests.filter((i) => me.interests.includes(i)),
-    messages: [
-      { id: mid(), authorId: 'system', system: true, text: `${u.nickname}님의 대화 요청을 수락했어요`, at: t },
-      ...(q.message ? [{ id: mid(), authorId: q.userId, text: q.message, at: q.at }] : []),
-    ],
-  }
-  state.requests = state.requests.filter((r) => r !== q)
-  state.rooms = [room, ...state.rooms.filter((r) => r.id !== id)]
+  const q = requestById(reqId)
+  if (!q || q.direction !== 'received') return null
+  if (q.status === 'ACCEPTED') return q.chatRoomId ?? null
+  if (q.status !== 'PENDING' || !isLive(q)) return null
+  const id = openDm(q.userId, ME_ID)
+  state.requests = state.requests.map((r) => (r === q ? { ...r, status: 'ACCEPTED' as const, chatRoomId: id } : r))
   emit()
   return id
 }
-/**
- * 거절(받은 요청) · 취소(보낸 요청): 상대에게 알리지 않음.
- * 보낸 요청은 상대가 거절했든 안 했든(만료 전이면) 똑같이 취소된다 — 거절된 것이 드러나지 않게 (F6 보낸 요청 2, 11-20).
- * 목 데이터에는 "거절된 보낸 요청"이라는 상태가 따로 없어서 보낸 요청은 늘 "답변 기다리는 중"이고 늘 취소할 수 있다
- */
-export function dropRequest(reqId: string) {
-  state.requests = state.requests.filter((r) => r.id !== reqId)
+/** 받은 요청 거절 (상대에게 알리지 않음). 이미 거절했으면 그대로 성공. 없거나 만료 · 수락 · 취소면 false */
+export function rejectRequest(reqId: string): boolean {
+  const q = requestById(reqId)
+  if (!q || q.direction !== 'received' || !isLive(q)) return false
+  if (q.status === 'REJECTED') return true
+  if (q.status !== 'PENDING') return false
+  state.requests = state.requests.map((r) => (r === q ? { ...r, status: 'REJECTED' as const } : r))
   emit()
+  return true
 }
-/** 상대가 먼저 나에게 보냈고 내가 아직 답하지 않은 요청 (받은 요청에 남아 있는 것) */
-export const receivedFrom = (userId: string, s = state) => liveRequests(s).find((r) => r.direction === 'received' && r.userId === userId)
-/**
- * 방문자 뷰 "대화 요청하기" → 보낸 요청.
- * 상대가 먼저 나에게 보낸 요청에 내가 아직 답하지 않았으면 새 요청을 만들지 않는다(화면은 토스트로 안내, F5 방문자 뷰 4 · F6 11-20).
- * 내가 거절해서 사라진 요청은 여기서 안 막음
- */
-export function sendRequest(userId: string, message: string, context = '내가 먼저 대화를 요청했어요') {
-  if (sentRequestTo(userId) || dmRoomWith(userId) || receivedFrom(userId)) return
-  state.requests = [{ id: mid(), direction: 'sent', userId, message, at: Date.now(), context }, ...state.requests]
+/** 보낸 요청 취소. 상대가 거절했어도 똑같이 성공. 이미 수락됐으면 { accepted: 방 id } */
+export function cancelRequest(reqId: string): { ok: true; wasPending: boolean } | { ok: false; accepted?: string } {
+  const q = requestById(reqId)
+  if (!q || q.direction !== 'sent') return { ok: false }
+  if (q.status === 'ACCEPTED') return { ok: false, accepted: q.chatRoomId }
+  if (q.status === 'CANCELED' || !isLive(q)) return { ok: false }
+  state.requests = state.requests.map((r) => (r === q ? { ...r, status: 'CANCELED' as const } : r))
   emit()
+  return { ok: true, wasPending: q.status === 'PENDING' }
+}
+/** 상대가 나에게 요청을 보냄 (목 손잡이 · 시험용) */
+export function receiveRequest(userId: string, message: string): Req {
+  const q: Req = { id: nextReqId(), direction: 'received', userId, message, at: Date.now(), status: 'PENDING' }
+  state.requests = [q, ...state.requests]
+  emit()
+  return q
 }
 
-/** 모임 공유(+ 버튼)에 보일 내 모임: 참여 확정·내가 주최, 끝나지 않은 것 */
-export const myMeetups = () => getMeetupState().list.filter((m) => ['joined', 'host'].includes(myOf(m.id)?.st ?? '') && !isPast(m) && !m.cancelled)
+/**
+ * 대화 요청 보내기 (05 탐색 · 방문의 POST /chat-requests 가 하는 일. 탐색 목 서버 · 옛 api.chat.sendRequest 가 부름)
+ * - 열린 1:1 이 있으면 / 내가 보낸 살아 있는 요청이 있으면 / 상대가 먼저 보낸 요청에 답하지 않았으면 → 만들지 않음 (null, 까닭)
+ * - 내가 거절한 그 사람의 요청이 살아 있으면 → 새 요청 대신 그것을 수락한 것으로 처리. 내 인사는 대화방의 첫 메시지로
+ */
+export type SendRequestResult =
+  | { ok: true; chatRequestId: string | null; chatRoomId: string | null }
+  | { ok: false; why: 'ROOM_EXISTS' | 'REQUEST_EXISTS' | 'REQUEST_FROM_PEER' }
+export function sendRequest(userId: string, message: string): SendRequestResult {
+  const open = dmRoomWith(userId)
+  if (open && !open.closed) return { ok: false, why: 'ROOM_EXISTS' }
+  if (sentRequestTo(userId)) return { ok: false, why: 'REQUEST_EXISTS' }
+  if (receivedFrom(userId)) return { ok: false, why: 'REQUEST_FROM_PEER' }
+  const rej = rejectedFrom(userId)
+  if (rej) {
+    const id = openDm(userId, ME_ID)
+    state.requests = state.requests.map((r) => (r === rej ? { ...r, status: 'ACCEPTED' as const, chatRoomId: id } : r))
+    emit()
+    if (message.trim()) appendMessage(id, { authorId: ME_ID, text: message.trim() })
+    return { ok: true, chatRequestId: null, chatRoomId: id }
+  }
+  const q: Req = { id: nextReqId(), direction: 'sent', userId, message, at: Date.now(), status: 'PENDING' }
+  state.requests = [q, ...state.requests]
+  emit()
+  return { ok: true, chatRequestId: q.id, chatRoomId: null }
+}
 
-/* ---------- 시간 표기 (00 공통 8) ---------- */
-export function clock(ms: number) {
-  const d = new Date(ms), h = d.getHours(), m = d.getMinutes()
-  return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`
-}
-/** 목록: 방금 · N분/N시간 전(오늘은 시각) · 어제 · N일 전 · 날짜 */
-export function listTime(ms: number) {
-  const diff = Date.now() - ms
-  if (diff < min) return '방금'
-  const d = new Date(ms), t = new Date()
-  const days = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / day)
-  if (days === 0) return clock(ms)
-  if (days === 1) return '어제'
-  if (days < 7) return `${days}일 전`
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
-}
-/** 요청 카드: 방금 · N분 전 · N시간 전 · 어제 · N일 전 */
-export function ago(ms: number) {
-  const diff = Date.now() - ms
-  if (diff < min) return '방금'
-  if (diff < hour) return `${Math.floor(diff / min)}분 전`
-  if (diff < day) return `${Math.floor(diff / hour)}시간 전`
-  if (diff < 2 * day) return '어제'
-  return `${Math.floor(diff / day)}일 전`
-}
-/** 날짜 구분선: 오늘 · 어제 · 11월 3일 (화) */
-export function dayLabel(ms: number) {
-  const d = new Date(ms), t = new Date()
-  const days = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / day)
-  if (days === 0) return '오늘'
-  if (days === 1) return '어제'
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`
-}
+/** 로그아웃 · 탈퇴: 실시간 소식 연결을 끊음 (설정 화면이 부름. 연결 자체는 공통 realtime/events.ts) */
+export function stopChatRealtime() { stopEventStream() }
