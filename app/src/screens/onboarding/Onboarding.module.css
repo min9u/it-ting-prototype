@@ -135,7 +135,10 @@
 .swap { font-size: 12px; color: #a08672; }
 .swap:hover:not(:disabled) { color: var(--ob-orange); text-decoration: underline; }
 .swap:disabled { cursor: default; color: var(--ink-300); }
-.cardSide { background: var(--ob-side); padding: 32px 28px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+/* 미리보기는 Figma 온보딩 3(740:3619)처럼 위에서 120px 내려온 자리에서 시작 (패널이 짧으면 가운데와 같음).
+   예전엔 가운데 정렬이라 왼쪽(질문 목록 + 답변 3개)이 길어질수록 카드가 아래로 쏠려 위가 비어 보였음 → 위 자리 고정 + 스크롤해도 따라옴 */
+.cardSide { background: var(--ob-side); padding: 120px 28px 32px; }
+.sideSticky { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 14px; }
 .sideLabel { font-size: 14px; color: var(--ink-800); }
 .sideLabel span { margin-left: 4px; color: var(--ink-500); }
 .profileCard { background: #fdf9f5; border: 1px solid var(--ob-line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
@@ -218,6 +221,7 @@
 @media (max-width: 900px) {
   .card { grid-template-columns: 1fr; }
   .avatarSide, .cardSide { padding: 28px 20px; }
+  .sideSticky { position: static; }
   .form, .qForm { padding: 28px 20px; }
   .pickCols { grid-template-columns: 1fr; }
   .catList { flex-direction: row; overflow-x: auto; max-height: none; padding: 8px; gap: 4px; }

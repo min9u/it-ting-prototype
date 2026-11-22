@@ -306,6 +306,7 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: str
           {p.qids.length < 3 && <p className={s.qEmpty}>위 목록에서 질문을 {3 - p.qids.length}개 더 골라 주세요.</p>}
         </div>
         <aside className={s.cardSide}>
+         <div className={s.sideSticky}>
           <p className={s.sideLabel}>내 땅굴에선 이렇게 보여요</p>
           <div className={s.profileCard}>
             <div className={s.profileTop}>
@@ -324,6 +325,7 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: str
             </div>
           </div>
           <p className={s.sideNote}>방문한 두더지는 이 카드를 보고 말을 걸어요.</p>
+         </div>
         </aside>
       </section>
       <div className={s.actions}>
