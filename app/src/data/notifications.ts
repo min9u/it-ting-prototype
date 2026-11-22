@@ -1,6 +1,7 @@
 import { createStore } from '../lib/store'
 import { NOTIFICATION_TYPE_SPEC, type NotificationCategory, type NotificationType } from '../api/notifications/types'
 import { ME_ID } from './mock'
+import { findMeetup, startMs } from './meetupStore'
 
 /**
  * F9 알림 — 목 서버의 "DB" (백엔드 명세 v1: docs/backend/team-spec/api/09-notification.md, db/notification.md)
@@ -52,6 +53,9 @@ function seed(): NoticeRecord[] {
   const now = Date.now()
   const at = (m: number) => now - m * MIN
   const d = (n: number, h = 0) => now - n * DAY - h * HOUR
+  // 일정 임박은 서버 예약 작업이 시작 24시간 전에 만든다 → 목 모임의 시작 시각에 맞춤
+  const m4 = findMeetup('m4')
+  const remindAt = m4 ? startMs(m4) - DAY : d(3)
   const N = (id: string, type: NotificationType, actorId: string | null, targetId: string | null, t: number, unread = false): NoticeRecord =>
     ({ id, type, actorId, targetId, at: t, readAt: unread ? null : t + HOUR })
   return [
@@ -66,7 +70,7 @@ function seed(): NoticeRecord[] {
     N('n3', 'POST_COMMENTED', 'yejin', 'p6', d(1, 2)),
     N('n4', 'COMMENT_REPLIED', 'ha', 'p1', d(1, 5)),
     N('n5', 'MEETUP_APPLICATION_ACCEPTED', 'kim', 'm1', d(2)),
-    N('n9', 'MEETUP_START_REMINDER', null, 'm4', d(3)),
+    N('n9', 'MEETUP_START_REMINDER', null, 'm4', now - remindAt < NOTICE_TTL_DAYS * DAY ? remindAt : d(3)),
     N('n7', 'CHAT_MESSAGE_RECEIVED', 'kim', 'g-m1', d(4)),
     N('n8', 'NOTICE_PUBLISHED', null, 'sn2', d(5)),
     // 원본이 사라진 알림: 줄은 남고(target.title = null), 누르면 그 화면의 조회 API 가 404 → 안내 화면
