@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import NotFound from '../../components/NotFound'
 import { roomLookOf } from '../../data/roomLook'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -17,8 +18,9 @@ import { Link } from 'react-router-dom'
 import { api, errorText, isApiError, toastApiError, useOptimistic } from '../../api'
 import { reportBody } from '../../api/community'
 import {
-  ALREADY_RECEIVED_TEXT, EXPLORE_ERRORS, exploreHrefOf, exploreKeys, useSendChatRequest, useVisitActions, useVisitBurrow, useVisitGuestbook, type BurrowVM,
+  ALREADY_RECEIVED_TEXT, EXPLORE_ERRORS, exploreHrefOf, exploreKeys, useSendChatRequest, useVisitActions, useVisitBurrow, type BurrowVM,
 } from '../../api/explore'
+import { BURROW_ERRORS, burrowKeys, useDeleteGuestbookEntry, useGuestbookEntries } from '../../api/burrow'
 import { ErrorState, QueryGate, Skeleton, SkeletonLines } from '../../components/AsyncState'
 import s from './Burrow.module.css'
 import { CHAT_REQUEST_MAX, GUESTBOOK_MAX } from '../../lib/validation'
@@ -75,15 +77,22 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const [regToast, setRegToast] = useState<string | null>(null)
   const me = USERS[ME_ID]
   const run = useOptimistic()
+  const qc = useQueryClient()
   const act = useVisitActions(b)
   const send = useSendChatRequest(owner.id)
-  const gb = useVisitGuestbook(b.burrowId)
-  const entries = gb.data?.entries ?? []
+  const [allOpen, setAllOpen] = useState(false)
+  // 방명록 목록 · 지우기는 04 API (주인 · 방문자가 같이 씀): 서버가 나눈 5개씩 페이지, 우체통 창을 열 때만 받음
+  const [gbPage, setGbPage] = useState(1)
+  const gb = useGuestbookEntries(b.burrowId, gbPage, { enabled: allOpen })
+  const delGb = useDeleteGuestbookEntry(b.burrowId)
+  const entries = gb.data?.items ?? []
+  // 지운 뒤 마지막 페이지가 비면 한 페이지 앞으로, 창을 열면 첫 페이지
+  useEffect(() => { if (gb.data && gb.data.totalPages > 0 && gbPage > gb.data.totalPages) setGbPage(gb.data.totalPages) }, [gb.data, gbPage])
+  useEffect(() => { if (allOpen) setGbPage(1) }, [allOpen])
   // 방노트: 들어오면 접혀 있음 (?panel=open 이면 펼친 채로)
   const note = useNotePanel(params.get('panel') === 'open')
   const panelOpen = note.open
   const [draft, setDraft] = useState('')
-  const [allOpen, setAllOpen] = useState(false)
   const [reqOpen, setReqOpen] = useState(params.get('modal') === 'request')
   const [reqMsg, setReqMsg] = useState('')
   const [sent, setSent] = useState(params.get('toast') === 'request')
@@ -98,18 +107,21 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   // 방 모습: 관심사로 계산 (명세: 가구와 무드는 저장하지도 주지도 않음, 프론트가 interests 로 그림). 내 땅굴과 같은 함수 (data/roomLook.ts)
   const look = useMemo(() => roomLookOf(owner.id, owner.interests), [owner.id, owner.interests])
 
-  /** 방명록 남기기: 목록 맨 위에 먼저 넣고 실패하면 빼고 입력값을 되돌림 */
+  /** 방명록 남기기: 글 수를 먼저 올리고, 끝나면 첫 페이지를 다시 받음 (새 글이 맨 위). 실패하면 입력값을 되돌림 */
   const submitGb = () => {
     const text = draft.trim()
     if (!text) return
     setDraft('')
-    act.writeGuestbook(text, { onError: () => setDraft(text) })
+    act.writeGuestbook(text, { onError: () => setDraft(text), onSuccess: () => setGbPage(1) })
   }
-  /** 내가 쓴 방명록 지우기: 확인 없이 바로 (목록에서 먼저 빼고 실패하면 되돌림) */
-  const deleteOwn = (id: string) => act.deleteGuestbook(id)
+  /** 내가 쓴 방명록 지우기 (DELETE /guestbook-entries/{id}, 04): 확인 없이 바로. 끝나면 목록 · 글 수를 다시 받음 */
+  const deleteOwn = (id: string) => delGb.mutate(id, {
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: exploreKeys.burrow(owner.id) }) }, // 우체통 깃발 · 글 수
+    onError: (e) => toastApiError(e, '방명록을 지우지 못했어요', BURROW_ERRORS),
+  })
   /** 방명록 글 신고 (POST /reports, targetType GUESTBOOK): 서로 다른 3명이면 서버가 가림 → 다시 받아서 목록·글 수에서 뺌 */
   const reportEntry = (id: string, picked: string) => {
-    run.mutate({ call: () => api.community.createReport(reportBody('GUESTBOOK', id, picked)), errorTitle: '신고를 접수하지 못했어요', invalidate: [exploreKeys.guestbook(b.burrowId), exploreKeys.burrow(owner.id)] })
+    run.mutate({ call: () => api.community.createReport(reportBody('GUESTBOOK', id, picked)), errorTitle: '신고를 접수하지 못했어요', invalidate: [burrowKeys.guestbook(b.burrowId), exploreKeys.burrow(owner.id)] })
   }
   /** 방노트의 신고 아이콘 (POST /reports, targetType MEMBER) */
   const reportOwner = (picked: string) => {
@@ -176,6 +188,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
 
       {/* 우체통: 쓰기와 읽기를 한 창에서. 남기면 목록 맨 위에 바로 들어가고 우체통 깃발이 올라감 */}
       <GuestbookModal open={allOpen} onClose={() => setAllOpen(false)} entries={entries} onDeleteOwn={deleteOwn} onReport={reportEntry}
+        server={{ page: gb.data?.page ?? gbPage, totalPages: gb.data?.totalPages ?? 0, totalItems: gb.data?.totalItems ?? b.guestbookCount, onPage: setGbPage, fetching: gb.isFetching }}
         load={{ loading: gb.isPending, error: gb.isError && !gb.data ? gb.error : undefined, onRetry: () => void gb.refetch(), retrying: gb.isFetching }}
         compose={{ value: draft, onChange: setDraft, onSubmit: submitGb, max: GB_MAX, placeholder: `${owner.nickname}님의 땅굴에 다녀간 흔적을 남겨주세요` }} />
 

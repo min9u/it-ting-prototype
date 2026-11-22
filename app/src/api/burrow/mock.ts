@@ -5,12 +5,13 @@
  * 목 id: 땅굴 id = 주인 사용자 id (toDtoId('me')), 캠퍼스-층 = '서울|2' (common 목과 같음), 질문 = 'music-1' …
  */
 import { ME_ID } from '../../data/mock'
-import { CAMPUS_FLOORS, ME_HOME, locateUser } from '../../data/field'
+import { CAMPUS_FLOORS, ME_HOME, locateUser, moveMyBurrow } from '../../data/field'
 import { setMyInterests } from '../../data/interests'
 import { setMyWorn } from '../../data/moleItems'
 import { MY_REGULARS_COUNT, getMyProfile, nickTaken, qnaOf, setMyProfile } from '../../data/myBurrow'
-import { findGuestbookEntry, guestbookOf, ownerOfBurrow } from '../../data/guestbookStore'
-import { isGuestbookHidden, visibleGuestbook } from '../../lib/format'
+import { findGuestbookEntry, guestbookCountOf, ownerOfBurrow, removeGuestbookEntry, reportGuestbookEntry, visibleGuestbookOf } from '../../data/guestbookStore'
+import { isGuestbookHidden } from '../../lib/format'
+import { registerMockReportTarget } from '../community/mock'
 import { parseIso, toIso } from '../../lib/time'
 import { RULES } from '../../lib/validation'
 import { forbidden, mockRead, mockWrite, notFound } from '../mock/server'
@@ -37,7 +38,7 @@ export function myBurrowDto(): MyBurrowDto {
     interests: interestTags(ME_ID, ME_ID),
     answers: qnaOf(p.qna).map((x, i) => ({ slot: i + 1, introQuestionId: toDtoId(x.q.id), question: x.q.text, answer: x.a })),
     regularCount: MY_REGULARS_COUNT,
-    guestbookCount: visibleGuestbook(guestbookOf(ME_ID)).length,
+    guestbookCount: guestbookCountOf(ME_ID),
     entrance: { termId: toDtoId(spot?.floor.term ?? '2026 하반기'), campusFloorId, slot: spot?.seat ?? 1 },
   }
 }
@@ -93,7 +94,9 @@ export const mock: BurrowApi = {
     const qs = questionsOf(body.answers)
     // 5 닉네임 (지금 내 닉네임은 빼고)
     throwIfNicknameTaken(nickTaken(body.nickname, getMyProfile().nickname))
-    // 6 저장. 캠퍼스-층이 바뀌면 이번 학기 들판의 입구도 옮겨짐 (data/field 가 ME_HOME 을 봄)
+    // 6 저장. 캠퍼스-층이 바뀌면 이번 학기 들판의 입구도 옮겨짐 (명세 04 내 정보 수정 2 → 05 목의 이사와 같은 moveMyBurrow)
+    const before = getMyProfile()
+    if (before.campus !== cf.campus || before.floor !== cf.floor) moveMyBurrow(cf.campus, cf.floor)
     setMyProfile({
       nickname: body.nickname.trim(), intro: body.intro?.trim() ? body.intro : '',
       qna: qs.map((q, i) => ({ qid: q.id, a: body.answers[i].answer.trim() })), campus: cf.campus, floor: cf.floor,
@@ -105,7 +108,7 @@ export const mock: BurrowApi = {
   guestbookEntries: (burrowId, q = {}, signal) => mockRead(() => {
     const owner = ownerOfBurrow(toAppId(burrowId))
     if (!rawPerson(owner)) throw notFound('BURROW', '땅굴을 찾을 수 없습니다.')
-    const list = visibleGuestbook(guestbookOf(owner))
+    const list = visibleGuestbookOf(owner)
     return page(list.map((g) => entryDto(g, owner)), q.page ?? 1, q.size ?? GUESTBOOK_PAGE_SIZE)
   }, { signal, empty: () => page([], 1, q.size ?? GUESTBOOK_PAGE_SIZE) }),
 
@@ -113,7 +116,13 @@ export const mock: BurrowApi = {
     const hit = findGuestbookEntry(toAppId(guestbookEntryId))
     if (!hit || isGuestbookHidden(hit.entry)) throw notFound('GUESTBOOK_ENTRY', '방명록 글을 찾을 수 없습니다.')
     if (hit.ownerId !== ME_ID && hit.entry.authorId !== ME_ID) throw forbidden('이 글을 지울 수 없습니다.')
-    hit.list.splice(hit.list.indexOf(hit.entry), 1)
+    removeGuestbookEntry(hit.entry.id)
     return null
   }),
 }
+
+/**
+ * 방명록 글 신고의 대상 확인 · 기록 (POST /reports targetType GUESTBOOK, 08 커뮤니티 목 서버에 끼움).
+ * 없거나 가려진 글 404, 내 글 403, 이미 신고 409. 서로 다른 3명이면 가려져 목록 · 글 수에서 빠짐
+ */
+registerMockReportTarget('GUESTBOOK', (id) => reportGuestbookEntry(id, ME_ID))

@@ -9,16 +9,15 @@ import { useMockStoreSync } from '../storeSync'
 import { toDtoId } from '../common'
 import { useMe } from '../auth'
 import { getRegulars, subscribeRegulars } from '../../data/field'
-import { ME_ID } from '../../data/mock'
 import { chatKeys } from '../chat'
 import { exploreApi } from './api'
 import { EXPLORE_ERRORS } from './errors'
 import {
-  toBurrow, toChatRequestResult, toDailyRecommendation, toField, toFieldStatuses, toGuestbookPage, toMoved, toRegulars, toTerms,
-  placeId, type BurrowVM, type FieldPlace, type GuestbookPageVM, type RegularVM,
+  toBurrow, toChatRequestResult, toDailyRecommendation, toField, toFieldStatuses, toMoved, toRegulars, toTerms,
+  placeId, type BurrowVM, type FieldPlace, type RegularVM,
 } from './mappers'
-import type { GuestbookEntry } from '../../data/types'
-import { toIso } from '../../lib/time'
+// 방명록 목록 캐시는 04 내 땅굴 영역 것 (모듈을 바로 가져옴: 영역 입구끼리 서로 부르는 순환을 피함, 키는 함수 안에서만 씀)
+import { burrowKeys } from '../burrow/queries'
 
 /** 캐시 키 (첫 칸 'explore') */
 export const exploreKeys = {
@@ -29,7 +28,6 @@ export const exploreKeys = {
   regulars: ['explore', 'regulars'] as const,
   daily: ['explore', 'daily-recommendation'] as const,
   burrow: (userId: string) => ['explore', 'burrow', userId] as const,
-  guestbook: (burrowId: string) => ['explore', 'guestbook', burrowId] as const,
 }
 
 /* ===== 읽기 ===== */
@@ -87,28 +85,15 @@ export function useVisitBurrow(userId: string, enabled = true) {
   return useQuery({ queryKey: exploreKeys.burrow(userId), queryFn: async ({ signal }) => toBurrow(await exploreApi.userBurrow(toDtoId(userId), signal)), enabled: enabled && !!userId })
 }
 
-/**
- * 방문자 뷰의 방명록 (04 목록 API 다리). 방명록 창(GuestbookModal)이 글 목록을 받아 5개씩 나눠 보여 주므로 한 번에 넉넉히 받음.
- * 04 작업자가 api/burrow 에 같은 API 를 만들면 그쪽 훅으로 바꿈
- */
-export const VISIT_GUESTBOOK_SIZE = 100
-export function useVisitGuestbook(burrowId: string | null) {
-  return useQuery({
-    queryKey: exploreKeys.guestbook(burrowId ?? ''), enabled: !!burrowId,
-    queryFn: async ({ signal }) => toGuestbookPage(await exploreApi.guestbookPage(toDtoId(burrowId!), 1, VISIT_GUESTBOOK_SIZE, signal)),
-  })
-}
-
 /* ===== 쓰기 ===== */
 /**
  * 방문자 뷰의 쓰기 (낙관적 업데이트: 캐시를 먼저 바꾸고 실패하면 되돌림 + 토스트)
- * - 단골 담기 · 빼기 (PUT · DELETE), 방명록 남기기 · 내 글 지우기, 대화 요청 보내기
+ * - 단골 담기 · 빼기 (PUT · DELETE), 방명록 남기기. 방명록 목록 · 지우기는 04 api/burrow 의 useGuestbookEntries · useDeleteGuestbookEntry
  */
 export function useVisitActions(b: Pick<BurrowVM, 'burrowId' | 'owner'>) {
   const run = useOptimistic()
   const userId = b.owner.id
   const burrowKey = exploreKeys.burrow(userId)
-  const gbKey = exploreKeys.guestbook(b.burrowId)
   return {
     pending: run.isPending,
     /** 단골: 상대 수락 없이 바로, 알리지 않음 */
@@ -118,24 +103,13 @@ export function useVisitActions(b: Pick<BurrowVM, 'burrowId' | 'owner'>) {
       patches: [patch<BurrowVM>(burrowKey, (o) => ({ ...o, isRegular: on }))],
       invalidate: [burrowKey, exploreKeys.regulars],
     }, { onError: cb?.onError }),
-    /** 방명록 남기기: 목록 맨 위에 먼저 넣고 글 수 + 1 */
-    writeGuestbook: (text: string, cb?: { onError?: () => void }) => run.mutate({
+    /** 방명록 남기기: 글 수를 먼저 + 1, 끝나면 방명록 목록(04 캐시)과 땅굴을 다시 받음 (새 글이 첫 페이지 맨 위에) */
+    writeGuestbook: (text: string, cb?: { onError?: () => void; onSuccess?: () => void }) => run.mutate({
       call: () => exploreApi.writeGuestbook(toDtoId(b.burrowId), text),
       errorTitle: '방명록을 남기지 못했어요', errors: EXPLORE_ERRORS,
-      patches: [
-        patch<GuestbookPageVM>(gbKey, (l) => ({ ...l, total: l.total + 1, entries: [{ id: `tmp-${Date.now()}`, authorId: ME_ID, text, createdAt: toIso(Date.now()) } as GuestbookEntry, ...l.entries] })),
-        patch<BurrowVM>(burrowKey, (o) => ({ ...o, guestbookCount: o.guestbookCount + 1 })),
-      ],
-    }, { onError: cb?.onError }),
-    /** 내가 쓴 방명록 지우기 */
-    deleteGuestbook: (entryId: string) => run.mutate({
-      call: () => exploreApi.deleteGuestbookEntry(toDtoId(entryId)),
-      errorTitle: '방명록을 지우지 못했어요', errors: EXPLORE_ERRORS,
-      patches: [
-        patch<GuestbookPageVM>(gbKey, (l) => ({ ...l, total: Math.max(0, l.total - 1), entries: l.entries.filter((g) => g.id !== entryId) })),
-        patch<BurrowVM>(burrowKey, (o) => ({ ...o, guestbookCount: Math.max(0, o.guestbookCount - 1) })),
-      ],
-    }),
+      patches: [patch<BurrowVM>(burrowKey, (o) => ({ ...o, guestbookCount: o.guestbookCount + 1 }))],
+      invalidate: [burrowKeys.guestbook(b.burrowId), burrowKey],
+    }, { onError: cb?.onError, onSuccess: cb?.onSuccess }),
   }
 }
 

@@ -3,16 +3,14 @@
  * 학기 · 들판 · 이사 · 단골 · 오늘의 추천 · 남의 땅굴 · 방명록 쓰기 · 대화 요청 보내기
  *
  * ENDPOINTS: 명세대로 구현한 API ("메서드 주소", id 자리는 명세 이름). src/tests/api-v1-endpoints.test.ts 가 명세 제목과 비교
- *
- * 다리 (04 영역 API, ENDPOINTS 에 안 적음): 방문자 뷰의 방명록 목록 · 지우기는 명세상 04 내 땅굴 API 를 같이 쓴다.
- * 04 작업자(api/burrow)가 같은 API 를 만들면 guestbookPage · deleteGuestbookEntry 를 지우고 api/burrow 것을 쓴다
+ * 방문자 뷰의 방명록 목록 · 지우기는 명세상 04 내 땅굴 API 라 api/burrow 의 것을 쓴다 (useGuestbookEntries · useDeleteGuestbookEntry)
  */
 import { http, seg } from '../client'
 import type { Id } from '../common/types'
 import { RULES } from '../../lib/validation'
 import type {
   ChatRequestCreateRequest, ChatRequestCreatedDto, DailyRecommendationDto, DailyRecommendationRequest, FieldDto, FieldStatusesDto,
-  GuestbookEntryDto, GuestbookPageDto, MoveBurrowDto, MoveBurrowRequest, RegularBurrowsDto, RegularStateDto, TermsDto, UserBurrowDto,
+  GuestbookEntryDto, MoveBurrowDto, MoveBurrowRequest, RegularBurrowsDto, RegularStateDto, TermsDto, UserBurrowDto,
 } from './types'
 
 export const ENDPOINTS: readonly string[] = [
@@ -69,11 +67,5 @@ export const real = {
   /** POST /chat-requests — 대화 요청 보내기 (201). 404 USER_NOT_FOUND · 409 CHAT_ROOM_ALREADY_EXISTS · CHAT_REQUEST_ALREADY_SENT · CHAT_REQUEST_ALREADY_RECEIVED */
   sendChatRequest: (req: ChatRequestCreateRequest) => http.post<ChatRequestCreatedDto>('/chat-requests', req),
 
-  /* ----- 다리: 04 내 땅굴 API (api/burrow 가 만들면 지움) ----- */
-  /** GET /burrows/{burrowId}/guestbook-entries — 방명록 목록 (최신순, 페이지 기본 5) */
-  guestbookPage: (burrowId: Id, page = 1, size = 5, signal?: AbortSignal) =>
-    http.get<GuestbookPageDto>(`/burrows/${seg(burrowId)}/guestbook-entries`, { page, size }, signal),
-  /** DELETE /guestbook-entries/{guestbookEntryId} — 방명록 지우기 (방문자는 내가 쓴 글만). 404 GUESTBOOK_ENTRY_NOT_FOUND · 403 FORBIDDEN */
-  deleteGuestbookEntry: (entryId: Id) => http.delete<null>(`/guestbook-entries/${seg(entryId)}`),
 }
 export type ExploreApi = typeof real

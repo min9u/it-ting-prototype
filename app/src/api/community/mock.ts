@@ -179,7 +179,7 @@ const reportHandlers: Partial<Record<ReportTargetType, ReportHandler>> = {
     if (id === ME_ID) return 'own'
     return reportOther('MEMBER', id) ? 'ok' : 'already'
   },
-  // 방명록 글은 탐색 영역의 목 저장소에 있다 → 그 영역이 registerMockReportTarget('GUESTBOOK', …) 로 끼우면 대상 확인 · 가림까지 함
+  // 방명록 글은 data/guestbookStore → 04 내 땅굴 목(api/burrow/mock.ts)이 registerMockReportTarget('GUESTBOOK', …) 로 대상 확인 · 가림까지 끼움
   GUESTBOOK: (id) => (reportOther('GUESTBOOK', id) ? 'ok' : 'already'),
 }
 /** 다른 영역의 목 서버가 신고 대상을 확인 · 기록하는 함수를 끼운다 (예: 방명록 글은 탐색 목 서버) */

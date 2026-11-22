@@ -1,9 +1,9 @@
 /**
  * 05 탐색 · 방문 (+ 00 학기) DTO. 명세: docs/backend/team-spec/api/05-explore-visit.md, api/00-common.md "GET /api/v1/terms"
  * 명세 그대로: id 는 숫자(Id), 시각은 UTC(UtcInstant), 날짜만은 DateString, enum 은 대문자, 값이 없으면 null.
- * 사람은 UserDisplayDto, 관심사는 InterestTagDto (공통). 목록은 ItemsDto / PageDto
+ * 사람은 UserDisplayDto, 관심사는 InterestTagDto (공통). 목록은 ItemsDto
  */
-import type { DateString, Id, InterestTagDto, ItemsDto, PageDto, UserDisplayDto, UtcInstant } from '../common/types'
+import type { DateString, Id, InterestTagDto, ItemsDto, UserDisplayDto, UtcInstant } from '../common/types'
 
 /* ===== 학기 (00 공통) ===== */
 /** GET /terms 의 항목 · 들판의 term. half: 1 상반기, 2 하반기 */
@@ -148,8 +148,6 @@ export interface GuestbookEntryDto {
   canDelete: boolean
   canReport: boolean
 }
-/** 04 GET /burrows/{burrowId}/guestbook-entries (페이지, 기본 5개) — 04 영역 API. 다리(real.ts guestbookPage) 전용 */
-export type GuestbookPageDto = PageDto<GuestbookEntryDto>
 
 /* ===== 대화 요청 보내기 ===== */
 /** POST /chat-requests 요청. message 는 50자 이하, 비우거나 null 이면 인사 없이 */

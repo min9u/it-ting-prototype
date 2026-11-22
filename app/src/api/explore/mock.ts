@@ -1,6 +1,6 @@
 /**
  * 05 탐색 · 방문 (+ 00 학기) — 목 서버. 명세 모양 그대로 흉내 낸다.
- * "DB" = data/field.ts(학기 · 들판 · 입구 · 단골 · 추천) · data/guestbooks.ts(방명록) · data/chat.ts(대화 관계, 읽기 + 요청 만들기) · data/mock.ts(사람)
+ * "DB" = data/field.ts(학기 · 들판 · 입구 · 단골 · 추천) · data/guestbookStore.ts(방명록, 04 내 땅굴 목과 같은 저장소) · data/chat.ts(대화 관계, 읽기 + 요청 만들기) · data/mock.ts(사람)
  *
  * 목 id (common/ids.ts 의 되돌릴 수 있는 표):
  * - 학기: 학기 이름 '2026 하반기' → 숫자. 캠퍼스-층: '서울|2' (00 공통 목 서버와 같은 글자) → 숫자
@@ -21,7 +21,7 @@ import {
   moveMyBurrow, myEntrance, regularSince, resetToday, setRegular, startNewTermDemo, todaysPicks, type Floor,
 } from '../../data/field'
 import { dmRoomWith, receivedFrom, sendRequest, sentRequestTo, REQUEST_TTL_DAYS } from '../../data/chat'
-import { addGuestbookEntry, findGuestbookEntry, guestbookCountOf, guestbookOf, removeGuestbookEntry } from '../../data/guestbooks'
+import { addGuestbookEntry, guestbookCountOf } from '../../data/guestbookStore'
 import type { GuestbookEntry } from '../../data/types'
 import { seoulYmd, toIso } from '../../lib/time'
 import { CHAT_REQUEST_MAX } from '../../lib/validation'
@@ -222,20 +222,4 @@ export const mock: ExploreApi = {
     return { chatRequestId: toDtoId(r.id), createdAt: toIso(r.at), expiresAt: toIso(r.at + REQUEST_TTL_DAYS * 86_400_000), chatRoomId: null }
   }),
 
-  /* ----- 다리: 04 방명록 목록 · 지우기 (api/burrow 가 만들면 지움) ----- */
-  guestbookPage: (burrowId, page = 1, size = 5, signal) => mockRead(() => {
-    guard()
-    const ownerId = ownerOfBurrow(burrowId)
-    const all = guestbookOf(ownerId).map((g) => guestbookEntryDto(g, ownerId))
-    const totalPages = Math.ceil(all.length / size)
-    return { items: all.slice((page - 1) * size, page * size), page, size, totalItems: all.length, totalPages }
-  }, { signal, empty: () => ({ items: [], page: 1, size, totalItems: 0, totalPages: 0 }) }),
-  deleteGuestbookEntry: (entryId) => mockWrite(() => {
-    guard()
-    const hit = findGuestbookEntry(toAppId(entryId))
-    if (!hit) throw notFound('GUESTBOOK_ENTRY', '방명록 글을 찾을 수 없습니다.')
-    if (hit.ownerId !== ME_ID && hit.entry.authorId !== ME_ID) throw forbidden('지울 수 없는 글입니다.')
-    removeGuestbookEntry(hit.entry.id)
-    return null
-  }),
 }

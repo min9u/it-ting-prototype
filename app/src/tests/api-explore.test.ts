@@ -1,23 +1,27 @@
 /**
  * 05 탐색 · 방문 (+ 00 학기) API v1 — 목 서버가 명세 모양 · 규칙대로 답하는지, 매퍼가 앱 모양으로 바꾸는지
  * 명세: docs/backend/team-spec/api/05-explore-visit.md, 00-common.md "GET /api/v1/terms". 정리: docs/backend/api-v1/05-explore-visit.md
- * 목 저장소(data/field · data/guestbooks · data/chat)를 시험마다 새로 쓰려고 모듈을 다시 불러옴
+ * 목 저장소(data/field · data/guestbookStore · data/chat)를 시험마다 새로 쓰려고 모듈을 다시 불러옴
  */
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MockMod from '../api/explore/mock'
+import type * as BurrowMockMod from '../api/burrow/mock'
+import type * as BurrowMapMod from '../api/burrow/mappers'
 import type * as MapMod from '../api/explore/mappers'
 import type * as IdsMod from '../api/common/ids'
 import type * as FieldMod from '../data/field'
 import type { FieldDto } from '../api/explore/types'
 import { isDateString, isUtcInstant } from '../lib/time'
 
-let B: typeof MockMod['mock'], P: typeof MapMod, D: typeof IdsMod, F: typeof FieldMod
+let B: typeof MockMod['mock'], BB: typeof BurrowMockMod['mock'], BP: typeof BurrowMapMod, P: typeof MapMod, D: typeof IdsMod, F: typeof FieldMod
 
 beforeAll(() => { window.history.replaceState(null, '', '/?api=fast') }) // 목 서버 지연 없이
 beforeEach(async () => {
   sessionStorage.clear(); localStorage.clear()
   vi.resetModules()
   B = (await import('../api/explore/mock')).mock
+  BB = (await import('../api/burrow/mock')).mock
+  BP = await import('../api/burrow/mappers')
   P = await import('../api/explore/mappers')
   D = await import('../api/common/ids')
   F = await import('../data/field')
@@ -177,7 +181,7 @@ describe('남의 땅굴 (GET /users/{userId}/burrow)', () => {
   })
 })
 
-describe('방명록 쓰기 (POST /burrows/{burrowId}/guestbook-entries) + 04 목록 · 지우기 다리', () => {
+describe('방명록 쓰기 (POST /burrows/{burrowId}/guestbook-entries) — 04 목록 · 지우기와 같은 저장소', () => {
   it('1 ~ 50자 · 공백만은 400 INVALID_INPUT(content), 내 땅굴은 403, 없는 땅굴은 404', async () => {
     expect(await codeOf(B.writeGuestbook(id('b-yerin'), '   '))).toBe('INVALID_INPUT')
     expect(await codeOf(B.writeGuestbook(id('b-yerin'), 'ㄱ'.repeat(51)))).toBe('INVALID_INPUT')
@@ -190,18 +194,29 @@ describe('방명록 쓰기 (POST /burrows/{burrowId}/guestbook-entries) + 04 목
     expect(g).toMatchObject({ content: '가구 구경 잘 하고 가요', canDelete: true, canReport: false })
     expect(isUtcInstant(g.createdAt)).toBe(true)
     expect((await B.userBurrow(id('yerin'))).guestbookCount).toBe(before + 1)
-    const page = P.toGuestbookPage(await B.guestbookPage(id('b-yerin'), 1, 5))
-    expect(page.entries[0]).toMatchObject({ text: '가구 구경 잘 하고 가요', authorId: 'me' })
-    expect(page.total).toBe(before + 1)
-    expect(await B.deleteGuestbookEntry(g.id)).toBeNull()
-    expect(await codeOf(B.deleteGuestbookEntry(g.id))).toBe('GUESTBOOK_ENTRY_NOT_FOUND')
+    // 주인의 방명록 목록(04 GET /burrows/{burrowId}/guestbook-entries)에 그대로 나옴
+    const page = BP.toGuestbookPage(await BB.guestbookEntries(id('b-yerin'), { page: 1, size: 5 }))
+    expect(page.items[0]).toMatchObject({ text: '가구 구경 잘 하고 가요', authorId: 'me', canDelete: true, canReport: false })
+    expect(page.totalItems).toBe(before + 1)
+    expect(await BB.deleteGuestbookEntry(g.id)).toBeNull()
+    expect(await codeOf(BB.deleteGuestbookEntry(g.id))).toBe('GUESTBOOK_ENTRY_NOT_FOUND')
     expect((await B.userBurrow(id('yerin'))).guestbookCount).toBe(before)
   })
   it('방문자는 남이 쓴 글을 못 지움 (403 FORBIDDEN)', async () => {
-    const page = await B.guestbookPage(id('b-yerin'), 1, 5)
+    const page = await BB.guestbookEntries(id('b-yerin'), { page: 1, size: 5 })
     const other = page.items.find((x) => !x.canDelete)!
     expect(other.canReport).toBe(true)
-    expect(await codeOf(B.deleteGuestbookEntry(other.id))).toBe('FORBIDDEN')
+    expect(await codeOf(BB.deleteGuestbookEntry(other.id))).toBe('FORBIDDEN')
+  })
+  it('방명록 글 신고 (POST /reports GUESTBOOK): 같은 저장소의 글을 확인 · 기록, 두 번째는 409, 내 글은 403', async () => {
+    const C = (await import('../api/community/mock')).mock
+    const page = await BB.guestbookEntries(id('b-yerin'), { page: 1, size: 5 })
+    const other = page.items.find((x) => x.canReport)!
+    expect(await C.createReport({ targetType: 'GUESTBOOK', targetId: other.id, reason: 'SPAM', detail: null })).toHaveProperty('reportId')
+    expect(await codeOf(C.createReport({ targetType: 'GUESTBOOK', targetId: other.id, reason: 'SPAM', detail: null }))).toBe('ALREADY_REPORTED')
+    const mine = await B.writeGuestbook(id('b-yerin'), '내 글')
+    expect(await codeOf(C.createReport({ targetType: 'GUESTBOOK', targetId: mine.id, reason: 'SPAM', detail: null }))).toBe('OWN_TARGET_NOT_ALLOWED')
+    expect(await codeOf(C.createReport({ targetType: 'GUESTBOOK', targetId: id('nope-gb9'), reason: 'SPAM', detail: null }))).toBe('REPORT_TARGET_NOT_FOUND')
   })
 })
 

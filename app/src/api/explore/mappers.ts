@@ -7,11 +7,11 @@
  */
 import { toAppId, toAppIdOrNull, toPersonFromDisplay, type InterestTagDto, type Person } from '../common'
 import type { FieldData, FieldUser, Floor, Resident } from '../../data/field'
-import type { GuestbookEntry, QnA } from '../../data/types'
-import { parseIso, toIso } from '../../lib/time'
+import type { QnA } from '../../data/types'
+import { parseIso } from '../../lib/time'
 import type {
-  AnswerDto, ChatRequestCreatedDto, ChatStatus, DailyRecommendationDto, EntranceDto, FieldDto, FieldStatusesDto, GuestbookEntryDto,
-  GuestbookPageDto, MoveBurrowDto, RegularBurrowsDto, TermDto, TermsDto, UserBurrowDto,
+  AnswerDto, ChatRequestCreatedDto, ChatStatus, DailyRecommendationDto, EntranceDto, FieldDto, FieldStatusesDto,
+  MoveBurrowDto, RegularBurrowsDto, TermDto, TermsDto, UserBurrowDto,
 } from './types'
 
 /* ===== 학기 ===== */
@@ -125,14 +125,6 @@ export const toBurrow = (d: UserBurrowDto): BurrowVM => ({
   chat: { status: d.chat.status, chatRoomId: toAppIdOrNull(d.chat.chatRoomId) },
   entrance: toEntrance(d.entrance),
 })
-
-/* ===== 방명록 ===== */
-export function toGuestbookEntry(d: GuestbookEntryDto): GuestbookEntry {
-  // 앱은 ISO 문자열을 들고 있음 (표시 · 정렬은 lib/time). 작성자는 USERS 에도 채워 둠 (방명록 창이 USERS 로 닉네임을 찾음)
-  return { id: toAppId(d.id), authorId: toPersonFromDisplay(d.author).id, text: d.content, createdAt: toIso(parseIso(d.createdAt)) }
-}
-export interface GuestbookPageVM { entries: GuestbookEntry[]; total: number; page: number; totalPages: number }
-export const toGuestbookPage = (d: GuestbookPageDto): GuestbookPageVM => ({ entries: d.items.map(toGuestbookEntry), total: d.totalItems, page: d.page, totalPages: d.totalPages })
 
 /* ===== 대화 요청 ===== */
 /** 요청을 만들었으면 chatRequestId, 바로 대화방이 열렸으면 chatRoomId */
