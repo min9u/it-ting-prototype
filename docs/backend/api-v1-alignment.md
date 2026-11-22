@@ -50,3 +50,4 @@
 
 ## 진행 기록
 - 2026-11-22: 명세 사본·계획. 공통 계층 시작
+- 2026-11-22: [공통 계층 완료](api-v1-foundation.md) — `api/` 를 영역 폴더 11개로 나눔(옛 코드는 동작 그대로 옮김), 클라이언트(/api/v1 · 응답 틀 · ApiError{code, fields, detail} · 401 바로 로그인), id(숫자 ↔ 문자열, 목은 되돌릴 수 있는 표) · UTC 시각, 목 서버 명세 코드, 영역별 실제/목 전환(VITE_API_REAL_AREAS), SSE 연결 하나(realtime/events.ts), 완성도 검사(ENDPOINTS 6 + PENDING 105). 영역 작업자 규칙과 Next.js 이전 대비 규칙은 그 문서 2장
