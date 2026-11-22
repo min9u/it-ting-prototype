@@ -19,11 +19,13 @@
  */
 import { useSyncExternalStore } from 'react'
 import { ME_ID, USERS } from './mock'
+import { IMAGE_MAX } from '../lib/imageRules'
 import { realtime, SendFailure, setMockDirectory, type WireMessage } from '../realtime'
 import { maxSeq, mergeMessage, newClientId } from '../realtime/order'
 import { TIMING } from '../realtime/protocol'
 import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf, quit as quitMeetup } from './meetupStore'
 import type { User } from './types'
+import type { PickedImage } from '../lib/imageRules'
 
 export interface ChatMsg {
   /** 서버 id. 보내는 중·실패한 내 메시지는 clientId 와 같음 */
@@ -44,6 +46,8 @@ export interface ChatMsg {
   system?: boolean
   /** 모임 링크를 보낸 메시지 → 모임 카드 */
   meetupId?: string
+  /** 붙인 사진 (보낸 순서, 최대 3장. 글 없이 사진만도 됨 — 명세 06 메시지 입력창 7) */
+  images?: PickedImage[]
 }
 export interface Room {
   id: string
@@ -245,22 +249,25 @@ function patchRoom(roomId: string, f: (r: Room) => Room) {
 
 /**
  * 보내기. 모임 링크(…/meetups/m4)가 들어 있으면 모임 카드도 붙음.
+ * 사진은 먼저 올려 둔 것(api/images.ts)을 3장까지 붙임. 글 없이 사진만 가능, 글도 사진도 모임도 없으면 보내지 않음 (명세 06 메시지 입력창 7)
  * 화면에는 바로 "보내는 중"으로 보이고, 서버가 확인하면 서버 메시지로 바뀜. 실패하면 "다시 보내기"
  */
-export function send(roomId: string, text: string, meetupId?: string) {
+export function send(roomId: string, text: string, meetupId?: string, images: PickedImage[] = []) {
   const r = roomOf(roomId)
   if (!r || r.closed) return
+  images = images.slice(0, IMAGE_MAX)
+  if (!text.trim() && !meetupId && images.length === 0) return
   const link = /\/meetups\/(m\d+)/.exec(text)?.[1]
   const card = meetupId ?? (link && meetupOf(link) ? link : undefined)
   const clientId = newClientId()
-  const msg: ChatMsg = { id: clientId, clientId, status: 'sending', authorId: ME_ID, text: card && !meetupId ? text.replace(/\S*\/meetups\/m\d+\S*/, '').trim() : text, at: Date.now(), meetupId: card }
+  const msg: ChatMsg = { id: clientId, clientId, status: 'sending', authorId: ME_ID, text: card && !meetupId ? text.replace(/\S*\/meetups\/m\d+\S*/, '').trim() : text, at: Date.now(), meetupId: card, images: images.length ? images : undefined }
   patchRoom(r.id, (x) => ({ ...x, messages: [...x.messages, msg] }))
   deliverOut(r.id, msg)
 }
 
 /** 실시간 계층으로 보내고 결과를 반영 */
 function deliverOut(roomId: string, msg: ChatMsg) {
-  realtime().sendMessage({ clientMessageId: msg.clientId!, roomId, type: msg.meetupId ? 'MEETUP' : 'TEXT', content: msg.text, meetupId: msg.meetupId })
+  realtime().sendMessage({ clientMessageId: msg.clientId!, roomId, type: msg.meetupId ? 'MEETUP' : 'TEXT', content: msg.text, meetupId: msg.meetupId, images: msg.images })
     .then((w) => receive(w))
     .catch((e: unknown) => {
       const why = e instanceof SendFailure ? e.message : '보내지 못했어요'
@@ -299,6 +306,7 @@ const fromWire = (w: WireMessage): ChatMsg => ({
   system: w.type === 'SYSTEM' ? true : undefined,
   text: w.content ?? '',
   meetupId: w.meetupId,
+  images: w.images?.length ? w.images : undefined,
   at: Date.parse(w.createdAt) || Date.now(),
 })
 

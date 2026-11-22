@@ -191,7 +191,7 @@ export function createHub(transport: Transport, o: { onUnauthorized?: () => void
 
   /* ---------- 보내기 ---------- */
   const publishSend = (m: OutgoingMessage) =>
-    transport.publish(DEST.send(m.roomId), { clientMessageId: m.clientMessageId, type: m.type, content: m.content, meetupId: m.meetupId })
+    transport.publish(DEST.send(m.roomId), { clientMessageId: m.clientMessageId, type: m.type, content: m.content, meetupId: m.meetupId, imageIds: m.images?.map((i) => i.id) })
 
   /**
    * 보내기 기다림 시간: 연결돼 있으면 보낸 뒤 sendTimeout(10초) 안에 확인이 와야 함.

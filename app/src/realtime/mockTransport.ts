@@ -1,4 +1,5 @@
 import { TOPIC } from './protocol'
+import { imageUrlOf } from '../lib/imageRules'
 import type { Transport, TransportHandlers, WireMessage, WireMessageType } from './types'
 
 /**
@@ -158,12 +159,13 @@ export function createMockTransport(mode: MockMode = 'normal'): Transport & { co
       if (!m) return
       const [, roomId, what] = m
       if (what !== 'messages') return // 입력 중·읽음은 다른 사람이 없어서 버림
-      const b = body as { clientMessageId: string; type: WireMessageType; content: string; meetupId?: string }
+      const b = body as { clientMessageId: string; type: WireMessageType; content: string; meetupId?: string; imageIds?: string[] }
+      const images = (b.imageIds ?? []).flatMap((id) => { const url = imageUrlOf(id); return url ? [{ id, url }] : [] })
       const target = h
       later(rand(120, 450), () => {
         // 확인이 가기 전에 끊기면 확인을 잃어버림 (보내는 쪽은 시간 초과 → 다시 연결 뒤 기록으로 받음)
         if (!connected || h !== target) {
-          if (!byClient.has(b.clientMessageId) && Math.random() < 0.5) byClient.set(b.clientMessageId, store(roomId, dir.meId, b.type, b.content, { clientMessageId: b.clientMessageId, meetupId: b.meetupId }))
+          if (!byClient.has(b.clientMessageId) && Math.random() < 0.5) byClient.set(b.clientMessageId, store(roomId, dir.meId, b.type, b.content, { clientMessageId: b.clientMessageId, meetupId: b.meetupId, images }))
           return
         }
         if (reject) {
@@ -173,7 +175,7 @@ export function createMockTransport(mode: MockMode = 'normal'): Transport & { co
           return
         }
         const dup = byClient.get(b.clientMessageId)
-        const msg = dup ?? store(roomId, dir.meId, b.type, b.content, { clientMessageId: b.clientMessageId, meetupId: b.meetupId })
+        const msg = dup ?? store(roomId, dir.meId, b.type, b.content, { clientMessageId: b.clientMessageId, meetupId: b.meetupId, images })
         byClient.set(b.clientMessageId, msg)
         emit(TOPIC.room(roomId), { event: 'MESSAGE', message: msg })
         if (!dup) maybeReply(roomId)

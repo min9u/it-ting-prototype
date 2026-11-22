@@ -224,7 +224,8 @@ export function toChatRoomItem(d: ChatRoomSummaryDto): ChatRoomItem {
   const partner = d.partner ? toPerson(d.partner) : undefined
   let preview = ''
   if (m) {
-    const body = m.type === 'MEETUP_SHARE' && !m.content ? `[모임] ${m.meetupTitle ?? ''}` : m.content ?? ''
+    // 글 없이 사진만 보낸 메시지는 content 가 null → "사진"으로 보여 줌 (명세 api 06 메시지)
+    const body = m.type === 'MEETUP_SHARE' && !m.content ? `[모임] ${m.meetupTitle ?? ''}` : m.content ?? (m.type === 'TEXT' ? '사진' : '')
     preview = d.type === 'MEETUP' && m.type !== 'SYSTEM' ? `${toId(m.senderId) === ME_ID ? '나' : m.senderNickname ?? '탈퇴한 사용자'}: ${body}` : body
   }
   return {

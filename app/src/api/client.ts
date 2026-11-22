@@ -122,7 +122,8 @@ async function once<T>(path: string, o: RequestOptions): Promise<T> {
   const method = o.method ?? 'GET'
   const link = linkSignals(o.signal, o.timeoutMs ?? 10_000)
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (o.body !== undefined) headers['Content-Type'] = 'application/json'
+  const form = typeof FormData !== 'undefined' && o.body instanceof FormData // 파일 올리기: 브라우저가 경계(boundary)까지 붙여 줌
+  if (o.body !== undefined && !form) headers['Content-Type'] = 'application/json'
   if (o.idempotencyKey) headers['Idempotency-Key'] = o.idempotencyKey
   const auth = authHeader?.()
   if (auth) headers.Authorization = auth
@@ -130,7 +131,7 @@ async function once<T>(path: string, o: RequestOptions): Promise<T> {
   try {
     res = await fetch(buildUrl(path, o.query), {
       method, headers, credentials: 'include', signal: link.signal,
-      body: o.body === undefined ? undefined : JSON.stringify(o.body),
+      body: o.body === undefined ? undefined : form ? (o.body as FormData) : JSON.stringify(o.body),
     })
   } catch (e) {
     if (link.timedOut()) throw new ApiError(0, 'TIMEOUT', '응답이 너무 늦어요. 잠시 뒤 다시 시도해 주세요.')

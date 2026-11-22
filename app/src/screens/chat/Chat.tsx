@@ -6,7 +6,7 @@ import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ConfirmDialog, EmptyMole, Toast } from '../../components/Feedback'
 import ConnectionStrip from '../../components/ConnectionStrip'
-import { CalendarIcon, ChatIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
+import { CalendarIcon, ChatIcon, CloseIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
 import { ME_ID, USERS, toneOf } from '../../data/mock'
 import { meetupToneOf } from '../../data/meetupCategory'
 import { findMeetup as meetupOf, useMeetups } from '../../data/meetupStore'
@@ -15,6 +15,8 @@ import { getMyInterests } from '../../data/interests'
 import { shortAffOf } from '../../data/field'
 import { dateLabel } from '../../lib/format'
 import { CHAT_MESSAGE_MAX, MEETUP_NOTICE_MAX } from '../../lib/validation'
+import { IMAGE_ACCEPT, IMAGE_MAX, pickImageFiles, type PickedImage } from '../../lib/imageRules'
+import { uploadImage } from '../../api/images'
 import type { User } from '../../data/types'
 import {
   GONE_ID, quitGroup, syncGroupRooms, ago, canQuitMeetup, clock, dayLabel, discardFailed, leaveRoom, markRead,
@@ -186,6 +188,12 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
   const [quit, setQuit] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
+  /** 붙이려고 고른 사진 (올리기 끝난 것) · 올리는 중인 장수 · 안내 */
+  const [pics, setPics] = useState<PickedImage[]>([])
+  const [uploading, setUploading] = useState(0)
+  const [picNote, setPicNote] = useState<string | null>(null)
+  const [viewer, setViewer] = useState<string | null>(null)
 
   // 지금 보는 방: 새 메시지가 와도 안 읽은 수를 늘리지 않음. 탭이 숨겨져 있으면 읽음 처리를 미룸
   useEffect(() => { setActiveRoom(room.id); return () => setActiveRoom(null) }, [room.id])
@@ -212,10 +220,28 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
   const spoke = useMemo(() => { const r: Record<string, number> = {}; for (const m of room.messages) if (!m.system) r[m.authorId] = Math.max(r[m.authorId] ?? 0, m.at); return r }, [room.messages])
   const guests = useMemo<TeaGuest[]>(() => (room.kind === 'group' ? membersOf(room).sort((a, b) => (a === ME_ID ? -1 : b === ME_ID ? 1 : 0)).map(guestOf) : [meGuest(), guestOf(room.partnerId!)]), [room])
 
+  // 사진 고르기: 3장까지, JPEG · PNG · WebP, 한 장 5MB (명세 api 08 사진). 올리기가 끝난 것만 미리보기에 나옴
+  const addFiles = async (files: FileList | null) => {
+    setMenu(null)
+    if (!files || files.length === 0) return
+    const { ok, note } = pickImageFiles([...files], pics.length + uploading)
+    setPicNote(note)
+    if (ok.length === 0) return
+    setUploading((n) => n + ok.length)
+    for (const f of ok) {
+      try { const p = await uploadImage(f); setPics((l) => [...l, p].slice(0, IMAGE_MAX)) } catch (e) { setPicNote(e instanceof Error ? e.message : '사진을 올리지 못했어요') }
+      setUploading((n) => n - 1)
+    }
+  }
+  const canSend = !!draft.trim() || pics.length > 0 // 글도 사진도 없으면 보낼 수 없음
+
   const submit = (text = draft, meetupId?: string) => {
-    if (!text.trim() && !meetupId) return // 빈 메시지는 보낼 수 없음
+    const withPics = meetupId ? [] : pics
+    if (!text.trim() && !meetupId && withPics.length === 0) return // 빈 메시지는 보낼 수 없음
+    if (uploading > 0) return
     // 상대 답장(목 서버)·"입력 중"은 실시간 계층에서 옴 (data/chat.ts)
-    send(room.id, text.trim(), meetupId)
+    send(room.id, text.trim(), meetupId, withPics)
+    if (!meetupId) { setPics([]); setPicNote(null) }
     setDraft(''); setMenu(null)
     setGreet((g) => ({ id: ME_ID, n: g.n + 1 }))
     input.current?.focus()
@@ -227,7 +253,7 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
     const d = dayLabel(m.at)
     const div = d !== lastDay ? <p key={`d-${m.id}`} className={s.day}><span>{d}</span></p> : null
     lastDay = d
-    return [div, <Message key={m.id} m={m} room={room} topics={room.topics} onProfile={onProfile} />]
+    return [div, <Message key={m.id} m={m} room={room} topics={room.topics} onProfile={onProfile} onImage={setViewer} />]
   })
 
   const quitRule = canQuitMeetup(room)
@@ -274,11 +300,28 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
         {room.closed ? (
           <p className={s.readonly}>{room.closed === 'gone' ? '탈퇴한 사용자와는 더 이야기할 수 없어요. 대화는 읽기만 할 수 있어요.' : `${partner!.nickname}님이 대화방을 나갔어요. 다시 이야기하려면 땅굴에서 대화를 요청해 주세요.`}</p>
         ) : (
+          <>
+          {(pics.length > 0 || uploading > 0 || picNote) && (
+            <div className={s.attach}>
+              {pics.map((p, i) => (
+                <span key={p.id} className={s.thumb}>
+                  <img src={p.url} alt={`붙일 사진 ${i + 1}`} />
+                  <button type="button" onClick={() => setPics((l) => l.filter((x) => x.id !== p.id))} aria-label={`사진 ${i + 1} 빼기`}><CloseIcon size={12} /></button>
+                </span>
+              ))}
+              {uploading > 0 && <span className={s.thumbBusy} role="status">올리는 중…</span>}
+              <small className={picNote ? s.attachNote : undefined} role={picNote ? 'alert' : undefined}>{picNote ?? `사진 ${pics.length} / ${IMAGE_MAX}`}</small>
+            </div>
+          )}
           <form className={s.composer} onSubmit={(e) => { e.preventDefault(); submit() }}>
+            <input ref={fileInput} type="file" accept={IMAGE_ACCEPT} multiple hidden onChange={(e) => { void addFiles(e.target.files); e.target.value = '' }} aria-label="사진 고르기" />
             <div className={s.pop}>
               <button type="button" className={s.plus} onClick={() => setMenu(menu === 'plus' ? null : 'plus')} aria-label="첨부" aria-expanded={menu === 'plus'}><PlusIcon size={18} /></button>
               {menu === 'plus' && (
                 <div className={s.menu} role="menu">
+                  <button type="button" role="menuitem" onClick={() => fileInput.current?.click()} disabled={pics.length + uploading >= IMAGE_MAX}>
+                    <span>사진 첨부</span><small>{IMAGE_MAX}장까지 · 5MB</small>
+                  </button>
                   <p className={s.menuHead}>모임 공유하기</p>
                   {myMeetups().map((m) => (
                     <button key={m.id} type="button" role="menuitem" onClick={() => submit('', m.id)}>
@@ -303,10 +346,17 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
                 )}
               </span>
             </label>
-            <button className={s.send} disabled={!draft.trim()} aria-label="보내기"><SendIcon size={18} /></button>
+            <button className={s.send} disabled={!canSend || uploading > 0} aria-label="보내기"><SendIcon size={18} /></button>
           </form>
+          </>
         )}
       </section>
+
+      {/* 보낸 사진 크게 보기 */}
+      <Modal open={!!viewer} onClose={() => setViewer(null)} width={720} labelledBy="chat-photo-title">
+        <h2 id="chat-photo-title" className="sr-only">사진 크게 보기</h2>
+        {viewer && <img className={s.photoBig} src={viewer} alt="보낸 사진" />}
+      </Modal>
 
       {/* 1:1 대화 나가기 */}
       <ConfirmDialog open={leave} onClose={() => setLeave(false)} title="대화방을 나갈까요?" confirmLabel="나가기"
@@ -380,7 +430,7 @@ function NoticeBar({ room, isHost }: { room: Room; isHost: boolean }) {
   )
 }
 
-function Message({ m, room, topics, onProfile }: { m: ChatMsg; room: Room; topics?: string[]; onProfile: (id: string) => void }) {
+function Message({ m, room, topics, onProfile, onImage }: { m: ChatMsg; room: Room; topics?: string[]; onProfile: (id: string) => void; onImage?: (url: string) => void }) {
   if (m.system) {
     const start = room.kind === 'dm' && /대화 요청을 수락/.test(m.text)
     return (
@@ -403,6 +453,16 @@ function Message({ m, room, topics, onProfile }: { m: ChatMsg; room: Room; topic
       )}
       <div className={s.msgCol}>
         {!mine && room.kind === 'group' && <span className={s.author}>{who.nickname}{host && ' · 주최'}</span>}
+        {m.images && m.images.length > 0 && (
+          <div className={s.msgRow}>
+            <div className={s.pics} data-n={m.images.length} data-status={m.status}>
+              {m.images.map((p, i) => (
+                <button key={p.id} type="button" onClick={() => onImage?.(p.url)} aria-label={`사진 ${i + 1} 크게 보기`}><img src={p.url} alt={`보낸 사진 ${i + 1}`} /></button>
+              ))}
+            </div>
+            {!m.text && !m.meetupId && (m.status ? <SendState m={m} roomId={room.id} /> : <time>{clock(m.at)}</time>)}
+          </div>
+        )}
         {m.text && (
           <div className={s.msgRow}>
             <p className={s.bubble} data-status={m.status}>{m.text}</p>

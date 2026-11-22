@@ -29,6 +29,8 @@ export interface WireMessage {
   content: string
   /** type 이 MEETUP 이면 모임 id (모임 카드) */
   meetupId?: string
+  /** 붙인 사진 (보낸 순서, 최대 3장). 글 없이 사진만 보내면 content 는 빈 문자열 */
+  images?: { id: string; url: string }[]
   /** ISO 8601 (오프셋 포함) */
   createdAt: string
 }
@@ -40,6 +42,8 @@ export interface OutgoingMessage {
   type: WireMessageType
   content: string
   meetupId?: string
+  /** 먼저 올린 사진 (POST /images 로 받은 id 와 주소) */
+  images?: { id: string; url: string }[]
 }
 
 /** 입력 중 */
