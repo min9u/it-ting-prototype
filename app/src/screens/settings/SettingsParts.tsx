@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useBlocker } from 'react-router-dom'
 import Modal from '../../components/Modal'
-import { MY_GOOGLE_EMAIL } from '../../data/account'
 import s from './Settings.module.css'
 
 /* 설정 화면들이 같이 쓰는 조각 */
@@ -33,25 +32,6 @@ export function useUnsavedGuard(dirty: boolean): ReactNode {
           <button className="btn btn-line" style={{ height: 46 }} onClick={() => blocker.proceed?.()}>나가기</button>
           <button className="btn btn-primary" style={{ height: 46 }} onClick={stay}>계속 수정</button>
         </div>
-      </div>
-    </Modal>
-  )
-}
-
-/** 프로토타입용 Google 로그인 창 흉내: 계정을 고르면 onPick(email) */
-export function GoogleSignInDialog({ open, onPick, onClose }: { open: boolean; onPick: (email: string) => void; onClose: () => void }) {
-  const accounts = [MY_GOOGLE_EMAIL, 'mole.second@gmail.com']
-  return (
-    <Modal open={open} onClose={onClose} width={400} labelledBy="g-title">
-      <div className={s.gDialog}>
-        <h2 id="g-title" className="display">Google 계정으로 로그인</h2>
-        <p>디굴디굴(으)로 이동할 계정을 선택하세요.</p>
-        <ul className={s.gAccounts}>
-          {accounts.map((e) => (
-            <li key={e}><button onClick={() => onPick(e)}><span className={s.gAvatar}>{e[0].toUpperCase()}</span>{e}</button></li>
-          ))}
-        </ul>
-        <div className={s.gFoot}><button className={s.btnLine} onClick={onClose}>취소</button></div>
       </div>
     </Modal>
   )

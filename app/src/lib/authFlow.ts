@@ -1,22 +1,27 @@
 import { LOGIN_FREE, START_PATHS, setAuthState } from '../data/auth'
+import { queryClient } from '../api/queryClient'
 
 /**
- * 인증 흐름 뼈대 (docs/dev-deploy-risks.md B5, docs/frontend-hardening.md "인증 흐름").
- * 서버가 아직 없어서 지금은 "자리"만 만든다. LOGIN_FREE = true 인 동안은 동작이 바뀌지 않음 (401 이 와도 기록만).
+ * 인증 흐름 (명세 v1: api-convention "로그인", 02 "다음에 갈 화면").
+ * 세션은 쿠키(ITTING_SESSION, 14일, 쓸 때마다 연장)이고 갱신 API 가 없다 → 401 이면 바로 로그인 화면.
  *
- * 흐름 (LOGIN_FREE = false 가 되면)
- * 1. REST 응답 401 → refreshSessionOnce() 로 갱신을 **한 번만** 시도 (동시에 여러 요청이 401 이어도 갱신 요청은 하나)
- * 2. 갱신 실패 또는 WebSocket 이 인증 문제로 끊김 → handleUnauthorized()
- *    → 비로그인으로 바꾸고, 지금 주소를 기억하고, /login 으로 (주소창 기록을 덮어씀)
- * 3. 로그인 성공 → takeReturnTo() 로 기억한 주소로 돌아감 (없으면 내 땅굴)
+ * 1. 로그인 영역에 들어갈 때: GET /me (screens/start/Guards.tsx RequireLogin)
+ *    401 → 로그인 화면 (가려던 주소 기억) / nextStep ONBOARDING → 온보딩 1 / 그 밖 → 그대로 (NEW_TERM 의 새 학기 안내는 05 탐색 영역)
+ * 2. 쓰는 중에 어느 API 든 401 (세션 만료 · 다른 기기에서 비밀번호 재설정 등), 실시간 연결의 인증 실패 → handleUnauthorized()
+ *    → 내 계정 캐시를 "로그인 안 함"으로, 지금 주소를 기억하고, /login 으로 (주소창 기록을 덮어씀)
+ * 3. 로그인 성공 → takeReturnTo() 로 기억한 주소 (nextStep 이 HOME 일 때만, api/auth pathAfterLogin)
+ * LOGIN_FREE(지금, 팀 공유 빌드)인 동안은 1 · 2 가 동작하지 않는다 (401 이 와도 기록만)
  *
- * 화면 이동은 라우터를 직접 import 하면 순환 참조가 생겨서, main.tsx 가 registerNavigator(router.navigate) 로 넣어 줌
+ * 화면 이동은 라우터를 직접 import 하면 순환 참조가 생겨서, main.tsx 가 registerNavigator(router.navigate) 로 넣어 줌.
+ * 로그아웃 · 탈퇴 뒤 정리는 lib/signOut.ts
  */
 type Nav = (to: string, opts?: { replace?: boolean; state?: unknown }) => void
 let navigateFn: Nav | null = null
 export function registerNavigator(fn: Nav) { navigateFn = fn }
 
 const RETURN_KEY = 'digul.returnTo'
+/** api/auth authKeys.me 와 같은 키 (여기서 api/auth 를 불러오면 고리가 생겨서 글자로) */
+const ME_KEY = ['auth', 'me'] as const
 
 /** 앱 안 주소 (해시 라우터면 # 뒤, 아니면 경로 + 쿼리) */
 export function currentAppPath(): string {
@@ -28,10 +33,11 @@ export function currentAppPath(): string {
 
 const isStart = (p: string) => p === '/' || START_PATHS.some((s) => p === s || p.startsWith(`${s}/`) || p.startsWith(`${s}?`))
 
-/** 돌아갈 주소로 써도 되는지: 앱 안 경로만 (//evil.com · https:// 같은 바깥 주소 막기), 시작 화면은 빼기 */
+/** 돌아갈 주소로 써도 되는지: 앱 안 경로만 (//evil.com · https:// 같은 바깥 주소 막기), 시작 화면 · 온보딩은 빼기 */
 export function safeReturnPath(p: unknown): string | null {
   if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//') || p.includes('\\')) return null
-  return isStart(p.split('?')[0]) ? null : p
+  const path = p.split('?')[0]
+  return isStart(path) || path.startsWith('/onboarding') ? null : p
 }
 
 export function rememberReturnTo(path: string = currentAppPath()) {
@@ -49,7 +55,7 @@ export function takeReturnTo(stateFrom?: unknown): string | null {
 
 let handling = false
 /**
- * 인증이 풀렸을 때 (REST 401 이 갱신 뒤에도 401, 또는 실시간 연결이 인증 문제로 끊김).
+ * 인증이 풀렸을 때 (REST 401, 실시간 연결의 인증 실패).
  * LOGIN_FREE 인 지금은 기록만 하고 아무것도 바꾸지 않음
  */
 export function handleUnauthorized(reason = 'unauthorized') {
@@ -60,25 +66,23 @@ export function handleUnauthorized(reason = 'unauthorized') {
   if (handling) return
   handling = true
   const from = currentAppPath()
-  setAuthState('guest')
+  setAuthState('guest') // 목 세션도 같이 (실제 서버에서는 쿠키가 이미 없음)
+  queryClient.setQueryData(ME_KEY, null)
   rememberReturnTo(from)
-  const state = { from: safeReturnPath(from) ?? undefined, toast: '다시 로그인해 주세요' }
-  if (navigateFn) navigateFn('/login', { replace: true, state })
-  else if (typeof window !== 'undefined') window.location.assign(window.location.hash.startsWith('#/') ? '#/login' : '/login')
+  if (!isStart(from.split('?')[0])) {
+    const state = { from: safeReturnPath(from) ?? undefined, toast: '다시 로그인해 주세요' }
+    if (navigateFn) navigateFn('/login', { replace: true, state })
+    else if (typeof window !== 'undefined') window.location.assign(window.location.hash.startsWith('#/') ? '#/login' : '/login')
+  }
   setTimeout(() => { handling = false }, 1000)
 }
 
-let refreshing: Promise<boolean> | null = null
 /**
- * 세션 갱신을 한 번만: 진행 중인 갱신이 있으면 그 Promise 를 같이 기다림.
- * doRefresh 는 API 계층이 넣음 (예: POST /api/auth/refresh → ok 면 true). 실패하면 handleUnauthorized
+ * 403 ONBOARDING_INCOMPLETE (02 "온보딩을 마치지 않은 계정"): 어느 API 에서 와도 온보딩 1 로.
+ * 공용 QueryCache · MutationCache 의 onError 에서 부르면 됨 (api/queryClient.ts 는 공통 담당 파일이라 아직 연결 안 함)
  */
-export function refreshSessionOnce(doRefresh: () => Promise<boolean>): Promise<boolean> {
-  if (!refreshing) {
-    refreshing = doRefresh()
-      .catch(() => false)
-      .then((ok) => { if (!ok) handleUnauthorized('refresh failed'); return ok })
-      .finally(() => { setTimeout(() => { refreshing = null }, 0) })
-  }
-  return refreshing
+export function handleOnboardingIncomplete() {
+  if (LOGIN_FREE) return
+  void queryClient.invalidateQueries({ queryKey: ME_KEY })
+  if (!currentAppPath().startsWith('/onboarding')) navigateFn?.('/onboarding/name', { replace: true })
 }
