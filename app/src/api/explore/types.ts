@@ -1,95 +1,169 @@
 /**
- * 05 탐색 · 방문 (+ 00 학기) DTO. 명세: docs/backend/team-spec/api/05-explore-visit.md
- *
- * 아래는 옛 초안(docs/backend/api-draft.md, 2026-11-16)의 모양을 그대로 옮긴 것이다 (공통 계층 작업 때 동작을 바꾸지 않으려고).
- * 탐색 · 방문 작업자가 명세 모양(숫자 id = Id, 시각 = UtcInstant, 사람 = UserDisplayDto …)으로 바꾼다. 공통 타입은 '../common'
+ * 05 탐색 · 방문 (+ 00 학기) DTO. 명세: docs/backend/team-spec/api/05-explore-visit.md, api/00-common.md "GET /api/v1/terms"
+ * 명세 그대로: id 는 숫자(Id), 시각은 UTC(UtcInstant), 날짜만은 DateString, enum 은 대문자, 값이 없으면 null.
+ * 사람은 UserDisplayDto, 관심사는 InterestTagDto (공통). 목록은 ItemsDto / PageDto
  */
-import type { LegacyId } from '../common/legacy'
-import type { MemberProfileDto, MemberSummaryDto } from '../common/legacy'
+import type { DateString, Id, InterestTagDto, ItemsDto, PageDto, UserDisplayDto, UtcInstant } from '../common/types'
 
-/** 초안의 시각 (ISO 8601). 명세는 UtcInstant */
-type IsoDateTime = string
-/** 초안의 날짜 "YYYY-MM-DD". 명세는 DateString */
-type IsoDate = string
-
-/* ===== 땅굴 · 들판 ===== */
-export interface CampusFloorDto { id: LegacyId; campusId: LegacyId; campus: string; floor: number }
-export interface TermDto { id: LegacyId; year: number; half: 'FIRST' | 'SECOND'; openedAt: IsoDateTime }
-
-/** 땅굴 입구 (burrow_entrance): 학기 하나에 들판(캠퍼스-층)의 자리 하나 */
-export interface BurrowEntranceDto {
-  termId: LegacyId
-  /** term.year · term.half → "2026 하반기" */
+/* ===== 학기 (00 공통) ===== */
+/** GET /terms 의 항목 · 들판의 term. half: 1 상반기, 2 하반기 */
+export interface TermDto {
+  id: Id
   year: number
-  half: 'FIRST' | 'SECOND'
-  campusFloorId: LegacyId
-  campus: string
+  half: 1 | 2
+  /** 이번 학기인지 (열린 학기 가운데 가장 최근). 하나만 true */
+  isCurrent: boolean
+}
+/** GET /terms (최근에 열린 학기부터 → 첫 번째가 이번 학기) */
+export type TermsDto = ItemsDto<TermDto>
+
+/* ===== 들판 ===== */
+/** GET /terms/{termId}/fields 의 항목 (캠퍼스 목록 순서) */
+export interface FieldStatusDto {
+  campusFloorId: Id
+  /** 땅굴이 하나도 없는지 (내 땅굴도 셈) */
+  isEmpty: boolean
+}
+export type FieldStatusesDto = ItemsDto<FieldStatusDto>
+
+/** 질문과 답변 (들판 입구 · 추천 카드 · 남의 땅굴이 같은 모양). 항상 3개, slot 작은 것부터 */
+export interface AnswerDto {
+  /** 1 ~ 3 */
+  slot: number
+  introQuestionId: Id
+  question: string
+  /** 10 ~ 50자 */
+  answer: string
+}
+
+/** 들판 하나에 놓인 땅굴 입구 */
+export interface FieldEntranceDto {
+  slot: number
+  burrowId: Id
+  isMine: boolean
+  owner: UserDisplayDto
+  /** 고른 순서. 나와 겹치는 것은 isShared */
+  interests: InterestTagDto[]
+  answers: AnswerDto[]
+}
+/** GET /terms/{termId}/fields/{campusFloorId} */
+export interface FieldDto {
+  term: TermDto
+  campusFloorId: Id
+  campusName: string
   floor: number
-  /** 1~150 */
+  /** slot 작은 것부터. 없으면 [] */
+  items: FieldEntranceDto[]
+}
+
+/** 땅굴 입구 위치 (이사 응답 · 남의 땅굴 · 내 땅굴의 entrance) */
+export interface EntranceDto {
+  termId: Id
+  campusFloorId: Id
   slot: number
 }
 
-/** GET /burrows/{memberId} — 땅굴 방문 (주인 프로필 + 나와의 관계) */
-export interface BurrowDto {
-  id: LegacyId
-  owner: MemberProfileDto
-  /** 이번 학기 입구. 없으면 null (탐색 버튼 숨김) */
-  entrance: BurrowEntranceDto | null
-  /** 내가 이 땅굴을 단골로 둠 (regular_burrow) */
-  regular: boolean
-  /** 이 땅굴을 단골로 둔 사람 수 */
-  regularCount: number
-  /** 지금 와 있는 방문자 수 (ERD 에 없음 → erd-gaps) */
-  visitorsNow: number
-  /** 나와 이 사람의 1:1 대화방 (있으면 "대화하기") */
-  chatRoomId: LegacyId | null
-  /** 내가 보낸, 아직 답이 없는 대화 요청 (있으면 말풍선이 "요청 보냄"으로 바뀌고 누를 수 없다) */
-  pendingRequestId: LegacyId | null
-  /** 방 꾸미기 저장 값 (ERD 에 없음 → erd-gaps "방 꾸미기 저장") */
-  room: RoomLayoutDto | null
+/* ===== 이사 (새 학기 안내) ===== */
+/** POST /me/burrow/move 요청 */
+export interface MoveBurrowRequest { campusFloorId: Id }
+/** POST /me/burrow/move 응답 (200, 이미 이사했으면 지금 값) */
+export interface MoveBurrowDto {
+  userId: Id
+  /** 항상 HOME */
+  nextStep: 'HOME'
+  entrance: EntranceDto
 }
 
-/** 방 꾸미기 저장 형식 제안 (위험 B10). schemaVersion 으로 바뀌는 형식을 옮김 */
-export interface RoomLayoutDto {
-  schemaVersion: 1
-  wallpaperId: string | null
-  /** 세부 관심사 id → 가구 id (member_interest.furniture 와 같은 값) */
-  furniture: Record<string, string>
-  /**
-   * 꾸미기에서 고른 땅굴 색 테마 (2026-11-18, app/src/data/roomStyle.ts: cat_food … cat_pet_plant, base = 디자이너 원래 색).
-   * 없거나 null 이면 대표 관심사 대분류의 묶음. 나머지 꾸미기 값(이불·러그 무늬 · 기본 가구 모양)은 회원 id 씨앗으로 프론트가 계산
-   */
-  themeId?: string | null
+/* ===== 단골 ===== */
+/** GET /me/regular-burrows 의 항목 (최근에 담은 것부터) */
+export interface RegularBurrowDto {
+  burrowId: Id
+  owner: UserDisplayDto
+  createdAt: UtcInstant
 }
+export type RegularBurrowsDto = ItemsDto<RegularBurrowDto>
+/** PUT · DELETE /burrows/{burrowId}/regular 응답 */
+export interface RegularStateDto { isRegular: boolean }
 
-export interface GuestbookEntryDto {
-  id: LegacyId
-  burrowId: LegacyId
-  author: MemberSummaryDto
-  /** VARCHAR(50) (화면은 100자 → erd-gaps) */
-  content: string
-  createdAt: IsoDateTime
+/* ===== 오늘의 추천 ===== */
+/** 추천된 사람 하나 */
+export interface RecommendedFriendDto {
+  burrowId: Id
+  owner: UserDisplayDto
+  /** 서버가 고른 3개 (나와 겹치는 것 먼저). 받은 순서대로 보여 줌 */
+  interests: InterestTagDto[]
+  /** 카드 뒷면 */
+  answers: AnswerDto[]
 }
-
-/** 들판 한 장 (GET /fields/{campusFloorId}?termId=) */
-export interface FieldResidentDto { slot: number; member: MemberProfileDto; burrowId: LegacyId }
-export interface FieldDto {
-  campusFloor: CampusFloorDto
-  term: TermDto
-  residents: FieldResidentDto[]
-  /** 배정된 가장 큰 자리 번호 (구역 수 = ceil(maxSlot / 25)) */
-  maxSlot: number
-  mySlot: number | null
+/** GET · POST /me/daily-recommendation 응답 */
+export interface DailyRecommendationDto {
+  /** 오늘 추천을 받았는지 (0명을 받은 날도 true) */
+  hasReceived: boolean
+  /** 서버가 오늘로 보는 추천 기준 날짜 */
+  recommendedOn: DateString
+  /** 0 ~ 3명 */
+  items: RecommendedFriendDto[]
 }
-
-/* ===== 추천 ===== */
-/** 추천 받기 요청: 고른 캠퍼스-층과 기수. 서버에 저장하지 않고 받을 때마다 다시 고름 (2026-11-21 명세) */
-export interface RecommendRequestDto {
-  /** 고른 캠퍼스-층의 id (목에서는 "캠퍼스|층") */
-  campusFloorId: LegacyId
+/** POST /me/daily-recommendation 요청 (고른 값은 서버가 저장하지 않음) */
+export interface DailyRecommendationRequest {
+  campusFloorId: Id
   generation: number
 }
-export interface DailyRecommendationDto {
-  recommendedOn: IsoDate
-  members: MemberProfileDto[]
+
+/* ===== 남의 땅굴 ===== */
+/** 대화 버튼의 상태 (위에서부터 차례로 봄) */
+export type ChatStatus = 'CHATTING' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'NONE'
+/** GET /users/{userId}/burrow — 방문자 뷰 · 방노트 */
+export interface UserBurrowDto {
+  burrowId: Id
+  /** true 면 프론트가 내 땅굴 화면으로 보냄 */
+  isMine: boolean
+  owner: UserDisplayDto
+  /** 자기소개. 안 썼으면 null */
+  intro: string | null
+  /** 고른 순서, 첫 번째가 대표 관심사 */
+  interests: InterestTagDto[]
+  answers: AnswerDto[]
+  /** 방명록 글 수 (우체통 깃발) */
+  guestbookCount: number
+  isRegular: boolean
+  chat: {
+    status: ChatStatus
+    /** CHATTING 일 때만 */
+    chatRoomId: Id | null
+  }
+  /** 이 땅굴이 놓인 들판의 입구 ("탐색"을 누르면 이 들판으로) */
+  entrance: EntranceDto
+}
+
+/* ===== 방명록 ===== */
+/** POST /burrows/{burrowId}/guestbook-entries 요청. 1 ~ 50자, 공백만은 안 됨 */
+export interface GuestbookEntryCreateRequest { content: string }
+/** 방명록 글 (쓰기 응답 = 04 목록의 항목과 같은 모양) */
+export interface GuestbookEntryDto {
+  id: Id
+  author: UserDisplayDto
+  content: string
+  createdAt: UtcInstant
+  canDelete: boolean
+  canReport: boolean
+}
+/** 04 GET /burrows/{burrowId}/guestbook-entries (페이지, 기본 5개) — 04 영역 API. 다리(real.ts guestbookPage) 전용 */
+export type GuestbookPageDto = PageDto<GuestbookEntryDto>
+
+/* ===== 대화 요청 보내기 ===== */
+/** POST /chat-requests 요청. message 는 50자 이하, 비우거나 null 이면 인사 없이 */
+export interface ChatRequestCreateRequest {
+  receiverId: Id
+  message: string | null
+}
+/**
+ * POST /chat-requests 응답 (201).
+ * 요청을 새로 만들었으면 chatRoomId 가 null, 내가 거절했던 요청이 남아 있어 바로 대화방이 열렸으면 나머지가 null
+ */
+export interface ChatRequestCreatedDto {
+  chatRequestId: Id | null
+  createdAt: UtcInstant | null
+  expiresAt: UtcInstant | null
+  chatRoomId: Id | null
 }

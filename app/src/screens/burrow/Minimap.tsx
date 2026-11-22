@@ -1,8 +1,9 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type Ref } from 'react'
+import { useRegularOwnerIds } from '../../api/explore'
 import { useSearchParams } from 'react-router-dom'
 import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
-import { floorLabel, getRegulars, me, subscribeRegulars, type FieldData, type Floor, type Resident } from '../../data/field'
+import { floorLabel, me, type FieldData, type Floor, type Resident } from '../../data/field'
 import { FieldArt } from './explore-designs/FieldArt'
 import { FIELD_BOUNDS, LADDER, MAP_COLORS, buildVillage, camFootprint, camTarget, layoutNow, loadLayout, type Layout, type Village } from './explore-designs/fieldGeo'
 import { matchScore, sharedWith } from './explore-designs/match'
@@ -16,8 +17,8 @@ import { cropOf } from '../../data/field'
 /*
  * 미니맵 (전체 마을 지도). 2026-11-16, docs/explore-designs.md
  * - 층 하나 = 마을. 켜진 구역(흙) · 안 켠 구역(잔디색) · 길 · 땅굴(링 색) · 빈 자리 · 내 땅굴(분홍 + 집) · 사다리 · 내 두더지 · 지금 보이는 범위
- * - 접속 중 이웃(초록 점) · 단골(노란 별). 마우스를 올리면 닉네임, 누르면 그 땅굴로 바로 이동(onGo)
- * - 접기/펼치기(이 브라우저에 기억), 크게 보기 = 전체 마을 지도 팝업(범례 · 단골/겹치는 관심사/접속 중 필터 · 목록)
+ * - 단골(노란 별, GET /me/regular-burrows). 마우스를 올리면 닉네임, 누르면 그 땅굴로 바로 이동(onGo). "접속 중" 표시는 없음 (명세 범위 밖, 2026-11-22)
+ * - 접기/펼치기(이 브라우저에 기억), 크게 보기 = 전체 마을 지도 팝업(범례 · 단골/겹치는 관심사 필터 · 목록)
  * - 두더지는 자리가 바뀌면 두 구멍 사이를 부드럽게 옮겨 감(moving 일 때). 바깥에서 직접 움직이려면 handleRef.setMole (디자인 B)
  */
 
@@ -98,7 +99,7 @@ export default function Minimap({
   const [params] = useSearchParams()
   const [big, setBig] = useState(() => { if (params.get('map') !== 'big' || onExpand || bigOpenedOnce) return false; bigOpenedOnce = true; return true })
   const toggle = (on: boolean) => { setOpen(on); try { localStorage.setItem(STORE, on ? 'open' : 'closed') } catch { /* 저장소 없음 */ } }
-  const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
+  const regulars = useRegularOwnerIds()
   useSyncExternalStore(subscribeFx, fxVersion)
   const fxMap = fxOn('f_minimap')
   const myInterests = useMemo(() => me().interests, [])
@@ -293,7 +294,6 @@ export default function Minimap({
         {hover && hoverR && (
           <span className={m.tip} style={{ left: hover.x, top: hover.y }}>
             {hoverR.mine ? '내 땅굴' : hoverR.user.nickname}
-            {!hoverR.mine && hoverR.user.online && <i className={m.onDot} aria-label="접속 중" />}
             {!hoverR.mine && regulars.includes(hoverR.user.id) && <b className={m.star}>★</b>}
           </span>
         )}
@@ -301,7 +301,6 @@ export default function Minimap({
       <div className={m.legend} aria-hidden>
         <span><i className={m.lgMole} />나</span>
         <span><i className={m.lgMine} />내 땅굴</span>
-        <span><i className={m.lgOn} />접속 중</span>
         <span><b className={m.star}>★</b>단골</span>
         {view.kind !== 'none' && <span><ViewIcon />보이는 곳</span>}
         {fxMap && <span><i className={m.lgFx} />색 = 대표 관심사</span>}
@@ -351,7 +350,6 @@ function Holes({ v, bySeat, regulars, scale, selected, hoverSeat, dim, labels, c
             <circle r={R} fill={fxMap && !mine ? fxColor(leadOf(r.user.interests)?.cat) : h.ring} stroke={mine ? '#fff' : 'rgba(90,55,30,.55)'} strokeWidth={(mine ? 0.42 : 0.22) * scale} />
             <circle r={R * 0.45} fill={MAP_COLORS.holeIn} />
             {mine && <path transform={`translate(0 ${-R - 1.5 * scale}) scale(${0.42 * scale})`} d="M-3 1 L0 -2 L3 1 V4 H-3 Z" fill="#c8643a" stroke="#fff" strokeWidth={0.8} strokeLinejoin="round" />}
-            {!mine && r.user.online && <circle cx={R * 0.8} cy={-R * 0.8} r={0.48 * scale} fill="#5fbf3a" stroke="#fff" strokeWidth={0.18 * scale} />}
             {!mine && regulars.includes(r.user.id) && <path transform={`translate(${-R * 0.85} ${-R * 0.85}) scale(${0.36 * scale})`} d={STAR} fill="#f6c443" stroke="#8a5a1a" strokeWidth={0.5} />}
             {heart && <path transform={`translate(${R * 0.95} ${R * 0.7}) scale(${0.42 * scale})`} d={HEART} fill="#FF8A5B" stroke="#fff" strokeWidth={0.7} strokeLinejoin="round" />}
             {lab && <text y={R + 2 * scale} textAnchor="middle" fontSize={1.35 * scale} className={m.holeLabel}>{lab}</text>}
@@ -401,7 +399,9 @@ function MoleMark({ pulseKey }: { pulseKey?: number }) {
 }
 
 /* ---------- 크게 보기: 전체 마을 지도 팝업 ---------- */
-type Filter = 'all' | 'regular' | 'shared' | 'online'
+type Filter = 'all' | 'regular' | 'shared'
+/** 나와 같은 관심사: 서버가 준 isShared(r.shared)가 먼저, 없으면(목 데이터를 바로 쓰는 시안) 내 관심사와 비교 */
+const sharedOf = (r: Resident, myInterests: string[]) => r.shared ?? sharedWith(r.user, myInterests)
 
 function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInterests, zoneNames, close, mole, viewPts, selected, onGo, onLadder }: {
   open: boolean; onClose: () => void; field: FieldData; floor: Floor; v: Village | null; bySeat: Map<number, Resident>; regulars: string[]; myInterests: string[]; zoneNames: ZoneName[]; close: Set<number>
@@ -416,8 +416,7 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
   const test: Record<Filter, (r: Resident) => boolean> = {
     all: () => true,
     regular: (r) => regulars.includes(r.user.id),
-    shared: (r) => sharedWith(r.user, myInterests).length > 0,
-    online: (r) => !!r.user.online,
+    shared: (r) => sharedOf(r, myInterests).length > 0,
   }
   const count = (f: Filter) => others.filter(test[f]).length
   const list = others.filter(test[filter]).sort((a, b) => (filter === 'shared' ? matchScore(b.user, myInterests) - matchScore(a.user, myInterests) : a.seat - b.seat))
@@ -441,12 +440,12 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
   }
   const hr = hover != null ? bySeat.get(hover) : undefined
   const hp = hover != null ? v?.seats.get(hover) : undefined
-  const chips: [Filter, string][] = [['all', '모두'], ['regular', '단골'], ['shared', '겹치는 관심사'], ['online', '접속 중']]
+  const chips: [Filter, string][] = [['all', '모두'], ['regular', '단골'], ['shared', '겹치는 관심사']]
   return (
     <Modal open={open} onClose={onClose} width={1080} labelledBy="village-title">
       <div className={m.modal}>
         <h2 id="village-title" className="display">{floorLabel(floor)} 마을 지도</h2>
-        <p className={m.lead}>땅굴을 누르면 바로 그 앞으로 가요. 지금 땅굴 {field.residents.length}개 · 접속 중 {count('online')}명</p>
+        <p className={m.lead}>땅굴을 누르면 바로 그 앞으로 가요. 지금 땅굴 {field.residents.length}개</p>
         <div className={m.bigGrid}>
           <div className={m.bigMap}>
             <svg ref={svg} viewBox={viewBox} onClick={pick} onMouseMove={move} onMouseLeave={() => setHover(null)} role="img" aria-label={`${floorLabel(floor)} 마을 전체 지도`}>
@@ -464,7 +463,7 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
             {hr && hp && (
               <span className={m.bigTip} style={{ left: `${((hp.x - VB.x) / VB.w) * 100}%`, top: `${((hp.z - VB.y) / VB.h) * 100}%` }}>
                 <strong>{hr.mine ? '내 땅굴' : hr.user.nickname}</strong>
-                {!hr.mine && <small>{hr.seat}번 자리 · 같은 관심사 {sharedWith(hr.user, myInterests).length}개{hr.user.online ? ' · 접속 중' : ''}</small>}
+                {!hr.mine && <small>{hr.seat}번 자리 · 같은 관심사 {sharedOf(hr, myInterests).length}개</small>}
               </span>
             )}
           </div>
@@ -478,12 +477,12 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
             </div>
             <ul className={m.list} aria-label="땅굴 목록">
               {list.length ? list.map((r) => {
-                const sh = sharedWith(r.user, myInterests)
+                const sh = sharedOf(r, myInterests)
                 return (
                   <li key={r.seat} onMouseEnter={() => setHover(r.seat)} onMouseLeave={() => setHover(null)}>
                     <Avatar size={30} />
                     <span className={m.who}>
-                      <strong>{r.user.nickname}{r.user.online && <i className={m.onDot} aria-label="접속 중" />}{regulars.includes(r.user.id) && <b className={m.star}>★</b>}</strong>
+                      <strong>{r.user.nickname}{regulars.includes(r.user.id) && <b className={m.star}>★</b>}</strong>
                       <small>{r.seat}번 자리{sh.length ? ` · 같은 관심사 ${sh.length}개` : ''}</small>
                     </span>
                     <button className={`btn btn-line ${m.go}`} onClick={() => onGo(r.seat)}>이동</button>
@@ -496,7 +495,6 @@ function VillageModal({ open, onClose, field, floor, v, bySeat, regulars, myInte
               <div><dt><i className={m.lgMine} /></dt><dd>내 땅굴</dd></div>
               <div><dt><i className={m.lgHole} /></dt><dd>땅굴 (링 색은 자리마다)</dd></div>
               <div><dt><i className={m.lgPad} /></dt><dd>빈 자리 (올 사람 자리)</dd></div>
-              <div><dt><i className={m.lgOn} /></dt><dd>접속 중</dd></div>
               <div><dt><b className={m.star}>★</b></dt><dd>단골</dd></div>
               <div><dt><i className={m.lgLadder} /></dt><dd>사다리 (다른 캠퍼스-층)</dd></div>
               {viewPts && <div><dt><ViewIcon /></dt><dd>지금 화면에 보이는 곳</dd></div>}

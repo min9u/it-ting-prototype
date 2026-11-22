@@ -16,7 +16,7 @@ import type { User } from '../../data/types'
 import { agoChat, chatListTime, clock, dayDivider, monthDay } from '../../lib/time'
 import { errorText, isNotFound, patch, useOptimistic } from '../../api'
 import { GONE_ID, type Person } from '../../api/common'
-import { useBurrow } from '../../api/explore'
+import { useVisitBurrow } from '../../api/explore'
 import {
   CHAT_ERRORS, CHAT_IMAGES_MAX, CHAT_MESSAGE_MAX, CHAT_NOTICE_MAX, chatCalls, chatKeys, chatMessagesAsc, isNoticeMessage, noticeText, roomPreview,
   useActiveChatRoom, useChatMessages, useChatRequestCount, useChatRequests, useChatRoom, useChatRooms, useMyId, useOutbox, useReadReceipt, useSendMessage,
@@ -537,7 +537,7 @@ function Requests({ onProfile, onToast, count }: { onProfile: (p: Person) => voi
   const list = rq.data ?? []
   const focus = list.find((r) => r.id === picked) ?? list[0]
   // 고른 요청의 사람 정보는 남의 땅굴 조회 (05 GET /users/{userId}/burrow, 방노트와 같은 값)
-  const burrow = useBurrow(focus?.person.id ?? '', !!focus && focus.person.id !== GONE_ID)
+  const burrow = useVisitBurrow(focus?.person.id ?? '', !!focus && focus.person.id !== GONE_ID)
   const who: Person | undefined = focus ? { ...focus.person, ...(burrow.data?.owner ?? {}) } : undefined
   const shared = new Set(focus?.shared ?? [])
 

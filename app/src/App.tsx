@@ -30,6 +30,7 @@ import Onboarding from './screens/onboarding/Onboarding'
 import ScreenIndex from './screens/ScreenIndex'
 import { ApiKnobBadge, ApiToaster } from './components/AsyncState'
 import { MockServerSync } from './api/mockSync'
+import NewTermGate from './screens/burrow/NewTermGate'
 
 /** 로그인 뒤 화면: 헤더(GNB) + 내용 + 쓰기 실패 토스트 · 목 서버 손잡이 배지. 실시간 소식 연결(SSE)은 여기 들어올 때 시작 (src/realtime/events.ts) */
 function AppLayout() {
@@ -44,6 +45,8 @@ function AppLayout() {
       <ApiToaster />
       <ApiKnobBadge />
       <MockServerSync />
+      {/* 05 새 학기 안내: 이번 학기 캠퍼스-층을 고르기 전에는 어느 화면에서든 닫을 수 없는 안내 */}
+      <NewTermGate />
     </>
   )
 }

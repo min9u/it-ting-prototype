@@ -1,25 +1,205 @@
-/** 05 탐색 · 방문 — TanStack Query 훅과 캐시 키 */
-import { useSyncExternalStore } from 'react'
-import { useQuery } from '@tanstack/react-query'
+/**
+ * 05 탐색 · 방문 (+ 00 학기) — TanStack Query 훅과 캐시 키. 화면은 이 훅과 exploreApi 만 쓴다
+ */
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { isApiError } from '../client'
+import { patch, useOptimistic } from '../optimistic'
 import { useMockStoreSync } from '../storeSync'
+import { toDtoId } from '../common'
+import { useMe } from '../auth'
 import { getRegulars, subscribeRegulars } from '../../data/field'
+import { ME_ID } from '../../data/mock'
+import { chatKeys } from '../chat'
 import { exploreApi } from './api'
-import { toBurrow, toGuestbookEntry } from './mappers'
+import { EXPLORE_ERRORS } from './errors'
+import {
+  toBurrow, toChatRequestResult, toDailyRecommendation, toField, toFieldStatuses, toGuestbookPage, toMoved, toRegulars, toTerms,
+  placeId, type BurrowVM, type FieldPlace, type GuestbookPageVM, type RegularVM,
+} from './mappers'
+import type { GuestbookEntry } from '../../data/types'
+import { toIso } from '../../lib/time'
 
-/** 캐시 키 (첫 칸 'explore'). 땅굴과 그 방명록은 앞부분이 같아서 땅굴만 바꿀 때는 patch(…, exact = true) */
+/** 캐시 키 (첫 칸 'explore') */
 export const exploreKeys = {
   all: ['explore'] as const,
+  terms: ['explore', 'terms'] as const,
+  fieldStatuses: (termId: string) => ['explore', 'field-statuses', termId] as const,
+  field: (place: FieldPlace) => ['explore', 'field', placeId(place)] as const,
+  regulars: ['explore', 'regulars'] as const,
+  daily: ['explore', 'daily-recommendation'] as const,
   burrow: (userId: string) => ['explore', 'burrow', userId] as const,
-  guestbook: (userId: string) => ['explore', 'burrow', userId, 'guestbook'] as const,
+  guestbook: (burrowId: string) => ['explore', 'guestbook', burrowId] as const,
 }
 
-export function useBurrow(userId: string, enabled = true) {
-  return useQuery({ queryKey: exploreKeys.burrow(userId), queryFn: async ({ signal }) => toBurrow(await exploreApi.get(userId, signal)), enabled })
+/* ===== 읽기 ===== */
+/** 열린 학기 (최근 것부터). 운영자가 여는 값이라 자주 안 바뀜 */
+export function useTerms() {
+  return useQuery({ queryKey: exploreKeys.terms, queryFn: async ({ signal }) => toTerms(await exploreApi.terms(signal)), staleTime: 5 * 60_000 })
 }
-export function useGuestbook(userId: string) {
+/** 이번 학기 (GET /terms 의 isCurrent) */
+export function useCurrentTerm() {
+  const q = useTerms()
+  return { ...q, term: q.data?.find((t) => t.isCurrent) ?? q.data?.[0] ?? null }
+}
+/** 그 학기 들판마다 비어 있는지 (캠퍼스-층 id → 비었으면 true) */
+export function useFieldStatuses(termId: string | null) {
   return useQuery({
-    queryKey: exploreKeys.guestbook(userId),
-    queryFn: async ({ signal }) => (await exploreApi.guestbook(userId, null, 50, signal)).items.map(toGuestbookEntry),
+    queryKey: exploreKeys.fieldStatuses(termId ?? ''), enabled: !!termId,
+    queryFn: async ({ signal }) => toFieldStatuses(await exploreApi.fieldStatuses(toDtoId(termId!), signal)),
+  })
+}
+/** 들판 하나 (입구 · 주인 카드 값 전부). 다른 들판으로 옮기는 동안은 보던 들판을 그대로 둠 (3D 를 다시 만들지 않게) */
+export function useField(place: FieldPlace | null) {
+  return useQuery({
+    queryKey: exploreKeys.field(place ?? { termId: '', campusFloorId: '' }), enabled: !!place, placeholderData: keepPreviousData,
+    queryFn: async ({ signal }) => toField(await exploreApi.field(toDtoId(place!.termId), toDtoId(place!.campusFloorId), signal)),
+  })
+}
+/**
+ * 내 땅굴의 들판 (탐색에 주소 없이 들어올 때). 명세는 GET /me/burrow 의 entrance 를 쓰라고 하지만 (04 영역),
+ * 새 학기를 고른 계정의 입구는 늘 "이번 학기 + 프로필의 캠퍼스-층"이라 GET /terms 의 이번 학기 + GET /me 의 campusFloorId 로 정한다
+ */
+export function useHomePlace(): { place: FieldPlace | null; isPending: boolean; error: unknown } {
+  const t = useCurrentTerm()
+  const me = useMe()
+  const place = t.term && me.data ? { termId: t.term.id, campusFloorId: me.data.campusFloorId } : null
+  return useMemo(() => ({ place, isPending: !place && (t.isPending || me.isPending), error: t.error ?? me.error }), [place?.termId, place?.campusFloorId, t.isPending, me.isPending, t.error, me.error]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** 내 단골 (최근에 담은 것부터) */
+export function useRegularBurrows() {
+  return useQuery({ queryKey: exploreKeys.regulars, queryFn: async ({ signal }) => toRegulars(await exploreApi.regularBurrows(signal)) })
+}
+/** 단골 주인 id 목록 (미니맵 별 표시) */
+export function useRegularOwnerIds(): string[] {
+  const q = useRegularBurrows()
+  return useMemo(() => (q.data ?? []).map((r) => r.owner.id), [q.data])
+}
+
+/** 오늘의 추천 (받았는지 · 받은 결과). 탐색에 들어올 때 한 번 → 빨간 점 · 팝업이 같이 씀 */
+export function useDailyRecommendation() {
+  return useQuery({ queryKey: exploreKeys.daily, queryFn: async ({ signal }) => toDailyRecommendation(await exploreApi.dailyRecommendation(signal)) })
+}
+
+/** 남의 땅굴 (방문자 뷰 · 방노트) */
+export function useVisitBurrow(userId: string, enabled = true) {
+  return useQuery({ queryKey: exploreKeys.burrow(userId), queryFn: async ({ signal }) => toBurrow(await exploreApi.userBurrow(toDtoId(userId), signal)), enabled: enabled && !!userId })
+}
+
+/**
+ * 방문자 뷰의 방명록 (04 목록 API 다리). 방명록 창(GuestbookModal)이 글 목록을 받아 5개씩 나눠 보여 주므로 한 번에 넉넉히 받음.
+ * 04 작업자가 api/burrow 에 같은 API 를 만들면 그쪽 훅으로 바꿈
+ */
+export const VISIT_GUESTBOOK_SIZE = 100
+export function useVisitGuestbook(burrowId: string | null) {
+  return useQuery({
+    queryKey: exploreKeys.guestbook(burrowId ?? ''), enabled: !!burrowId,
+    queryFn: async ({ signal }) => toGuestbookPage(await exploreApi.guestbookPage(toDtoId(burrowId!), 1, VISIT_GUESTBOOK_SIZE, signal)),
+  })
+}
+
+/* ===== 쓰기 ===== */
+/**
+ * 방문자 뷰의 쓰기 (낙관적 업데이트: 캐시를 먼저 바꾸고 실패하면 되돌림 + 토스트)
+ * - 단골 담기 · 빼기 (PUT · DELETE), 방명록 남기기 · 내 글 지우기, 대화 요청 보내기
+ */
+export function useVisitActions(b: Pick<BurrowVM, 'burrowId' | 'owner'>) {
+  const run = useOptimistic()
+  const userId = b.owner.id
+  const burrowKey = exploreKeys.burrow(userId)
+  const gbKey = exploreKeys.guestbook(b.burrowId)
+  return {
+    pending: run.isPending,
+    /** 단골: 상대 수락 없이 바로, 알리지 않음 */
+    setRegular: (on: boolean, cb?: { onError?: () => void }) => run.mutate({
+      call: () => (on ? exploreApi.addRegular(toDtoId(b.burrowId)) : exploreApi.removeRegular(toDtoId(b.burrowId))),
+      errorTitle: '단골을 바꾸지 못했어요', errors: EXPLORE_ERRORS,
+      patches: [patch<BurrowVM>(burrowKey, (o) => ({ ...o, isRegular: on }))],
+      invalidate: [burrowKey, exploreKeys.regulars],
+    }, { onError: cb?.onError }),
+    /** 방명록 남기기: 목록 맨 위에 먼저 넣고 글 수 + 1 */
+    writeGuestbook: (text: string, cb?: { onError?: () => void }) => run.mutate({
+      call: () => exploreApi.writeGuestbook(toDtoId(b.burrowId), text),
+      errorTitle: '방명록을 남기지 못했어요', errors: EXPLORE_ERRORS,
+      patches: [
+        patch<GuestbookPageVM>(gbKey, (l) => ({ ...l, total: l.total + 1, entries: [{ id: `tmp-${Date.now()}`, authorId: ME_ID, text, createdAt: toIso(Date.now()) } as GuestbookEntry, ...l.entries] })),
+        patch<BurrowVM>(burrowKey, (o) => ({ ...o, guestbookCount: o.guestbookCount + 1 })),
+      ],
+    }, { onError: cb?.onError }),
+    /** 내가 쓴 방명록 지우기 */
+    deleteGuestbook: (entryId: string) => run.mutate({
+      call: () => exploreApi.deleteGuestbookEntry(toDtoId(entryId)),
+      errorTitle: '방명록을 지우지 못했어요', errors: EXPLORE_ERRORS,
+      patches: [
+        patch<GuestbookPageVM>(gbKey, (l) => ({ ...l, total: Math.max(0, l.total - 1), entries: l.entries.filter((g) => g.id !== entryId) })),
+        patch<BurrowVM>(burrowKey, (o) => ({ ...o, guestbookCount: Math.max(0, o.guestbookCount - 1) })),
+      ],
+    }),
+  }
+}
+
+/** 대화 요청 보내기. 결과: 요청을 만들었으면 chatRequestId, 바로 대화방이 열렸으면 chatRoomId */
+export function useSendChatRequest(userId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (message: string) => toChatRequestResult(await exploreApi.sendChatRequest({ receiverId: toDtoId(userId), message: message.trim() ? message : null })),
+    onSuccess: (r) => {
+      // "요청 보냄"으로 바로 바꾸고(대화방이 열렸으면 "대화하기"), 서버 값으로 다시 맞춤
+      qc.setQueryData<BurrowVM>(exploreKeys.burrow(userId), (o) => o && { ...o, chat: r.chatRoomId ? { status: 'CHATTING', chatRoomId: r.chatRoomId } : { status: 'REQUEST_SENT', chatRoomId: null } })
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: exploreKeys.burrow(userId) })
+      void qc.invalidateQueries({ queryKey: chatKeys.all }) // 채팅 영역 캐시 (보낸 요청 · 대화 목록)
+    },
+  })
+}
+
+/** 단골 목록에서 "해제" (목록에서 먼저 뺌) */
+export function useRemoveRegular() {
+  const run = useOptimistic()
+  return (r: RegularVM, cb?: { onSuccess?: () => void }) => run.mutate({
+    call: () => exploreApi.removeRegular(toDtoId(r.burrowId)),
+    errorTitle: '단골을 해제하지 못했어요', errors: EXPLORE_ERRORS,
+    patches: [patch<RegularVM[]>(exploreKeys.regulars, (l) => l.filter((x) => x.burrowId !== r.burrowId))],
+    invalidate: [exploreKeys.regulars, exploreKeys.burrow(r.owner.id)],
+  }, { onSuccess: cb?.onSuccess })
+}
+
+/** 오늘의 추천 받기 → 받은 결과를 캐시에 (탐색의 빨간 점도 꺼짐) */
+export function useDrawRecommendation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (sel: { campusFloorId: string; generation: number }) =>
+      toDailyRecommendation(await exploreApi.drawRecommendation({ campusFloorId: toDtoId(sel.campusFloorId), generation: sel.generation })),
+    onSuccess: (vm) => { qc.setQueryData(exploreKeys.daily, vm) },
+  })
+}
+
+/* ===== 새 학기 ===== */
+/**
+ * 새 학기 안내를 띄워야 하는지: GET /me 의 nextStep 이 NEW_TERM 이거나, 어느 API 든 403 NEW_TERM_INCOMPLETE 로 막혔을 때
+ * (02 "새 학기를 고르지 않은 계정"). 이사하면 clear() 로 내림
+ */
+export function useNewTermRequired() {
+  const me = useMe()
+  const qc = useQueryClient()
+  const [blocked, setBlocked] = useState(false)
+  useEffect(() => {
+    const hit = (e: unknown) => isApiError(e) && e.code === 'NEW_TERM_INCOMPLETE'
+    const offQ = qc.getQueryCache().subscribe((ev) => { if (ev.type === 'updated' && hit(ev.query.state.error)) setBlocked(true) })
+    const offM = qc.getMutationCache().subscribe((ev) => { if (ev.type === 'updated' && hit(ev.mutation?.state.error)) setBlocked(true) })
+    return () => { offQ(); offM() }
+  }, [qc])
+  return { required: blocked || me.data?.nextStep === 'NEW_TERM', clear: () => setBlocked(false) }
+}
+
+/** 이 층으로 정하기 (POST /me/burrow/move) → 막혀 있던 화면을 모두 다시 받음 */
+export function useMoveBurrow() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (campusFloorId: string) => toMoved(await exploreApi.moveBurrow({ campusFloorId: toDtoId(campusFloorId) })),
+    onSuccess: () => { void qc.invalidateQueries() },
   })
 }
 

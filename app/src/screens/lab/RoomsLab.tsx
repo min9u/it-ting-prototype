@@ -12,7 +12,7 @@ import { roomLookOf, type SavedRoom } from '../../data/roomLook'
 import { talkMoodOf } from '../../data/interestFx'
 import { themeOf } from '../../data/roomStyle'
 import { lookDiverse } from '../../lib/roomLookLab'
-import { useBurrow } from '../../api/explore'
+import { useVisitBurrow } from '../../api/explore'
 import s from '../burrow/Burrow.module.css'
 
 /*
@@ -79,9 +79,9 @@ export default function RoomsLab() {
   const [params] = useSearchParams()
   const adhoc = useMemo(() => adhocOwner(params), [params])
   const uid = adhoc ? null : userIdOf(params)
-  // 방문자 뷰와 같은 길: 땅굴 API → toBurrow (집주인 프로필 + 저장한 방)
-  const q = useBurrow(uid ?? '', !!uid)
-  const owner: Owner | null = adhoc ?? (q.data ? { id: q.data.owner.id, nickname: q.data.owner.nickname, interests: q.data.owner.interests, worn: q.data.owner.worn ?? [], room: q.data.room } : null)
+  // 방문자 뷰와 같은 길: 땅굴 API(GET /users/{userId}/burrow) → toBurrow. 명세상 서버는 방 꾸미기 값을 주지 않아 room 은 늘 null (관심사로 계산)
+  const q = useVisitBurrow(uid ?? '', !!uid)
+  const owner: Owner | null = adhoc ?? (q.data ? { id: q.data.owner.id, nickname: q.data.owner.nickname, interests: q.data.owner.interests, worn: q.data.owner.worn ?? [], room: null } : null)
   const forced = params.get('wallpaper') ?? undefined
   const look = useMemo(() => (owner ? roomLookOf(owner.id, owner.interests, owner.room) : null), [owner?.id, owner?.interests, owner?.room]) // eslint-disable-line react-hooks/exhaustive-deps
   const summary = useMemo(() => (owner && look ? roomSummary(owner, forced ?? look.wallpaper) : null), [owner?.id, look, forced]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import RoomModeToggle from '../../../components/RoomModeToggle'
-import { getRegulars, subscribeRegulars, type Resident } from '../../../data/field'
+import { type Resident } from '../../../data/field'
+import { useRegularOwnerIds } from '../../../api/explore'
 import Minimap, { useVillage, type MinimapHandle } from '../Minimap'
 import { EmptyField, ExploreOverlays, ExploreTools, HomeButton, OwnerPanel, PANEL_COVER, SignCard, capture, useExploreBase, useExploreKeys } from './common'
 import { FieldArt } from './FieldArt'
@@ -37,7 +38,7 @@ export default function ExploreMap() {
   const base = useExploreBase()
   const { field, bySeat, floor } = base
   const v = useVillage(field)
-  const regulars = useSyncExternalStore(subscribeRegulars, getRegulars)
+  const regulars = useRegularOwnerIds() // GET /me/regular-burrows
   const worn = useMemo(() => getMyWorn(), [])
   const [panelOpen, setPanelOpen] = useState(base.params.get('panel') !== 'closed')
   const [seat, setSeat] = useState(base.startSeat)

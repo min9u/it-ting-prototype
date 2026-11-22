@@ -3,6 +3,8 @@
  * (ExploreBurrow.tsx 는 다른 작업과 겹쳐서 손대지 않으려고). 2026-11-16
  * - 들판·자리: 주소 ?floor=&seat= (뒤로 가기 하면 보던 자리). 들판이 바뀌면 화면을 새로 만듦(ExploreDesigns 의 key)
  * - 왼쪽 위 버튼 3개 · 오른쪽 주인 카드 · 안내판 · 팝업 3개(ExploreModals 그대로) · 토스트 · 들어갈 때 어두워짐 · 빈 들판
+ * - 2026-11-22 API v1: 시안 B·C·D 의 들판은 목 데이터(data/field fieldOf)를 그대로 씀 (팀 비교용 시안이라 API 로 옮기지 않음, 목 모드 전용).
+ *   팝업 3개 · 추천 빨간 점은 시안 A 와 같은 API 훅. "접속 중"은 명세에서 빠져서 들판 값에서 지움
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -11,7 +13,9 @@ import InterestChip from '../../../components/InterestChip'
 import SceneButton from '../../../components/SceneButton'
 import { EmptyMole, Toast } from '../../../components/Feedback'
 import { HomeIcon } from '../../../components/Icons'
-import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, resetToday, todaysPicks, type Floor, type Resident } from '../../../data/field'
+import { MY_FLOOR, affOf, fieldOf, floorLabel, me, parseFloor, type FieldData, type Floor, type Resident } from '../../../data/field'
+import { exploreKeys, parsePlace, placeId, resetDailyRecommendationDemo, useDailyRecommendation } from '../../../api/explore'
+import { useQueryClient } from '@tanstack/react-query'
 import { FloorPickerModal, RecommendModal, RegularsModal } from '../ExploreModals'
 import { sharedWith } from './match'
 import { isActivatable, shortcutAllowed } from '../../../lib/a11y'
@@ -29,7 +33,7 @@ export function useExploreBase() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const floor: Floor = parseFloor(params.get('floor') ?? '') ?? MY_FLOOR
-  const field = useMemo(() => fieldOf(floor), [floor.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const field = useMemo(() => withoutOnline(fieldOf(floor)), [floor.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const bySeat = useMemo(() => new Map(field.residents.map((r) => [r.seat, r])), [field])
   const others = field.residents.filter((r) => !r.mine).length
   const seatParam = Number(params.get('seat'))
@@ -45,9 +49,9 @@ export function useExploreBase() {
   // 처음 그릴 때는 어두운 화면 → 곧 밝아짐 (땅굴에서 나올 때 디자인 A 와 같은 느낌)
   const [shown, setShown] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setShown(true), 60); return () => window.clearTimeout(t) }, [])
-  const [recTick, setRecTick] = useState(0)
-  const recDone = useMemo(() => !!todaysPicks(), [recTick])
-  useEffect(() => { if (params.get('recommend') === 'reset') { resetToday(); setRecTick((n) => n + 1) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const qc = useQueryClient()
+  const recDone = useDailyRecommendation().data?.hasReceived ?? true
+  useEffect(() => { if (params.get('recommend') === 'reset' && resetDailyRecommendationDemo()) void qc.invalidateQueries({ queryKey: exploreKeys.daily }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** 지금 자리를 주소에 (땅굴에 들어갔다가 뒤로 오면 같은 자리) */
   const rememberSeat = useCallback((n: number) => {
@@ -75,11 +79,14 @@ export function useExploreBase() {
   return {
     params, setParams, floor, field, bySeat, others, startSeat, mine,
     modal, setModal, toast, setToast, leaving, shown, enter, goFloor, rememberSeat,
-    recDone, bumpRec: () => setRecTick((n) => n + 1),
+    recDone, bumpRec: () => {},
     shared: (r: Resident | undefined) => (r && !r.mine ? sharedWith(r.user, mine.interests) : []),
   }
 }
 export type ExploreBase = ReturnType<typeof useExploreBase>
+
+/** "접속 중"은 명세 범위 밖 (README "이번 범위에 없는 것") → 목 들판 값에서 지움 */
+const withoutOnline = (f: FieldData): FieldData => ({ ...f, residents: f.residents.map((r) => ({ ...r, user: { ...r.user, online: false } })) })
 
 /** 포인터 잡기·놓기 (이미 놓인 포인터 등으로 실패해도 끌기는 계속) */
 export function capture(el: Element | null | undefined, id: number, on: boolean) {
@@ -211,7 +218,9 @@ export function ExploreOverlays({ base }: { base: ExploreBase }) {
     <>
       <RegularsModal open={base.modal === 'regulars'} onClose={() => base.setModal(null)} onRemoved={(n) => base.setToast(`${n}님을 단골에서 뺐어요`)} />
       <RecommendModal open={base.modal === 'recommend'} onClose={() => { base.setModal(null); base.bumpRec() }} />
-      <FloorPickerModal open={base.modal === 'floor'} current={floor} onClose={() => base.setModal(null)} onPick={(f) => base.goFloor(f, f.id === MY_FLOOR.id ? field.mySeat ?? undefined : undefined)} />
+      {/* 목 모드에서는 API 의 들판 위치(학기 id|캠퍼스-층 id)가 목 들판 id 와 같은 글자 */}
+      <FloorPickerModal open={base.modal === 'floor'} current={parsePlace(floor.id)!} onClose={() => base.setModal(null)}
+        onPick={(p) => { const f = parseFloor(placeId(p)); if (f) base.goFloor(f, f.id === MY_FLOOR.id ? field.mySeat ?? undefined : undefined) }} />
       <Toast open={!!base.toast} onClose={() => base.setToast(null)} title={base.toast ?? ''} />
       <div className={`${x.fade} ${base.leaving ? x.fadeIn : base.shown ? x.fadeOut : x.fadeHold}`} aria-hidden />
     </>
