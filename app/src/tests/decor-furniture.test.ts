@@ -89,6 +89,21 @@ describe('목 서버: 고른 가구 단어 저장', () => {
   })
 })
 
+describe('방문자: 주인이 고른 가구가 남의 땅굴 조회에 실림', () => {
+  it('GET /users/{userId}/burrow 목: 내가 저장한 단어는 furniture 로 오고, 매퍼는 없으면 빈 값', async () => {
+    const { burrow } = await setup()
+    await burrow.updateFurniture({ furniture: { [A.subId]: A.words[1].word } })
+    const { userBurrowDto } = await import('../api/explore/mock')
+    const { toBurrow } = await import('../api/explore/mappers')
+    const mine = userBurrowDto('me')
+    expect(mine.furniture).toEqual({ [A.subId]: A.words[1].word })
+    expect(toBurrow(mine).furniture).toEqual({ [A.subId]: A.words[1].word })
+    const other = userBurrowDto('yerin') // 다른 사람은 저장한 값이 없음 (맨 앞 단어)
+    expect(other.furniture).toBeUndefined()
+    expect(toBurrow(other).furniture).toEqual({})
+  })
+})
+
 describe('방 모습에 반영', () => {
   it('고른 단어가 땅굴의 가구 선택으로 들어가고, 내 관심사에 없는 것은 버림', async () => {
     const { roomLookOf } = await import('../data/roomLook')

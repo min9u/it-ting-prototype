@@ -7,6 +7,7 @@
  */
 import { toAppId, toAppIdOrNull, toPersonFromDisplay, type InterestTagDto, type Person } from '../common'
 import type { FieldData, FieldUser, Floor, Resident } from '../../data/field'
+import type { FurnChoice } from '../../data/myBurrow'
 import type { GuestbookEntry, QnA } from '../../data/types'
 import { parseIso, toIso } from '../../lib/time'
 import type {
@@ -116,6 +117,8 @@ export interface BurrowVM {
   chat: { status: ChatStatus; chatRoomId: string | null }
   /** 이 땅굴이 놓인 들판 ("탐색"을 누르면 이 들판의 이 자리) */
   entrance: EntranceVM
+  /** 주인이 고른 가구 단어 (세부 관심사 id → 단어, 없으면 맨 앞 단어). ⚠ 서버 명세에 없는 값이라 지금은 목 서버만 줌 */
+  furniture: FurnChoice
 }
 export const toBurrow = (d: UserBurrowDto): BurrowVM => ({
   burrowId: toAppId(d.burrowId), isMine: d.isMine,
@@ -124,6 +127,7 @@ export const toBurrow = (d: UserBurrowDto): BurrowVM => ({
   guestbookCount: d.guestbookCount, isRegular: d.isRegular,
   chat: { status: d.chat.status, chatRoomId: toAppIdOrNull(d.chat.chatRoomId) },
   entrance: toEntrance(d.entrance),
+  furniture: { ...(d.furniture ?? {}) },
 })
 
 /* ===== 방명록 ===== */
