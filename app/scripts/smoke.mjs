@@ -126,7 +126,25 @@ function chromePath() {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/**
+ * 크롬 시작 대기 (CI 러너의 SwiftShader 크롬은 가끔 시작이 아주 늦음: 15초 안에 안 떠서 main CI 가 한 번 실패함).
+ * 시작이 실패하면(안 뜸 · 바로 끝남 · 디버깅 창을 못 찾음) 크롬을 정리하고 한 번 더 시도. 시험용으로 SMOKE_CHROME_START_MS 로 바꿀 수 있음
+ */
+const START_TIMEOUT_MS = Number(process.env.SMOKE_CHROME_START_MS) || 45000
+const START_TRIES = 2
+
 async function launchChrome() {
+  let lastErr
+  for (let n = 1; n <= START_TRIES; n++) {
+    try { return await launchChromeOnce() } catch (e) {
+      lastErr = e
+      console.error(`크롬 시작 실패 (${n}/${START_TRIES}): ${String(e.message).split('\n')[0]}${n < START_TRIES ? ' → 다시 시도' : ''}`)
+    }
+  }
+  throw lastErr
+}
+
+async function launchChromeOnce() {
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'digul-smoke-'))
   const flags = [`--user-data-dir=${prof}`, '--headless=new', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', '--mute-audio',
     `--window-size=${WIDTH},${HEIGHT}`, '--remote-debugging-port=0', 'about:blank']
@@ -139,23 +157,29 @@ async function launchChrome() {
   if (GPU === 'swiftshader') flags.unshift('--use-angle=swiftshader', '--enable-unsafe-swiftshader')
   if (GPU === 'none') flags.unshift('--disable-gpu', '--disable-3d-apis')
   const chrome = spawn(chromePath(), flags, { stdio: ['ignore', 'ignore', 'pipe'] })
-  // 디버깅 포트는 stderr 의 "DevTools listening on ws://..." 로 알려 줌
-  const wsUrl = await new Promise((resolve, reject) => {
-    let buf = ''
-    const t = setTimeout(() => reject(new Error(`크롬이 15초 안에 뜨지 않았어요\n${buf}`)), 15000)
-    chrome.stderr.on('data', (d) => {
-      buf += d
-      const m = /DevTools listening on (ws:\/\/\S+)/.exec(buf)
-      if (m) { clearTimeout(t); resolve(m[1]) }
+  // 시작에 실패하면 크롬 프로세스와 임시 프로필을 정리하고 던짐 (다시 시도할 때 남지 않게)
+  const abort = async () => { chrome.kill(); await sleep(300); try { fs.rmSync(prof, { recursive: true, force: true }) } catch { /* 무시 */ } }
+  let wsUrl
+  try {
+    // 디버깅 포트는 stderr 의 "DevTools listening on ws://..." 로 알려 줌
+    wsUrl = await new Promise((resolve, reject) => {
+      let buf = ''
+      const t = setTimeout(() => reject(new Error(`크롬이 ${START_TIMEOUT_MS / 1000}초 안에 뜨지 않았어요\n${buf}`)), START_TIMEOUT_MS)
+      chrome.stderr.on('data', (d) => {
+        buf += d
+        const m = /DevTools listening on (ws:\/\/\S+)/.exec(buf)
+        if (m) { clearTimeout(t); resolve(m[1]) }
+      })
+      chrome.once('exit', (c) => { clearTimeout(t); reject(new Error(`크롬이 바로 끝났어요 (code ${c})\n${buf}`)) })
     })
-    chrome.once('exit', (c) => reject(new Error(`크롬이 바로 끝났어요 (code ${c})\n${buf}`)))
-  })
+  } catch (e) { await abort(); throw e }
   const port = new URL(wsUrl).port
   let page
   for (let i = 0; i < 50 && !page; i++) {
     try { page = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find((t) => t.type === 'page') } catch { /* 아직 */ }
     if (!page) await sleep(100)
   }
+  if (!page) { await abort(); throw new Error('크롬 디버깅 창(page)을 못 찾았어요') }
   const ws = new WebSocket(page.webSocketDebuggerUrl)
   await new Promise((r, j) => { ws.addEventListener('open', r); ws.addEventListener('error', j) })
   let id = 0
