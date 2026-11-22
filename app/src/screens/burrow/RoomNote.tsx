@@ -53,8 +53,9 @@ export function NotePanel({ panel, title, children }: { panel: NotePanelState; t
 /**
  * 방노트 내용: 프로필(64px 원) · 자기소개 · 관심사(칩 + 나와 같은 관심사 범례) · [children] · Q&A 3개
  * children 은 관심사 바로 아래·Q&A 위 (탐색은 "땅굴 놀러가기" 버튼, 방문자 뷰는 없음)
- * mine 이면 겹침이 없어 범례를 빼고 "접속 중" 도 안 보임
- * onReport 를 주면(방문자 뷰) "접속 중" 대신 프로필 오른쪽 위에 신고 깃발 버튼 (Figma 510:13152)
+ * mine 이면 겹침이 없어 범례를 뺌
+ * onReport 를 주면(방문자 뷰) 프로필 오른쪽 위에 신고 깃발 버튼 (Figma 510:13152)
+ * "접속 중" 표시는 뺐음: 명세 "이번 범위에 없는 것 — '접속 중' · '방문 중' 표시" (2026-11-22)
  */
 export function RoomNoteBody({ owner, shared, mine = false, onReport, children }: { owner: User; shared: string[]; mine?: boolean; onReport?: () => void; children?: ReactNode }) {
   return (
@@ -62,7 +63,7 @@ export function RoomNoteBody({ owner, shared, mine = false, onReport, children }
       <div className={s.profile}>
         <Avatar size={64} circle />
         <div>
-          <p className={`display ${s.nick}`}>{owner.nickname} {owner.online && !mine && !onReport && <small className={s.online}>● 접속 중</small>}</p>
+          <p className={`display ${s.nick}`}>{owner.nickname}</p>
           <p className={s.aff}>{affOf(owner)}</p>
         </div>
         {onReport && (

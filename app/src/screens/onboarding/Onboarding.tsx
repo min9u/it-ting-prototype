@@ -2,18 +2,23 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
-import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
+import { DEFAULT_WORN, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
-import { CATEGORIES, ME_ID, toneOf } from '../../data/mock'
-import { MAX_PICK, setMyInterests, subOf, toSubIds } from '../../data/interests'
+import { ErrorState, SkeletonLines } from '../../components/AsyncState'
+import { ME_ID, toneOf } from '../../data/mock'
+import { MAX_PICK, interestCatOf, subOf, toSubIds } from '../../data/interests'
 import { placeWords } from '../../data/roomPlanV38'
 import { tileUrl, wallpaperOf } from '../../data/wallpapers'
-import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, recommendedQuestions } from '../../data/questions'
-import {
-  MIN_PICK, MOOD_NAMES, NICK_MAX, getMyProfile, interestFurnitureCount, leadCategory, myAffiliation, nickTaken, resetMyRoom, setMyProfile,
-} from '../../data/myBurrow'
+import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, recommendedQuestions, type Question } from '../../data/questions'
+import { MIN_PICK, MOOD_NAMES, NICK_MAX, interestFurnitureCount, leadCategory } from '../../data/myBurrow'
 import { NO_SAVED_ROOM, roomLookOf } from '../../data/roomLook'
 import type { Category } from '../../data/types'
+import { errorText, isApiError, toastApiError } from '../../api'
+import { toDtoId } from '../../api/common'
+import { useMe } from '../../api/auth'
+import {
+  ONBOARDING_ERRORS, interestIdsOf, toMoleDto, useCheckNickname, useCompleteOnboarding, useInterestCatalog, useIntroQuestions, type InterestCatalog,
+} from '../../api/onboarding'
 import QuestionList from './QuestionList'
 import s from './Onboarding.module.css'
 
@@ -24,6 +29,12 @@ import s from './Onboarding.module.css'
  *  → 3a 땅굴 만드는 중(버튼 없음, 끝나면 자동) → 4 땅굴 미리보기(관심사 재선택 / 관심사 확정)
  * 시안은 본문까지 Do Hyeon 이라 이 화면은 전부 display 서체.
  * 관심사는 2026-11-18 확정본 대분류 12 · 소분류 90 (data/interestTags.ts → data/interests.ts). 가구 배치는 data/roomPlan.ts
+ *
+ * API (명세 03 "화면마다 부르는 API", 2026-11-22):
+ *  1 "다음" → POST /nicknames/check (겹치면 칸 밑 문구) / 2 GET /interest-categories (칩 숫자 = 고른 사람 수) / 3 GET /intro-questions
+ *  3a · 4 미리보기는 API 없이 고른 관심사로 그림 (가구 · 무드는 프론트가 정함), 땅굴 정보 카드의 소속은 GET /me
+ *  4 "관심사 확정" → POST /me/onboarding/complete 한 번에 저장. 그 전에는 아무것도 저장하지 않음 (도중에 나가면 다음에 처음부터)
+ *  확정에서 NICKNAME_DUPLICATED 면 다른 값은 그대로 두고 온보딩 1 로 돌아가 닉네임만 다시 받음
  */
 
 const STEPS = [
@@ -56,12 +67,37 @@ export default function Onboarding() {
   const [answers, setAnswers] = useState<Record<string, string>>(() => (demo ? Object.fromEntries(recommendedQuestions(DEMO.picks).map((q, i) => [q.id, DEMO_ANSWERS[i]])) : {}))
   // 미리보기에서 "관심사 재선택"으로 돌아왔으면, 다시 고른 뒤 "다음"은 땅굴을 새로 만듦(3a → 4)
   const [repick, setRepick] = useState(false)
+  // 닉네임 칸 밑 오류 (닉네임 확인 · 확정에서 받은 것)
+  const [nickErr, setNickErr] = useState<string | null>(null)
+  // 확정에서 닉네임이 겹쳐 온보딩 1 로 돌아왔으면, 닉네임만 고친 뒤 "다음"은 바로 미리보기로
+  const [fixNick, setFixNick] = useState(false)
+  const catalog = useInterestCatalog()
+  const questions = useIntroQuestions()
+  const complete = useCompleteOnboarding()
 
   const idx = STEPS.findIndex((x) => x.key === step || (x.key === 'building' && step === 'preview'))
   if (idx < 0) return <Navigate to="/onboarding/name" replace />
   const go = (k: string) => { nav(`/onboarding/${k}`); window.scrollTo(0, 0) }
   const nick = name.trim() || '새벽산책'
-  const qna = qids.map((id) => ({ q: questionOf(id)?.text ?? '', a: (answers[id] ?? '').trim() }))
+  const qna = qids.map((id) => ({ q: questionOf(id, questions.data)?.text ?? '', a: (answers[id] ?? '').trim() }))
+  // 4 관심사 확정: 정한 값을 한 번에 보냄 (관심사 id 는 받은 관심사 목록으로 잇기 — api/onboarding interestMap)
+  const confirm = () => {
+    if (!catalog.data) return
+    let interestIds
+    try { interestIds = interestIdsOf(picks, catalog.data) } catch { toastApiError(null, '관심사를 확인하지 못했어요'); go('interests'); return }
+    complete.mutate({
+      nickname: name.trim(), mole: toMoleDto(worn), interestIds,
+      answers: qids.map((id) => ({ introQuestionId: toDtoId(id), answer: (answers[id] ?? '').trim() })),
+    }, {
+      onSuccess: () => nav('/burrow', { replace: true }),
+      onError: (e) => {
+        if (isApiError(e) && e.code === 'NICKNAME_DUPLICATED') { setNickErr(errorText(e, ONBOARDING_ERRORS)); setFixNick(true); go('name'); return }
+        if (isApiError(e) && e.code === 'INTEREST_NOT_FOUND') { toastApiError(e, '땅굴을 만들지 못했어요', ONBOARDING_ERRORS); go('interests'); return }
+        if (isApiError(e) && e.code === 'INTRO_QUESTION_NOT_FOUND') { toastApiError(e, '땅굴을 만들지 못했어요', ONBOARDING_ERRORS); go('intro'); return }
+        toastApiError(e, '땅굴을 만들지 못했어요', ONBOARDING_ERRORS)
+      },
+    })
+  }
 
   return (
     <div className={s.page}>
@@ -82,23 +118,22 @@ export default function Onboarding() {
       </nav>
       <main className={step === 'preview' ? s.bodyFull : s.body}>
         {step === 'name' && (
-          <NameStep name={name} setName={setName} worn={worn} setWorn={setWorn} onNext={() => go('interests')} />
+          <NameStep name={name} setName={(v) => { setName(v); setNickErr(null) }} worn={worn} setWorn={setWorn} error={nickErr} setError={setNickErr}
+            onNext={() => { if (fixNick) { setFixNick(false); go('preview') } else go('interests') }} />
         )}
         {step === 'interests' && (
-          <InterestStep picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => { if (repick) { setRepick(false); go('building') } else go('intro') }} />
+          <InterestStep catalog={catalog.data} loading={catalog.isLoading} error={catalog.error} onRetry={() => void catalog.refetch()}
+            picks={picks} setPicks={setPicks} onPrev={() => go('name')} onNext={() => { if (repick) { setRepick(false); go('building') } else go('intro') }} />
         )}
         {step === 'intro' && (
-          <IntroStep name={nick} worn={worn} picks={picks} qids={qids} setQids={setQids} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
+          <IntroStep questions={questions.data} loading={questions.isLoading} error={questions.error} onRetry={questions.refetch}
+            name={nick} worn={worn} picks={picks} qids={qids} setQids={setQids} answers={answers} setAnswers={setAnswers} onPrev={() => go('interests')} onNext={() => go('building')} />
         )}
-        {step === 'building' && <BuildStep name={nick} picks={picks} onDone={() => nav('/onboarding/preview', { replace: true })} />}
+        {step === 'building' && <BuildStep name={nick} picks={picks} categories={catalog.data?.categories} onDone={() => nav('/onboarding/preview', { replace: true })} />}
         {step === 'preview' && (
           <PreviewStep name={nick} worn={worn} picks={picks} qna={qna}
             onRepick={() => { setRepick(true); go('interests') }}
-            onConfirm={() => {
-              setMyProfile({ nickname: nick, intro: '', qna: qids.map((id) => ({ qid: id, a: (answers[id] ?? '').trim() })) })
-              // 새로 시작: 꾸민 것(가구 선택 · 직접 고른 벽지)을 비움 → 방 모습은 관심사로 계산 (data/roomLook.ts)
-              setMyWorn(worn); setMyInterests(picks); resetMyRoom()
-            }} />
+            onConfirm={confirm} busy={complete.isPending || !catalog.data} />
         )}
       </main>
     </div>
@@ -118,10 +153,19 @@ const PREVIEW_BLEED = { top: 328 - 28 - PREVIEW_SIZE + PREVIEW_OVERFLOW, right: 
  * 1 제목·안내 / 2 닉네임: 필수, 최대 12자 "n / 12", 겹치면 오류 문구 / 3 두더지 꾸미기: 머리·얼굴·목·손 하나씩("없음" 가능), 43개 모두 바로 고를 수 있음(관심사 연결 없음, 액세서리 v1.2)
  * 4 랜덤으로 꾸미기 / 5 미리보기(천천히 돌려 봄) / 6 고른 아이템(부위와 함께, ×로 해제) / 7 다음: 닉네임을 입력하면 활성
  */
-function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; onNext: () => void }) {
+function NameStep(p: { name: string; setName: (v: string) => void; worn: string[]; setWorn: (v: string[]) => void; error: string | null; setError: (v: string | null) => void; onNext: () => void }) {
   const [spin, setSpin] = useState(true)
   const trimmed = p.name.trim()
-  const taken = nickTaken(trimmed)
+  // 겹치는지는 서버가 정함: "다음"에서 POST /nicknames/check (성공하면 5분 동안 맡아 둠)
+  const check = useCheckNickname()
+  const taken = !!p.error
+  const next = () => check.mutate(trimmed, {
+    onSuccess: () => { p.setError(null); p.onNext() },
+    onError: (e) => {
+      if (isApiError(e) && (e.code === 'NICKNAME_DUPLICATED' || e.code === 'INVALID_INPUT')) p.setError(errorText(e, ONBOARDING_ERRORS))
+      else toastApiError(e, '닉네임을 확인하지 못했어요', ONBOARDING_ERRORS)
+    },
+  })
   // 랜덤: 부위마다 하나씩 (같이 못 끼는 조합은 빼고. 레벨 잠금 없음)
   const randomize = () => {
     const out: string[] = []
@@ -136,7 +180,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
     <>
       <div className={s.intro}>
         <h1>닉네임을 입력하세요</h1>
-        <p>실명이나 사진은 받지 않아요</p>
+        <p>실명은 받지 않아요</p>
       </div>
       <section className={s.card}>
         <div className={s.form}>
@@ -146,7 +190,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
               <input id="ob-nick" value={p.name} maxLength={NICK_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="다른 두더지에게 보이는 이름" autoComplete="off" aria-invalid={taken} />
               <span className={s.counter}>{p.name.length} / {NICK_MAX}</span>
             </div>
-            {taken && <span className={s.error}>이미 쓰고 있는 닉네임이에요. 다른 닉네임을 적어 주세요</span>}
+            {taken && <span className={s.error} role="alert">{p.error}</span>}
             {!taken && <span className={s.hintLine}>나중에 내 땅굴의 "내 정보 수정"에서 바꿀 수 있어요</span>}
           </div>
 
@@ -172,7 +216,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
       </section>
       <div className={s.actions}>
         <span />
-        <button className={s.next} disabled={!trimmed || taken} onClick={p.onNext}>다음</button>
+        <button className={s.next} disabled={!trimmed || taken || check.isPending} onClick={next}>{check.isPending ? '확인 중…' : '다음'}</button>
       </div>
     </>
   )
@@ -186,9 +230,11 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
  * 10개 채우면: "N · 최대 10개"의 "최대 10개"가 빨간 글씨, 안 고른 칩은 흐리게, 더 고르려 하면 안내 3초
  * 다른 대분류로 바꿔도 고른 내용은 그대로(상위 상태)
  */
-function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => string[]) => void; onPrev: () => void; onNext: () => void }) {
+function InterestStep(p: { catalog?: InterestCatalog; loading: boolean; error: unknown; onRetry: () => void; picks: string[]; setPicks: (f: (l: string[]) => string[]) => void; onPrev: () => void; onNext: () => void }) {
+  // 관심사 목록은 GET /interest-categories (대분류 12 · 세부 90 + 고른 사람 수)
+  const CATEGORIES = p.catalog?.categories ?? []
   // 처음 보는 분류: 고른 게 있으면 맨 앞 관심사의 분류(재선택으로 돌아왔을 때), 없으면 맨 위
-  const [catId, setCatId] = useState(() => subOf(p.picks[0] ?? '')?.category ?? CATEGORIES[0].id)
+  const [catId, setCatId] = useState(() => subOf(p.picks[0] ?? '')?.category ?? '')
   const [over, setOver] = useState(false)
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -205,6 +251,12 @@ function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => strin
         <h1>내 관심사 선택하기</h1>
         <p>최소 {MIN_PICK}개 · 최대 {MAX_PICK}개를 골라주세요</p>
       </div>
+      {!cat ? (
+        <section className={s.card} style={{ padding: 32, display: 'block' }}>
+          {p.loading ? <div role="status" aria-busy="true" aria-label="관심사를 불러오는 중"><SkeletonLines lines={6} /></div>
+            : <ErrorState error={p.error} onRetry={p.onRetry} title="관심사 목록을 불러오지 못했어요" />}
+        </section>
+      ) : (
       <section className={s.pickCols}>
         <nav className={s.catList} aria-label="관심 분야">
           {CATEGORIES.map((c) => {
@@ -248,6 +300,7 @@ function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => strin
           </div>
         </div>
       </section>
+      )}
       <div className={s.actions}>
         <span className={s.footNote}>나중에 언제든 바꿀 수 있어요.</span>
         <div className={s.btnRow}>
@@ -265,8 +318,11 @@ function InterestStep(p: { picks: string[]; setPicks: (f: (l: string[]) => strin
  * 3 고른 질문 3개 모두 필수, 답변 10~50자 "n / 50"(50자 넘으면 막음), "목록에서 다시 고르기"로 바꿈. 이전 단계로 가도 유지(상위 상태)
  * 4 미리보기: 내 땅굴 내 정보 카드 모습 / 5 다음: 3개 모두 10자 이상이면 활성 → 3a. 나중에 내 땅굴에서 수정할 수 있다는 안내
  */
-function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: string[]; setQids: (v: string[]) => void; answers: Record<string, string>; setAnswers: (v: Record<string, string>) => void; onPrev: () => void; onNext: () => void }) {
+function IntroStep(p: { questions?: Question[]; loading: boolean; error: unknown; onRetry: () => void; name: string; worn: string[]; picks: string[]; qids: string[]; setQids: (v: string[]) => void; answers: Record<string, string>; setAnswers: (v: Record<string, string>) => void; onPrev: () => void; onNext: () => void }) {
   const listRef = useRef<HTMLDivElement>(null)
+  // 질문 목록은 GET /intro-questions. 추천은 서버가 주지 않고 이 목록과 고른 관심사로 고름
+  const list = p.questions ?? []
+  const qOf = (id: string) => questionOf(id, list)
   const toggle = (id: string) => {
     if (p.qids.includes(id)) p.setQids(p.qids.filter((x) => x !== id))
     else if (p.qids.length < 3) p.setQids([...p.qids, id])
@@ -281,11 +337,15 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: str
       <section className={s.card}>
         <div className={s.qForm}>
           <div ref={listRef}>
-            <QuestionList picks={p.picks} selected={p.qids} max={3} onToggle={(q) => toggle(q.id)}
-              note={`${p.qids.length} / 3 골랐어요 · 추천: 관심사 질문 2개 + TMI 질문 1개`} />
+            {p.questions ? (
+              <QuestionList questions={list} picks={p.picks} selected={p.qids} max={3} onToggle={(q) => toggle(q.id)}
+                note={`${p.qids.length} / 3 골랐어요 · 추천: 관심사 질문 2개 + TMI 질문 1개`} />
+            ) : p.loading ? <div role="status" aria-busy="true" aria-label="질문을 불러오는 중"><SkeletonLines lines={5} /></div>
+              : <ErrorState compact error={p.error} onRetry={p.onRetry} title="질문 목록을 불러오지 못했어요" />}
           </div>
           {p.qids.map((id, i) => {
-            const q = questionOf(id)!
+            const q = qOf(id)
+            if (!q) return null
             const a = p.answers[id] ?? ''
             const short = a.trim().length > 0 && a.trim().length < ANSWER_MIN
             return (
@@ -315,7 +375,7 @@ function IntroStep(p: { name: string; worn: string[]; picks: string[]; qids: str
             </div>
             <dl className={s.qnaBox}>
               {p.qids.map((id, i) => (
-                <div key={id}><dt>Q{i + 1}. {questionOf(id)?.text}</dt>{(p.answers[id] ?? '').trim() && <dd>{(p.answers[id] ?? '').trim()}</dd>}</div>
+                <div key={id}><dt>Q{i + 1}. {qOf(id)?.text}</dt>{(p.answers[id] ?? '').trim() && <dd>{(p.answers[id] ?? '').trim()}</dd>}</div>
               ))}
               {p.qids.length === 0 && <div><dt>고른 질문이 여기에 보여요</dt></div>}
             </dl>
@@ -353,9 +413,10 @@ const GEN_STEPS = ['관심사 읽는 중', '무드와 물건 고르는 중', '�
  * 3 땅굴 무드: 대표 관심사(맨 앞)가 속한 대분류로 정한 무드 + 근거 관심사 태그 (대표 관심사가 달라질 때만 바뀜)
  * 4 가구 매칭: 고른 관심사 → 추천 가구(기본 가구) 카드를 차례로, 아직 안 채운 자리는 빈 카드. 다 되면 자동으로 온보딩 4 (버튼 없음)
  */
-function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onDone: () => void }) {
+function BuildStep({ name, picks, categories, onDone }: { name: string; picks: string[]; categories?: Category[]; onDone: () => void }) {
   const lead = leadCategory(picks) ?? 'pet_plant'
-  const leadCat = CATEGORIES.find((c) => c.id === lead)
+  // 무드 · 가구는 API 없이 프론트가 고른 관심사로 정함 (명세 03 "가구와 땅굴 무드"). 대분류 이름만 받은 목록에서 (없으면 앱 표)
+  const leadCat = categories?.find((c) => c.id === lead) ?? (interestCatOf(lead) ? { name: interestCatOf(lead)!.name_ko } as Category : undefined)
   const inLead = picks.filter((t) => subOf(t)?.category === lead)
   // 내 땅굴·남이 보는 내 땅굴과 같은 계산 (온보딩이라 꾸민 것은 없음)
   const wall = wallpaperOf(roomLookOf(ME_ID, picks, NO_SAVED_ROOM).wallpaper)
@@ -438,13 +499,14 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
  * 3 "관심사 가구 N개로 땅굴을 채웠어요. 마음에 들면 이대로 시작해요." / 4 관심사 재선택 → 온보딩 2(고른 관심사 유지, 다시 고르면 3a → 4)
  * 5 관심사 확정 → 온보딩을 마치고 내 땅굴 / 6 관심사는 나중에 내 정보에서 바꿀 수 있다는 안내
  */
-function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: string; worn: string[]; picks: string[]; qna: { q: string; a: string }[]; onRepick: () => void; onConfirm: () => void }) {
+function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm, busy }: { name: string; worn: string[]; picks: string[]; qna: { q: string; a: string }[]; onRepick: () => void; onConfirm: () => void; busy: boolean }) {
   // 내 땅굴과 같은 방 모습 (data/roomLook.ts, 온보딩이라 꾸민 것은 없음)
   const look = useMemo(() => roomLookOf(ME_ID, picks, NO_SAVED_ROOM), [picks])
   const total = interestFurnitureCount(picks)
-  // 미리보기에 들어오면 바로 내 관심사·꾸미기로 기록: "관심사 확정" 대신 위 로고 등으로 나가도 같은 방이 나오게 (예전 동작 유지).
-  // 벽지는 관심사로 계산되므로 따로 저장하지 않음
-  useEffect(() => { setMyInterests(picks); setMyWorn(worn) }, [picks, worn])
+  // 캠퍼스 · 기수 · 층은 화면에서 고른 값이 아니라 SSAFY 인증 때 저장한 값 → GET /me (명세 03 "화면마다 부르는 API")
+  const me = useMe()
+  const aff = me.data ? `SSAFY ${me.data.gen}기 · ${me.data.campus} · ${me.data.floor}층` : ''
+  // "관심사 확정" 전에는 아무것도 저장하지 않음 (명세 03: 도중에 나가면 저장되지 않음. 예전에는 미리보기에서 바로 기록했음)
   return (
     <div className={s.previewStage}>
       <RoomView ownerId={ME_ID} interests={picks} wallpaper={look.wallpaper} style={look.style} worn={worn} focusX={0.403} label={`${name}님의 땅굴 미리보기`}>
@@ -455,7 +517,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: st
           <h2>땅굴 정보</h2>
           <div className={s.profileTop}>
             <MoleWithItems size={64} radius={12} worn={worn} />
-            <div><strong>{name}님의 땅굴</strong><small className={s.aff}>{myAffiliation(getMyProfile())}</small><span>관심사 가구 {total}개</span></div>
+            <div><strong>{name}님의 땅굴</strong><small className={s.aff}>{aff}</small><span>관심사 가구 {total}개</span></div>
           </div>
           <dl className={s.qnaFull}>
             {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}
@@ -469,7 +531,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: st
           <p>관심사 가구 {total}개로 땅굴을 채웠어요.<br />마음에 들면 이대로 시작해요.</p>
           <div className={s.confirmBtns}>
             <button className={s.outline} onClick={onRepick}>관심사 재선택</button>
-            <Link to="/burrow" className={s.next} onClick={onConfirm}>관심사 확정</Link>
+            <button className={s.next} onClick={onConfirm} disabled={busy} aria-busy={busy}>{busy ? '땅굴을 만드는 중…' : '관심사 확정'}</button>
           </div>
           <small>관심사는 나중에 내 정보에서 바꿀 수 있어요.</small>
         </section>
