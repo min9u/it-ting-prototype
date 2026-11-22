@@ -24,6 +24,8 @@
 
 ## 1. 채팅 실시간 연결 (`app/src/realtime/`)
 
+> **2026-11-22 바뀜**: 백엔드 확정 명세(v1)는 WebSocket + STOMP 대신 **SSE 하나(`GET /api/v1/me/event-stream`) + 보내기는 일반 API** 다. 아래 1-1 ~ 1-4 의 STOMP 허브(`hub` · `stompTransport` · `mockTransport` · `order` · `protocol`)는 지웠고, 지금 구조 · 손잡이는 [api-v1/06-chat.md](backend/api-v1/06-chat.md). 1-5 표는 새 손잡이로 바꿨다. 아래 1-1 ~ 1-4 는 기록으로 둔다
+
 ### 1-1. 구조
 ```
 화면 (Chat.tsx)                  ← 지금과 같은 함수: send · markRead · useChat …
@@ -81,17 +83,16 @@
 | 방 상태 | `ROOM { kind: MEMBER_LEFT·MEMBER_GONE·NOTICE, payload }` (상대 나감·탈퇴·공지) | `chat_room_member.left_at`, `member.withdrawn_at`, `chat_room.notice` |
 | 알림 | `NOTIFICATION { notification: { id, type, targetType, targetId, actorId, createdAt, text? } }` | `notification` 표와 같음. 화면 문구를 서버가 줄지(`text`) 정할 것 |
 
-### 1-5. 손잡이
+### 1-5. 손잡이 (2026-11-22, SSE + REST)
 | 손잡이 | 뜻 |
 |---|---|
-| `VITE_REALTIME=mock`(기본) · `stomp` | 목 서버 / 실제 서버 (`app/.env.local`) |
-| `VITE_WS_URL` | WebSocket 주소 (기본 `/ws`, 상대 경로면 페이지 출처에 ws/wss) |
-| 주소 `?rt=flaky` | 목 서버가 20~40초마다 2~8초 끊김. 끊긴 동안 상대 메시지가 와서 "다시 받기"를 볼 수 있음 |
-| 주소 `?rt=down` | 목 서버가 꺼진 것처럼 (연결 실패 · 보낸 메시지는 60초 뒤 실패) |
-| 콘솔 `__digulRealtime.mock.drop(5000, { roomId: 'r-yerin', from: 'yerin', text: '…' })` | 지금 끊고 5초 못 붙음 + 끊긴 동안 메시지 (개발 서버 또는 `?rt=` 가 있을 때만 보임) |
-| `__digulRealtime.mock.rejectNext('BLOCKED')` · `.incoming(roomId, from, text)` · `.notify(text)` | 다음 보내기 거절 · 상대 메시지 · 알림 |
-| `configureRealtime({ history, connectHeaders, url })` | API 계층이 다시 받기(REST)·토큰 헤더를 바꿔 끼움 |
-| `subscribeNotifications(cb)` | 알림 구독 함수 (아직 알림 저장소에 잇지 않음, 7장) |
+| `VITE_API_REAL_AREAS=chat,events` | 채팅 API · 실시간 소식을 실제 서버로 (`events` 는 SSE 연결, 공통) |
+| 주소 `?rt=flaky` | 목 실시간 연결이 20~40초마다 2~8초 끊김. 끊긴 동안 상대 메시지가 와서, 다시 붙으면 조회 API 로 받아 오는 것을 볼 수 있음 |
+| 주소 `?rt=down` | 목 실시간 서버가 꺼진 것처럼 (띠 "채팅 서버에 연결하지 못했어요"). 보내기는 REST 라 그대로 됨 |
+| 주소 `?rt=quiet` | 목 상대 답장 끔 |
+| 주소 `?api=writefail` | 보내기 실패 → 말풍선 "다시 보내기 · 지우기" |
+| 콘솔 `__digulChat.incoming('r-yerin', '안녕')` · `.request('kim', '인사')` · `.partnerLeaves('r-mingu')` · `.drop(5000)` | 상대 메시지 · 새 대화 요청(요청 N) · 상대가 나감(읽기 전용) · 연결 끊기 (개발 서버 또는 `?rt=` 가 있을 때) |
+| 콘솔 `__digulEvents.mock.emit(이름, 값)` | 아무 소식이나 서버가 보낸 것처럼 (공통) |
 
 ---
 
