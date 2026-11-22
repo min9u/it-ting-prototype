@@ -5,11 +5,12 @@ import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../compon
 import { DEFAULT_WORN, MAX_WORN, setMyWorn, MOLE_ITEMS, MOLE_PARTS, blockedBy } from '../../data/moleItems'
 import RoomView from '../../components/RoomView'
 import { CATEGORIES, ME_ID, toneOf } from '../../data/mock'
-import { MAX_PICK, setMyInterests, subOf } from '../../data/interests'
+import { MAX_PICK, setMyInterests, subOf, toSubIds } from '../../data/interests'
+import { placeWords } from '../../data/roomPlanV38'
 import { tileUrl, wallpaperOf } from '../../data/wallpapers'
 import { ANSWER_MAX, ANSWER_MIN, answerOk, questionOf, questionTag, recommendedQuestions } from '../../data/questions'
 import {
-  MIN_PICK, MOOD_NAMES, NICK_MAX, defaultFurniture, interestFurnitureCount, leadCategory, nickTaken, resetMyRoom, setMyProfile,
+  MIN_PICK, MOOD_NAMES, NICK_MAX, getMyProfile, interestFurnitureCount, leadCategory, myAffiliation, nickTaken, resetMyRoom, setMyProfile,
 } from '../../data/myBurrow'
 import { NO_SAVED_ROOM, roomLookOf } from '../../data/roomLook'
 import type { Category } from '../../data/types'
@@ -356,7 +357,8 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
   const inLead = picks.filter((t) => subOf(t)?.category === lead)
   // 내 땅굴·남이 보는 내 땅굴과 같은 계산 (온보딩이라 꾸민 것은 없음)
   const wall = wallpaperOf(roomLookOf(ME_ID, picks, NO_SAVED_ROOM).wallpaper)
-  const rows = useMemo(() => picks.map((t) => ({ tag: t, row: defaultFurniture(subOf(t)?.id ?? '') })).filter((x) => x.row), [picks])
+  // v3.8: 소분류("/"로 쪼갠 첫 단어)마다 모델 하나 (data/interestWords · roomPlanV38 placeWords, 방 3D 와 같은 계산)
+  const rows = useMemo(() => placeWords(toSubIds(picks)).placed.map((x) => ({ tag: subOf(x.sub)?.name_ko ?? x.sub, name: x.word.name })), [picks])
   const [t, setT] = useState(0)
   const gap = Math.min(0.45, 6 / Math.max(1, rows.length))
   const rowsAt = (n: number) => 1.6 + n * gap
@@ -418,7 +420,7 @@ function BuildStep({ name, picks, onDone }: { name: string; picks: string[]; onD
             <Arrow />
             <div className={s.furnResult}>
               <span className={s.cube} style={{ background: `var(--tone-${toneOf(r.tag)}-bg)`, color: `var(--tone-${toneOf(r.tag)}-fg)` }}><Cube /></span>
-              <strong>{r.row!.name_ko}</strong>
+              <strong>{r.name}</strong>
             </div>
           </li>
         ) : <li key={r.tag} className={s.furnSkel} aria-hidden><span /><span /><span /><span /></li>)}
@@ -451,7 +453,7 @@ function PreviewStep({ name, worn, picks, qna, onRepick, onConfirm }: { name: st
           <h2>땅굴 정보</h2>
           <div className={s.profileTop}>
             <MoleWithItems size={64} radius={12} worn={worn} />
-            <div><strong>{name}님의 땅굴</strong><span>관심사 가구 {total}개</span></div>
+            <div><strong>{name}님의 땅굴</strong><small className={s.aff}>{myAffiliation(getMyProfile())}</small><span>관심사 가구 {total}개</span></div>
           </div>
           <dl className={s.qnaFull}>
             {qna.map((x, i) => <div key={i}><dt>Q{i + 1}. {x.q}</dt><dd>{x.a || '아직 답하지 않았어요'}</dd></div>)}

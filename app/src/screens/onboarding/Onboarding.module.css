@@ -142,6 +142,7 @@
 .profileTop { display: flex; align-items: center; gap: 14px; }
 .profileTop strong { display: block; font-size: 17px; font-weight: 400; }
 .profileTop span { display: block; margin-top: 4px; font-size: 13px; color: var(--ink-700); }
+.profileTop .aff { display: block; margin-top: 3px; font-size: 12px; color: var(--ink-500); font-family: var(--font-body); }
 .qnaBox { background: var(--ob-field); border-radius: 12px; padding: 16px 14px; display: flex; flex-direction: column; gap: 12px; margin: 0; }
 .qnaBox dt { font-size: 13px; color: var(--ink-800); }
 .qnaBox dd { margin: 6px 0 0; font-size: 13px; color: #b19a88; overflow-wrap: anywhere; }

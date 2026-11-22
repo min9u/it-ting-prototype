@@ -6,6 +6,7 @@
  * - 방 모습(벽지·가구 선택)은 내 땅굴과 남이 보는 내 땅굴이 같은 함수로 정함 → data/roomLook.ts roomLookOf
  */
 import { wordsOfSub } from './interestWords'
+import { placeWords } from './roomPlanV38'
 import { ME_ID, USERS } from './mock'
 import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
 import { FURNITURE_CATALOG, type FurnitureRow, type RoomPlan } from './roomPlan'
@@ -165,8 +166,8 @@ export function applyChoice(plan: RoomPlan, c: FurnChoice | undefined): RoomPlan
     }),
   }
 }
-/** 관심사 가구 수 = 가구가 있는 세부 관심사 수 */
-export const interestFurnitureCount = (picks: string[]) => toSubIds(picks).filter((id) => defaultFurniture(id)).length
+/** 관심사 가구 수 = 방에 놓인 관심사 소품 수 (v3.8: 세부 관심사마다 모델 하나, 온보딩 3a·4 와 방이 같은 계산) */
+export const interestFurnitureCount = (picks: string[]) => placeWords(toSubIds(picks)).placed.length
 /** 화면 이름 → 세부 관심사 이름 (관심사 이름 그대로) + 대분류 이름 */
 export const subLabel = (subId: string) => subOf(subId)?.name_ko ?? subId
 export const catLabelOfSub = (subId: string) => interestCatOf(subOf(subId)?.category ?? '')?.name_ko ?? ''
