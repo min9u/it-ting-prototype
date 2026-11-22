@@ -1,68 +1,145 @@
 /**
- * 06 채팅 DTO. 명세: docs/backend/team-spec/api/06-chat.md
- *
- * 아래는 옛 초안(docs/backend/api-draft.md, 2026-11-16)의 모양을 그대로 옮긴 것이다 (공통 계층 작업 때 동작을 바꾸지 않으려고).
- * 채팅 작업자가 명세 모양(숫자 id = Id, 시각 = UtcInstant, 사람 = UserDisplayDto …)으로 바꾼다. 공통 타입은 '../common'
+ * 06 채팅 DTO — 명세 그대로. docs/backend/team-spec/api/06-chat.md
+ * id 는 숫자(Id), 시각은 UTC(UtcInstant), 사람은 사용자 표시(UserDisplayDto), 관심사는 InterestTagDto, 값이 없으면 null
  */
-import type { LegacyId } from '../common/legacy'
-import type { MemberProfileDto, MemberSummaryDto } from '../common/legacy'
+import type { Id, InterestTagDto, UserDisplayDto, UtcInstant } from '../common/types'
 
-/** 초안의 시각 (ISO 8601). 명세는 UtcInstant */
-type IsoDateTime = string
-
+/* ===== 값 ===== */
 /** chat_room.type */
 export type ChatRoomType = 'DIRECT' | 'MEETUP'
-/** chat_message.type */
-export type ChatMessageType = 'TEXT' | 'SYSTEM' | 'MEETUP_SHARE'
-/** chat_request.status */
-export type ChatRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELED' | 'EXPIRED'
+/** chat_message.type. TEXT 가 아닌 것은 안내 메시지 (문구는 프론트가 type 과 sender 닉네임으로 만듦) */
+export type ChatMessageType = 'TEXT' | 'ACCEPTED' | 'JOINED' | 'LEFT' | 'WITHDRAWN'
+/** 나가기 버튼이 지금 하는 일 ("대화방에서 나가기" 표) */
+export type ChatLeaveType = 'LEAVE_ROOM' | 'CANCEL_PARTICIPATION' | 'NOT_ALLOWED'
+/** GET /me/chat-requests 의 direction */
+export type ChatRequestDirection = 'RECEIVED' | 'SENT'
 
-/* ===== 채팅 (REST: 방 목록 · 요청. 메시지 주고받기는 실시간 작업) ===== */
-export interface ChatMessagePreviewDto {
-  id: LegacyId
-  type: ChatMessageType
-  senderId: LegacyId | null
-  senderNickname: string | null
-  content: string | null
-  /** MEETUP_SHARE 일 때 공유한 모임 */
-  meetupId: LegacyId | null
-  meetupTitle: string | null
-  createdAt: IsoDateTime
-}
-export interface ChatRoomSummaryDto {
-  id: LegacyId
-  type: ChatRoomType
-  /** MEETUP 방이면 모임 */
-  meetupId: LegacyId | null
-  /** MEETUP 방은 모임 이름, DIRECT 방은 상대 닉네임 (탈퇴하면 "탈퇴한 사용자") */
+/** 글자 수 · 개수 (명세 "명세에 없어 이 문서에서 정한 것" 글자 수와 첨부) */
+export const CHAT_MESSAGE_MAX = 1000
+export const CHAT_NOTICE_MAX = 200
+export const CHAT_IMAGES_MAX = 3
+/** 메시지 한 번에 받는 개수 (명세 기본 30, 1 ~ 100) */
+export const CHAT_MESSAGES_PAGE = 30
+
+/* ===== 메시지 (목록 · 마지막 메시지 · 보낸 뒤 응답 · 실시간 소식이 같은 모양) ===== */
+export interface ChatMeetupCardDto {
+  meetupId: Id
   title: string
-  /** DIRECT 방의 상대 */
-  partner: MemberSummaryDto | null
-  /** 대표 관심사 이름 (목록 타일 색) */
-  topic: string | null
-  /** 지금 참여자 수 (left_at 이 없는 사람) */
-  memberCount: number
-  lastMessage: ChatMessagePreviewDto | null
-  /** chat_room_member.last_read_message_id 이후 메시지 수 (서버 계산) */
+  startsAt: UtcInstant
+  /** 정원 (주최자 포함) */
+  capacity: number
+  /** 확정 인원 (주최자 포함) */
+  confirmedCount: number
+}
+export interface ChatImageDto { id: Id; url: string }
+export interface ChatMessageDto {
+  /** 같은 방 안에서 클수록 나중 */
+  id: Id
+  type: ChatMessageType
+  /** 보낸 사람, 또는 안내를 일으킨 사람 */
+  sender: UserDisplayDto
+  /** 안내 메시지 · 사진만 보낸 메시지는 null */
+  content: string | null
+  /** 본문에 모임 링크가 있을 때 (첫 링크만). 없거나 지운 모임이면 null */
+  meetupCard: ChatMeetupCardDto | null
+  /** 보낸 순서, 없으면 [] */
+  images: ChatImageDto[]
+  createdAt: UtcInstant
+}
+
+/* ===== GET /me/chat-rooms ===== */
+export interface ChatRoomSummaryDto {
+  id: Id
+  type: ChatRoomType
+  /** 1:1 상대 (모임이면 null) */
+  counterpart: UserDisplayDto | null
+  /** 모임 대화방의 모임 (1:1 이면 null) */
+  meetup: { id: Id; title: string } | null
+  lastMessage: ChatMessageDto | null
   unreadCount: number
-  /** 읽기 전용이 된 까닭 */
-  closedReason: 'PARTNER_LEFT' | 'PARTNER_WITHDRAWN' | null
-  /** 모임이 끝났거나 취소됨 */
-  ended: boolean
+  /** 상대가 나갔거나 탈퇴한 1:1. 모임은 늘 false */
+  isReadOnly: boolean
 }
+
+/* ===== GET /chat-rooms/{chatRoomId} ===== */
+export interface ChatRoomMeetupDto {
+  id: Id
+  hostId: Id
+  title: string
+  /** 07 모임의 카테고리 enum */
+  category: string
+  startsAt: UtcInstant
+  endsAt: UtcInstant | null
+  mode: 'OFFLINE' | 'ONLINE'
+  place: string | null
+  placeDetail: string | null
+  joinUrl: string | null
+  capacity: number
+  confirmedCount: number
+  isCanceled: boolean
+}
+export interface ChatRoomMemberDto { user: UserDisplayDto; isHost: boolean; isMe: boolean }
+export interface ChatRoomDetailDto {
+  id: Id
+  type: ChatRoomType
+  isReadOnly: boolean
+  leaveType: ChatLeaveType
+  counterpart: UserDisplayDto | null
+  /** 1:1 에서 함께 고른 관심사 (상대가 고른 순서). 모임이면 [] */
+  sharedInterests: InterestTagDto[]
+  meetup: ChatRoomMeetupDto | null
+  notice: string | null
+  canEditNotice: boolean
+  /** 지금 대화방에 있는 사람 (주최자 먼저, 그다음 들어온 순서). 1:1 이면 [] */
+  members: ChatRoomMemberDto[]
+}
+
+/* ===== 메시지 · 읽음 · 공지 ===== */
+export interface ChatMessagesQuery { size?: number; cursor?: string | null }
+/** POST /chat-rooms/{id}/messages. 글 없이 사진만이면 content null */
+export interface SendChatMessageRequest { content: string | null; imageIds: Id[] }
+/** POST /chat-rooms/{id}/read */
+export interface ChatReadRequest { messageId: Id }
+export interface ChatReadResponse { unreadCount: number }
+/** PUT /chat-rooms/{id}/notice */
+export interface ChatNoticeRequest { content: string }
+export interface ChatNoticeResponse { notice: string }
+
+/* ===== 대화 요청 ===== */
 export interface ChatRequestDto {
-  id: LegacyId
-  /** 내 기준 방향 */
-  direction: 'RECEIVED' | 'SENT'
-  counterpart: MemberProfileDto
-  /** VARCHAR(50) */
+  id: Id
+  /** 받은 요청이면 보낸 사람, 보낸 요청이면 받는 사람 */
+  counterpart: UserDisplayDto
+  /** 인사 (없으면 null) */
   message: string | null
-  status: ChatRequestStatus
-  /** 어디서 요청했나 (ERD 에 없음 → erd-gaps): 땅굴 방문 · 같은 모임 · 그 밖 */
-  context: 'BURROW_VISIT' | 'SAME_MEETUP' | 'OTHER'
-  createdAt: IsoDateTime
-  /** created_at + 5일 */
-  expiresAt: IsoDateTime
-  chatRoomId: LegacyId | null
+  sharedInterests: InterestTagDto[]
+  createdAt: UtcInstant
+  expiresAt: UtcInstant
 }
-export interface AcceptChatRequestResponse { chatRoomId: LegacyId }
+export interface ChatRequestCountDto { receivedCount: number; sentCount: number }
+export interface AcceptChatRequestResponse { chatRoomId: Id }
+/** 409 CHAT_REQUEST_ALREADY_ACCEPTED 의 error.detail */
+export interface ChatRequestAlreadyAcceptedDetail { chatRoomId: Id }
+
+/* ===== 사진 올리기 (08 커뮤니티 POST /images 의 응답. 커뮤니티 영역이 만들면 그것을 씀) ===== */
+export interface UploadedImageDto { imageId: Id; url: string }
+
+/* ===== 실시간 소식 (GET /me/event-stream 으로 옴) ===== */
+export const CHAT_MESSAGE_CREATED = 'CHAT_MESSAGE_CREATED'
+export const CHAT_REQUEST_COUNT_CHANGED = 'CHAT_REQUEST_COUNT_CHANGED'
+export interface ChatMessageCreatedEvent {
+  chatRoomId: Id
+  message: ChatMessageDto
+  /** 이 소식을 받는 사람의, 그 방의 안 읽은 수 */
+  unreadCount: number
+}
+export interface ChatRequestCountChangedEvent { receivedCount: number }
+
+/* ===== 옛 초안 (05 탐색 · 방문의 POST /chat-requests 를 탐색 작업자가 옮기기 전까지 방문자 뷰가 씀) ===== */
+/** @deprecated 05 의 대화 요청 보내기 응답 모양. 탐색 영역으로 옮기면 지운다 */
+export interface SendChatRequestResponse {
+  chatRequestId: Id | null
+  createdAt: UtcInstant | null
+  expiresAt: UtcInstant | null
+  chatRoomId: Id | null
+}
