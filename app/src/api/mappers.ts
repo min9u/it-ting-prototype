@@ -179,7 +179,7 @@ const TYPE_LABEL: Record<string, string> = {
   MEETUP_MEMBER_LEFT: '참여 취소', MEETUP_KICKED: '모임에서 내보내짐', MEETUP_UPDATED: '모임 정보 수정', MEETUP_CANCELED: '모임 취소',
   MEETUP_STARTING_SOON: '모임 일정 임박', MEETUP_VACANCY: '빈자리 생김', CHAT_MESSAGE: '새 메시지', CHAT_REQUEST_RECEIVED: '대화 요청',
   CHAT_REQUEST_ACCEPTED: '대화 요청 수락', POST_COMMENTED: '내 글에 댓글', COMMENT_REPLIED: '내 댓글의 답글', POST_LIKED: '내 글 좋아요',
-  COMMENT_LIKED: '댓글 좋아요', REPLY_LIKED: '답글 좋아요', POST_HIDDEN: '신고로 가려짐', GUESTBOOK_WRITTEN: '방명록 새 글', SERVICE_NOTICE: '서비스 공지',
+  COMMENT_LIKED: '댓글 좋아요', REPLY_LIKED: '답글 좋아요', POST_HIDDEN: '신고로 가려짐', COMMENT_HIDDEN: '내 댓글 신고로 가려짐', GUESTBOOK_WRITTEN: '방명록 새 글', GUESTBOOK_HIDDEN: '방명록 글 신고로 가려짐', SERVICE_NOTICE: '서비스 공지',
 }
 const GONE_OF: Record<string, GoneKind> = { MEETUP: 'meetup', POST: 'post', COMMENT: 'post', BURROW: 'burrow', CHAT_ROOM: 'chat', CHAT_REQUEST: 'chat', NOTICE: 'notice' }
 /** 알림을 누르면 갈 곳: 서버는 (type, target) 만 주고 주소는 프론트가 정함 (주소 구조가 바뀌어도 서버는 그대로) */

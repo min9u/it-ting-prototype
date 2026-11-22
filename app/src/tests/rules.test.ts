@@ -17,7 +17,7 @@ import { INTEREST_SUBS } from '../data/interests'
 import { BLOCKED_PAIRS, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, handVisible, itemOf, NONE_ICON, wornByPart } from '../data/moleItems'
 import { handHiddenInChat } from '../three/moleDress'
 import { NOTICE_TTL_DAYS, visibleNotices, type AppNotice, type NoticeKind } from '../data/notifications'
-import { HIDE_AT, getPost, hotPosts, reportPost, scoreOf, usePosts, type BoardPost } from '../data/boardStore'
+import { HIDE_AT, getPost, hotPosts, reportPost, scoreOf, updatePost, usePosts, type BoardPost } from '../data/boardStore'
 import { USERS } from '../data/mock'
 
 describe('비밀번호 (00 공통 9: 8자 이상, 영문·숫자·특수기호 !@#$% 각 1개 이상, 그 밖의 문자는 못 씀)', () => {
@@ -200,6 +200,28 @@ describe('커뮤니티 (F8 10 인기 글 · 신고 4)', () => {
       const a = hot[i - 1], b = hot[i]
       expect(scoreOf(a) > scoreOf(b) || (scoreOf(a) === scoreOf(b) && a.at >= b.at)).toBe(true)
     }
+  })
+  it('인기 점수는 좋아요 수 하나: 댓글 · 저장이 많아도 점수가 안 오름 (11-20 명세)', () => {
+    const p = usePostsSnapshot().find((x) => x.status === 'public')!
+    const base = scoreOf(p)
+    expect(base).toBe(p.likes + (p.liked ? 1 : 0))
+    expect(scoreOf({ ...p, saves: p.saves + 50 })).toBe(base)
+    expect(scoreOf({ ...p, commentTotal: 999, comments: [] })).toBe(base)
+    expect(scoreOf({ ...p, likes: p.likes + 3 })).toBe(base + 3)
+  })
+  it('"수정됨"은 제목이나 본문을 고쳤을 때만 붙음 (카테고리 · 태그 · 사진 · 모임 연결만 바꾸면 안 붙음)', () => {
+    const p = usePostsSnapshot().find((x) => x.status === 'public' && !x.editedAt && x.authorId === 'me')
+      ?? usePostsSnapshot().find((x) => x.status === 'public' && !x.editedAt)!
+    const draft = () => ({ category: p.category, title: p.title, body: p.body, interests: p.interests, photos: p.photos, meetupId: p.meetupId })
+    updatePost(p.id, { ...draft(), interests: [...p.interests, '게임'] })
+    expect(getPost(p.id)!.editedAt, '태그만 바꿈').toBeUndefined()
+    updatePost(p.id, { ...draft(), category: p.category === '자유' ? '모임 후기' : '자유' })
+    expect(getPost(p.id)!.editedAt, '카테고리만 바꿈').toBeUndefined()
+    updatePost(p.id, { ...draft(), title: p.title + '!' })
+    const t = getPost(p.id)!.editedAt
+    expect(t, '제목을 고침').toBeGreaterThan(0)
+    updatePost(p.id, { ...draft(), title: p.title + '!', interests: [] })
+    expect(getPost(p.id)!.editedAt, '이미 붙은 것은 태그만 바꿔도 그대로').toBe(t)
   })
   it(`신고: 같은 사람은 한 번, 신고 수가 ${HIDE_AT}이 되면 가려짐`, () => {
     const p = usePostsSnapshot().find((x) => x.status === 'public' && !x.reportedByMe)!

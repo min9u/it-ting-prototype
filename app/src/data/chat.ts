@@ -446,14 +446,24 @@ export function acceptRequest(reqId: string): string | null {
   emit()
   return id
 }
-/** 거절(받은 요청) · 취소(보낸 요청): 상대에게 알리지 않음 */
+/**
+ * 거절(받은 요청) · 취소(보낸 요청): 상대에게 알리지 않음.
+ * 보낸 요청은 상대가 거절했든 안 했든(만료 전이면) 똑같이 취소된다 — 거절된 것이 드러나지 않게 (F6 보낸 요청 2, 11-20).
+ * 목 데이터에는 "거절된 보낸 요청"이라는 상태가 따로 없어서 보낸 요청은 늘 "답변 기다리는 중"이고 늘 취소할 수 있다
+ */
 export function dropRequest(reqId: string) {
   state.requests = state.requests.filter((r) => r.id !== reqId)
   emit()
 }
-/** 방문자 뷰 "대화 요청하기" → 보낸 요청 */
+/** 상대가 먼저 나에게 보냈고 내가 아직 답하지 않은 요청 (받은 요청에 남아 있는 것) */
+export const receivedFrom = (userId: string, s = state) => liveRequests(s).find((r) => r.direction === 'received' && r.userId === userId)
+/**
+ * 방문자 뷰 "대화 요청하기" → 보낸 요청.
+ * 상대가 먼저 나에게 보낸 요청에 내가 아직 답하지 않았으면 새 요청을 만들지 않는다(화면은 토스트로 안내, F5 방문자 뷰 4 · F6 11-20).
+ * 내가 거절해서 사라진 요청은 여기서 안 막음
+ */
 export function sendRequest(userId: string, message: string, context = '내가 먼저 대화를 요청했어요') {
-  if (sentRequestTo(userId) || dmRoomWith(userId)) return
+  if (sentRequestTo(userId) || dmRoomWith(userId) || receivedFrom(userId)) return
   state.requests = [{ id: mid(), direction: 'sent', userId, message, at: Date.now(), context }, ...state.requests]
   emit()
 }

@@ -208,7 +208,7 @@ export const canCancel = (m: MeetupX) => !isPast(m) && !m.cancelled
 /** 모임 카테고리 이름과 색 (관심사와 관계없음 — 명세 07) */
 export const catNameOf = (category: string) => meetupCategoryOf(category)?.name ?? category
 export const toneOfMeetup = (m: Meetup): Tone => meetupToneOf(m.category)
-/** 장소 표시: 오프라인은 캠퍼스를 앞에 */
+/** 카드 · 일정의 장소 줄: 온라인은 "온라인", 오프라인은 "지역 · 오프라인". 캠퍼스는 붙이지 않음(모임에 캠퍼스 없음, 팀 명세 07) */
 export const placeLine = (m: MeetupX) => (m.mode === '온라인' ? '온라인' : `${m.area} · 오프라인`)
 
 /** 내 모임 분류 */
