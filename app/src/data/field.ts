@@ -12,6 +12,7 @@
 import { CATEGORIES, ME_ID, USERS } from './mock'
 import { getMyInterests } from './interests'
 import { CAMPUS_FLOORS } from './campusFloors'
+import { GENERATIONS } from './auth'
 import type { QnA, User } from './types'
 
 export interface FieldUser extends User {
@@ -131,17 +132,24 @@ const KNOWN: Record<string, { campus: string; gen: number; floor: number; seat: 
   choi: { campus: '구미', gen: 16, floor: 2, seat: 3 },
 }
 
+/**
+ * 오늘의 추천 친구(기수를 고름)가 "0명"으로 나오지 않게: 이번 학기 들판은 어느 기수를 골라도 후보가 3명 이상 있어야 함 (2026-11-22).
+ * 기수 목록(GENERATIONS 5개)마다 이 수만큼은 목 사용자를 반드시 두어 채움 (실명 목 · 나 · 단골이 후보에서 빠져도 3명이 남게 3명 + 여유 1)
+ */
+export const MIN_PER_GEN = 4
+const GEN_NUMS = GENERATIONS.map((g) => parseInt(g, 10))
 /** 들판마다 배정된 번호 (가장 큰 번호)와 탈퇴로 빈 번호. 이번 학기 서울-2층은 38자리 → 구역 2개 */
 const FLOOR_FILL: Record<string, { max: number; vacant?: number[] }> = {
   [floorId(CURRENT_TERM, '서울', 2)]: { max: 38, vacant: [7, 31] },
   [floorId(CURRENT_TERM, '서울', 3)]: { max: 61, vacant: [20] },
-  [floorId(CURRENT_TERM, '서울', 12)]: { max: 17 },
+  [floorId(CURRENT_TERM, '서울', 12)]: { max: 25 },
   [floorId(CURRENT_TERM, '대전', 1)]: { max: 24 },
-  [floorId(CURRENT_TERM, '대전', 2)]: { max: 9 },
+  [floorId(CURRENT_TERM, '대전', 2)]: { max: 25 },
   [floorId(CURRENT_TERM, '광주', 1)]: { max: 31 },
-  [floorId(CURRENT_TERM, '구미', 2)]: { max: 12 },
-  [floorId(CURRENT_TERM, '구미', 3)]: { max: 6 },
-  [floorId(CURRENT_TERM, '부울경', 1)]: { max: 0 }, // 빈 들판 (빈 상태 확인용)
+  [floorId(CURRENT_TERM, '구미', 2)]: { max: 25 },
+  [floorId(CURRENT_TERM, '구미', 3)]: { max: 25 },
+  [floorId(CURRENT_TERM, '부울경', 1)]: { max: 25 },
+  [floorId('2026 상반기', '부울경', 1)]: { max: 0 }, // 빈 들판 (빈 상태 확인용. 이번 학기 들판은 추천 후보가 있어야 해서 지난 학기로 둠)
   [floorId('2026 상반기', '서울', 12)]: { max: 44 },
 }
 
@@ -151,7 +159,7 @@ export interface FieldData { floor: Floor; residents: Resident[]; /** 배정된 
 const residentCache = new Map<string, FieldData>()
 const byId = new Map<string, FieldUser>()
 
-function makeUser(f: Floor, seat: number): FieldUser {
+function makeUser(f: Floor, seat: number, genOf?: number): FieldUser {
   const r = rng(`${f.id}#${seat}`)
   const n = 3 + Math.floor(r() * 6)
   const interests: string[] = []
@@ -159,7 +167,7 @@ function makeUser(f: Floor, seat: number): FieldUser {
   const qs = [...QUESTIONS].sort(() => r() - .5).slice(0, 3)
   const qna: QnA[] = qs.map((q, i) => ({ q: `Q${i + 1}. ${q}`, a: pick(r, ANSWERS[q]) }))
   const nick = pick(r, NAMES)
-  const gen = r() < .8 ? 16 : 15
+  const gen = (() => { const x = r(); return genOf ?? (x < .8 ? 16 : 15) })()
   return {
     id: `f${hash(f.id).toString(36)}-${seat}`, nickname: nick, affiliation: '', intro: pick(r, INTROS), interests, qna,
     online: r() < .25, worn: pick(r, WORN), campus: f.campus, gen, floor: f.floor,
@@ -174,11 +182,20 @@ export function fieldOf(f: Floor): FieldData {
   const isMine = f.id === MY_FLOOR.id
   const residents: Resident[] = []
   const known = Object.entries(KNOWN).filter(([, k]) => f.term === CURRENT_TERM && k.campus === f.campus && k.floor === f.floor)
+  // 목 사용자의 기수: 처음 MIN_PER_GEN × 기수 수 명은 기수를 돌아가며 (어느 기수를 골라도 추천 후보가 3명 이상), 그 뒤는 16기가 가장 많게
+  const genStart = hash(f.id) % GEN_NUMS.length
+  let made = 0
+  const genFor = (seat: number) => {
+    const n = made++
+    if (n < MIN_PER_GEN * GEN_NUMS.length) return GEN_NUMS[(n + genStart) % GEN_NUMS.length]
+    const x = rng(`${f.id}#${seat}#gen`)()
+    return x < .55 ? 16 : x < .8 ? 15 : x < .9 ? 14 : x < .96 ? 13 : 12
+  }
   for (let seat = 1; seat <= fill.max; seat++) {
     if (fill.vacant?.includes(seat)) continue
     if (isMine && seat === MY_SEAT) { residents.push({ seat, user: me(), mine: true }); continue }
     const k = known.find(([, v]) => v.seat === seat)
-    const user: FieldUser = k ? { ...USERS[k[0]], campus: k[1].campus, gen: k[1].gen, floor: k[1].floor } : makeUser(f, seat)
+    const user: FieldUser = k ? { ...USERS[k[0]], campus: k[1].campus, gen: k[1].gen, floor: k[1].floor } : makeUser(f, seat, genFor(seat))
     if (!k) { byId.set(user.id, user); USERS[user.id] ??= user }
     residents.push({ seat, user })
   }
