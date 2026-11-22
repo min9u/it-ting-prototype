@@ -105,6 +105,8 @@ export interface OptimisticOp<T = unknown> {
   invalidate?: QueryKey[]
   /** 실패 토스트 제목 (기본 "저장하지 못했어요") */
   errorTitle?: string
+  /** 이 오류 코드는 오류 토스트를 띄우지 않음 (화면이 직접 안내 문구를 보여 줄 때) */
+  quietCodes?: string[]
 }
 
 /** 쓰기 오류 → 토스트 문구. 서버 message 를 그대로 (한국어 규약) */
@@ -130,6 +132,7 @@ export function useOptimistic() {
     },
     onError: (e, op, ctx) => {
       for (const [k, v] of ctx?.snapshots ?? []) qc.setQueryData(k, v)
+      if (isApiError(e) && op.quietCodes?.includes(e.code)) return
       toastApiError(e, op.errorTitle)
     },
     onSettled: (_d, _e, op) => {

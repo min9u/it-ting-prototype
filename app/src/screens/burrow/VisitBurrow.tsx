@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import { exploreHref } from '../../data/field'
 import { toIso } from '../../lib/time'
 import { api } from '../../api'
+import { isApiError } from '../../api/client'
 import { reportBody } from '../../api/reports'
 import type { BurrowVM } from '../../api/mappers'
 import { patch, useBurrow, useGuestbook, useOptimistic } from '../../api/queries'
@@ -135,8 +136,15 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
     setReqOpen(false)
     run.mutate({
       call: () => api.chat.sendRequest(owner.id, msg, 'BURROW_VISIT'), errorTitle: '대화 요청을 보내지 못했어요', invalidate: [qk.burrow(owner.id), qk.chat],
+      quietCodes: ['REQUEST_FROM_PEER'], // 오류가 아니라 안내: 상대가 먼저 보낸 요청이 있음 (F6-B3·B4)
       patches: [patch<BurrowVM>(qk.burrow(owner.id), (o) => ({ ...o, pendingRequestId: o.pendingRequestId ?? 'tmp' }), true)],
-    }, { onSuccess: () => { setReqMsg(''); setSent(true) }, onError: () => setReqOpen(true) })
+    }, {
+      onSuccess: () => { setReqMsg(''); setSent(true) },
+      onError: (e) => {
+        if (isApiError(e) && e.code === 'REQUEST_FROM_PEER') { setReqMsg(''); setRegToast('상대가 먼저 대화를 요청했어요. 채팅에서 확인해 보세요') } // 팝업은 닫은 채로, 안내만
+        else setReqOpen(true)
+      },
+    })
   }
 
   return (
