@@ -17,14 +17,14 @@ import MeetupDetail from './screens/meetups/MeetupDetail'
 import MeetupNew from './screens/meetups/MeetupNew'
 import { BoardActivity, BoardEdit, BoardList, BoardPost, BoardWrite } from './screens/board/Board'
 import Settings, {
-  BlockedPage, CreditsPage, GooglePage, LeavePage, NoticeDetailPage, NoticeListPage, NotifSettingsPage, PasswordPage, SettingsHome,
+  CreditsPage, GooglePage, LeavePage, NoticeDetailPage, NoticeListPage, NotifSettingsPage, PasswordPage, SettingsHome,
 } from './screens/settings/Settings'
 import Admin from './screens/admin/Admin'
 import NotFound, { GoneRoute, RouteError } from './components/NotFound'
 import Notifications from './screens/notifications/Notifications'
 import Landing from './screens/start/Landing'
 import LookAround from './screens/start/LookAround'
-import { Login, PasswordReset, PasswordResetExpired, PasswordResetNew, PasswordResetSent, SignupEmail, SignupPassword, SignupSsafy } from './screens/start/Auth'
+import { GoogleReturn, Login, MockGoogle, PasswordReset, PasswordResetExpired, PasswordResetNew, PasswordResetSent, SignupEmail, SignupPassword, SignupSsafy } from './screens/start/Auth'
 import { PcOnly, RequireLogin } from './screens/start/Guards'
 import Onboarding from './screens/onboarding/Onboarding'
 import ScreenIndex from './screens/ScreenIndex'
@@ -70,9 +70,12 @@ export const router = createRouter([{ errorElement: <RouteError />, children: [
   { path: '/password-reset/sent', element: <PcOnly><PasswordResetSent /></PcOnly> },
   { path: '/password-reset/new', element: <PcOnly><PasswordResetNew /></PcOnly> },
   { path: '/password-reset/expired', element: <PcOnly><PasswordResetExpired /></PcOnly> },
+  // Google 로그인 · 확인 (02 · 10): 로그인된 뒤 돌아오는 곳, 목 서버의 흉내 Google 계정 고르기
+  { path: '/auth/google', element: <PcOnly><GoogleReturn /></PcOnly> },
+  { path: '/oauth/mock-google', element: <PcOnly><MockGoogle /></PcOnly> },
   // 온보딩
   { path: '/onboarding', element: <Navigate to="/onboarding/name" replace /> },
-  { path: '/onboarding/:step', element: <RequireLogin><Onboarding /></RequireLogin> },
+  { path: '/onboarding/:step', element: <RequireLogin onboarding><Onboarding /></RequireLogin> },
   // 화면 목록 (개발용)
   { path: '/screens', element: <ScreenIndex /> },
   // F11 관리자: 서비스 메뉴에 없는 별도 주소. 역할이 없으면 없는 주소처럼 보임
@@ -119,7 +122,6 @@ export const router = createRouter([{ errorElement: <RouteError />, children: [
           { path: 'password', element: <PasswordPage /> },
           { path: 'google', element: <GooglePage /> },
           { path: 'notifications', element: <NotifSettingsPage /> },
-          { path: 'blocked', element: <BlockedPage /> },
           { path: 'notices', element: <NoticeListPage /> },
           { path: 'notices/:id', element: <NoticeDetailPage /> },
           { path: 'leave', element: <LeavePage /> },

@@ -359,3 +359,13 @@
 .noteChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
 .noteQna { font-size: 18px; font-weight: 400; }
 .noteReopen { position: absolute; z-index: 20; right: 24px; top: 96px; height: 40px; padding: 0 16px; border-radius: 10px; background: var(--surface); font-family: var(--font-display); font-size: 15px; color: var(--ink-900); box-shadow: var(--shadow-card); }
+
+/* ===== 인증 · API 연결 (2026-11-22, 명세 v1) ===== */
+.gateWait { min-height: 100vh; background: var(--surface-sunken, #f3ebe2); }
+.gateError { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.formErr { margin: 0; padding: 10px 12px; border-radius: 10px; background: #fdecea; color: #b3261e; font-size: 13px; line-height: 1.5; }
+.gList { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gList button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid #eadfd4; background: #fff; text-align: left; font-size: 14px; color: var(--ink-900); }
+.gList button:hover { border-color: #c9b5a3; background: #fffaf5; }
+.gList small { display: block; margin-top: 2px; font-size: 12px; color: #8f7765; }
+.gAvatar { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e3ead8; color: #5e7a3f; font-family: var(--font-display); }

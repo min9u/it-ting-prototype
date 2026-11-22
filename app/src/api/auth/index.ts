@@ -4,7 +4,10 @@
  */
 export * from './types'
 export { ENDPOINTS, type AuthApi } from './real'
-export { authApi } from './api'
+export { authApi, AUTH_IS_MOCK } from './api'
 export * from './mappers'
 export * from './queries'
 export * from './errors'
+export { GOOGLE_RETURN, goGoogle, isServerUrl, suspendedFromQuery } from './google'
+/** 목 서버 전용 (흉내 Google 화면 · 목 메일함). 실제 서버 모드에서는 화면이 부르지 않는다 */
+export { mockGoogleCallback, mockMailbox, MOCK_GOOGLE } from './mock'

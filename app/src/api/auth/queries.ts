@@ -1,17 +1,52 @@
-/** 02 로그인 · 회원가입 — TanStack Query 훅과 캐시 키 */
-import { useQuery } from '@tanstack/react-query'
+/**
+ * 02 로그인 · 회원가입 — TanStack Query 훅과 캐시 키
+ *
+ * 로그인 · 가입 같은 "로그인 없이 부르는 쓰기"는 useMutation 을 쓰지 않고 화면이 authApi 를 바로 부른다.
+ * (공용 MutationCache 가 401 이면 "다시 로그인"으로 보내는데, 로그인 실패 LOGIN_FAILED 도 401 이라서)
+ * 성공한 뒤에는 useSessionReset() 으로 내 계정 캐시를 새로 받는다.
+ */
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { isUnauthorized } from '../client'
 import { authApi } from './api'
-import { toMe } from './mappers'
+import { toMe, type MeVM } from './mappers'
 
 export const authKeys = {
   all: ['auth'] as const,
   me: ['auth', 'me'] as const,
+  passwordReset: (token: string) => ['auth', 'password-reset', token] as const,
 }
 
-/** 내 계정 · 다음 단계 (401 이면 isError + isUnauthorized(error)) */
+/**
+ * 내 계정 · 다음 단계 (GET /me). 로그인하지 않았으면(401) 오류가 아니라 data 가 null.
+ * 서비스를 처음 열 때 · 로그인 영역에 들어갈 때 (screens/start/Guards.tsx RequireLogin)
+ */
 export function useMe(enabled = true) {
-  return useQuery({ queryKey: authKeys.me, queryFn: async ({ signal }) => toMe(await authApi.me(signal)), enabled })
+  return useQuery<MeVM | null>({
+    queryKey: authKeys.me,
+    queryFn: async ({ signal }) => {
+      try { return toMe(await authApi.me(signal)) } catch (e) { if (isUnauthorized(e)) return null; throw e }
+    },
+    enabled,
+    staleTime: 60_000,
+  })
 }
 
-/** 목 모드: 이 영역 저장소가 바뀌면 캐시를 새로 받는 훅 (api/mockSync.tsx 가 부름). 필요하면 useMockStoreSync(…) 를 여기에 */
-export function useAuthMockSync() { /* 아직 지켜볼 저장소 없음 */ }
+/** 로그인 · 가입 · 로그아웃 · 탈퇴 뒤: 내 계정 캐시를 버리고 다시 받게 */
+export function useSessionReset() {
+  const qc = useQueryClient()
+  return () => qc.resetQueries({ queryKey: authKeys.all })
+}
+
+/** 재설정 링크가 유효한지 (GET /password-resets/{token}). 404 PASSWORD_RESET_LINK_INVALID 면 isError */
+export function usePasswordResetLink(token: string | null) {
+  return useQuery({
+    queryKey: authKeys.passwordReset(token ?? ''),
+    queryFn: ({ signal }) => authApi.checkPasswordReset(token ?? '', signal),
+    enabled: !!token,
+    staleTime: 0,
+    gcTime: 0,
+  })
+}
+
+/** 목 모드: 이 영역 저장소가 바뀌면 캐시를 새로 받는 훅 (api/mockSync.tsx 가 부름). 세션은 쓰기 뒤 useSessionReset 으로 맞춤 */
+export function useAuthMockSync() { /* 지켜볼 저장소 없음 */ }

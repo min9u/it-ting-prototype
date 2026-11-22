@@ -1,16 +1,32 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { LOGIN_FREE, authState, isMobileDevice } from '../../data/auth'
+import { useMe } from '../../api/auth'
+import { ErrorState } from '../../components/AsyncState'
+import { LOGIN_FREE, isMobileDevice } from '../../data/auth'
+import { rememberReturnTo } from '../../lib/authFlow'
 import StartHeader, { PeekMole } from './StartHeader'
 import s from './Start.module.css'
 
 /**
  * 00 공통 11: 비로그인은 랜딩 · 둘러보기(F1)와 로그인 · 회원가입(F2)만 볼 수 있다.
- * 그 밖의 화면이나 공유 링크를 열면 로그인 화면으로 보낸다. (로그인 상태를 정하는 방법은 data/auth.ts authState)
+ * 그 밖의 화면이나 공유 링크를 열면 로그인 화면으로 보낸다 (로그인한 뒤 열려던 주소로 돌아옴, lib/authFlow).
+ * 로그인 여부와 다음 단계는 GET /me (02 "다음에 갈 화면"): 401 → 로그인, nextStep ONBOARDING → 온보딩 1.
+ * NEW_TERM 은 그대로 들여보낸다 (내 땅굴 위의 새 학기 안내는 05 탐색 영역).
+ * LOGIN_FREE(팀 공유 빌드)면 검사하지 않는다.
+ * onboarding: 온보딩 화면 자체 (온보딩 중인 계정도 들어옴)
  */
-export function RequireLogin({ children }: { children: ReactNode }) {
+export function RequireLogin({ children, onboarding }: { children: ReactNode; onboarding?: boolean }) {
   const loc = useLocation()
-  if (!LOGIN_FREE && authState() === 'guest') return <Navigate to="/login" replace state={{ from: `${loc.pathname}${loc.search}` }} />
+  const me = useMe(!LOGIN_FREE)
+  if (LOGIN_FREE) return <>{children}</>
+  if (me.isPending) return <div className={s.gateWait} role="status" aria-busy="true" aria-label="로그인 확인 중" />
+  if (me.isError) return <main className={s.gateError}><ErrorState error={me.error} onRetry={() => void me.refetch()} retrying={me.isFetching} /></main>
+  if (!me.data) {
+    const from = `${loc.pathname}${loc.search}`
+    rememberReturnTo(from)
+    return <Navigate to="/login" replace state={{ from }} />
+  }
+  if (me.data.nextStep === 'ONBOARDING' && !onboarding) return <Navigate to="/onboarding/name" replace />
   return <>{children}</>
 }
 

@@ -1,13 +1,11 @@
 import { createStore } from '../lib/store'
 
 /**
- * F10 계정 저장소: 가입 방식 · Google 연동 · 비밀번호(목) · 차단 목록 · 관리자 역할
- * 프로토타입이라 브라우저(localStorage)에만 저장한다.
+ * F10 계정 — 목 서버의 "DB" (api/settings/mock.ts · api/auth/mock.ts 만 쓴다. 화면은 api/settings 를 거친다).
+ * 가입 방식 · Google 연동 · 비밀번호(목) · 관리자 역할. 프로토타입이라 브라우저(localStorage)에만 저장한다.
  *
- * 다른 화면에서 쓸 것 (차단):
- *   import { blockUser, unblockUser, isBlocked, useBlocked } from '../data/account'
- *   - 프로필 팝업·글/댓글 "더 보기 › 차단" → blockUser({ id, nickname })
- *   - 채팅 요청·댓글 목록에서 숨길 때 → isBlocked(userId)
+ * 차단(blocked)은 팀 명세에서 뺀 기능이다(spec/README "이번 범위에 없는 것"). 설정의 차단 화면과 API 초안은 지웠고,
+ * 아래 blocked · blockUser · isBlocked · useBlocked 는 아직 다른 영역(채팅 목 · 프로필 팝업)이 써서 남겨 둔 것 → 그쪽에서 빼면 지운다
  */
 export interface BlockedUser {
   id: string
@@ -73,6 +71,15 @@ export function setSignupMethod(m: SignupMethod) {
   accountStore.set(m === 'google' ? { signup: 'google', googleEmail: MY_GOOGLE_EMAIL } : { signup: 'email' })
 }
 export function setAdmin(on: boolean) { accountStore.set({ admin: on }) }
+/** 목 서버의 브라우저 푸시 등록 표 (push_subscription). endpoint → id */
+export const pushSubStore = createStore<{ seq: number; list: { id: number; endpoint: string }[] }>({ seq: 36, list: [] }, 'digul.mock.pushSubs.v1')
+
+/** 목 서버 POST /users: 이 탭의 계정을 새로 가입한 모양으로 (이메일 가입은 비밀번호, Google 가입은 그 Google 이메일) */
+export function createAccount(a: { method: SignupMethod; password?: string; googleEmail?: string | null }) {
+  accountStore.set(a.method === 'google'
+    ? { signup: 'google', googleEmail: a.googleEmail ?? MY_GOOGLE_EMAIL, password: '' }
+    : { signup: 'email', googleEmail: null, password: a.password ?? MOCK_PASSWORD })
+}
 
 /** 탈퇴 사유 (F10 회원 탈퇴 · 선택). 관리자 "탈퇴 사유 확인"에서 모아 봄 */
 /** 여섯 가지 (팀 명세 10 설정 회원 탈퇴 2, 11-20). "기타"를 골라도 글 적는 칸은 없음 */
@@ -90,14 +97,5 @@ export function withdraw(reason: string | null) {
   accountStore.set({ ...INIT })
 }
 
-/** 00 공통 9 비밀번호 규칙: 8자 이상, 영문·숫자·특수기호(!@#$%) 각 1개 이상, 그 밖의 문자는 못 씀 */
-export function passwordChecks(pw: string) {
-  return {
-    length: pw.length >= 8,
-    letter: /[a-zA-Z]/.test(pw),
-    digit: /[0-9]/.test(pw),
-    special: /[!@#$%]/.test(pw),
-    allowed: /^[a-zA-Z0-9!@#$%]*$/.test(pw),
-  }
-}
-export const passwordOk = (pw: string) => Object.values(passwordChecks(pw)).every(Boolean)
+/** 00 공통 9 비밀번호 규칙 (lib/authRules.ts 한 곳. 옛 import 를 위해 다시 내보냄) */
+export { passwordChecks, passwordOk } from '../lib/authRules'
