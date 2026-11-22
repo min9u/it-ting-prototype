@@ -387,7 +387,13 @@ function RoomPane({ room, onProfile, onToast }: { room: Room; onProfile: (id: st
             <Link to={`/meetups/${meetup.id}`} className="btn btn-line btn-block">모임 상세 보기</Link>
             {quitRule.ok ? (
               <button className={s.quit} onClick={() => { setInfo(false); setQuit(true) }}>{room.ended ? '대화방 나가기' : '모임 나가기'}</button>
-            ) : quitRule.why && !isHost ? <p className={s.quitNote}>{quitRule.why}</p> : null}
+            ) : !isHost ? (
+              // 시작 24시간 전이 지나면 끝나기 전까지 버튼이 꺼진 채 보임 (모임 상세 "참여 취소"와 같게, 명세 06 모임 정보 4). 주최자에게는 안 보임
+              <>
+                <button className={s.quit} disabled>모임 나가기</button>
+                {quitRule.why && <p className={s.quitNote}>{quitRule.why}</p>}
+              </>
+            ) : null}
           </div>
         </Modal>
       )}
