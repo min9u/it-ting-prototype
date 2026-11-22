@@ -1,14 +1,14 @@
 /**
- * 커뮤니티(F8) 글·댓글·좋아요·저장·신고 상태 (백엔드가 없어서 화면끼리 나누는 작은 저장소)
- * - 화면 사이(목록 → 상세 → 저장한 글 …)에서 같은 상태를 보도록 모듈 안에 들고 useSyncExternalStore 로 구독
+ * 커뮤니티(08) 목 서버의 "DB": 글·댓글·좋아요·저장·신고·올린 사진 (api/community/mock.ts 만 읽고 씀).
+ * 화면은 이 파일을 직접 부르지 않고 api/community 의 훅 · 함수를 쓴다 (2026-11-22 API v1 맞추기).
+ * - 바뀌면 useSyncExternalStore 구독자(api/community queries 의 목 동기화)가 캐시를 새로 받게 함
  * - 새로고침하면 처음 목 데이터로 돌아감 (아티팩트는 sessionStorage 가 막힐 수 있어 저장하지 않음)
- * 명세: Figma 02 F8 (design/figma/spec/f8/*.png), 정리 docs/spec-f8.md
+ * 명세: docs/backend/team-spec/spec/08-community.md, api/08-community.md
  */
 import { useSyncExternalStore } from 'react'
-import { CATEGORIES, ME_ID, MEETUPS, TODAY, USERS, categoryOf } from './mock'
+import { CATEGORIES, ME_ID, USERS, categoryOf } from './mock'
 import { getMyInterests } from './interests'
-import { agoBoard, monthDay, ymdLabel } from '../lib/time'
-import type { Meetup, PostCategory, Tone } from './types'
+import type { PostCategory, Tone } from './types'
 
 /* ===== 모양 ===== */
 /** 공개 / 가려짐(신고 3명) / 삭제 — 명세 F8 신고 팝업 4 */
@@ -34,6 +34,8 @@ export interface BoardComment {
 }
 
 export interface BoardPhoto {
+  /** 사진 id (uploaded_image.id 자리). 목 글의 색 칸 사진은 '<글id>-img<n>' */
+  id?: string
   tone: Tone
   /** "사진 추가"로 올린 그림 (object URL). 없으면 색 칸으로 그림 */
   url?: string
@@ -62,18 +64,12 @@ export interface BoardPost {
   reports: number
   reportedByMe?: boolean
   comments: BoardComment[]
-  /** 목록 응답처럼 댓글 본문 없이 수만 받았을 때 (api/mappers) */
+  /** 댓글 본문 없이 수만 있을 때 (지금은 시험에서만) */
   commentTotal?: number
 }
 
-/* ===== 상수 (명세 숫자) ===== */
-export const BOARD_CATS: PostCategory[] = ['모임 홍보', '모임 후기', '자유']
-export const PAGE_SIZE = 20
-// 글자 수 제한은 lib/validation.ts 한 곳에서 (ERD post.title VARCHAR(50) · content VARCHAR(1000) · comment.content VARCHAR(300))
-export { POST_TITLE_MAX as TITLE_MAX, POST_BODY_MAX as BODY_MAX, COMMENT_MAX } from '../lib/validation'
-export const TAG_MAX = 5
-export const PHOTO_MAX = 3
-export const COMMENT_PAGE = 10
+/* ===== 상수 (명세 숫자). 화면이 쓰는 상수는 screens/board/parts.tsx ===== */
+/** 서로 다른 3명이 신고하면 가려짐 */
 export const HIDE_AT = 3
 const DAY = 86_400_000
 
@@ -87,10 +83,6 @@ export const isGone = (id: string) => id === GONE_ID || !USERS[id]
 export function nickOf(id: string) {
   return isGone(id) ? '탈퇴한 사용자' : USERS[id].nickname
 }
-
-/* ===== 시간 표기 (F0 공통 8: 방금 · N시간 전 · 어제 · N일 전, 그보다 오래되면 날짜) — 문구는 lib/time.ts 한 곳 ===== */
-export const dateLabel = (t: number) => monthDay(t)
-export const ago = (t: number) => agoBoard(t)
 
 /* ===== 목 데이터 ===== */
 const NOW = Date.now()
@@ -285,7 +277,7 @@ function fromSeed(s: Seed): BoardPost {
   return {
     id: s.id, category: s.cat, interests: s.tags, title: s.title, body: s.body, authorId: s.author, at: m(s.min),
     editedAt: s.edited ? m(s.edited) : undefined, views: s.views, likes: s.likes, saves: s.saves,
-    savedAt: s.savedMin ? m(s.savedMin) : undefined, photos: (s.photos ?? []).map((tone) => ({ tone })), meetupId: s.meetup,
+    savedAt: s.savedMin ? m(s.savedMin) : undefined, photos: (s.photos ?? []).map((tone, i) => ({ id: `${s.id}-img${i + 1}`, tone })), meetupId: s.meetup,
     status: s.status ?? 'public', reports: s.reports ?? 0, comments: s.comments ?? [],
   }
 }
@@ -325,9 +317,9 @@ export const isListed = (p: BoardPost) => p.status === 'public'
 export const isMine = (p: { authorId: string }) => p.authorId === ME_ID
 const within7 = (p: BoardPost) => Date.now() - p.at <= 7 * DAY
 
-/** 이번 주 인기 글 TOP5: 최근 7일, 좋아요 많은 순, 같으면 최신 */
+/** 이번 주 인기 글 TOP5: 최근 7일, 좋아요 많은 순, 같으면 최신. 점수 0 인 글은 빼서 5개보다 적을 수 있음 (api 08 highlights) */
 export function hotPosts(all: BoardPost[], n = 5) {
-  return all.filter((p) => isListed(p) && within7(p)).sort((a, b) => scoreOf(b) - scoreOf(a) || b.at - a.at).slice(0, n)
+  return all.filter((p) => isListed(p) && within7(p) && scoreOf(p) > 0).sort((a, b) => scoreOf(b) - scoreOf(a) || b.at - a.at).slice(0, n)
 }
 /** 많이 이야기하는 관심사: 최근 7일 글 수가 많은 대분류 상위 8개 */
 export function hotInterests(all: BoardPost[], n = 8) {
@@ -349,18 +341,6 @@ export function myCommentsOn(p: BoardPost) {
   return out.sort((a, b) => b.at - a.at)
 }
 
-/* ===== 모임 (글에 나온 모임 · 모임 연결) ===== */
-export const isRecruiting = (mt: Meetup) => !mt.cancelled && !mt.past && mt.date >= TODAY && mt.memberIds.length < mt.capacity
-const joined = (mt: Meetup) => mt.hostId === ME_ID || mt.memberIds.includes(ME_ID) || mt.myStatus === '참여 확정' || mt.myStatus === '내가 주최'
-/** 모임 홍보: 모집 중인 내 모임만. 나머지: 내가 만들었거나 참여한 모임 */
-export function linkableMeetups(cat: PostCategory | null) {
-  return cat === '모임 홍보' ? MEETUPS.filter((mt) => mt.hostId === ME_ID && isRecruiting(mt)) : MEETUPS.filter(joined)
-}
-export function meetupWhen(mt: Meetup) {
-  return `${ymdLabel(mt.date)} ${mt.start}`
-}
-export const meetupShortDate = (mt: Meetup) => { const [, m, d] = mt.date.split('-').map(Number); return `${m}월 ${d}일` }
-
 /* ===== 바꾸기 ===== */
 export interface PostDraft {
   category: PostCategory
@@ -371,13 +351,14 @@ export interface PostDraft {
   meetupId?: string
 }
 
+let postSeq = 0
 export function createPost(d: PostDraft): string {
-  const id = `p${Date.now().toString(36)}`
+  const id = `p${Date.now().toString(36)}${++postSeq}`
   commit([{ id, ...d, authorId: ME_ID, at: Date.now(), views: 0, likes: 0, saves: 0, status: 'public', reports: 0, comments: [] }, ...posts])
   return id
 }
 /**
- * 글 수정. "수정됨"(editedAt)은 **제목이나 본문을 고쳤을 때만** 붙인다 (F8 글 상세 6, 11-20).
+ * 글 수정. "수정됨"(editedAt)은 **제목이나 본문을 고쳤을 때만** 붙인다 (08 글 상세 6).
  * 카테고리 · 태그 · 사진 · 모임 연결만 바꾸면 안 붙이고, 이미 붙어 있던 것도 그대로 둔다
  */
 export function updatePost(id: string, d: PostDraft) {
@@ -386,22 +367,15 @@ export function updatePost(id: string, d: PostDraft) {
 /** 글 삭제: 댓글·답글도 함께 사라짐 */
 export function deletePost(id: string) { patch(id, (p) => ({ ...p, status: 'deleted', comments: [], savedAt: undefined })) }
 
-let lastView = { id: '', t: 0 }
-/** 조회수: 글을 열 때마다 셈 (작성자 본인은 빼고). StrictMode 두 번 실행은 한 번으로 */
-export function viewPost(id: string) {
-  const p = getPost(id)
-  if (!p || isMine(p) || p.status !== 'public') return
-  if (lastView.id === id && Date.now() - lastView.t < 800) return
-  lastView = { id, t: Date.now() }
+/** 조회수 +1: 글을 열 때마다 셈 (작성자 본인도 셈, api 08 POST /views). 올린 뒤의 수 */
+export function viewPost(id: string): number {
   patch(id, (x) => ({ ...x, views: x.views + 1 }))
+  return getPost(id)?.views ?? 0
 }
-export function toggleLike(id: string) { patch(id, (p) => ({ ...p, liked: !p.liked })) }
-/** 저장 켜고 끄기. 켜졌으면 true */
-export function toggleSave(id: string): boolean {
-  const on = !getPost(id)?.savedAt
-  patch(id, (p) => ({ ...p, savedAt: on ? Date.now() : undefined }))
-  return on
-}
+/** 좋아요 켜기 · 끄기 (같은 값이면 그대로) */
+export function setLike(id: string, on: boolean) { if (!!getPost(id)?.liked !== on) patch(id, (p) => ({ ...p, liked: on })) }
+/** 저장 켜기 · 끄기 (같은 값이면 그대로, 켤 때 저장한 시각) */
+export function setSave(id: string, on: boolean) { if (!!getPost(id)?.savedAt !== on) patch(id, (p) => ({ ...p, savedAt: on ? Date.now() : undefined })) }
 /** 신고: 내게는 접힘, 3명이 되면 가려짐. 이미 신고했으면 false */
 export function reportPost(id: string): boolean {
   const p = getPost(id)
@@ -411,29 +385,79 @@ export function reportPost(id: string): boolean {
 }
 
 /* 댓글 */
+let commentSeq = 0
+const newCommentId = (prefix: string) => `${prefix}${Date.now().toString(36)}${++commentSeq}`
 function mapComments(postId: string, f: (list: BoardComment[]) => BoardComment[]) { patch(postId, (p) => ({ ...p, comments: f(p.comments) })) }
 /** 댓글이나 답글 하나 바꾸기 */
 function mapOne(postId: string, commentId: string, f: (c: BoardComment) => BoardComment) {
   mapComments(postId, (l) => l.map((c) => (c.id === commentId ? f(c) : { ...c, replies: c.replies.map((r) => (r.id === commentId ? f(r) : r)) })))
 }
-export function addComment(postId: string, text: string) {
-  mapComments(postId, (l) => [...l, { id: `c${Date.now()}`, authorId: ME_ID, text, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }])
+/** 댓글 하나와 그 글 · 달린 댓글(답글이면 부모) 찾기 */
+export function findComment(commentId: string): { post: BoardPost; comment: BoardComment; parent: BoardComment | null } | undefined {
+  for (const post of posts) {
+    for (const c of post.comments) {
+      if (c.id === commentId) return { post, comment: c, parent: null }
+      const r = c.replies.find((x) => x.id === commentId)
+      if (r) return { post, comment: r, parent: c }
+    }
+  }
+  return undefined
 }
-export function addReply(postId: string, parentId: string, text: string, mention?: string) {
-  const r: BoardComment = { id: `r${Date.now()}`, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }
+/** 댓글 쓰기 → 새 댓글 id */
+export function addComment(postId: string, text: string): string {
+  const id = newCommentId('c')
+  mapComments(postId, (l) => [...l, { id, authorId: ME_ID, text, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }])
+  return id
+}
+/** 답글 쓰기 (parentId 는 댓글) → 새 답글 id. mention 은 답글에 다시 답할 때의 닉네임 */
+export function addReply(postId: string, parentId: string, text: string, mention?: string): string {
+  const id = newCommentId('r')
+  const r: BoardComment = { id, authorId: ME_ID, text, mention, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }
   mapComments(postId, (l) => l.map((c) => (c.id === parentId ? { ...c, replies: [...c.replies, r] } : c)))
+  return id
 }
-export function editComment(postId: string, commentId: string, text: string) { mapOne(postId, commentId, (c) => ({ ...c, text, editedAt: Date.now() })) }
+/** 댓글 고치기. 본문이 달라졌을 때만 "수정됨" */
+export function editComment(postId: string, commentId: string, text: string) {
+  mapOne(postId, commentId, (c) => (c.text === text ? c : { ...c, text, editedAt: Date.now() }))
+}
 /** 댓글 삭제: 답글이 달렸으면 답글까지 지움 */
 export function deleteComment(postId: string, commentId: string) {
   mapComments(postId, (l) => l.filter((c) => c.id !== commentId).map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== commentId) })))
 }
-export function toggleCommentLike(postId: string, commentId: string) { mapOne(postId, commentId, (c) => ({ ...c, liked: !c.liked })) }
+export function setCommentLike(postId: string, commentId: string, on: boolean) { mapOne(postId, commentId, (c) => ({ ...c, liked: on })) }
 export function reportComment(postId: string, commentId: string): boolean {
   const p = getPost(postId)
   const target = p?.comments.flatMap((c) => [c, ...c.replies]).find((c) => c.id === commentId)
   if (!target || target.reportedByMe) return false
   mapOne(postId, commentId, (x) => { const reports = x.reports + 1; return { ...x, reports, reportedByMe: true, status: reports >= HIDE_AT ? 'hidden' : x.status } })
+  return true
+}
+
+/* ===== 올린 사진 (uploaded_image 자리) ===== */
+const uploaded = new Map<string, { url: string; tone: Tone }>()
+let imageSeq = 0
+const UPLOAD_TONES: Tone[] = ['sage', 'clay', 'butter', 'sky', 'lilac', 'rose', 'mint']
+/** POST /images 목: 사진 주소(object URL)를 기록하고 id 를 줌 */
+export function registerImage(url: string): string {
+  const id = `img-${Date.now().toString(36)}-${++imageSeq}`
+  uploaded.set(id, { url, tone: UPLOAD_TONES[imageSeq % UPLOAD_TONES.length] })
+  return id
+}
+/** 올려 두고 아직 어느 글에도 붙이지 않은 사진 */
+export function uploadedImage(id: string): BoardPhoto | undefined {
+  const u = uploaded.get(id)
+  return u ? { id, tone: u.tone, url: u.url } : undefined
+}
+/** 글에 붙이면 "올려 둔 사진"에서 뺀다 (다른 글에 또 쓸 수 없음) */
+export function claimImage(id: string) { uploaded.delete(id) }
+
+/* ===== 사용자 · 방명록 신고 기록 (POST /reports 의 MEMBER · GUESTBOOK) ===== */
+const otherReports = new Set<string>()
+/** 처음 신고면 true, 이미 신고했으면 false */
+export function reportOther(kind: 'MEMBER' | 'GUESTBOOK', id: string): boolean {
+  const k = `${kind}:${id}`
+  if (otherReports.has(k)) return false
+  otherReports.add(k)
   return true
 }
 
