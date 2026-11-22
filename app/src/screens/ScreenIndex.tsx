@@ -29,7 +29,7 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['탐색 시안 B · 마을 지도 (2D 탑뷰, 길 따라 걷기)', '/burrow/explore?design=b', '2026-11-16 시안'],
     ['탐색 시안 C · 땅속 굴길 (단면도)', '/burrow/explore?design=c', '2026-11-16 시안'],
     ['탐색 시안 D · 이웃 카드 넘기기', '/burrow/explore?design=d', '2026-11-16 시안'],
-    ['탐색 시안 · 빈 들판 (부울경-1층)', `/burrow/explore?floor=${encodeURIComponent('2026 하반기|부울경|1')}`, '02 F5 1'],
+    ['탐색 시안 · 빈 들판 (지난 학기 부울경-1층)', `/burrow/explore?floor=${encodeURIComponent('2026 상반기|부울경|1')}`, '02 F5 1'],
     ['방문자 뷰 (예린이의 땅굴)', '/burrow/yerin', '510:13663'],
     ['방문자 뷰 – 대화 요청 팝업', '/burrow/yerin?modal=request', '495:13898'],
     ['방문자 뷰 – 대화 요청 완료 토스트', '/burrow/yerin?toast=request', '612:7718', true],

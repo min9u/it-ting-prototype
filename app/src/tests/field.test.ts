@@ -59,8 +59,8 @@ describe('fieldOf: 들판의 땅굴 주인 (F5 1 · v3.9)', () => {
     expect(d.residents.find((r) => r.mine)?.seat).toBe(MY_SEAT)
     expect(d.residents.some((r) => r.seat === 7 || r.seat === 31)).toBe(false)
   })
-  it('빈 들판(부울경-1층)은 주인 0명이어도 구역 1개 (빈 상태 화면)', () => {
-    const d = fieldOf(parseFloor(floorId(CURRENT_TERM, '부울경', 1))!)
+  it('빈 들판(지난 학기 부울경-1층)은 주인 0명이어도 구역 1개 (빈 상태 화면)', () => {
+    const d = fieldOf(parseFloor(floorId('2026 상반기', '부울경', 1))!)
     expect(d.residents).toHaveLength(0)
     expect(d.zones).toBe(1)
   })
@@ -150,10 +150,20 @@ describe('오늘의 추천 친구 (02 F5 5 · 추천 친구 설정 2 · 4, 2026-
   })
   it('기수가 다르면 안 나옴 · 없는 캠퍼스 · 층이면 빈 목록 · 사람 없는 들판도 빈 목록', async () => {
     const f = await import('../data/field')
-    expect(f.recommendPool({ ...SEL, gen: 12 })).toEqual([])
+    for (const u of f.recommendPool({ ...SEL, gen: 12 })) expect(u.gen).toBe(12)
     expect(f.recommendPool({ campus: '서울', floor: 99, gen: 16 })).toEqual([])
-    expect(f.recommendPool({ campus: '부울경', floor: 1, gen: 16 })).toEqual([])
-    expect(f.drawRecommendations({ campus: '부울경', floor: 1, gen: 16 })).toEqual([])
+    expect(f.recommendPool({ campus: '서울', floor: 99, gen: 12 })).toEqual([])
+  })
+  it('어느 캠퍼스 · 층 · 기수를 골라도 후보가 3명 이상이라 추천이 "0명"으로 나오지 않음 (단골을 뺀 뒤에도)', async () => {
+    const f = await import('../data/field')
+    const { GENERATIONS } = await import('../data/auth')
+    for (const fl of f.allCurrentFloors()) {
+      for (const g of GENERATIONS) {
+        const sel = { campus: fl.campus, floor: fl.floor, gen: parseInt(g, 10) }
+        expect(f.recommendPool(sel).length, `${fl.campus}-${fl.floor}층 ${g}`).toBeGreaterThanOrEqual(3)
+      }
+    }
+    expect(f.drawRecommendations({ campus: '부울경', floor: 1, gen: 16 })).toHaveLength(3)
   })
   it('3명, 지금 보는 들판과 관계없이 고른 캠퍼스 · 층에서, 서로 다른 사람', async () => {
     const f = await import('../data/field')
@@ -162,13 +172,6 @@ describe('오늘의 추천 친구 (02 F5 5 · 추천 친구 설정 2 · 4, 2026-
     expect(picks.length).toBeGreaterThan(0)
     expect(new Set(picks).size).toBe(picks.length)
     for (const id of picks) { const loc = f.locateUser(id)!; expect(loc.floor.campus).toBe('대전'); expect(loc.floor.floor).toBe(2) }
-  })
-  it('후보가 3명보다 적으면 있는 만큼', async () => {
-    const f = await import('../data/field')
-    const small = f.allCurrentFloors().find((fl) => { const n = f.recommendPool({ campus: fl.campus, floor: fl.floor, gen: 15 }).length; return n > 0 && n < 3 })
-    if (!small) return // 목 데이터에 그런 들판이 없으면 건너뜀
-    const n = f.recommendPool({ campus: small.campus, floor: small.floor, gen: 15 }).length
-    expect(f.drawRecommendations({ campus: small.campus, floor: small.floor, gen: 15 })).toHaveLength(n)
   })
   it('나에게 추천된 횟수가 적은 사람 먼저: 이미 추천된 사람은 아직 안 된 사람 뒤', async () => {
     const f = await import('../data/field')
