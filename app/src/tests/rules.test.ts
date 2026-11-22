@@ -16,7 +16,7 @@ import { NICK_MAX, nickTaken } from '../data/myBurrow'
 import { INTEREST_SUBS } from '../data/interests'
 import { BLOCKED_PAIRS, MAX_WORN, MOLE_ITEMS, MOLE_PARTS, blockedBy, handVisible, itemOf, NONE_ICON, wornByPart } from '../data/moleItems'
 import { handHiddenInChat } from '../three/moleDress'
-import { NOTICE_TTL_DAYS, visibleNotices, type AppNotice, type NoticeKind } from '../data/notifications'
+import { NOTICE_TTL_DAYS, liveNotices, unreadOf, type NoticeKind, type NoticeRecord } from '../data/notifications'
 import { HIDE_AT, getPost, hotPosts, reportPost, scoreOf, updatePost, usePosts, type BoardPost } from '../data/boardStore'
 import { USERS } from '../data/mock'
 
@@ -173,17 +173,19 @@ describe('두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2)', () => {
   })
 })
 
-describe('알림 목록 (F9 알림 4·8)', () => {
+describe('알림 목록 (F9 알림 4·8, API 09 "주는 방식")', () => {
   const DAY = 86_400_000, NOW = new Date(2026, 10, 16, 12, 0).getTime()
   const on: Record<NoticeKind, boolean> = { 모임: true, 채팅: true, 커뮤니티: true, 땅굴: true, 공지: true }
-  const n = (id: string, ago: number, unread = false, kind: NoticeKind = '모임'): AppNotice => ({ id, kind, type: 't', title: id, sub: '', at: NOW - ago, to: '/', unread })
+  const n = (id: string, ago: number, unread = false, type: NoticeRecord['type'] = 'MEETUP_UPDATED'): NoticeRecord =>
+    ({ id, type, actorId: null, targetId: 'm1', at: NOW - ago, readAt: unread ? null : NOW - ago + 1 })
   it(`최근 ${NOTICE_TTL_DAYS}일만, 안 읽은 것 맨 위 → 최신순`, () => {
     const list = [n('old', 31 * DAY), n('b', 2 * DAY), n('a', 1 * DAY), n('u', 5 * DAY, true)]
-    expect(visibleNotices(list, on, NOW).map((x) => x.id)).toEqual(['u', 'a', 'b'])
+    expect(liveNotices(list, NOW).map((x) => x.id)).toEqual(['u', 'a', 'b'])
   })
-  it('알림 설정에서 끈 종류는 안 보임 (F10 알림 설정)', () => {
-    const list = [n('m', DAY, false, '모임'), n('c', DAY, false, '채팅')]
-    expect(visibleNotices(list, { ...on, 채팅: false }, NOW).map((x) => x.id)).toEqual(['m'])
+  it('알림 설정에서 끈 갈래도 목록 · 안 읽은 수에는 남고, 빨간 점에만 빠짐 (F10 알림 설정)', () => {
+    const list = [n('c', DAY, true, 'CHAT_MESSAGE_RECEIVED')]
+    expect(liveNotices(list, NOW).map((x) => x.id)).toEqual(['c'])
+    expect(unreadOf(list, { ...on, 채팅: false }, NOW)).toEqual({ unreadCount: 1, hasUnread: false })
   })
 })
 

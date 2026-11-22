@@ -3,7 +3,7 @@ import { NavLink, Link, useSearchParams } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { BellIcon, GearIcon } from './Icons'
 import NotificationPopover from './NotificationPopover'
-import { useHasUnread } from '../data/notifications'
+import { useNotificationRealtime, useUnreadNotifications } from '../api/notifications'
 import styles from './AppHeader.module.css'
 
 /**
@@ -28,10 +28,13 @@ export function Logo({ to = '/burrow' }: { to?: string }) {
 /**
  * 데모용 쿼리: ?notice=open (알림 팝업 열린 채로)
  * 00 공통 2 알림 아이콘: 안 읽은 알림이 있으면 빨간 점(숫자 아님). 끈 종류의 알림은 점에 들어가지 않는다
+ * 빨간 점 = GET /me/notifications/unread-count 의 hasUnread, 그 뒤로는 SSE NOTIFICATION_UNREAD_CHANGED 로 바로 바뀜 (09 알림 "실시간 소식")
  */
 export default function AppHeader() {
   const [params] = useSearchParams()
-  const hasAlert = useHasUnread()
+  // 알림 실시간 소식은 로그인 영역에 한 번만 받는다 (헤더는 로그인 영역의 모든 화면에 있음)
+  useNotificationRealtime()
+  const { hasUnread: hasAlert } = useUnreadNotifications()
   const [noticeOpen, setNoticeOpen] = useState(params.get('notice') === 'open')
   return (
     <header className={styles.header}>
