@@ -81,7 +81,7 @@
 - [ ] 1. API v1 맞추기: 공통 계층(진행 중) → 영역 7개 병렬 → 합치기 · 화면 스모크 · 구현된 API(로그인·캠퍼스·기수)는 실제 백엔드로 확인
 - [ ] 2. 정리: 실험실 켜고 끄기 스위치, 환경 변수 읽는 곳 한 곳(`lib/env.ts`), 안 쓰는 화면·코드·에셋 목록과 정리, 비밀값 검사, 큰 파일 크기 확인(모델·텍스처 약 14MB)
 - [x] 3. Next.js 전환: 이 리포의 새 폴더에서 App Router로 옮기고 지금 앱과 같은지 화면 스모크로 비교
-  - 2026-11-23 완료: `frontend/` (Next.js 16.4 · React 19.3). 라우트 48개 같은 주소, 단위 테스트 630개 · 스모크 105개(실험실 켬/끔, gpu on/off) 통과, `npm run check:labs-off` 통과. 결정 · 문제 · 남은 차이는 [nextjs-migration.md](nextjs-migration.md). 남은 것: CI(`frontend/` 경로), 실제 백엔드로 로그인 · SSE 확인
+  - 2026-11-23 완료: `frontend/` (Next.js 16.4 · React 19.3). 라우트 48개 같은 주소, 단위 테스트 630개 · 스모크 105개(실험실 켬/끔, gpu on/off) 통과, `npm run check:labs-off` 통과. 결정 · 문제 · 남은 차이는 [nextjs-migration.md](nextjs-migration.md). CI는 2026-11-23 `.github/workflows/frontend-ci.yml`로 넣고 GitHub Actions(우분투, Node 24)에서 통과. 남은 것: 실제 백엔드로 로그인 · SSE 확인
 - [x] 4. 커밋 재구성 연습: 위 30개 순서대로 쌓으며 커밋마다 빌드·테스트가 통과하는지 이 리포 브랜치에서 먼저 확인
   - 2026-11-23 완료: 팀 리포 클론(`origin/dev` `35d107a`)에서 **커밋 62개**로 나눠 커밋마다 tsc · 린트(오류 0) · 단위 테스트 · 빌드 통과, 모두 서명. 계획 · 스크립트 `tools/team-import/` (`plan.json` · `import.mjs` · `deps.mjs` · `report.mjs`), 결과 · 실제로 옮기는 방법은 [team-import-rehearsal.md](team-import-rehearsal.md). 위 초안 표와 순서가 다름(3D 를 API 앞으로, API 는 영역마다, 상단 메뉴는 API 뒤로)
 
