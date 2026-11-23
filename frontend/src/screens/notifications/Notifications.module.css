@@ -1,0 +1,20 @@
+/* 알림 (Desktop) F9 2026-11-16: 본문 680 폭 가운데, 제목 + 안 읽음 알약 + 모두 읽음(테두리 버튼), 알약 탭, 목록 카드 */
+.page { max-width: 720px; margin: 0 auto; padding: 44px 20px 60px; min-height: calc(100vh - var(--header-h) - 80px); }
+.head { display: flex; align-items: center; gap: 12px; }
+.title { font-size: 30px; color: var(--ink-900); }
+.unreadPill { height: 26px; padding: 0 11px; border-radius: 13px; display: inline-flex; align-items: center; background: #f7e3d3; font-family: var(--font-display); font-size: 12px; color: var(--accent); }
+.readAll { margin-left: auto; height: 38px; padding: 0 16px; border-radius: 10px; border: 1.5px solid var(--accent); background: #fffaf5; font-family: var(--font-display); font-size: 14px; color: var(--accent); }
+.readAll:hover:not(:disabled) { background: #fbeee3; }
+.readAll:disabled { opacity: .45; cursor: default; }
+.tabs { display: flex; gap: 8px; margin: 18px 0 16px; flex-wrap: wrap; }
+.tab, .tabOn { height: 34px; padding: 0 16px; border-radius: 17px; background: #f1dfcd; font-family: var(--font-display); font-size: 14px; color: var(--ink-700); }
+.tab:hover { background: #ead3bd; }
+.tabOn { background: var(--brown-700); color: var(--on-brown); }
+.list { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fffaf5; }
+.list li:last-child button { border-bottom: 0; }
+.more { display: block; margin: 14px auto 0; height: 40px; padding: 0 22px; border-radius: 10px; border: 1px solid var(--line-strong); background: #fffaf5; font-family: var(--font-display); font-size: 14px; color: var(--ink-700); }
+.more:hover { background: var(--surface-item); }
+.caption { margin-top: 12px; font-size: 12px; color: var(--ink-400); }
+.empty { border: 1px solid var(--line); border-radius: 14px; background: #fffaf5; padding: 48px 20px 52px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.empty img { width: 142px; }
+.empty p { font-size: 15px; color: var(--ink-800); }

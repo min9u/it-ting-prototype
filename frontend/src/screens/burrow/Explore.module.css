@@ -1,0 +1,244 @@
+/* 탐색 들판 (ExploreBurrow · ExploreModals). Figma 02 F5 / 03 Screens 탐색 기준, 1440×960 프레임 수치 */
+
+/* 3D 준비 전 잔디색 */
+.sceneBg { background: #8cc56a; }
+
+/* 왼쪽 위 버튼 세 개 (단골 땅굴 · 오늘의 추천 친구 · 캠퍼스-층) */
+.leftTools {
+  position: absolute; top: 48px; left: 35px; z-index: 5;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 13px;
+}
+/* 관심사 등불 고르기 카드가 열리면 미니맵(z 5, DOM 에서 뒤)보다 위로 (components/LanternPicker.tsx) */
+.leftTools:has([data-lantern-open]) { z-index: 9; }
+.redDot { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); display: inline-block; }
+.caret { font-size: 11px; margin-left: -4px; }
+
+/* 안내판 카드(.signCard 아래)는 탐색 시안 A~D(explore-designs/common.tsx)가 씀. 땅굴 탐색 본 화면은 2026-11-20 부터 방노트 안 버튼으로 바뀜 */
+.signCard { border-radius: 14px 14px 4px 14px; }
+.signCard {
+  pointer-events: auto;
+  width: 248px; padding: 18px 18px 16px;
+  background: var(--surface); border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 6px 18px rgba(60, 35, 20, 0.18), 0 2px 0 rgba(116, 74, 50, 0.12);
+  animation: signIn .22s var(--ease-out);
+}
+@keyframes signIn { from { opacity: 0; transform: translateY(6px) scale(.97); } }
+.signOwner { display: flex; align-items: center; gap: 11px; }
+.signOwner strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--ink-900); }
+.signOwner small { font-size: 12px; color: var(--ink-400); }
+.signTags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.signBtn { margin-top: 14px; width: 100%; height: 46px; gap: 8px; }
+/* 방노트 맨 아래 "땅굴 놀러가기 Enter" */
+/* 공용 .btn 의 height 48 을 이기려고 button 을 붙임 */
+button.noteEnter { width: 100%; height: 47px; gap: 8px; margin-top: 16px; }
+.kbd {
+  padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .22);
+  font: 600 10px/1.3 var(--font-body); letter-spacing: .02em;
+}
+
+/* 마우스를 올린 구멍 이름표 */
+.nameTag {
+  position: absolute; z-index: 4; transform: translate(-50%, -100%);
+  padding: 5px 11px; border-radius: 999px; pointer-events: none;
+  background: rgba(62, 42, 31, .86); color: var(--on-brown);
+  font-family: var(--font-display); font-size: 13px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.onDot { width: 7px; height: 7px; border-radius: 50%; background: #9bd36b; }
+
+/* 왼쪽 아래 "내 땅굴로 돌아가기" */
+.homeBtn { position: absolute; left: 35px; bottom: 33px; z-index: 5; gap: 7px; }
+.homeBtn:disabled { opacity: .55; }
+
+/* 줌 단계 (3D 핸드오프 v3.10 near·mid·far, docs/explore-field-v3-10.md). 정보 패널 왼쪽, "✨ 이펙트" 버튼 위. right 는 패널 따라 style 로 */
+.zoom {
+  position: absolute; bottom: 88px; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px;
+  border-radius: 999px; background: rgba(251, 248, 244, .94); box-shadow: var(--shadow-card);
+  transition: right .3s var(--ease-out);
+}
+.zoomStep {
+  width: 34px; height: 34px; border-radius: 50%;
+  font: 700 20px/1 var(--font-body); color: var(--ink-800);
+}
+.zoomStep:hover:not(:disabled) { background: var(--surface-item); }
+.zoomStep:disabled { opacity: .3; cursor: default; }
+.zoomDot { width: 34px; height: 22px; display: grid; place-items: center; border-radius: 8px; }
+.zoomDot:hover { background: var(--surface-item); }
+.zoomDot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); transition: transform .2s var(--ease-out), background .2s; }
+.zoomDot[aria-pressed='true'] i { background: var(--cta); transform: scale(1.45); }
+@media (prefers-reduced-motion: reduce) { .zoom, .zoomDot i { transition: none; } }
+
+/* 조작 안내 (모드 토글 위) */
+.hint {
+  position: absolute; bottom: 88px; z-index: 3; transform: translateX(-50%);
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(251, 248, 244, .78); color: var(--ink-700);
+  font-size: 12px; white-space: nowrap;
+  transition: left .45s var(--ease-out);
+}
+.hint kbd {
+  display: inline-block; min-width: 18px; margin-right: 2px; padding: 1px 4px;
+  border-radius: 4px; border: 1px solid var(--line-strong); background: #fff;
+  font: 600 10px/1.4 var(--font-body); text-align: center; color: var(--ink-800);
+}
+
+.loading {
+  position: absolute; top: 46%; z-index: 9; transform: translateX(-50%);
+  font-family: var(--font-display); font-size: 18px; color: var(--on-brown);
+}
+
+/* 빈 들판 */
+.emptyField {
+  position: absolute; top: 14%; z-index: 4; transform: translateX(-50%);
+  padding: 22px 30px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-pop);
+}
+.emptyField :global(.btn) { margin-top: 12px; }
+.panelEmpty { margin-top: 18px; font-size: 13px; line-height: 1.7; color: var(--ink-500); }
+.shared { color: var(--green-ink) !important; }
+
+/* 땅굴로 들어갈 때·들판에 나올 때 화면 어두워짐 */
+.fade { position: fixed; inset: 0; z-index: 8; background: #1b120c; pointer-events: none; }
+.fadeHold { opacity: 1; }
+.fadeOut { opacity: 0; transition: opacity .55s ease-out; }
+.fadeIn { opacity: 1; transition: opacity .45s ease-in; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .fadeOut, .fadeIn { transition: none; } }
+
+/* ===== 팝업 공통 ===== */
+.modal { padding: 30px 28px 24px; }
+.modal h2 { font-size: 26px; font-weight: 400; color: var(--ink-900); }
+.lead { margin-top: 8px; font-size: 14px; color: var(--ink-500); }
+
+/* 단골 땅굴 · 캠퍼스-층 고르기 공통: 제목 줄 + 닫기 (Figma 1294:12207 · 1296:12207) */
+.popHead { display: flex; align-items: center; justify-content: space-between; }
+.popHead h2 { font-weight: 400; }
+.popClose { width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; color: #6e5444; }
+.popClose:hover { background: rgba(110, 84, 68, .1); }
+
+/* 단골 땅굴 (Figma 1127:13203 → 팝업 1294:12206 "친구 카드형", 680폭) */
+.regModal { padding: 24px; background: #fff9f2; border: 1px solid #e8d3bf; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: 20px; }
+.regModal .popHead h2 { font-size: 28px; line-height: 34px; color: #3e2a1f; }
+.regGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-height: 540px; overflow-y: auto; }
+.regCard {
+  height: 256px; padding: 20px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: #fbf4ec; border: 1px solid #e8d3bf; border-radius: 5px;
+}
+.regWho { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.regWho strong { font-family: var(--font-display); font-weight: 400; font-size: 20px; line-height: 34px; color: #5c3b25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regWho small { font-size: 11px; font-weight: 500; line-height: 18px; color: #8b6c50; }
+.regGo {
+  width: 100%; height: 38px; flex: none; padding: 6px 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: var(--cta); color: #fff0d5; font-family: var(--font-display); font-size: 16px; line-height: 24px; text-decoration: none;
+}
+.regGo:hover { background: var(--cta-hover); }
+.regOff { height: 24px; flex: none; padding: 2px 6px; border-radius: 11px; font-size: 13px; font-weight: 500; line-height: 18px; color: #8a694a; }
+.regOff:hover { background: rgba(138, 105, 74, .12); }
+
+/* 추천 설정 (863:133) */
+/* 추천 친구 설정 (Figma 863:133): 라벨 + 칩 줄. 칩은 고르면 갈색 + ✓, 안 고르면 흰 바탕 테두리 (캠퍼스 · 층 · 기수, 한 줄에서 하나만) */
+.recSec { margin-top: 20px; }
+.recSec h3 { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.chip, .chipOn {
+  height: 32px; padding: 0 14px; border-radius: 16px; font-size: 13px; font-weight: 600; white-space: nowrap;
+  border: 1px solid var(--line-strong); background: #fffaf5; color: var(--ink-700);
+}
+.chip:hover { background: #f6ebdf; }
+.chipOn { background: var(--brown-700); border-color: var(--brown-700); color: var(--on-brown); }
+.recNotice { margin-top: 22px; padding: 11px 14px; border-radius: 8px; background: #f4e6d8; font-size: 12px; line-height: 1.6; color: var(--ink-700); }
+.recDraw { margin-top: 14px; height: 46px; font-size: 15px; }
+
+/* 추천 결과 카드 (761:3795, 뒤집기 765:3619) */
+.cardHint { margin-top: 12px; display: inline-block; padding: 4px 10px; border-radius: 6px; background: #f4e6d8; font-size: 12px; color: var(--ink-700); }
+.recCards { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.card, .cardBack {
+  position: relative; overflow: hidden; height: 316px; padding: 14px; border-radius: 10px; border: 1.5px solid #ead2bf;
+  background: #fbf4ec; display: flex; flex-direction: column; gap: 8px;
+}
+.cardActive, .cardBack { border-color: var(--cta); }
+.cardBack { background: #fffaf5; animation: flip .3s var(--ease-out); }
+@keyframes flip { from { transform: perspective(600px) rotateY(80deg); opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .cardBack { animation: none; } }
+.cardFront {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px;
+  border-radius: 8px; transition: transform .15s;
+}
+.card:hover .cardFront { transform: translateY(-2px); }
+.cardFront strong { margin-top: 4px; font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--ink-900); }
+.cardFront small { font-size: 11px; color: var(--ink-400); }
+/* 오른쪽 위 접힌 모서리 (종이 귀퉁이): 마우스를 올리면 살짝 커져서 뒤집을 수 있다는 표시 */
+.fold {
+  position: absolute; top: 0; right: 0; width: 24px; height: 24px;
+  background: linear-gradient(225deg, var(--surface) 50%, #e2a37c 50%);
+  border-radius: 0 0 0 5px; transition: width .15s, height .15s;
+}
+.card:hover .fold { width: 32px; height: 32px; }
+.cardChips { margin-top: 6px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.cardChips span { padding: 3px 7px; border-radius: 5px; font-size: 11px; font-weight: 600; }
+.cardGo { height: 40px; font-size: 13px; flex: none; }
+/* 뒷면: 카드 전체가 누르는 곳 (다시 누르면 앞면) */
+.backFace { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; text-align: left; border-radius: 8px; }
+.backHead { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #ead2bf; }
+.backHead strong { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--ink-900); }
+.backQna { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.backQna dt { font-size: 12px; color: var(--ink-500); }
+.backQna dd { margin: 3px 0 0; font-size: 14px; font-weight: 700; color: var(--ink-900); line-height: 1.45; }
+.recNext { margin-top: 14px; font-size: 12px; color: var(--ink-500); }
+
+/* 캠퍼스-층 고르기 (Figma 1265:35323 → 팝업 1296:12206 "검색·스크롤 비교안", 520폭) */
+.floorModal { padding: 28px 28px 24px; background: #fff9f2; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: 20px; }
+.floorTitle { font-size: 26px; line-height: 34px; color: #3a261a; }
+/* 현재 위치 줄 */
+.curBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 5px; background: #f6ebdd; color: #6e5444; }
+.curWhere { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.curWhere svg { flex: none; }
+.curWhere small { font-family: var(--font-display); font-size: 13px; line-height: 20px; }
+.curWhere strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; line-height: 24px; }
+.curBack { font-family: var(--font-display); font-size: 13px; line-height: 20px; color: #6e5444; white-space: nowrap; }
+.curBack:hover { text-decoration: underline; }
+/* 학기 (Figma 에 없음. 지난 학기가 있을 때만) */
+.seg { align-self: flex-start; display: inline-flex; padding: 3px; border-radius: 9px; background: var(--toggle-bg); }
+.segBtn, .segOn { height: 32px; padding: 0 14px; border-radius: 7px; font-size: 13px; color: var(--ink-700); }
+.segOn { background: var(--brown-650); color: var(--on-brown); }
+.pfBlock { display: flex; flex-direction: column; gap: 10px; }
+.pfLabel { font-family: var(--font-display); font-size: 14px; line-height: 20px; color: #8a7466; }
+/* 캠퍼스 5칸 */
+.campusRow { display: flex; gap: 8px; }
+.campusBtn, .campusOn {
+  flex: 1 1 0; min-width: 0; height: 38px; border-radius: 10px; border: 1px solid #b8937c;
+  font-family: var(--font-display); font-size: 16px; line-height: 24px; color: #6e5444; white-space: nowrap;
+}
+.campusBtn:hover { background: rgba(194, 100, 58, .08); }
+.campusOn { background: var(--cta); border-color: var(--cta); color: #fff9f2; }
+/* 층 번호 검색 */
+.floorSearch { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 5px; border: 1px solid #ddc6b2; background: #fffcf8; color: #8a7466; cursor: text; }
+.floorSearch:focus-within { border-color: var(--cta); }
+.floorSearch svg { flex: none; }
+.floorSearch input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-family: var(--font-display); font-size: 14px; color: #3a261a; }
+.floorSearch input::placeholder { color: #9b8575; }
+.floorSearch input::-webkit-search-cancel-button { appearance: none; }
+/* 층 목록: 높이 256 까지 보이고 넘으면 세로 스크롤 (레일 #ece1d5 · 손잡이 #c9ae95, 폭 4) */
+.floorScroll {
+  max-height: 256px; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid #e5d3c2; border-radius: 5px; background: #fffdf9;
+  scrollbar-width: thin; scrollbar-color: #c9ae95 #ece1d5;
+}
+.floorScroll::-webkit-scrollbar { width: 4px; }
+.floorScroll::-webkit-scrollbar-track { background: #ece1d5; border-radius: 2px; }
+.floorScroll::-webkit-scrollbar-thumb { background: #c9ae95; border-radius: 2px; }
+.floorRow, .floorRowOn { width: 100%; height: 44px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; background: #fffdf9; color: #3a261a; }
+.floorRow:hover { background: #faf1e6; }
+.floorRowOn { background: #f6ebdd; }
+.floorName { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 17px; line-height: 24px; }
+.floorBadge { padding: 1px 7px; border-radius: 5px; background: #f6ebdd; font-style: normal; font-size: 11px; line-height: 20px; color: #6e5444; }
+.floorRowOn .floorBadge { background: #fffdf9; }
+.floorCount { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 14px; line-height: 20px; color: #8a7466; white-space: nowrap; }
+.floorCheck { flex: none; color: var(--cta); }
+.floorNone { padding: 18px 12px; text-align: center; font-size: 13px; color: #8a7466; }
+/* 아래: 고른 곳 + 들어가기 */
+.pfFoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pfFoot > span { font-family: var(--font-display); font-size: 17px; line-height: 24px; color: #6e5444; }
+.pfFootNone { color: #9b8575 !important; }
+.pfGo { width: 112px; height: 40px; border-radius: 10px; background: var(--cta); color: #fff9f2; font-family: var(--font-display); font-size: 17px; line-height: 24px; }
+.pfGo:hover:not(:disabled) { background: var(--cta-hover); }
+.pfGo:disabled { opacity: .45; cursor: default; }

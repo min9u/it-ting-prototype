@@ -1,0 +1,19 @@
+# 의존성
+node_modules/
+
+# Next.js 빌드 결과
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# 스모크 스크린샷 · 보고서 (npm run smoke)
+shots/
+
+# 개인 환경 변수 (목록·설명은 .env.example)
+.env.local
+.env.*.local
+
+# 기타
+*.log
+.DS_Store

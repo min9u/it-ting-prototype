@@ -1,0 +1,615 @@
+[
+  {
+    "id": "cushion_yellow",
+    "name_ko": "노란 방석",
+    "glb": "room_base_v3_1.glb",
+    "node": "cushion_yellow",
+    "size_m": {
+      "w": 0.54,
+      "d": 0.54,
+      "h": 0.14
+    },
+    "sit_point": "sit_point_cushion_02",
+    "sit_clip_set": "cushion",
+    "sit_clips": {
+      "sit": "mole_sit_cushion",
+      "idle": "mole_sit_idle",
+      "stand_up": "mole_stand_up_cushion"
+    },
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -0.9,
+      0.35,
+      0.0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "rz_deg": 90,
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
+  },
+  {
+    "id": "cushion_sky",
+    "name_ko": "하늘색 방석",
+    "glb": "room_base_v3_1.glb",
+    "node": "cushion_sky",
+    "size_m": {
+      "w": 0.54,
+      "d": 0.54,
+      "h": 0.14
+    },
+    "sit_point": "sit_point_cushion_01",
+    "sit_clip_set": "cushion",
+    "sit_clips": {
+      "sit": "mole_sit_cushion",
+      "idle": "mole_sit_idle",
+      "stand_up": "mole_stand_up_cushion"
+    },
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -0.1,
+      1.5,
+      0.0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
+  },
+  {
+    "id": "ceiling_lamp",
+    "name_ko": "천장 버섯 램프",
+    "glb": "room_base_v3_1.glb",
+    "node": "ceiling_lamp",
+    "size_m": {
+      "w": 0.75,
+      "d": 0.75,
+      "h": 1.72
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      0.0,
+      0.455,
+      4.479
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
+  },
+  {
+    "id": "round_table",
+    "name_ko": "원탁 + 찻주전자·컵",
+    "glb": "room_base_v3_1.glb",
+    "node": "round_table",
+    "size_m": {
+      "w": 0.72,
+      "d": 0.72,
+      "h": 0.62
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "poly_pizza",
+        "model": "Round Table",
+        "author": "Kay Lousberg",
+        "license": "CC0 1.0",
+        "url": "https://poly.pizza/m/KZXCuGx1WZ",
+        "part": "원탁"
+      },
+      {
+        "type": "poly_pizza",
+        "model": "Kettle",
+        "author": "Isa Lousberg",
+        "license": "CC0 1.0",
+        "url": "https://poly.pizza/m/vhYEWaQZvT",
+        "part": "찻주전자"
+      },
+      {
+        "type": "poly_pizza",
+        "model": "Mug",
+        "author": "Kenney",
+        "license": "CC0 1.0",
+        "url": "https://poly.pizza/m/fis2ugeLbn",
+        "part": "컵 2개"
+      }
+    ],
+    "pos_blender": [
+      -0.72,
+      1.18,
+      0.03
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb"
+  },
+  {
+    "id": "cabinet_low",
+    "name_ko": "낮은 수납장 (위 작은 화분·책)",
+    "glb": "room_base_v3_1.glb",
+    "node": "cabinet_low",
+    "size_m": {
+      "w": 0.94,
+      "d": 0.42,
+      "h": 0.62
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.89,
+      -0.049,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "floor_lamp",
+    "name_ko": "스탠드 조명",
+    "glb": "room_base_v3_1.glb",
+    "node": "floor_lamp",
+    "size_m": {
+      "w": 0.52,
+      "d": 0.52,
+      "h": 1.4
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.85,
+      -0.88,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "floor_plant_big",
+    "name_ko": "큰 바닥 화분",
+    "glb": "room_base_v3_1.glb",
+    "node": "floor_plant_big",
+    "size_m": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 1.0
+    },
+    "sit_point": null,
+    "pos_blender": [
+      -2.3,
+      0.28,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "rug_front_oval",
+    "name_ko": "앞쪽 작은 타원 러그",
+    "glb": "room_base_v3_1.glb",
+    "node": "rug_front_oval",
+    "size_m": {
+      "w": 0.9,
+      "d": 0.6,
+      "h": 0.018
+    },
+    "sit_point": null,
+    "pos_blender": [
+      0.0,
+      -1.85,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "rug_right_small",
+    "name_ko": "오른쪽 앞 작은 러그",
+    "glb": "room_base_v3_1.glb",
+    "node": "rug_right_small",
+    "size_m": {
+      "w": 0.5,
+      "d": 0.35,
+      "h": 0.018
+    },
+    "sit_point": null,
+    "pos_blender": [
+      1.92,
+      -2.3,
+      0
+    ],
+    "type": "base",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_base_v3_1_draco_webp.glb",
+    "fixed": true
+  },
+  {
+    "id": "string_lights",
+    "name_ko": "전구 줄",
+    "glb": "room_deco_v1.glb",
+    "node": "string_lights",
+    "size_m": {
+      "w": 3.93,
+      "d": 1.77,
+      "h": 0.55
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "bunting",
+    "name_ko": "가랜드",
+    "glb": "room_deco_v1.glb",
+    "node": "bunting",
+    "size_m": {
+      "w": 4.09,
+      "d": 0.03,
+      "h": 0.76
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "hanging_plant",
+    "name_ko": "걸이 화분",
+    "glb": "room_deco_v1.glb",
+    "node": "hanging_plant",
+    "size_m": {
+      "w": 0.5,
+      "d": 0.34,
+      "h": 1.13
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -1.235,
+      1.885,
+      3.239
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "frame_01",
+    "name_ko": "액자 1",
+    "glb": "room_deco_v1.glb",
+    "node": "frame_01",
+    "size_m": {
+      "w": 0.34,
+      "d": 0.26,
+      "h": 0.37
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      0.889,
+      2.736,
+      2.002
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "frame_02",
+    "name_ko": "액자 2",
+    "glb": "room_deco_v1.glb",
+    "node": "frame_02",
+    "size_m": {
+      "w": 0.37,
+      "d": 0.23,
+      "h": 0.28
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -0.787,
+      2.743,
+      2.067
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "frame_03",
+    "name_ko": "액자 3",
+    "glb": "room_deco_v1.glb",
+    "node": "frame_03",
+    "size_m": {
+      "w": 0.3,
+      "d": 0.26,
+      "h": 0.32
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -1.515,
+      2.521,
+      1.808
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "shelf",
+    "name_ko": "벽 선반 + 병",
+    "glb": "room_deco_v1.glb",
+    "node": "shelf",
+    "size_m": {
+      "w": 0.44,
+      "d": 0.66,
+      "h": 0.49
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      2.677,
+      0.974,
+      1.69
+    ],
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "slot": null,
+    "status": "built",
+    "glb_compressed": "room_deco_v1_draco_webp.glb"
+  },
+  {
+    "id": "display_shelf_01",
+    "name_ko": "벽 선반 1",
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "glb": "room_shelves_v1_1.glb",
+    "glb_compressed": "room_shelves_v1_1_draco_webp.glb",
+    "node": "display_shelf_01",
+    "size_m": {
+      "w": 1.3,
+      "d": 0.3,
+      "h": 0.14
+    },
+    "slot": null,
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      0.0,
+      2.869,
+      1.35
+    ],
+    "rz_deg": -0.0,
+    "prop_slots": [
+      "prop_slot_01",
+      "prop_slot_02",
+      "prop_slot_03",
+      "prop_slot_04"
+    ],
+    "status": "built",
+    "note": "소품 올리는 벽 선반. 위치·회전이 방 좌표 그대로 glb 노드에 들어 있음 (원점 = 선반 윗면 중심) / 11/11 v1_1: 벽에 닿도록 벽 쪽으로 옮김"
+  },
+  {
+    "id": "display_shelf_02",
+    "name_ko": "벽 선반 2",
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "glb": "room_shelves_v1_1.glb",
+    "glb_compressed": "room_shelves_v1_1_draco_webp.glb",
+    "node": "display_shelf_02",
+    "size_m": {
+      "w": 1.3,
+      "d": 0.3,
+      "h": 0.14
+    },
+    "slot": null,
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      2.001,
+      1.933,
+      1.7
+    ],
+    "rz_deg": -46.0,
+    "prop_slots": [
+      "prop_slot_05",
+      "prop_slot_06",
+      "prop_slot_07",
+      "prop_slot_08"
+    ],
+    "status": "built",
+    "note": "소품 올리는 벽 선반. 위치·회전이 방 좌표 그대로 glb 노드에 들어 있음 (원점 = 선반 윗면 중심) / 11/11 v1_1: 벽에 닿도록 벽 쪽으로 옮김"
+  },
+  {
+    "id": "display_shelf_03",
+    "name_ko": "벽 선반 3",
+    "type": "deco",
+    "category": null,
+    "sub_interest": null,
+    "glb": "room_shelves_v1_1.glb",
+    "glb_compressed": "room_shelves_v1_1_draco_webp.glb",
+    "node": "display_shelf_03",
+    "size_m": {
+      "w": 1.3,
+      "d": 0.3,
+      "h": 0.14
+    },
+    "slot": null,
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -2.132,
+      1.789,
+      1.7
+    ],
+    "rz_deg": 50.0,
+    "prop_slots": [
+      "prop_slot_09",
+      "prop_slot_10",
+      "prop_slot_11",
+      "prop_slot_12"
+    ],
+    "status": "built",
+    "note": "소품 올리는 벽 선반. 위치·회전이 방 좌표 그대로 glb 노드에 들어 있음 (원점 = 선반 윗면 중심) / 11/11 v1_1: 벽에 닿도록 벽 쪽으로 옮김"
+  },
+  {
+    "id": "mailbox",
+    "name_ko": "방명록 우체통",
+    "type": "prop",
+    "category": "guestbook",
+    "sub_interest": null,
+    "glb": "mailbox.glb",
+    "node": "Mailbox",
+    "size_m": {
+      "w": 0.304,
+      "d": 0.261,
+      "h": 0.4
+    },
+    "slot": {
+      "kind": "floor",
+      "name": "mailbox_slot",
+      "placed": true,
+      "always_present": true
+    },
+    "sit_point": null,
+    "source": [
+      {
+        "type": "self"
+      }
+    ],
+    "pos_blender": [
+      -1.8,
+      -1.2,
+      0.0
+    ],
+    "rz_deg": 20.0,
+    "status": "built",
+    "desc": "둥근 아치형 클레이 우체통, 뚜껑 없음. 자식 Mailbox_Body/Flag/Letter, 클립 FlagUp 1개",
+    "glb_compressed": "mailbox_draco_webp.glb",
+    "built_in_blender": true,
+    "size_local_m": {
+      "w": 0.304,
+      "d": 0.261,
+      "h": 0.4
+    },
+    "note": "노드 원점 = 바닥 중심, 앞면 = Blender -Y. Letter는 파일에서 보이는 상태, 개발이 숨김. 발광 색 #FFD27A, 세기 0(KHR_materials_emissive_strength)",
+    "thumb": null
+  }
+]

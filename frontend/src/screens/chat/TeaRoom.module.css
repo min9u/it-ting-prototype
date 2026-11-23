@@ -1,0 +1,61 @@
+/* 찻방: 가운데 칸 전체. 그림 상자는 480:660 비율로 칸 안에 맞춤 */
+.wrap {
+  position: relative; min-width: 0; min-height: 0;
+  display: grid; place-items: center;
+  border-radius: var(--radius-xl); overflow: hidden;
+  /* 그림 상자 위아래 남는 곳: 벽색 / 바닥색 */
+  background: linear-gradient(#f8ecdc 50%, #e4c39c 50%);
+  box-shadow: var(--shadow-card);
+  container-type: size;
+}
+/* 칸 안에 비율 그대로 맞춤 (가로·세로 중 좁은 쪽 기준) */
+.box { position: relative; width: min(100cqw, 100cqh * 480 / 660); height: min(100cqh, 100cqw * 660 / 480); }
+.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.boxHidden { display: none; }
+/* 3D 방: 칸 전체를 채움 (이름표도 이 안에 그림) */
+.canvas { position: absolute; inset: 0; z-index: 2; }
+.shadow {
+  position: absolute; z-index: 1; aspect-ratio: 3 / 1; transform: translate(-50%, -50%);
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(90, 50, 25, .28), rgba(90, 50, 25, 0));
+}
+.placeholder { position: absolute; z-index: 2; transform: translate(-50%, -100%); display: flex; align-items: flex-end; opacity: .9; }
+.placeholder img { width: auto !important; height: 70% !important; }
+.emptySeat {
+  position: absolute; z-index: 1; width: 20%; aspect-ratio: 3 / 1; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px dashed #c98a5e; background: rgba(255, 255, 255, .2);
+}
+/* 2D 대체 그림의 이름표 자리 */
+.hit2d {
+  position: absolute; transform: translate(-50%, -100%) translateY(5%);
+  display: flex; align-items: flex-end; justify-content: center;
+  border-radius: 40% 40% 12px 12px; background: transparent;
+}
+.tag, .tagMe {
+  transform: translateY(0); transition: transform .15s;
+  padding: 3px 11px; border-radius: 999px; border: 1.5px solid #8b5e3c;
+  background: #fbf6ee; color: var(--ink-900);
+  font-family: var(--font-display); font-size: 13px; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+}
+.tagMe { background: #fff3df; }
+.more {
+  position: absolute; right: 6%; top: 60%; z-index: 4;
+  padding: 4px 10px; border-radius: 999px; background: rgba(62, 42, 31, .82); color: var(--on-brown);
+  font-family: var(--font-display); font-size: 13px;
+}
+
+/* 3D 방의 이름표 (장면 위 HTML. 위치는 매 프레임 투영해서 옮김) */
+.tag3d, .tag3dMe {
+  padding: 3px 11px; border-radius: 999px; border: 1.5px solid #8b5e3c;
+  background: #fbf6ee; color: var(--ink-900); box-shadow: 0 2px 6px rgba(90, 50, 25, .18);
+  font-family: var(--font-display); font-size: 13px; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+}
+.tag3dMe { background: #fff3df; pointer-events: none; }
+.tag3dBtn { cursor: pointer; }
+.tag3dBtn:hover, .tag3dBtn:focus-visible { background: #fff; }
+/* 자리를 못 받은 사람 "+N" (오른쪽 위) */
+.moreBtn {
+  position: absolute; right: 14px; top: 14px; z-index: 4;
+  padding: 5px 12px; border-radius: 999px; background: rgba(62, 42, 31, .86); color: var(--on-brown);
+  font-family: var(--font-display); font-size: 14px; cursor: pointer;
+}
+.moreBtn:hover, .moreBtn:focus-visible { background: rgba(62, 42, 31, 1); }

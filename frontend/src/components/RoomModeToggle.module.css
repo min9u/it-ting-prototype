@@ -1,0 +1,17 @@
+.toggle {
+  position: absolute; bottom: 33px; z-index: 5;
+  transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 4px;
+  height: 42px; border-radius: 9px;
+  background: var(--toggle-bg);
+  box-shadow: 0 2px 6px rgba(80, 50, 30, 0.15);
+  transition: left .45s var(--ease-out);
+}
+.seg {
+  height: 34px; padding: 0 16px 0 17px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 6px;
+  font-family: var(--font-display); font-size: 14px; color: var(--ink-700);
+}
+.seg:hover { background: rgba(255, 255, 255, 0.45); }
+.on, .on:hover { background: var(--brown-650); color: var(--on-brown); }

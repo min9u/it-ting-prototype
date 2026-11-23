@@ -1,0 +1,5 @@
+# 아직 명세대로 만들지 않은 API (한 줄에 하나, "메서드 주소"). # 뒤는 주석
+# 이 영역 작업자가 하나를 명세대로 만들면 real.ts 의 ENDPOINTS 에 적고 여기서 지운다.
+# 다 하면 이 파일은 주석만 남긴다. src/tests/api-v1-endpoints.test.ts 가 이 목록을 "할 일(todo)"로 보고,
+# 명세에 있는데 ENDPOINTS 에도 PENDING 에도 없으면 실패한다.
+# (08 커뮤니티 23개 모두 ENDPOINTS 로 옮김, 2026-11-22)

@@ -1,0 +1,79 @@
+.scene {
+  position: absolute; inset: 0; overflow: hidden;
+  background: var(--bg-scene);
+}
+.stage {
+  position: absolute; /* top·height 는 RoomView.tsx 에서 ROOM_FRAME 으로 */
+  transform: translateX(-50%);
+  transition: left .45s var(--ease-out);
+  aspect-ratio: 4 / 3;
+}
+@media (max-aspect-ratio: 1/1) {
+  .stage { height: auto !important; width: 102%; left: 50% !important; top: auto !important; bottom: 8%; }
+}
+.room { width: 100%; height: 100%; object-fit: contain; user-select: none; }
+/* 3D 캔버스 (src/three/). 캔버스는 장면 전체를 덮고, 구도는 카메라 view offset 으로 맞춤 */
+.canvas { position: absolute; inset: 0; }
+/* 탐색하기 밭: 3D 준비 전 하늘 → 풀빛 */
+.field { background: linear-gradient(#a3d3f7 0%, #c2e2f8 30%, #dbeff9 34%, #9ccc58 34.5%, #8fc24e 100%); }
+/* 두더지 리액션 버튼 줄 (방 왼쪽 아래) */
+.reactions {
+  position: absolute; left: 35px; bottom: 33px; z-index: 5;
+  display: flex; gap: 2px; padding: 4px; border-radius: 9px;
+  background: var(--toggle-bg); box-shadow: 0 2px 6px rgba(80, 50, 30, 0.15);
+}
+.reaction {
+  height: 34px; padding: 0 12px; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-display); font-size: 14px; color: var(--ink-700);
+}
+.reaction span { font-size: 16px; line-height: 1; }
+.reaction:hover { background: rgba(255, 255, 255, 0.55); }
+.reaction:active { transform: translateY(1px); }
+@media (max-width: 720px) {
+  .reactions { left: 12px; bottom: 86px; }
+  .reaction { padding: 0 9px; }
+}
+
+/* 로딩 (loader): 흙더미 두더지가 통통 + 흙 부스러기 + "땅굴을 꾸미는 중..." */
+.canvasHidden { opacity: 0; }
+/* 집주인 머리 위 자리 (RoomView hostBubble). 0×0 점을 머리 꼭대기로 옮기고, 안의 UI 는 그 위에 세움 */
+.hostAnchor {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s var(--ease-out), visibility 0s .25s;
+}
+.hostAnchor[data-on] { opacity: 1; visibility: visible; transition: opacity .25s var(--ease-out); }
+.hostAnchor > * { pointer-events: auto; }
+/* 3D 를 못 쓸 때: 예전 자리 (방 가운데쯤) */
+.hostStatic { position: absolute; top: 52%; z-index: 5; width: 0; height: 0; }
+.canvasIn { opacity: 1; transition: opacity .6s var(--ease-out); }
+.loader {
+  position: absolute; top: 50%; z-index: 2; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  transition: left .45s var(--ease-out);
+}
+.loaderArt { position: relative; width: 132px; height: 106px; display: block; }
+/* 어두운 배경(시작 화면)에서도 두더지가 묻히지 않게 뒤에 은은한 빛 */
+.loaderArt::before { content: ""; position: absolute; left: 50%; top: 46%; width: 190px; height: 150px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 236, 214, .32), rgba(255, 236, 214, 0)); }
+.loaderArt svg { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; overflow: visible; }
+.loaderHead { animation: loaderBob 1.1s ease-in-out infinite; }
+.loaderArt i {
+  position: absolute; bottom: 30px; width: 9px; height: 9px; border-radius: 50%;
+  background: #8a5a3a; opacity: 0; animation: loaderDirt 1.1s ease-out infinite;
+}
+.loaderArt i:nth-child(2) { left: 18px; --dx: -26px; }
+.loaderArt i:nth-child(3) { left: 60px; --dx: 4px; animation-delay: .18s; width: 7px; height: 7px; }
+.loaderArt i:nth-child(4) { right: 18px; --dx: 24px; animation-delay: .36s; }
+.loaderText { font-family: var(--font-display); font-size: 16px; color: var(--ink-700); padding: 7px 16px; border-radius: 999px; background: rgba(251, 244, 236, .92); box-shadow: 0 3px 10px rgba(40, 22, 10, .25); }
+.loaderDots b { font-weight: inherit; animation: loaderDot 1.2s infinite; }
+.loaderDots b:nth-child(2) { animation-delay: .2s; }
+.loaderDots b:nth-child(3) { animation-delay: .4s; }
+@keyframes loaderBob { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-7px); } 70% { transform: translateY(1px); } }
+@keyframes loaderDirt { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), -34px); } }
+@keyframes loaderDot { 0%, 60%, 100% { opacity: .2; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .loaderHead, .loaderArt i, .loaderDots b { animation: none; }
+  .loaderArt i { display: none; }
+}
+@media (max-aspect-ratio: 1/1) { .loader { left: 50% !important; } }

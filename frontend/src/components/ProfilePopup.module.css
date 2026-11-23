@@ -1,0 +1,19 @@
+.box { position: relative; padding: 30px 26px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.report { position: absolute; top: 14px; left: 14px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--ink-400); }
+.report:hover { background: var(--surface-item); color: var(--danger); }
+.mole { border-radius: 22px; background: #dfe9cf; padding: 4px; }
+.box h2 { margin-top: 12px; font-size: 24px; font-weight: 400; color: var(--ink-900); display: inline-flex; align-items: center; gap: 6px; }
+.me { font-style: normal; font-family: var(--font-body); font-size: 11px; padding: 2px 6px; border-radius: 5px; background: #f6e5c9; color: #7a5a1e; }
+.aff { margin-top: 4px; font-size: 13px; color: var(--ink-400); }
+.label { align-self: flex-start; margin-top: 18px; font-size: 12px; font-weight: 600; color: var(--ink-500); }
+.label span { font-weight: 400; margin-left: 2px; }
+.chips { align-self: stretch; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.shared { box-shadow: inset 0 0 0 1.5px currentColor; }
+.go { margin-top: 20px; height: 44px; gap: 6px; }
+.moreWrap { position: absolute; top: 14px; left: 14px; }
+.moreWrap .report { position: static; }
+.menu { position: absolute; top: 36px; left: 0; z-index: 2; min-width: 130px; padding: 6px; border-radius: 10px; background: #fff; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; text-align: left; }
+.menu button { padding: 8px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-900); text-align: left; }
+.menu button:hover:not(:disabled) { background: var(--surface-item); }
+.menu button:disabled { color: var(--ink-400); }

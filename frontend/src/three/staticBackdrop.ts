@@ -1,0 +1,138 @@
+import * as THREE from 'three'
+import { timeGpuWork } from './engine'
+
+/*
+ * A "배경은 한 번, 두더지만 매 프레임" (docs/gpu-lowspec-ideas.md, 탐색하기 저사양).
+ * 움직이지 않는 것(밭·꽃·둔덕·하늘)을 렌더 타깃에 색 + 깊이로 한 번 그려 두고,
+ * 매 프레임은 그 그림을 화면에 붙이면서(깊이까지 써서 가림이 맞게) 움직이는 것(두더지 층)만 그 위에 그린다.
+ * CPU 렌더러(WARP)는 꽃·덤불 정점 수가 병목이라, 매 프레임 일이 "사각형 하나 + 두더지"로 줄어든다.
+ *
+ * - 렌더 타깃은 톤매핑 전(선형 HalfFloat) 색이라, 붙일 때 같은 톤매핑·sRGB 변환을 해서 원래 그림과 같게 만든다
+ * - 깊이는 DepthTexture → gl_FragDepth 로 그대로 씀 (depthFunc Always)
+ * - 움직이는 것은 layer 1 에 두고, 배경 그릴 때는 camera layer 0, 두더지 그릴 때는 layer 1 만
+ */
+export interface Backdrop {
+  /** 배경을 다시 그려야 함 (크기·카메라 구도가 바뀜) */
+  invalidate(): void
+  isDirty(): boolean
+  /**
+   * 배경 렌더 (기본 layer 0 만, 두더지 빼고. mask 를 주면 그 층들).
+   * rects: 이 사각형들(0–1, 위가 0)에만 그림 (탐색 들판 이동 중 빈 곳 메우기, three/moveSlide.ts). 없으면 전체
+   */
+  capture(scene: THREE.Scene, camera: THREE.Camera, mask?: number, rects?: { x0: number; y0: number; x1: number; y1: number }[]): void
+  /** 저장해 둔 배경을 지금 그리기 대상에 붙임 (색 + 깊이) */
+  blit(): void
+  /** 깊이만 붙임 (색은 안 씀). 방을 다른 캔버스에 고해상도로 깔아 두고 두더지만 그릴 때 가림용 */
+  blitDepth(): void
+  /** 배경용 렌더 타깃(선형 HalfFloat)에 맞는 셰이더를 미리 컴파일 (첫 capture 때 링크 대기로 멈추지 않게, docs/rendering-experiments.md 2번) */
+  precompile(scene: THREE.Scene, camera: THREE.Camera): Promise<void>
+  /** 배경 렌더 타깃 (없으면 만듦) */
+  target(): THREE.WebGLRenderTarget
+  dispose(): void
+}
+
+/**
+ * scale: 렌더 타깃 크기 = 캔버스 그리기 버퍼 × scale (1보다 작으면 낮은 해상도로 그려 붙일 때 늘림. 탐색 들판 점프 카메라 이동용)
+ * kind: 장면 종류. 주면 배경을 그릴 때마다(이 탭에서 몇 번까지) GPU 가 끝낼 때까지 시간을 재서 기기 단계를 정함 (lib/deviceTier.ts)
+ */
+export function createBackdrop(renderer: THREE.WebGLRenderer, o: { scale?: number; kind?: string } = {}): Backdrop {
+  const scale = o.scale ?? 1
+  const size = new THREE.Vector2()
+  let rt: THREE.WebGLRenderTarget | null = null
+  let dirty = true
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { tColor: { value: null }, tDepth: { value: null } },
+    vertexShader: /* glsl */`
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: /* glsl */`
+      uniform sampler2D tColor;
+      uniform sampler2D tDepth;
+      varying vec2 vUv;
+      void main() {
+        gl_FragColor = texture2D(tColor, vUv);
+        gl_FragDepth = texture2D(tDepth, vUv).x;
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    depthTest: true, depthWrite: true, depthFunc: THREE.AlwaysDepth, toneMapped: true,
+  })
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat)
+  quad.frustumCulled = false
+  const quadScene = new THREE.Scene(); quadScene.add(quad)
+  const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+
+  const ensure = () => {
+    renderer.getDrawingBufferSize(size)
+    if (scale !== 1) size.set(Math.max(1, Math.round(size.x * scale)), Math.max(1, Math.round(size.y * scale)))
+    if (rt && rt.width === size.x && rt.height === size.y) return rt
+    rt?.dispose()
+    rt = new THREE.WebGLRenderTarget(size.x, size.y, {
+      type: THREE.HalfFloatType, depthBuffer: true,
+      depthTexture: new THREE.DepthTexture(size.x, size.y, THREE.UnsignedIntType),
+    })
+    mat.uniforms.tColor.value = rt.texture
+    mat.uniforms.tDepth.value = rt.depthTexture
+    return rt
+  }
+
+  return {
+    invalidate() { dirty = true },
+    isDirty: () => dirty,
+    capture(scene, camera, mask, rects) {
+      const target = ensure()
+      const layers = camera.layers.mask
+      if (mask === undefined) camera.layers.set(0); else camera.layers.mask = mask
+      const prevTarget = renderer.getRenderTarget(), prevClear = renderer.autoClear
+      const t0 = performance.now()
+      renderer.setRenderTarget(target)
+      renderer.autoClear = true
+      if (rects) {
+        const w = target.width, h = target.height
+        for (const r of rects) {
+          const x0 = Math.floor(r.x0 * w), x1 = Math.ceil(r.x1 * w), y0 = Math.floor((1 - r.y1) * h), y1 = Math.ceil((1 - r.y0) * h)
+          if (x1 <= x0 || y1 <= y0) continue
+          target.scissor.set(x0, y0, x1 - x0, y1 - y0); target.scissorTest = true
+          renderer.setRenderTarget(target) // scissor 바꾼 것을 적용
+          renderer.render(scene, camera)
+        }
+        target.scissor.set(0, 0, w, h); target.scissorTest = false
+      } else renderer.render(scene, camera)
+      renderer.setRenderTarget(prevTarget)
+      renderer.autoClear = prevClear
+      camera.layers.mask = layers
+      dirty = false
+      if (o.kind) timeGpuWork(renderer, t0, o.kind, target.width * target.height / 1e6)
+    },
+    blit() {
+      if (!rt) return
+      const bg = quadScene.background
+      renderer.render(quadScene, quadCam)
+      quadScene.background = bg
+    },
+    blitDepth() {
+      if (!rt) return
+      mat.colorWrite = false
+      renderer.render(quadScene, quadCam)
+      mat.colorWrite = true
+    },
+    target: () => ensure(),
+    async precompile(scene, camera) {
+      const target = ensure(), prev = renderer.getRenderTarget()
+      renderer.setRenderTarget(target)
+      const p = renderer.compileAsync(scene, camera)
+      renderer.setRenderTarget(prev)
+      await p.catch(() => {})
+      await renderer.compileAsync(quadScene, quadCam).catch(() => {})
+    },
+    dispose() {
+      rt?.depthTexture?.dispose(); rt?.dispose(); rt = null
+      quad.geometry.dispose(); mat.dispose()
+    },
+  }
+}
+
+/** 이 물체와 자식을 모두 움직이는 층(layer 1)으로 (액세서리를 바꾸면 다시 불러야 함) */
+export function toDynamicLayer(o: THREE.Object3D) {
+  o.traverse((c) => c.layers.set(1))
+}

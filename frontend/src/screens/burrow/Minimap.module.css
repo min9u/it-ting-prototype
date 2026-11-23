@@ -1,0 +1,106 @@
+/* 미니맵 (Minimap.tsx). 기본 자리는 왼쪽 아래 "내 땅굴로 돌아가기" 버튼 위 (쓰는 쪽에서 style 로 옮길 수 있음) */
+.box {
+  position: absolute; left: 35px; bottom: 92px; z-index: 5;
+  width: max-content; min-width: 236px; max-width: 268px; padding: 9px 10px 8px;
+  background: rgba(251, 248, 244, .94); border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(60, 35, 20, .18), 0 2px 0 rgba(116, 74, 50, .12);
+  animation: mmIn .22s var(--ease-out);
+}
+@keyframes mmIn { from { opacity: 0; transform: translateY(6px); } }
+.head { display: flex; align-items: center; gap: 6px; padding: 0 2px 7px; }
+/* 세로로 긴 마을(구역 1~2줄): 지도 오른쪽에 범례를 세로로 */
+.box[data-portrait] { display: grid; grid-template-columns: auto auto; column-gap: 10px; }
+.box[data-portrait] .head { grid-column: 1 / -1; }
+.box[data-portrait] .legend { flex-direction: column; flex-wrap: nowrap; align-self: end; gap: 7px; padding: 0 2px 4px 0; }
+.head strong { font-size: 15px; color: var(--ink-900); }
+.count { margin-right: auto; font-size: 11px; color: var(--ink-400); }
+.iconBtn { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--ink-700); }
+.iconBtn:hover { background: var(--surface-item); }
+.mapWrap { position: relative; }
+.map { display: block; margin: 0 auto; max-width: 100%; height: auto; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .04); }
+.view { fill: rgba(255, 255, 255, .2); stroke: #fff; stroke-width: .55; stroke-linejoin: round; pointer-events: none; }
+.mole { pointer-events: none; }
+.molePulse { fill: none; stroke: #fff; stroke-width: .5; transform-box: fill-box; transform-origin: center; animation: pulse 1.8s ease-out 3 both; }
+@keyframes pulse { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .molePulse { animation: none; opacity: 0; } }
+.holeLabel {
+  font-family: var(--font-display); fill: var(--ink-900);
+  paint-order: stroke; stroke: rgba(255, 250, 244, .92); stroke-width: .45; stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.tip {
+  position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px));
+  padding: 4px 10px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  background: rgba(62, 42, 31, .9); color: var(--on-brown);
+  font-family: var(--font-display); font-size: 12px;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.onDot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #5fbf3a; box-shadow: 0 0 0 1.5px #fff; margin-left: 4px; }
+.star { color: #e9b021; font-size: 11px; margin-left: 3px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 3px 10px; padding: 7px 2px 0; font-size: 10.5px; color: var(--ink-500); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend .star { margin: 0; }
+.lgMole, .lgMine, .lgOn, .lgHole, .lgPad, .lgLadder { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.lgMole { background: #6b4a3a; box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(62, 42, 31, .25); }
+.lgMine { background: #f2a3a1; box-shadow: inset 0 0 0 3px #f2a3a1, inset 0 0 0 5px #4a2e1e; }
+.lgOn { width: 8px; height: 8px; background: #5fbf3a; }
+.lgFx { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; background: conic-gradient(#9C6FD6 0 25%, #5FAE45 0 50%, #E8902B 0 75%, #3E8EDE 0); } /* 관심사 이펙트 미니맵 색 (docs/interest-effects.md) */
+.lgHole { background: #bcd494; box-shadow: inset 0 0 0 3px #bcd494, inset 0 0 0 5px #4a2e1e; }
+.lgPad { width: 8px; height: 8px; background: #f6d6aa; box-shadow: 0 0 0 1px #d9925a; }
+.lgLadder { background: #6b3a1e; box-shadow: 0 0 0 1.5px #fbf4ec; }
+
+/* 접힌 미니맵 */
+.opener {
+  position: absolute; left: 35px; bottom: 92px; z-index: 5;
+  height: 38px; padding: 0 14px 0 12px; border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(251, 248, 244, .94); color: var(--brown-600);
+  box-shadow: 0 2px 0 rgba(116, 74, 50, .2), 0 3px 8px rgba(80, 50, 30, .12);
+  font-family: var(--font-display); font-size: 15px;
+}
+.opener:hover { background: #fff; }
+.openerSub { font-family: var(--font-body); font-size: 11px; color: var(--ink-400); }
+
+/* ===== 크게 보기 팝업 ===== */
+.modal { padding: 28px 28px 24px; }
+.modal h2 { font-size: 26px; color: var(--ink-900); }
+.lead { margin-top: 6px; font-size: 14px; color: var(--ink-500); }
+.bigGrid { margin-top: 16px; display: grid; grid-template-columns: 1fr 270px; gap: 18px; align-items: start; }
+.bigMap { position: relative; border-radius: 12px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .04); }
+.bigMap svg { display: block; width: 100%; height: auto; }
+.bigTip {
+  position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 16px)); pointer-events: none;
+  padding: 7px 12px; border-radius: 10px; background: rgba(62, 42, 31, .92); color: var(--on-brown);
+  display: flex; flex-direction: column; gap: 1px; white-space: nowrap;
+}
+.bigTip strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; }
+.bigTip small { font-size: 11px; opacity: .85; }
+.side { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.f, .fOn {
+  height: 30px; padding: 0 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line-strong); background: #fffaf5; color: var(--ink-700);
+}
+.f span, .fOn span { font-weight: 700; font-size: 11px; opacity: .75; }
+.f:hover { background: var(--surface-item); }
+.fOn { background: var(--brown-700); border-color: var(--brown-700); color: var(--on-brown); }
+.list { max-height: 296px; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+.list li { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 10px; background: var(--surface-item); }
+.list li:hover { background: #f3e2d1; }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.who strong { font-family: var(--font-display); font-weight: 400; font-size: 14px; color: var(--ink-900); display: inline-flex; align-items: center; }
+.who small { font-size: 11px; color: var(--ink-400); }
+/* 전역 .btn 이 모듈 CSS 뒤에 오므로 두 겹 선택자로 */
+.list .go { height: 30px; padding: 0 11px; font-size: 13px; flex: none; }
+.empty { justify-content: center; font-size: 12px; color: var(--ink-500); padding: 18px 8px !important; }
+.bigLegend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; padding: 10px 12px; border-radius: 10px; background: #fffaf5; border: 1px solid var(--line); }
+.bigLegend div { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-500); }
+.bigLegend dt { width: 14px; display: grid; place-items: center; }
+.bigLegend dd { margin: 0; }
+.bigLegend .star { margin: 0; }
+/* 관심사 이펙트 2차 (docs/interest-effects.md): 미니맵 ♥ · 등불 범례 · 동네 이름 */
+.lgHeart { color: #FF8A5B; font-size: 11px; line-height: 1; }
+.lgLamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; background: #FFC24A; box-shadow: 0 0 0 2px rgba(255, 194, 74, .35); }
+.zoneLabel { font-family: var(--font-body); paint-order: stroke; }
