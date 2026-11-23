@@ -148,6 +148,10 @@ node tools/team-import/report.mjs /tmp/import.json     # 결과 표
 
 이 맥(8코어, Node 26.5.1) 기준. npm 캐시가 있어 `npm ci` 는 몇 초
 
+## 다시 연습 (2026-11-24, 팀 `dev` `61e6c10`)
+
+커밋 62개 모두 통과 · 서명 `G` · 충돌 0. 절전 때문에 45번에서 두 번 멈춘 일과 README 사본 갱신은 [team-import-decisions-2026-11-23.md](team-import-decisions-2026-11-23.md) "재연습"
+
 ## 발견한 문제 · 위험
 
 연습 중 고친 것 (위 "이 리포에서 고친 것"과 스크립트):

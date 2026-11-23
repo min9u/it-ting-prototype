@@ -62,6 +62,7 @@ npm run typecheck && npm run lint && npm test && npm run build && npm run smoke 
   ```
 - 실시간 소식(SSE `GET /api/v1/me/event-stream`)은 영역 이름 `events`. rewrite 로 끊김 없이 흐르도록 `compress: false` (Next 의 gzip 이 SSE 를 모아 둠). 배포는 앞단 Nginx 가 압축 · `/api` 전달을 맡는 구성을 전제로 함
 - 목 서버 손잡이: 주소에 `?api=slow|fail|empty|fast` 등 (실험실 켠 빌드에서는 왼쪽 아래 배지로 보임)
+- 로그인 검사: 기본은 명세대로(비로그인 → 로그인, 온보딩 안 끝남 → 온보딩, 401 → 다시 로그인). 목 서버의 시연 계정은 `src/data/auth.ts` 맨 위. 시연 · 디자인 확인으로 다 열어 보려면 `NEXT_PUBLIC_LOGIN_FREE=1 npm run dev`
 
 ## 실험실 스위치
 
@@ -94,7 +95,7 @@ frontend/
    ├─ api/               API 영역별 real/mock, 공통 클라이언트 · React Query
    ├─ realtime/          SSE
    ├─ data/ · lib/       데이터 · 유틸. lib/env.ts(환경 변수) · lib/nav.tsx(화면 이동 어댑터)
-   ├─ three/             three.js 장면 (mole.ts · furniture.ts 는 생성 파일: 직접 고치지 말 것)
+   ├─ three/             three.js 장면
    ├─ labs/              화면 안 실험실 조각 고르기
    ├─ assets/            glb · 이미지 · 벽지 (import 하면 주소 문자열)
    ├─ styles/            토큰 · 전역 CSS

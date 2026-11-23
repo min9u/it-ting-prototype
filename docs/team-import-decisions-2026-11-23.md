@@ -40,7 +40,11 @@
 
 ## 재연습 (최신 `origin/dev` `61e6c10` 위)
 
-<채우는 중>
+- 임시 클론(팀 리포 `dev` `61e6c10`)의 `chore/fe/KAN-0-frontend-import` 에서 **커밋 62개 모두** 커밋 전에 tsc · 린트(오류 0, 경고 0 → 55) · 단위 테스트(마지막 47파일 641개) · 배포 빌드 통과, 59번부터 실험실 빠짐 검사도 통과. 서명 62개 모두 `G`, 제목 62개 모두 팀 정규식 통과
+- `git merge-tree --write-tree HEAD origin/dev` 충돌 0. `frontend/` 밖 변경은 `.github/workflows/frontend-ci.yml`(새 파일) · `AGENTS.md` 1줄뿐
+- 마지막 `frontend/` 는 이 리포와 같음 (README 의 프로토타입 리포 링크 3곳만 다르고, `big_model_sizes_v3_8.json` 은 팀 `.gitattributes` 로 LF)
+- **처음 두 번은 45번에서 멈춤**: 테스트가 아니라 vitest 작업자가 제때 안 뜬 시간 초과(`Timeout waiting for worker to respond`). 맥이 배터리로 돌며 절전 ↔ 잠깐 깨기를 되풀이해 43 · 44번이 커밋당 15 ~ 17분(평소 25 ~ 40초)이 걸렸음. 같은 45번 트리에서 직접 돌리면 530개 통과. 다시 이어서(`--from 45`) 끝까지 통과. **실제로 옮길 때는 전원을 연결하고 덮개를 열어 둘 것** (`caffeinate` 로는 덮개 닫힘 절전을 못 막음)
+- 이 과정에서 팀용 README 사본(`tools/team-import/team/README.md`)이 옛 내용이던 것을 발견해 지금 README 로 다시 만듦 (로그인 검사 줄 · 생성 파일 설명 정리)
 
 ## Jira 카드 초안 (로그인되면 그대로 만듦)
 
