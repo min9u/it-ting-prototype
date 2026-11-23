@@ -74,8 +74,8 @@ export const COMMENT_MAX = RULES.comment.max
 export const REPORT_DETAIL_MAX = RULES.reportDetail.max
 
 /* ---------- 검사 ---------- */
-/** 글자 수 (input maxLength 와 같은 방식) */
-export const lengthOf = (v: string) => v.length
+/** 글자 수: 코드 포인트 수 (DB CHAR_LENGTH 와 같음, 명세 03 · 04 "이모지도 한 자로 센다"). input maxLength 는 UTF-16 으로 세서 이모지를 두 자로 봄 */
+export const lengthOf = (v: string) => [...v].length
 
 /** 안내 문구 (02 명세 문구가 있으면 그대로, 없으면 같은 말투로 정함) */
 export const MSG = {
@@ -103,7 +103,7 @@ export function checkText(rule: TextRule | RuleName, value: string): CheckResult
 }
 
 /** 붙여 넣기 등으로 넘친 값을 자름 (maxLength 가 없는 칸·프로그램으로 넣는 값) */
-export const clampText = (value: string, max: number) => (value.length > max ? value.slice(0, max) : value)
+export const clampText = (value: string, max: number) => (lengthOf(value) > max ? [...value].slice(0, max).join('') : value)
 
 /** "n / max" 글자 수 표시 + 다 찼는지 */
 export function counter(value: string, max: number) {

@@ -54,3 +54,4 @@
 - 2026-11-22: [영역 작업 7개를 합친 뒤 공통 정리](api-v1-foundation.md#7-영역-작업을-합친-뒤-공통-정리-2026-11-22) — 방명록 저장소 하나 · 두더지 코드 공통 · 채팅이 대신 부르던 API 정리 · 차단 삭제 · 다른 영역 목의 알림 · 403 ONBOARDING_INCOMPLETE · 글자 수 RULES 하나(명세 값) · 옛 코드 삭제. [백엔드 질문 모음](api-v1/questions-for-backend.md) · [바뀐 기능 목록](api-v1/feature-changes.md)
 - 2026-11-23: 명세 사본 dev `9ea6698` 반영 — 인증(503 `VERIFICATION_SEND_FAILED`, 비밀번호 8~20자, Mattermost ID 정규화 · 검사, 코드 5번 틀리면 지움 · 재전송 60초, 가입 검사 순서, 재설정 60초 조용한 성공, "비밀번호가 달라요"), 목의 관심사 처음 값 id(표 순서), **꾸미기 가구 탭 · 목 전용 가구 저장 삭제**(사용자 결정). [바뀐 기능 목록](api-v1/feature-changes.md#명세-dev-9ea6698-반영-2026-11-23)
 - 2026-11-23: 팀 명세 dev `35d107a` 반영 (닉네임 한글 · 영어 · 숫자, 답변 이모지 한 자, fields 이름 순, 화면 이름 "게시판"). `app/` · `frontend/` 둘 다, 시험 `spec-35d107a.test.ts`
+- 2026-11-23: 팀 명세 dev `61e6c10` 반영 (자기소개 앞뒤 공백 · 이모지 한 자, 글자 수 세기를 코드 포인트로, 방명록 page · size 범위, 검색어 앞뒤 공백). `frontend/` 만, 시험 `spec-61e6c10.test.ts`. [바뀐 것](api-v1/feature-changes.md)

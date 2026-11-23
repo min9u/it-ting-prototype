@@ -107,7 +107,7 @@ GET /api/v1/me/burrow
 | `answers[].introQuestionId` | 숫자 | 질문의 id | `user_answer.intro_question_id` |
 | `answers[].question` | 문자열 | 질문 문구 | `intro_question.content` |
 | `answers[].answer` | 문자열 | 답변. 10 ~ 50자 | `user_answer.answer` |
-| `regularCount` | 숫자 | 내 땅굴을 단골로 담은 사람 수 | 계산: `regular_burrow`에서 `burrow_id`가 내 땅굴인 줄 수 |
+| `regularCount` | 숫자 | 내 땅굴을 단골로 담은 사람 수. 단골 기능([05 탐색 · 방문](README.md))이 생기기 전까지는 0 | 계산: `regular_burrow`에서 `burrow_id`가 내 땅굴인 줄 수 |
 | `guestbookCount` | 숫자 | 방명록 글 수 | 계산: `guestbook_entry`에서 내 땅굴에 달리고 가려지지 않은 줄 수 |
 | `entrance` | 객체 | 이번 학기 들판에 놓인 내 땅굴 입구. "탐색"을 누르면 이 들판으로 간다 | |
 | `entrance.termId` | 숫자 | 그 들판의 학기 id | `burrow_entrance.term_id` |
@@ -171,7 +171,7 @@ GET /api/v1/me/burrow
 
 ### 요청
 
-네 부위를 모두 보낸다. 바꾸지 않은 부위도 지금 값을 담는다.
+네 부위를 모두 보낸다. 바꾸지 않은 부위도 지금 값을 담는다. 키가 빠지면 `400`과 `INVALID_INPUT`이고, `"hand": null`처럼 `null`을 보낸 부위는 "없음"이다.
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
@@ -233,13 +233,13 @@ PATCH /api/v1/me/mole
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
-| 본문 | `nickname` | 문자열 | ✓ | 닉네임. 1 ~ 12자 |
+| 본문 | `nickname` | 문자열 | ✓ | 닉네임. 규칙은 온보딩과 같다([닉네임 규칙](03-onboarding.md#닉네임-규칙): 앞뒤 공백을 지운 뒤 한글 · 영어 · 숫자로 1 ~ 12자, 영어 대소문자는 가리지 않는다) |
 | 본문 | `campusFloorId` | 숫자 | ✓ | 캠퍼스-층의 id. [`GET /api/v1/campuses`](00-common.md#get-apiv1campuses)의 `floors[].id` |
 | 본문 | `interestIds` | 목록 | ✓ | 세부 관심사의 id. 3 ~ 10개이고 같은 id를 두 번 넣지 않는다. 보낸 순서로 저장하고 첫 번째가 대표 관심사다 |
 | 본문 | `answers` | 목록 | ✓ | 질문과 답변. 정확히 3개이고 보낸 순서가 자리 순서다 |
 | 본문 | `answers[].introQuestionId` | 숫자 | ✓ | 질문의 id. 세 질문이 서로 달라야 한다 |
 | 본문 | `answers[].answer` | 문자열 | ✓ | 답변. 10 ~ 50자 |
-| 본문 | `intro` | 문자열 | ✓ | 자기소개. 150자 이하. 쓰지 않았으면 `null`을 보낸다. `null`이나 빈 문자열이면 자기소개를 비운다 |
+| 본문 | `intro` | 문자열 | ✓ | 자기소개. 150자 이하(이모지도 한 자로 센다). 쓰지 않았으면 `null`을 보낸다. 앞뒤 공백을 지우고, `null`이거나 지운 뒤 비었으면 자기소개를 비운다. 줄바꿈은 그대로 둔다 |
 
 ```text
 PATCH /api/v1/me/profile
@@ -265,11 +265,11 @@ PATCH /api/v1/me/profile
 2. `campusFloorId`가 지우지 않은 캠퍼스-층인지 본다. 아니면 `404`와 `CAMPUS_FLOOR_NOT_FOUND`.
 3. `interestIds`가 모두 지우지 않은 세부 관심사인지 본다. 아니면 `404`와 `INTEREST_NOT_FOUND`.
 4. `answers[].introQuestionId`가 모두 있는 질문인지 본다. 아니면 `404`와 `INTRO_QUESTION_NOT_FOUND`.
-5. `nickname`이 지금 닉네임과 다르면, 다른 계정이 그 닉네임을 맡아 두었는지 본다([닉네임 맡아 두기](03-onboarding.md#닉네임-맡아-두기)). 맡아 둔 시간이 남아 있으면 `409`와 `NICKNAME_DUPLICATED`.
-6. 아래 표의 값을 한 트랜잭션으로 저장한다.
+5. `nickname`이 지금 닉네임과 다르면, 다른 계정이 그 닉네임을 맡아 두었거나 쓰고 있는지 본다([닉네임 맡아 두기](03-onboarding.md#닉네임-맡아-두기)). 맡아 둔 시간이 남아 있거나 쓰고 있으면 `409`와 `NICKNAME_DUPLICATED`. 온보딩 확정처럼 이 계정 몫으로 맡은 뒤에 본다.
+6. 아래 표의 값을 한 트랜잭션으로 저장한다. 같은 사람의 저장이 동시에 오면 프로필 행을 잠가 차례로 처리한다.
 7. 저장하다 닉네임이 겹치면 모두 되돌리고 `409`와 `NICKNAME_DUPLICATED`.
-8. 땅굴 입구의 자리 번호가 같은 순간에 옮겨 온 다른 사람과 겹치면 서버가 번호를 다시 골라 저장한다. 그래도 저장하지 못하면 모두 되돌리고 `500`과 `INTERNAL_ERROR`로 답한다.
-9. 닉네임을 저장했으면 이 계정이 맡아 둔 닉네임을 임시 저장소에서 지운다.
+8. 땅굴 입구의 자리 번호는 온보딩 확정과 같이 새 캠퍼스-층 행을 잠근 뒤 정한다. 같은 순간에 같은 층으로 옮겨 와도 번호가 겹치지 않는다([DB 설계](../db/burrow.md#burrow_entrance)). 입구는 프로필의 캠퍼스-층을 바꾸기 전에 옮긴다. 프로필을 먼저 바꾸면 외래 키 검사가 그 캠퍼스-층 행에 공유 잠금을 걸어, 같은 층으로 옮기는 다른 요청과 교착이 생긴다.
+9. 닉네임을 바꿨으면 커밋한 뒤 이 계정이 맡아 둔 닉네임을 임시 저장소에서 지운다.
 
 | 요청의 값 | 저장하는 곳 |
 |---|---|
@@ -375,8 +375,8 @@ PATCH /api/v1/me/profile
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
 | 경로 | `burrowId` | 숫자 | ✓ | 땅굴의 id. 내 땅굴이면 [`GET /api/v1/me/burrow`](#get-apiv1meburrow)의 `burrowId` |
-| 쿼리 | `page` | 숫자 | | 페이지 번호. 1부터 세고 보내지 않으면 1 |
-| 쿼리 | `size` | 숫자 | | 한 페이지의 글 수. 보내지 않으면 5 |
+| 쿼리 | `page` | 숫자 | | 페이지 번호. 1부터 세고 보내지 않으면 1. 1보다 작으면 `400`과 `INVALID_INPUT` |
+| 쿼리 | `size` | 숫자 | | 한 페이지의 글 수. 1 ~ 20이고 보내지 않으면 5. 벗어나면 `400`과 `INVALID_INPUT` |
 
 ```text
 GET /api/v1/burrows/18/guestbook-entries
@@ -405,6 +405,7 @@ GET /api/v1/burrows/18/guestbook-entries?page=2&size=5
 - 최신순이다. `guestbook_entry.created_at`이 늦은 것부터, 같으면 id가 큰 것부터 준다. 정렬은 바꿀 수 없다.
 - 페이지 방식으로 나눈다. 한 페이지에 5개가 기본이다.
 - 글이 없으면 `items`는 `[]`, `totalItems`는 0, `totalPages`는 0이다.
+- 글이 있는 페이지를 넘으면 오류가 아니라 `items`가 `[]`이고 `totalItems`와 `totalPages`는 실제 값이다. 마지막 페이지의 글을 지우고 같은 페이지를 다시 불러도 오류가 나지 않는다.
 - 주인이 볼 때는 모든 글의 `canDelete`와 `canReport`가 `true`다. 주인은 자기 땅굴에 글을 쓸 수 없기 때문이다. 방문자가 볼 때는 자기가 쓴 글만 `canDelete`가 `true`이고 `canReport`가 `false`다.
 
 ### 응답 예시
@@ -524,6 +525,13 @@ DELETE /api/v1/guestbook-entries/204
 
 ## 구현 단계로 넘기는 것
 
-- `size`의 최댓값
-- 캠퍼스-층을 옮겨 비게 된 자리 번호를 다시 쓰는지(DB 설계에서도 구현 단계로 넘겼다)
 - 프로필 사진을 올리는 API(올리는 곳이 명세의 보류한 결정이다)
+
+## 구현하며 정한 것
+
+- **방명록 목록의 `page` · `size`**(KAN-45): `page`는 1 이상, `size`는 1 ~ 20. 벗어나면 `400`. 글이 있는 페이지를 넘으면 빈 목록으로 `200`이다. 화면은 5개씩만 쓰고, 너무 큰 `size`로 한 번에 다 읽지 못하게 한다.
+- **단골 수**(KAN-45): 단골 테이블 `regular_burrow`와 담는 API는 05 탐색 · 방문에서 만든다. 그 전까지 `regularCount`는 늘 0이다.
+- **자기소개의 공백**(KAN-45): 앞뒤 공백을 지우고, 지운 뒤 비었으면 비운다. 공백뿐인 자기소개가 "아직 작성한 자기소개가 없어요" 대신 빈 칸으로 보이지 않게 한다. 150자는 답변처럼 문자 단위로 센다.
+- **빠진 키와 `null`**(KAN-45): 두더지의 네 부위와 `intro`는 키가 빠지면 `400`, `null`이면 "없음" · "비움"이다. 서버는 둘을 구분해 읽는다.
+- **비게 된 입구 자리 번호**(KAN-44, KAN-45): 다음 번호는 그 들판의 가장 큰 번호 + 1이다. 가운데 빈 번호는 다시 쓰지 않는다([DB 설계](../db/burrow.md#burrow_entrance)).
+- **답변을 저장하는 방법**(KAN-45): 지금 답변 3줄을 지우고 보낸 순서대로 다시 넣는다. 두 자리의 질문을 서로 바꿔도 `UNIQUE(user_id, intro_question_id)`에 걸리지 않는다.

@@ -57,4 +57,9 @@ export const ENV = {
   apiRealAreas: list(process.env.NEXT_PUBLIC_API_REAL_AREAS),
   /** apiMode 가 real 이어도 목으로 둘 영역 (백엔드가 아직 안 만든 영역) */
   apiMockAreas: list(process.env.NEXT_PUBLIC_API_MOCK_AREAS),
+  /**
+   * 로그인 검사 끄기 (시연용). 기본 거짓 = 명세대로: 비로그인 → 로그인 화면, 온보딩 안 끝남 → 온보딩, 401 → 다시 로그인.
+   * 참이면 로그인이 입력과 관계없이 성공하고 비로그인으로도 모든 화면이 열림, 401 도 무시 (data/auth.ts LOGIN_FREE)
+   */
+  loginFree: flag(process.env.NEXT_PUBLIC_LOGIN_FREE),
 } as const

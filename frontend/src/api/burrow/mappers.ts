@@ -67,7 +67,7 @@ export function toProfileUpdate(d: ProfileDraft, catalog: InterestCatalog, campu
     campusFloorId: toDtoId(campusFloorId),
     interestIds: interestIdsOf(d.interests, catalog),
     answers: d.qna.map((x) => ({ introQuestionId: toDtoId(x.qid), answer: x.a.trim() })),
-    intro: d.intro.trim() ? d.intro : null,
+    intro: d.intro.trim() || null, // 앞뒤 공백을 지우고, 비었으면 null (명세 04, 서버도 같은 규칙)
   }
 }
 

@@ -19,6 +19,16 @@ import { isUtcInstant } from '../lib/time'
 // 목 서버 지연 없이 (손잡이 ?api=fast)
 beforeAll(() => { sessionStorage.setItem('digul.api.knobs', 'fast') })
 
+/** 방명록 글 전부 (size 는 1 ~ 20 이라 페이지마다 읽음, 명세 04 KAN-45) */
+async function allGuestbook(burrowId: Parameters<typeof burrow.guestbookEntries>[0]) {
+  const out = []
+  for (let page = 1; ; page++) {
+    const p = await burrow.guestbookEntries(burrowId, { page, size: 20 })
+    out.push(...p.items)
+    if (page >= p.totalPages) return out
+  }
+}
+
 /** 실패한 요청의 { status, code, fields } */
 async function failure(p: Promise<unknown>) {
   try { await p } catch (e) { if (e instanceof ApiError) return { status: e.status, code: e.code, fields: e.fields?.map((f) => f.field) ?? [] } }
@@ -170,13 +180,14 @@ describe('04 내 땅굴 (목 서버)', () => {
     expect(p1.totalPages).toBe(Math.ceil(p1.totalItems / 5))
     expect(p1.items.every((g) => g.canDelete && g.canReport)).toBe(true)
     expect(p1.items.every((g) => isUtcInstant(g.createdAt))).toBe(true)
-    const all = await burrow.guestbookEntries(toDtoId(ME_ID), { page: 1, size: 100 })
+    const all = { items: await allGuestbook(toDtoId(ME_ID)) }
+    expect(all.items.length).toBe(p1.totalItems)
     expect(all.items.some((g) => g.content.includes('가려진'))).toBe(false)
     const times = all.items.map((g) => Date.parse(g.createdAt))
     expect([...times].sort((a, b) => b - a)).toEqual(times)
   })
   it('남의 땅굴 방명록: 내가 쓴 글만 지울 수 있고, 남의 글은 신고만. 없는 땅굴은 404', async () => {
-    const p = await burrow.guestbookEntries(toDtoId('yerin'), { page: 1, size: 50 })
+    const p = { items: await allGuestbook(toDtoId('yerin')) }
     expect(p.items.every((g) => !g.canDelete && g.canReport)).toBe(true)
     expect(await failure(burrow.deleteGuestbookEntry(p.items[0].id))).toMatchObject({ status: 403, code: 'FORBIDDEN' })
     expect(await failure(burrow.guestbookEntries(toDtoId('gone')))).toMatchObject({ status: 404, code: 'BURROW_NOT_FOUND' })

@@ -13,8 +13,8 @@ import { findGuestbookEntry, guestbookCountOf, ownerOfBurrow, removeGuestbookEnt
 import { isGuestbookHidden } from '../../lib/format'
 import { registerMockReportTarget } from '../community/mock'
 import { parseIso, toIso } from '../../lib/time'
-import { RULES } from '../../lib/validation'
-import { forbidden, mockRead, mockWrite, notFound } from '../mock/server'
+import { RULES, lengthOf } from '../../lib/validation'
+import { forbidden, invalidInput, mockRead, mockWrite, notFound } from '../mock/server'
 import { toAppId, toDtoId } from '../common/ids'
 import { interestTags, rawPerson } from '../common/mockPeople'
 import type { FieldError, PageDto } from '../common/types'
@@ -35,7 +35,7 @@ export function myBurrowDto(): MyBurrowDto {
     burrowId: toDtoId(ME_ID),
     owner: { ...userDisplayDto(ME_ID), nickname: p.nickname, campusName: p.campus, generation: ME_HOME.gen, floor: p.floor },
     campusFloorId,
-    intro: p.intro.trim() ? p.intro : null,
+    intro: p.intro.trim() || null,
     interests: interestTags(ME_ID, ME_ID),
     answers: qnaOf(p.qna).map((x, i) => ({ slot: i + 1, introQuestionId: toDtoId(x.q.id), question: x.q.text, answer: x.a })),
     regularCount: MY_REGULARS_COUNT,
@@ -86,7 +86,7 @@ export const mock: BurrowApi = {
     const ints = interestIdsError(body.interestIds)
     if (ints) fields.push({ field: 'interestIds', message: ints })
     fields.push(...answersErrors(body.answers))
-    if (body.intro != null && (typeof body.intro !== 'string' || body.intro.length > RULES.intro.max)) fields.push({ field: 'intro', message: `${RULES.intro.max}자 이하로 써야 합니다.` })
+    if (body.intro != null && (typeof body.intro !== 'string' || lengthOf(body.intro.trim()) > RULES.intro.max)) fields.push({ field: 'intro', message: `${RULES.intro.max}자 이하로 써야 합니다.` })
     throwIfInvalid(fields)
     // 2 ~ 4 있는 값인지 (404)
     const cf = campusFloorOf(toAppId(body.campusFloorId))
@@ -99,7 +99,7 @@ export const mock: BurrowApi = {
     const before = getMyProfile()
     if (before.campus !== cf.campus || before.floor !== cf.floor) moveMyBurrow(cf.campus, cf.floor)
     setMyProfile({
-      nickname: body.nickname.trim(), intro: body.intro?.trim() ? body.intro : '',
+      nickname: body.nickname.trim(), intro: body.intro?.trim() ?? '',
       qna: qs.map((q, i) => ({ qid: q.id, a: body.answers[i].answer.trim() })), campus: cf.campus, floor: cf.floor,
     })
     setMyInterests(names)
@@ -109,6 +109,10 @@ export const mock: BurrowApi = {
   guestbookEntries: (burrowId, q = {}, signal) => mockRead(() => {
     const owner = ownerOfBurrow(toAppId(burrowId))
     if (!rawPerson(owner)) throw notFound('BURROW', '땅굴을 찾을 수 없습니다.')
+    // 명세 04 (KAN-45): page 1 이상, size 1 ~ 20. 글이 있는 페이지를 넘으면 빈 목록 (오류 아님)
+    const pg = q.page ?? 1, size = q.size ?? GUESTBOOK_PAGE_SIZE
+    if (!Number.isInteger(pg) || pg < 1) throw invalidInput({ page: '1 이상이어야 합니다.' })
+    if (!Number.isInteger(size) || size < 1 || size > 20) throw invalidInput({ size: '1 ~ 20 사이여야 합니다.' })
     const list = visibleGuestbookOf(owner)
     return page(list.map((g) => entryDto(g, owner)), q.page ?? 1, q.size ?? GUESTBOOK_PAGE_SIZE)
   }, { signal, empty: () => page([], 1, q.size ?? GUESTBOOK_PAGE_SIZE) }),

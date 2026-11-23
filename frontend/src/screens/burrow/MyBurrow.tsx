@@ -16,6 +16,7 @@ import {
 } from '../../api/burrow'
 import GuestbookModal from './GuestbookModal'
 import MyInfoEdit, { INTRO_MAX } from './MyInfoEdit'
+import { lengthOf } from '../../lib/validation'
 import DecorPanel from './DecorPanel'
 import FxPanel from '../../components/FxPanel'
 import s from './Burrow.module.css'
@@ -140,7 +141,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
           </div>
 
           <div className={m.introCard}>
-            <span className={s.introHead}><strong>자기소개</strong><span>{intro.length} / {INTRO_MAX}</span></span>
+            <span className={s.introHead}><strong>자기소개</strong><span>{lengthOf(intro)} / {INTRO_MAX}</span></span>
             {intro ? <p className={s.introP}>{intro}</p> : (
               <>
                 <p className={m.introEmpty}>아직 작성한 자기소개가 없어요.</p>

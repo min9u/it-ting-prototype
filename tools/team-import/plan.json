@@ -61,7 +61,7 @@
       "files": ["src/api/meetups/**", "src/tests/meetup-category.test.ts", "src/tests/meetup-vacancy-notice.test.ts"] },
     { "title": "feat: 채팅 API 연결 추가", "desc": "06 채팅 API · 보내기 대기열 + 테스트 2", "files": ["src/api/chat/**", "src/tests/chat.test.ts", "src/tests/block-removed.test.ts"] },
     { "title": "feat: 땅굴과 탐색 API 연결 추가", "desc": "04 땅굴 · 05 탐색 API (서로 import 해서 한 커밋) + 테스트 4",
-      "files": ["src/api/burrow/**", "src/api/explore/**", "src/tests/api-explore.test.ts", "src/tests/onboarding-burrow-api.test.ts", "src/tests/room-look.test.ts", "src/tests/mock-notifications.test.ts"] },
+      "files": ["src/api/burrow/**", "src/api/explore/**", "src/tests/api-explore.test.ts", "src/tests/onboarding-burrow-api.test.ts", "src/tests/room-look.test.ts", "src/tests/mock-notifications.test.ts", "src/tests/spec-61e6c10.test.ts"] },
     { "title": "feat: 관리자 API 연결 추가", "desc": "관리자 API", "files": ["src/api/admin/**"] },
     { "title": "feat: API 영역 묶음과 명세 대조 테스트 추가", "desc": "api/index(영역 묶음) · endpoints · 목 저장소 동기화 + 명세 111개 대조 테스트",
       "files": ["src/api/index.ts", "src/api/endpoints.ts", "src/api/mockSync.tsx", "src/tests/api-v1-endpoints.test.ts"] },

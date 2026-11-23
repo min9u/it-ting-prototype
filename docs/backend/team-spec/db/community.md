@@ -137,6 +137,8 @@ A·B·C가 글을 신고해 가려진 뒤 관리자가 복구한다. D가 새로
 
 커뮤니티 글의 작성자, 공개 상태, 연결된 모임을 저장한다. 제목과 본문은 [`post_version`](#post_version)에 있다.
 
+`meetup_id`는 `meetup` 테이블이 생긴 뒤 08 커뮤니티 ③(KAN-53)의 마이그레이션에서 더한다. 그 전에 만든 KAN-51의 마이그레이션에는 이 칼럼이 없다. 공개 글을 최신순으로 읽는 색인 `(status, created_at)`을 둔다.
+
 | 컬럼 이름 | 타입 | 외래키·기본키 | NULL 허용 여부·UNIQUE 여부·도메인 범위 | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | NOT NULL, PK로 유일 | 자동 증가 글 ID |
@@ -180,7 +182,7 @@ A·B·C가 글을 신고해 가려진 뒤 관리자가 복구한다. D가 새로
 | `image_id` | `BIGINT` | FK → `uploaded_image.id` | NOT NULL, UNIQUE | 붙인 사진. 사진 하나는 글 하나에만 붙는다 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 
-한 글에 최대 3장을 붙인다. 사진은 먼저 올려 [`uploaded_image`](#uploaded_image)에 기록하고, 글을 쓰거나 고칠 때 이 표로 글에 붙인다.
+복합 UNIQUE는 `UNIQUE(post_id, sort_order)`다. 한 글에 최대 3장을 붙인다. 글을 고치면 그 글의 줄을 모두 지우고 보낸 순서대로 다시 만든다. 사진은 먼저 올려 [`uploaded_image`](#uploaded_image)에 기록하고, 글을 쓰거나 고칠 때 이 표로 글에 붙인다.
 
 ### `uploaded_image`
 
@@ -190,7 +192,7 @@ A·B·C가 글을 신고해 가려진 뒤 관리자가 복구한다. D가 새로
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | NOT NULL, PK로 유일 | 자동 증가 사진 ID |
 | `uploader_id` | `BIGINT` | FK → `user.id` | NOT NULL, 개별 UNIQUE 없음 | 사진을 올린 사용자 |
-| `image_url` | `VARCHAR`(길이 미정) | — | NOT NULL, 개별 UNIQUE 없음 | 업로드한 파일 위치 |
+| `image_url` | `VARCHAR(500)` | — | NOT NULL, 개별 UNIQUE 없음 | 업로드한 파일 위치. 길이는 프로필 사진 주소(`user_profile.profile_image_url`)와 같다 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 올린 시각 |
 
 형식은 JPEG, PNG, WebP이고 한 장에 5MB까지다([API 명세](../api/08-community.md#사진)). 올린 사람만 자기 사진을 글이나 메시지에 붙일 수 있고, 사진 하나는 한 곳에만 붙는다. 파일 저장소와, 어디에도 붙지 않은 사진이나 글에서 뗀 사진을 지우는 때는 미정이다.
@@ -222,7 +224,7 @@ A·B·C가 글을 신고해 가려진 뒤 관리자가 복구한다. D가 새로
 | `updated_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 | `deleted_at` | `DATETIME` | — | NULL 허용, 개별 UNIQUE 없음 | 삭제한 시각. 여기서 2주 뒤 모든 버전을 지운다 |
 
-답글에 붙이는 답글도 동일한 최상위 부모를 참조한다. 댓글을 삭제하면 달린 답글도 `DELETED`로 바꾼다. 가려진 댓글은 화면에 안내 문구를 표시한다.
+글의 댓글 수를 세는 색인 `(post_id, status)`를 둔다. 답글에 붙이는 답글도 동일한 최상위 부모를 참조한다. 댓글을 삭제하면 달린 답글도 `DELETED`로 바꾼다. 가려진 댓글은 화면에 안내 문구를 표시한다.
 
 댓글이 가려져도 달린 답글은 그대로 유지한다.
 
@@ -250,7 +252,7 @@ A·B·C가 글을 신고해 가려진 뒤 관리자가 복구한다. D가 새로
 | `user_id` | `BIGINT` | 복합 PK, FK → `user.id` | NOT NULL, 개별 UNIQUE 없음 | 좋아요를 누른 사용자 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 좋아요를 누른 시각. 최근 7일 집계에 사용 |
 
-복합 기본키는 `PK(post_id, user_id)`다. 좋아요를 취소하거나 사용자가 탈퇴하면 행을 삭제한다.
+복합 기본키는 `PK(post_id, user_id)`다. 좋아요를 취소하거나 사용자가 탈퇴하면 행을 삭제한다. 인기 점수(최근 7일에 받은 좋아요 수)를 세는 색인 `(created_at, post_id)`를 둔다.
 
 ### `comment_like`
 

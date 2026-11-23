@@ -16,6 +16,7 @@
  * Google (목 Google 화면 /oauth/mock-google)
  *  - 가입한 계정(MOCK_GOOGLE.member) → 로그인 / 처음 쓰는 계정 → 회원가입 3 / banned.mole@gmail.com → 정지 팝업
  */
+import { ENV } from '../lib/env'
 export {
   PW_RULE_TEXT, PW_ALLOWED, checkPassword, PW_BAD_CHAR, PW_MISMATCH, confirmMismatch,
   EMAIL_BAD, emailHasBadChar, emailValid, CODE_LEN, RESEND_GAP, CODE_NOT_DIGIT, CODE_WRONG, CODE_EXPIRED,
@@ -54,11 +55,11 @@ export const GENERATIONS = ['16기', '15기', '14기', '13기', '12기']
  */
 export type AuthState = 'guest' | 'member'
 /**
- * 지금은 로그인 검사를 끔 (2026-11-16 사용자 요청: "일단 그냥 로그인되게", 팀 공유 빌드).
- * true 면 로그인이 입력과 관계없이 성공하고, 로그인 안 한 상태로도 모든 화면이 열림 (GET /me 가 늘 로그인).
+ * 로그인 검사를 끌지 (환경 변수 NEXT_PUBLIC_LOGIN_FREE, 기본 false = 명세대로. 2026-11-23 사용자 결정).
+ * true 면 로그인이 입력과 관계없이 성공하고, 로그인 안 한 상태로도 모든 화면이 열림 (GET /me 가 늘 로그인). 시연 · 디자인 확인용
  * false 면 명세대로: 비로그인 → 로그인 화면, nextStep ONBOARDING → 온보딩 1, 시연 계정의 실패 · 정지
  */
-export const LOGIN_FREE = true
+export const LOGIN_FREE = ENV.loginFree
 const KEY = 'digul.auth'
 const STEP_KEY = 'digul.auth.nextStep'
 export const START_PATHS = ['/start', '/look', '/login', '/signup', '/password-reset', '/oauth', '/auth/google']

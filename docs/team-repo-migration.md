@@ -92,10 +92,10 @@
 - [ ] 8. 스킬 `pr-create`로 PR (`gh pr create --base dev`), 본문 맨 위 Mermaid. 병합은 사람이
 
 **사용자가 할 일**
-- [ ] Jira 티켓: 프론트 도입 티켓 번호 (KAN-25 "nextjs-setup"을 쓸지 새로 만들지)
+- [ ] Jira 티켓: **새 티켓으로 결정** (2026-11-23), Atlassian 로그인 뒤 만듦
+- [x] 팀 리포 쓰기 권한 (2026-11-23 사용자 확인)
 - [x] (2026-11-22 완료, 키체인 저장만 남음) 커밋 서명: 팀 문서 `docs/commit-convention.md` "커밋 서명" 1~5단계 (SSH 서명 키 만들기 · git 설정 · GitHub에 Signing Key 등록). 팀 규칙상 에이전트는 서명 설정을 바꾸면 안 됨
 - [x] (2026-11-22 완료, 계정 min9u) GitHub CLI: `brew install gh` 후 `gh auth login` (PR 만들기에 씀, 비밀번호 단계라 사람이)
-- [ ] 팀 리포 쓰기 권한 확인 (작업 브랜치 푸시)
 
 **팀과 정할 것**
 - [ ] Next.js 버전·설정을 KAN-25에서 이미 정했는지, 패키지 매니저(npm/pnpm), Node 버전(지금 24.18)

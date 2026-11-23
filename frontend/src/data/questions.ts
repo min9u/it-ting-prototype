@@ -122,6 +122,6 @@ export function recommendedQuestions(picks: string[], list: Question[] = QUESTIO
 }
 
 // 답변 10~50자 (lib/validation.ts, ERD member_answer.answer VARCHAR(50))
-import { ANSWER_MAX, ANSWER_MIN } from '../lib/validation'
+import { ANSWER_MAX, ANSWER_MIN, lengthOf } from '../lib/validation'
 export { ANSWER_MAX, ANSWER_MIN }
-export const answerOk = (a: string) => a.trim().length >= ANSWER_MIN && a.length <= ANSWER_MAX
+export const answerOk = (a: string) => lengthOf(a.trim()) >= ANSWER_MIN && lengthOf(a) <= ANSWER_MAX

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { nicknameCharsMessage } from '../../lib/validation'
+import { clampText, lengthOf, nicknameCharsMessage } from '../../lib/validation'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from '@/lib/nav'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
@@ -358,9 +358,9 @@ function IntroStep(p: { questions?: Question[]; loading: boolean; error: unknown
                   <button className={s.swap} onClick={() => { toggle(id); listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}>목록에서 다시 고르기</button>
                 </div>
                 <div className={s.areaWrap}>
-                  <textarea id={`ob-q${i}`} maxLength={ANSWER_MAX} value={a} placeholder={`예) ${q.ex}`}
-                    onChange={(e) => p.setAnswers({ ...p.answers, [id]: e.target.value.slice(0, ANSWER_MAX) })} />
-                  <span className={s.counter}>{a.length} / {ANSWER_MAX}</span>
+                  <textarea id={`ob-q${i}`} value={a} placeholder={`예) ${q.ex}`}
+                    onChange={(e) => p.setAnswers({ ...p.answers, [id]: clampText(e.target.value, ANSWER_MAX) })} />
+                  <span className={s.counter}>{lengthOf(a)} / {ANSWER_MAX}</span>
                 </div>
                 {short && <span className={s.error}>{ANSWER_MIN}자 이상 적어 주세요</span>}
               </div>

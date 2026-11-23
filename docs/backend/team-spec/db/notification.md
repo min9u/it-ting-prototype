@@ -87,16 +87,19 @@ erDiagram
 | `actor_id` | `BIGINT` | FK → `user.id` | NULL 허용, 개별 UNIQUE 없음 | 알림 사건을 일으킨 사용자. 시스템 알림 또는 신고자 보호가 필요한 알림에서는 비움 |
 | `read_at` | `DATETIME` | — | NULL 허용, 개별 UNIQUE 없음 | 읽은 시각. NULL이면 안 읽음 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 알림이 생긴 시각. 최신순 정렬과 30일 만료의 기준 |
-| `event_key` | `VARCHAR(191)` | — | NULL 허용, 개별 UNIQUE 없음 | 같은 수신자에게 동일 사건을 재처리할 때 쓰는 키. 일정 임박에 적용 |
+| `event_key` | `VARCHAR(191)` | — | NULL 허용, 개별 UNIQUE 없음 | 같은 수신자에게 동일 사건을 재처리할 때 쓰는 키. 일정 임박은 회차마다(`MEETUP_START_REMINDER:<모임 id>:<시작 시각 epoch 초>:<24H\|1H>`), 새 메시지는 안 읽은 동안 대화방마다(`CHAT_MESSAGE_RECEIVED:<대화방 id>`, 읽으면 비움) |
 
-복합 UNIQUE는 `UNIQUE(user_id, event_key)`다. 일정 임박 알림은 동일 모임, 동일 시작 시각, 동일 회차(24시간 전 · 1시간 전)를 같은 사건으로 본다. 대상이 먼저 사라져도 알림은 보관 기간 동안 남는다.
+복합 UNIQUE는 `UNIQUE(user_id, event_key)`다. 일정 임박 알림은 동일 모임, 동일 시작 시각, 동일 회차(24시간 전 · 1시간 전)를 같은 사건으로 본다. 새 메시지 알림도 같은 키로 대화방마다 안 읽은 줄 하나를 지킨다(동시에 메시지가 와도 줄이 늘지 않는다). 대상이 먼저 사라져도 알림은 보관 기간 동안 남는다.
+
+인덱스는 `(user_id, created_at, id)`(목록 · 수 · 읽음)와 `(created_at)`(30일 정리)이다.
 
 - 제목과 보조 설명은 저장하지 않고 `type`, 대상, `actor_id`에서 만든다.
-- 알림은 지울 수 없고 읽음 처리만 한다. 30일이 지난 알림은 조회에서 빼고 정리한다.
+- 알림은 지울 수 없고 읽음 처리만 한다. 30일이 지난 알림은 조회에서 빼고, 매일 04:00(한국 시간) 예약 작업이 1,000줄씩 지운다.
 - 탈퇴한 사용자가 받은 알림은 탈퇴할 때 지운다. 탈퇴한 사용자가 일으킨 알림(`actor_id`)은 남기고 일으킨 사람을 “탈퇴한 사용자”로 보여준다.
 - 원본이 삭제되거나 표시할 수 없으면 알림을 누를 때 안내 화면으로 보낸다.
 - 설정에서 끈 갈래의 새 알림은 생성하지 않는다.
-- 새 메시지 알림은 대화방마다 안 읽은 알림 한 줄만 둔다. 이미 있으면 새로 만들지 않고 `created_at`과 `actor_id`를 새 메시지에 맞춰 바꾼다. 수신자가 그 대화방을 읽으면 `read_at`을 채운다.
+- 새 메시지 알림은 대화방마다 안 읽은 알림 한 줄만 둔다. 이미 있으면 새로 만들지 않고 `created_at`과 `actor_id`를 새 메시지에 맞춰 바꾼다. 수신자가 그 대화방을 읽으면 `read_at`을 채우고 `event_key`를 비운다.
+- 일으킨 사람을 드러내지 않는 종류(거절 · 내보내기 · 모임 수정 · 취소 · 삭제 · 빈자리 · 일정 임박, 신고로 가려짐, 공지)는 `actor_id`를 비운다.
 
 ### `notification_setting`
 
@@ -105,11 +108,11 @@ erDiagram
 | 컬럼 이름 | 타입 | 외래키·기본키 | NULL 허용 여부·UNIQUE 여부·도메인 범위 | 설명 |
 | --- | --- | --- | --- | --- |
 | `user_id` | `BIGINT` | PK, FK → `user.id` | NOT NULL, PK로 유일 | 알림 설정의 소유자 |
-| `meetup_on` | `BOOLEAN` | — | NOT NULL, 개별 UNIQUE 없음 | 모임 알림 수신 여부. 기본 켜짐 |
-| `chat_on` | `BOOLEAN` | — | NOT NULL, 개별 UNIQUE 없음 | 채팅 알림 수신 여부. 기본 켜짐 |
-| `community_on` | `BOOLEAN` | — | NOT NULL, 개별 UNIQUE 없음 | 커뮤니티 알림 수신 여부. 기본 켜짐 |
-| `burrow_on` | `BOOLEAN` | — | NOT NULL, 개별 UNIQUE 없음 | 땅굴 알림 수신 여부. 기본 켜짐 |
-| `notice_on` | `BOOLEAN` | — | NOT NULL, 개별 UNIQUE 없음 | 공지 알림 수신 여부. 기본 켜짐 |
+| `meetup_on` | `BOOLEAN` | — | NOT NULL, `DEFAULT TRUE`, 개별 UNIQUE 없음 | 모임 알림 수신 여부. 기본 켜짐 |
+| `chat_on` | `BOOLEAN` | — | NOT NULL, `DEFAULT TRUE`, 개별 UNIQUE 없음 | 채팅 알림 수신 여부. 기본 켜짐 |
+| `community_on` | `BOOLEAN` | — | NOT NULL, `DEFAULT TRUE`, 개별 UNIQUE 없음 | 커뮤니티 알림 수신 여부. 기본 켜짐 |
+| `burrow_on` | `BOOLEAN` | — | NOT NULL, `DEFAULT TRUE`, 개별 UNIQUE 없음 | 땅굴 알림 수신 여부. 기본 켜짐 |
+| `notice_on` | `BOOLEAN` | — | NOT NULL, `DEFAULT TRUE`, 개별 UNIQUE 없음 | 공지 알림 수신 여부. 기본 켜짐 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 | `updated_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 
@@ -196,5 +199,5 @@ erDiagram
 ## 명세에 없어 구현 단계로 넘기는 것
 
 - 서비스 공지의 일괄 발송 방식과 브라우저 푸시 키 저장 형식
-- 일정 임박 알림과 30일이 지난 알림을 처리하는 예약 작업의 실행 방법
+- 일정 임박 알림을 보내는 예약 작업의 실행 방법(30일 정리는 KAN-54에서 매일 04:00으로 정했다)
 - 방노트 알림의 정의와 제공 여부(남은 검토 항목 56)

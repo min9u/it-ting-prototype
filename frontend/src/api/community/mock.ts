@@ -209,7 +209,7 @@ const SORTS: Record<PostSort, (a: BoardPost, b: BoardPost) => number> = {
   MOST_COMMENTED: (a, b) => commentCount(b) - commentCount(a) || b.at - a.at,
 }
 function listPosts(q: PostListQuery) {
-  if (q.keyword && q.keyword.length > 50) throw invalidInput({ keyword: '검색어는 50자를 넘을 수 없습니다.' })
+  if (q.keyword && [...q.keyword.trim()].length > 50) throw invalidInput({ keyword: '검색어는 50자를 넘을 수 없습니다.' })
   const size = q.size ?? 20
   if (size < 1 || size > 50) throw invalidInput({ size: '1 ~ 50 사이로 보내 주세요.' })
   const word = q.keyword?.trim().toLowerCase()

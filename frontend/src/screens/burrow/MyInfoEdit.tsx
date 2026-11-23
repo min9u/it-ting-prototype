@@ -18,7 +18,7 @@ import m from './MyBurrow.module.css'
 
 // 자기소개 최대 150자 (lib/validation.ts)
 export { INTRO_MAX } from '../../lib/validation'
-import { INTRO_MAX, nicknameCharsMessage } from '../../lib/validation'
+import { INTRO_MAX, clampText, lengthOf, nicknameCharsMessage } from '../../lib/validation'
 
 /** 내 땅굴 값 → 수정 화면 값 */
 const draftOf = (b: MyBurrowVM): ProfileDraft => ({
@@ -89,7 +89,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
   const moved = d.campus !== start.campus || d.floor !== start.floor
   const qOk = d.qna.length === 3 && d.qna.every((x) => answerOk(x.a))
   const valid = !!nick && !charMsg && nickState.kind !== 'bad' && nickState.kind !== 'checking' && floors.includes(d.floor)
-    && d.interests.length >= MIN_PICK && d.interests.length <= MAX_PICK && qOk && d.intro.length <= INTRO_MAX
+    && d.interests.length >= MIN_PICK && d.interests.length <= MAX_PICK && qOk && lengthOf(d.intro) <= INTRO_MAX
   const ready = !!catalog.data && !!campuses.data
   const dirty = JSON.stringify(d) !== JSON.stringify(start)
   const leave = () => (dirty ? setAsk(true) : onCancel())
@@ -155,8 +155,8 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
           </div>
 
           <div className={m.field}>
-            <label htmlFor="edit-intro">자기소개 <span>{d.intro.length} / {INTRO_MAX}</span></label>
-            <textarea id="edit-intro" ref={introRef} autoFocus={focusIntro} className={m.introArea} value={d.intro} maxLength={INTRO_MAX} onChange={(e) => set({ intro: e.target.value })} placeholder="나를 소개하는 말을 적어 주세요. (선택)" />
+            <label htmlFor="edit-intro">자기소개 <span>{lengthOf(d.intro)} / {INTRO_MAX}</span></label>
+            <textarea id="edit-intro" ref={introRef} autoFocus={focusIntro} className={m.introArea} value={d.intro} onChange={(e) => set({ intro: clampText(e.target.value, INTRO_MAX) })} placeholder="나를 소개하는 말을 적어 주세요. (선택)" />
           </div>
 
           <div className={m.field}>
@@ -177,7 +177,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
             <span className={m.label}>질문 · 답변 <span>질문은 몇 번이든 바꿀 수 있어요</span></span>
             {d.qna.map((x, i) => {
               const q = qOf(x.qid, i)
-              const short = x.a.trim().length > 0 && x.a.trim().length < ANSWER_MIN
+              const short = x.a.trim().length > 0 && lengthOf(x.a.trim()) < ANSWER_MIN
               return (
                 <div key={i} className={m.qaItem}>
                   <div className={m.qaQ}>
@@ -185,10 +185,10 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
                     <p><small>{q && q.ex ? questionTag(q) : ''}</small>{q?.text}</p>
                     <button onClick={() => setQSlot(i)} disabled={!questions.data} aria-label={`Q${i + 1} 질문 바꾸기`} title="질문 바꾸기">↻</button>
                   </div>
-                  <textarea className={m.qaA} value={x.a} maxLength={ANSWER_MAX} placeholder={q?.ex ? `예) ${q.ex}` : ''} aria-label={`Q${i + 1} 답변`}
+                  <textarea className={m.qaA} value={x.a} placeholder={q?.ex ? `예) ${q.ex}` : ''} aria-label={`Q${i + 1} 답변`}
                     onFocus={() => setFocusQ(i)} onBlur={() => setFocusQ(null)}
-                    onChange={(e) => set({ qna: d.qna.map((y, j) => (j === i ? { ...y, a: e.target.value } : y)) })} />
-                  {focusQ === i && <span className={m.qaCount}>{x.a.length} / {ANSWER_MAX}</span>}
+                    onChange={(e) => set({ qna: d.qna.map((y, j) => (j === i ? { ...y, a: clampText(e.target.value, ANSWER_MAX) } : y)) })} />
+                  {focusQ === i && <span className={m.qaCount}>{lengthOf(x.a)} / {ANSWER_MAX}</span>}
                   {(short || !x.a.trim()) && focusQ !== i && <small className={m.msgBad}>{ANSWER_MIN}자 이상 답해 주세요</small>}
                 </div>
               )
