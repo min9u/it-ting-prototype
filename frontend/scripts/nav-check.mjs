@@ -2,7 +2,7 @@
 /**
  * 화면 이동 어댑터(src/lib/nav.tsx) 동작 확인 — 헤드리스 크롬으로 실제 앱을 눌러 봄 (docs/nextjs-migration.md "라우팅")
  * react-router 에서 되던 것이 Next 위에서도 되는지:
- *   1. 저장 전 나가기 막기(useBlocker): 앱 안 링크 · 브라우저 뒤로가기 둘 다
+ *   1. 저장 전 나가기 막기(useBlocker): 앱 안 링크 · 브라우저 뒤로가기 둘 다 (게시판 글쓰기)
  *   2. 이동 state(navigate(to, { state })): 로그인 → 회원가입 이메일 넘기기
  *   3. 주소 파라미터가 바뀌어도 화면 유지: 온보딩 단계 사이에서 입력값이 남는지
  *
@@ -37,7 +37,7 @@ ws.addEventListener('message', (e) => {
 const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })) })
 const evaluate = async (expr) => (await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result?.result?.value
 const until = async (expr, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await evaluate(expr)) return true; await sleep(150) } return false }
-const open = async (p) => { await send('Page.navigate', { url: `${BASE}${p}` }); await sleep(500); await until("document.readyState === 'complete' && !!document.querySelector('#root > *')", 30000) }
+const open = async (p) => { const r = await send('Page.navigate', { url: `${BASE}${p}` }); if (r.error || r.result?.errorText) console.log('  이동 실패', p, JSON.stringify(r.error ?? r.result)); await until(`location.pathname === ${JSON.stringify(p.split('?')[0])}`, 10000); await sleep(300); await until("document.readyState === 'complete' && !!document.querySelector('#root > *')", 30000) }
 const text = (s) => `(document.body.innerText || '').includes(${JSON.stringify(s)})`
 const typeInto = async (selector, value) => {
   await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`)
@@ -65,17 +65,18 @@ try {
   await click(`${byText('[role=dialog] button, [role=alertdialog] button', '나가기')}`)
   check('확인 창 "나가기" → 가려던 주소로', await until("location.pathname === '/meetups'"), await pathNow())
 
-  // 1-b 브라우저 뒤로가기 막기: 설정 → 비밀번호 바꾸기 화면에서 입력 후 history.back()
-  await open('/settings')
-  await click(byText('a', '비밀번호'))
-  await until("location.pathname === '/settings/password' && !!document.querySelector('input[type=password]')")
-  await typeInto('input[type=password]', 'abc12345')
+  // 1-b 브라우저 뒤로가기 막기: 게시판 → 글쓰기(앱 안 이동)에서 입력 후 history.back()
+  await open('/board')
+  await until("!!document.querySelector('a[href=\"/board/write\"]')")
+  await click("document.querySelector('a[href=\"/board/write\"]')")
+  await until("location.pathname === '/board/write' && !!document.querySelector('input')")
+  await typeInto('input', '뒤로가기 시험')
   await sleep(300)
   await evaluate('history.back()')
   await sleep(1200)
-  check('입력 중 뒤로가기 → "아직 저장되지 않았습니다" (주소 그대로)', (await pathNow()) === '/settings/password' && await evaluate(text('아직 저장되지 않았습니다')), await pathNow())
-  await click(byText('button', '나가기'))
-  check('"나가기" → 뒤로 간 주소(/settings)', await until("location.pathname === '/settings'"), await pathNow())
+  check('입력 중 브라우저 뒤로가기 → 나가기 확인 창 (주소 그대로)', (await pathNow()) === '/board/write' && await evaluate("!!document.querySelector('[role=dialog]')"), await pathNow())
+  await click(byText('[role=dialog] button', '나가기'))
+  check('"나가기" → 뒤로 간 주소(/board)', await until("location.pathname === '/board'"), await pathNow())
 
   // 2 이동 state: 로그인 화면 이메일 → "회원가입" 링크 → 회원가입 이메일 칸에 그대로
   await open('/login')
