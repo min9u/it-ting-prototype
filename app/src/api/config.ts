@@ -16,8 +16,6 @@ export type ApiMode = 'mock' | 'real'
 /** 모든 영역의 기본 방식 */
 export const API_MODE: ApiMode = ENV.apiMode
 export const API_BASE: string = ENV.apiBase
-/** 실시간(STOMP) 주소 자리. 채팅이 SSE 로 옮기면 없어짐 */
-export const WS_URL: string = ENV.wsPath
 
 /**
  * 영역 (= api/<영역>/ 폴더 하나 = 작업자 하나의 범위). 명세 문서 번호와의 관계는 docs/backend/api-v1-foundation.md

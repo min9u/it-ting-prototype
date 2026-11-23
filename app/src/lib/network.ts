@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react'
  * - serverDown: REST 가 서버에 닿지 못함. **API 계층(src/api)이** 부름:
  *     네트워크 오류(fetch 가 TypeError)·502·503·504 → reportServerDown(), 그 뒤 아무 응답이나 성공 → reportServerUp()
  *   (4xx 는 서버가 살아 있다는 뜻이라 부르지 않음)
- * 실시간 연결 상태는 realtime/index.ts 의 useRealtimeStatus()
+ * 실시간 연결 상태는 realtime/useEventStream.ts 의 useEventStreamStatus()
  */
 interface NetState { online: boolean; serverDown: boolean; downSince: number | null }
 

@@ -303,7 +303,6 @@ export function commentCount(p: BoardPost) {
   const n = p.comments.filter(live).reduce((a, c) => a + 1 + c.replies.filter(live).length, 0)
   return p.comments.length ? n : p.commentTotal ?? n
 }
-export const savesOf = (p: BoardPost) => p.saves + (p.savedAt ? 1 : 0)
 export const likesOf = (p: BoardPost) => p.likes + (p.liked ? 1 : 0)
 /**
  * 인기 점수 = 최근 7일 동안 받은 좋아요 수 (F8 명세 11-20: 댓글 · 저장은 안 셈).

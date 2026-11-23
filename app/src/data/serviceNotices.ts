@@ -1,5 +1,5 @@
 import { createStore } from '../lib/store'
-import { pushNotice } from './notifications'
+import { addNotice } from './notifications'
 
 /** F10 공지사항: 관리자가 올린다(F11 공지 작성). 서비스 버전이 바뀐 소식은 "업데이트" 분류 */
 export type ServiceNoticeCat = '공지' | '업데이트' | '이벤트'
@@ -32,6 +32,6 @@ export function addServiceNotice(n: Omit<ServiceNotice, 'id' | 'date'>) {
   const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
   const item: ServiceNotice = { ...n, id: `sn${Date.now().toString(36)}`, date }
   serviceNoticeStore.set((s) => ({ list: [item, ...s.list] }))
-  pushNotice({ kind: '공지', type: '서비스 공지', title: n.title, sub: n.body.find(Boolean) ?? '새 공지를 확인해 보세요', to: `/settings/notices/${item.id}` })
+  addNotice({ type: 'NOTICE_PUBLISHED', targetId: item.id }) // 목 서버의 알림 (09 NOTICE_PUBLISHED, 모든 사용자 = 나)
   return item
 }

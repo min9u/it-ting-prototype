@@ -15,10 +15,6 @@ interface ImportMetaEnv {
   readonly VITE_API_REAL_AREAS?: string
   /** 목으로 둘 영역 목록 (VITE_API_MODE=real 일 때) */
   readonly VITE_API_MOCK_AREAS?: string
-  /** WebSocket 주소 (기본 /ws) */
-  readonly VITE_WS_URL?: string
-  /** 실시간 연결 방식: mock · stomp (기본 mock) */
-  readonly VITE_REALTIME?: string
 }
 
 interface ImportMeta {

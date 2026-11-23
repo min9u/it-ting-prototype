@@ -106,7 +106,6 @@ export const noticeStore = createStore({ list: seed() })
 export const noticePrefs = createStore({ kinds: ALL_ON, browserPush: false }, 'digul.noticePrefs.v1')
 
 export const useNotices = () => noticeStore.use().list
-export const useNoticePrefs = () => noticePrefs.use()
 
 /** 30일 안의 알림, 안 읽은 것 먼저 → 각각 최신순 (명세 "주는 방식") */
 export function liveNotices(list: NoticeRecord[], now = Date.now()) {
@@ -162,15 +161,6 @@ export function markAllNoticesRead(now = Date.now()) {
 export function markChatNoticesRead(roomId: string, now = Date.now()) {
   if (!noticeStore.get().list.some((n) => n.type === 'CHAT_MESSAGE_RECEIVED' && n.targetId === roomId && n.readAt == null)) return
   noticeStore.set((s) => ({ list: s.list.map((n) => (n.type === 'CHAT_MESSAGE_RECEIVED' && n.targetId === roomId && n.readAt == null ? { ...n, readAt: now } : n)) }))
-}
-
-/**
- * @deprecated 옛 모양(화면 문구 + 이동 주소)으로 알림 만들기. data/serviceNotices.ts 의 관리자 공지 작성이 아직 부른다.
- * 새 코드는 api/notifications 의 pushMockNotification(type, { actorId, targetId }) 을 쓸 것
- */
-export function pushNotice(n: { kind: NoticeKind; to: string; type?: string; title?: string; sub?: string }) {
-  const m = /^\/settings\/notices\/([^/?#]+)/.exec(n.to)
-  if (n.kind === '공지' && m) addNotice({ type: 'NOTICE_PUBLISHED', targetId: m[1] })
 }
 
 export function setNoticeKind(kind: NoticeKind, on: boolean) {

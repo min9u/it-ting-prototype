@@ -11,11 +11,8 @@ import type { User } from '../../data/types'
 import { toAppId } from './ids'
 import { wornOfMole } from './moleCodes'
 import type { CampusDto, GenerationDto, InterestTagDto, ItemsDto, MoleDto, UserDisplayDto } from './types'
-import type { MemberProfileDto, MemberSummaryDto } from './legacy'
 
 export const GONE_ID = 'gone'
-/** @deprecated toAppId 를 쓸 것 (숫자 · 문자열 모두 받음) */
-export const toId = (v: string | number | null | undefined) => toAppId(v)
 
 /* ===== 사람 ===== */
 export type Person = User & { campus?: string; gen?: number; floor?: number }
@@ -51,25 +48,6 @@ export function toPersonFromDisplay(d: UserDisplayDto, interests?: InterestTagDt
     ...(d.campusName ? { campus: d.campusName, gen: d.generation ?? undefined, floor: d.floor ?? undefined } : {}),
   }
   rememberPerson(u, !!interests)
-  return u
-}
-
-/** @deprecated 초안 모양(MemberSummaryDto · MemberProfileDto) → 앱 사람. 명세 모양은 toPersonFromDisplay */
-export function toPerson(d: MemberSummaryDto | MemberProfileDto): Person {
-  if (d.status === 'WITHDRAWN' || !d.nickname) return { ...GONE_PERSON }
-  const p = 'interests' in d ? d : null
-  const id = toAppId(d.id)
-  const u: Person = {
-    id, nickname: d.nickname,
-    affiliation: affiliationOf(d.campus, d.generation, d.floor),
-    intro: p?.intro ?? '',
-    interests: p ? [...p.interests].sort((a, b) => a.sortOrder - b.sortOrder).map((i) => i.name) : USERS[id]?.interests ?? [],
-    qna: p?.answers.map((a) => ({ q: a.question, a: a.answer })),
-    online: p?.online,
-    worn: wornOf(d.mole),
-    ...(d.campus ? { campus: d.campus, gen: d.generation ?? undefined, floor: d.floor ?? undefined } : {}),
-  }
-  rememberPerson(u, !!p)
   return u
 }
 

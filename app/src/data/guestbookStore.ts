@@ -81,6 +81,3 @@ export function reportGuestbookEntry(entryId: string, reporterId: string): 'ok' 
   g.reporters = [...(g.reporters ?? []), reporterId]
   return 'ok'
 }
-
-/** 시험용: 저장소 비우기 */
-export const resetGuestbooks = () => books.clear()

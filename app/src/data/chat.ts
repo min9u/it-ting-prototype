@@ -14,10 +14,8 @@
  * - 1:1 에서 상대가 나가거나 탈퇴하면 읽기 전용. 모임 대화방은 읽기 전용이 되지 않음
  * - 메시지 지우기 · 읽음 표시 · 입력 중 · 접속 중은 없음 (명세 README "이번 범위에 없는 것")
  */
-import { useSyncExternalStore } from 'react'
 import { ME_ID, USERS } from './mock'
 import { canQuit, findMeetup, getMeetupState, isPast, membersOf as meetupMembers, myOf } from './meetupStore'
-import { stopEventStream } from '../realtime/events'
 import type { User } from './types'
 
 export type MsgType = 'TEXT' | 'ACCEPTED' | 'JOINED' | 'LEFT' | 'WITHDRAWN'
@@ -181,11 +179,9 @@ function seed() {
 /* ---------- 저장소 ---------- */
 const meetupOf = (id: string) => findMeetup(id)
 let state = seed()
-const subs = new Set<() => void>()
-const emit = () => { state = { ...state }; subs.forEach((f) => f()) }
-const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+// 화면이 이 저장소를 직접 지켜보지 않는다 (채팅 캐시는 목 서버의 실시간 소식 · 조회로 맞춤). 바뀔 때마다 새 객체로만 바꿔 둠
+const emit = () => { state = { ...state } }
 /** 저장소 구독 (목 모드에서 바뀌면 채팅 캐시를 새로 받는 데 씀: api/chat/queries useChatMockSync) */
-export function useChat() { return useSyncExternalStore(subscribe, () => state) }
 /** 훅 바깥에서 지금 상태 */
 export const getChatState = () => state
 
@@ -211,7 +207,6 @@ export const receivedFrom = (userId: string, s = state) => liveRequests(s).find(
 /** 그 사람이 보냈고 내가 거절한, 아직 만료되지 않은 요청 */
 export const rejectedFrom = (userId: string, s = state) => s.requests.find((r) => r.direction === 'received' && r.userId === userId && r.status === 'REJECTED' && isLive(r))
 export const requestById = (id: string, s = state) => s.requests.find((r) => r.id === id)
-export const isRequestLive = isLive
 
 export const personOf = (id: string): User => (id === GONE_ID ? GONE_USER : USERS[id] ?? GONE_USER)
 
@@ -246,11 +241,6 @@ export function syncGroupRooms() {
   if (add.length) { state.rooms = [...state.rooms, ...add]; emit() }
 }
 
-export function roomTitle(r: Room) {
-  if (r.kind === 'group') return meetupOf(r.meetupId!)?.title ?? '모임'
-  return personOf(r.partnerId!).nickname
-}
-export const lastMsg = (r: Room) => r.messages[r.messages.length - 1] as ChatMsg | undefined
 
 /* ---------- 동작 (목 서버가 부름) ---------- */
 function patchRoom(roomId: string, f: (r: Room) => Room) {
@@ -383,5 +373,3 @@ export function sendRequest(userId: string, message: string): SendRequestResult 
   return { ok: true, chatRequestId: q.id, chatRoomId: null }
 }
 
-/** 로그아웃 · 탈퇴: 실시간 소식 연결을 끊음 (설정 화면이 부름. 연결 자체는 공통 realtime/events.ts) */
-export function stopChatRealtime() { stopEventStream() }

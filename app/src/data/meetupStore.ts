@@ -14,7 +14,7 @@
  * - 시간 기준은 목 데이터의 오늘(TODAY) 정오 (채팅과 같음)
  */
 import { useSyncExternalStore } from 'react'
-import { ME_ID, MEETUPS, TODAY, USERS } from './mock'
+import { ME_ID, MEETUPS, TODAY } from './mock'
 import { meetupCategoryOf, meetupToneOf } from './meetupCategory'
 import type { Meetup, Tone } from './types'
 import { seoulParts, wallToMs, ymdDiff, ymdMs } from '../lib/time'
@@ -266,7 +266,6 @@ export function setAlert(id: string, on: boolean) {
   state.alerts = on ? [...state.alerts, id] : state.alerts.filter((x) => x !== id)
   emit()
 }
-export const toggleAlert = (id: string) => setAlert(id, !state.alerts.includes(id))
 
 /* 신청 관리 (주최자) */
 export const applicantsOf = (id: string, s = state) => s.applicants[id] ?? []
@@ -346,7 +345,6 @@ export function draftOf(m: MeetupX): Draft {
     title: m.title, intro: m.intro, category: m.category,
   }
 }
-export const userName = (id: string) => USERS[id]?.nickname ?? '두더지'
 
 /* ===== 다른 사람이 하는 일 (목 서버의 "다른 계정" 흉내. api/meetups/mock.ts mockMeetupActors 가 부름) ===== */
 /** 다른 사람이 모임에 참여 신청 (주최자가 신청 관리에서 봄). 이미 신청했으면 그대로 */

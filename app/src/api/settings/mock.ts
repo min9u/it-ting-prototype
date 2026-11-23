@@ -145,7 +145,7 @@ export const mock: SettingsApi = {
     const old = s.list.find((x) => x.endpoint === endpoint)
     const id = old?.id ?? s.seq + 1
     if (!old) pushSubStore.set({ seq: id, list: [...s.list, { id, endpoint }] })
-    setBrowserPush(true) // 목: 이 브라우저로 "서버 푸시" (data/notifications pushNotice 가 브라우저 알림을 띄움)
+    setBrowserPush(true) // 목: 이 브라우저로 "서버 푸시" (api/notifications/mock 의 browserPush 가 브라우저 알림을 띄움)
     return { pushSubscriptionId: id }
   }),
   deletePush: (pushSubscriptionId) => mockWrite(() => {

@@ -1,6 +1,6 @@
 /** 11 운영 · 관리자 (명세 보류) — 목 서버. data/admin.ts · data/account.ts(탈퇴 사유) · data/serviceNotices.ts */
 import { mockRead, mockWrite, notFound, paginate } from '../mock/server'
-import { memberSummary } from '../common/mockPeople'
+import { userDisplay } from '../common/mockPeople'
 import { REPORT_REASON_CODE } from '../community/real'
 import type { NoticeCategory } from '../settings/types'
 import { liftSuspension, reportStore, resolveReport, sanctionStore, suspend } from '../../data/admin'
@@ -8,13 +8,18 @@ import { leaveLog } from '../../data/account'
 import { addServiceNotice } from '../../data/serviceNotices'
 import { toIso, ymdMs } from '../../lib/time'
 import type { AdminApi } from './real'
-import type { AdminMemberDto, AdminReportDto, ReportStatus } from './types'
+import type { AdminMemberDto, AdminReportDto, MemberSummaryDto, ReportStatus } from './types'
 import type { ReportTargetType } from '../community/types'
 
 const TARGET: Record<string, ReportTargetType> = { 글: 'POST', 댓글: 'COMMENT', 사용자: 'MEMBER', '방명록 글': 'GUESTBOOK' }
 const STATUS: Record<string, ReportStatus> = { 대기: 'RECEIVED', 가림: 'HIDDEN', 복구: 'DISMISSED', 삭제: 'SANCTIONED', '문제 없음': 'DISMISSED' }
 const STATUS_KO: Record<ReportStatus, '대기' | '가림' | '복구' | '삭제' | '문제 없음'> = { RECEIVED: '대기', HIDDEN: '가림', DISMISSED: '문제 없음', SANCTIONED: '삭제' }
 const CAT_KO: Record<NoticeCategory, '공지' | '업데이트' | '이벤트'> = { NOTICE: '공지', UPDATE: '업데이트', EVENT: '이벤트' }
+/** 초안 모양의 사람 (관리자 영역 전용. 명세 모양 userDisplay 에서 만듦) */
+function memberSummary(id: string): MemberSummaryDto {
+  const d = userDisplay(id)
+  return { id: id || 'gone', nickname: d.nickname, status: d.isWithdrawn ? 'WITHDRAWN' : 'ACTIVE', generation: d.generation, campus: d.campusName, floor: d.floor, mole: d.mole }
+}
 /** 목 데이터의 "2026.11.14" → ISO */
 const dotIso = (d: string) => toIso(ymdMs(d.replace(/\./g, '-')))
 

@@ -3,10 +3,9 @@
  * 명세 API 가 없으므로 ENDPOINTS 는 비어 있고 PENDING 도 없다.
  */
 import { http } from '../client'
-import type { LegacyId as Id } from '../common/legacy'
 import type { PageDto } from '../common/types'
 import type { NoticeCategory } from '../settings/types'
-import type { AdminMemberDto, AdminReportDto, ReportStatus, SuspendRequest, WithdrawReasonStatDto } from './types'
+import type { AdminMemberDto, AdminReportDto, LegacyId as Id, ReportStatus, SuspendRequest, WithdrawReasonStatDto } from './types'
 
 export const ENDPOINTS: readonly string[] = []
 

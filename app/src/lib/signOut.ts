@@ -8,14 +8,12 @@
 import { queryClient } from '../api/queryClient'
 import { isUnauthorized } from '../api/client'
 import { authApi } from '../api/auth'
-import { stopChatRealtime } from '../data/chat'
 import { stopEventStream } from '../realtime/events'
 import { disablePush, forgetPush } from './browserPush'
 
 /** 세션이 끝난 뒤: 실시간 연결을 끊고, 받아 둔 서버 데이터를 모두 버림 (다음 사람에게 보이지 않게) */
 export function afterSignOut() {
   stopEventStream()
-  stopChatRealtime() // 옛 채팅 STOMP (채팅 작업자가 SSE 로 옮기면 이 줄은 없어짐)
   queryClient.clear()
 }
 

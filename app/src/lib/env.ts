@@ -28,8 +28,6 @@ function str(v: string | undefined, fallback: string): string {
 /** 끝의 / 를 뗌 ('/api/' → '/api') */
 const trimSlash = (s: string) => (s.length > 1 ? s.replace(/\/+$/, '') : s)
 
-export type RealtimeMode = 'mock' | 'stomp'
-
 /** 쉼표 목록 → 소문자 이름 집합 ("common, auth" → {common, auth}) */
 const list = (v: string | undefined) => new Set((v ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean))
 
@@ -56,12 +54,4 @@ export const ENV = {
   apiRealAreas: list(raw.VITE_API_REAL_AREAS),
   /** apiMode 가 real 이어도 목으로 둘 영역 (백엔드가 아직 안 만든 영역) */
   apiMockAreas: list(raw.VITE_API_MOCK_AREAS),
-  /**
-   * 실시간(WebSocket) 주소. 상대 경로면 지금 페이지의 출처로 ws:// 또는 wss:// 를 붙임 (realtime/index.ts wsUrl())
-   */
-  wsPath: str(raw.VITE_WS_URL, '/ws'),
-  /**
-   * 채팅·알림 실시간 연결: mock(기본, 서버 없이 흉내) · stomp(실제 서버, WebSocket + STOMP)
-   */
-  realtime: (str(raw.VITE_REALTIME, 'mock') === 'stomp' ? 'stomp' : 'mock') as RealtimeMode,
 } as const
