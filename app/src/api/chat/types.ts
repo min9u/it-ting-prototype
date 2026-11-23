@@ -2,6 +2,7 @@
  * 06 채팅 DTO — 명세 그대로. docs/backend/team-spec/api/06-chat.md
  * id 는 숫자(Id), 시각은 UTC(UtcInstant), 사람은 사용자 표시(UserDisplayDto), 관심사는 InterestTagDto, 값이 없으면 null
  */
+import { RULES } from '../../lib/validation'
 import type { Id, InterestTagDto, UserDisplayDto, UtcInstant } from '../common/types'
 
 /* ===== 값 ===== */
@@ -15,8 +16,8 @@ export type ChatLeaveType = 'LEAVE_ROOM' | 'CANCEL_PARTICIPATION' | 'NOT_ALLOWED
 export type ChatRequestDirection = 'RECEIVED' | 'SENT'
 
 /** 글자 수 · 개수 (명세 "명세에 없어 이 문서에서 정한 것" 글자 수와 첨부) */
-export const CHAT_MESSAGE_MAX = 1000
-export const CHAT_NOTICE_MAX = 200
+export const CHAT_MESSAGE_MAX = RULES.chatMessage.max
+export const CHAT_NOTICE_MAX = RULES.chatNotice.max
 export const CHAT_IMAGES_MAX = 3
 /** 메시지 한 번에 받는 개수 (명세 기본 30, 1 ~ 100) */
 export const CHAT_MESSAGES_PAGE = 30

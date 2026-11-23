@@ -1,8 +1,9 @@
 /**
  * 입력 검증 한 곳 (글자 수 제한 · 필수 · 안내 문구 · 서버 에러 자리). docs/frontend-hardening.md "입력 검증"
  *
- * 기준: 백엔드 ERD(docs/backend/erd-2026-11-16.md)의 칼럼 길이 + Figma 02 명세 문구.
- * 둘이 다르거나 한쪽에만 있으면 문서의 "명세 · ERD 대조표"에 적고, 여기에는 **더 짧은 쪽**을 씀 (서버가 거절하지 않게).
+ * 기준: 백엔드 확정 API 명세 v1 (docs/backend/team-spec/api/*.md 의 요청 본문 표). 2026-11-22 부터 **글자 수는 이 표 하나**가 기준이고,
+ * 영역 상수(api/meetups MEETUP_LIMITS · api/chat CHAT_MESSAGE_MAX · CHAT_NOTICE_MAX · api/explore GUESTBOOK_MAX …)는 모두 여기서 읽는다.
+ * 명세에 길이가 없는 칸(관리자 공지 제목 등)만 프론트가 정한 값.
  *
  * 글자 수 세는 법: 자바스크립트 문자열 길이(UTF-16 단위) = input maxLength 와 같고 Java String.length()(Spring @Size)와도 같음.
  * 한글은 한 글자 = 1, 이모지는 보통 2. MySQL utf8mb4 VARCHAR(n) 은 코드 포인트로 세서 이모지가 1 → 프론트가 더 엄격하므로 DB 에서 넘칠 일은 없음.
@@ -30,15 +31,18 @@ export const RULES = {
   guestbook: { label: '방명록', max: 50, required: true, db: 'guestbook_entry.content VARCHAR(50)', spec: 'F5 방문자 뷰: 50자 안에서 쓰고 "남기기" (옛 프레임은 100자)' },
   chatRequest: { label: '첫 인사', max: 50, required: true, db: 'chat_request.message VARCHAR(50) NULL', spec: 'F5 대화 요청: 짧은 인사를 50자 안에서' },
   /* 채팅 (F6) */
-  chatMessage: { label: '메시지', max: 500, required: true, db: 'chat_message.content TEXT NULL', spec: 'F6: 빈 메시지 불가. 길이 제한 없음 → 500자로 정함 (확인받을 것)' },
-  meetupNotice: { label: '공지', max: 100, required: true, db: 'chat_room.notice TEXT NULL', spec: 'F6 모임 대화 공지: 길이 없음 → 100자로 정함 (확인받을 것)' },
+  chatMessage: { label: '메시지', max: 1000, required: true, db: 'chat_message.content', spec: 'api 06 POST /chat-rooms/{id}/messages: 1,000자 이하, 사진만이면 null' },
+  chatNotice: { label: '공지', max: 200, required: true, db: 'chat_room.notice', spec: 'api 06 PUT /chat-rooms/{id}/notice: 1 ~ 200자' },
   /* 모임 (F7) */
-  meetupTitle: { label: '모임 이름', max: 30, required: true, db: 'meetup.title VARCHAR (길이 미정)', spec: 'F7 만들기: 필수. 길이 없음 → 30자 (확인받을 것)' },
-  meetupIntro: { label: '소개', max: 300, db: 'meetup.description TEXT NULL', spec: 'F7: 선택. 길이 없음 → 300자' },
-  meetupSupplies: { label: '준비물', max: 40, db: 'meetup.supplies VARCHAR NULL (길이 미정)', spec: 'F7: 선택. 길이 없음 → 40자' },
-  meetupPlace: { label: '장소', max: 60, db: 'meetup.place VARCHAR NULL (길이 미정)', spec: 'F7: 오프라인이면 필수. 길이 없음 → 60자' },
-  meetupPlaceDetail: { label: '상세 주소', max: 40, db: 'meetup.place_detail VARCHAR NULL (길이 미정)', spec: 'F7: 선택 → 40자' },
-  meetupApplyMessage: { label: '주최자에게 남길 말', max: 100, db: 'meetup_application.message VARCHAR NULL (길이 미정)', spec: 'F7 상세 5: 선택, 100자 이내, "0/100"' },
+  meetupTitle: { label: '모임 이름', max: 30, required: true, db: 'meetup.title', spec: 'api 07 POST /meetups: 필수, 30자 이하' },
+  meetupIntro: { label: '소개', max: 1000, db: 'meetup.description', spec: 'api 07 POST /meetups description: 1,000자 이하' },
+  meetupSupplies: { label: '준비물', max: 100, db: 'meetup.supplies', spec: 'api 07 supplies: 100자 이하' },
+  meetupPlace: { label: '장소', max: 100, db: 'meetup.place', spec: 'api 07 place: 오프라인이면 필수, 100자 이하' },
+  meetupPlaceDetail: { label: '상세 주소', max: 100, db: 'meetup.place_detail', spec: 'api 07 placeDetail: 100자 이하' },
+  meetupJoinUrl: { label: '접속 링크', max: 500, db: 'meetup.join_url', spec: 'api 07 joinUrl: http(s):// 로 시작, 500자 이하' },
+  meetupApplyMessage: { label: '주최자에게 남길 말', max: 100, db: 'meetup_application.message', spec: 'api 07 POST /meetups/{id}/applications message: 100자 이하' },
+  /* 검색 */
+  searchKeyword: { label: '검색어', max: 50, db: '-', spec: 'api 07 GET /meetups · api 08 GET /posts keyword: 50자 이하' },
   /* 커뮤니티 · 신고 (F8 · 공통) */
   postTitle: { label: '제목', max: 50, required: true, db: 'post.title VARCHAR(50)', spec: 'F8 글쓰기 2: 필수, 최대 50자' },
   postBody: { label: '본문', max: 1000, required: true, db: 'post.content VARCHAR(1000)', spec: 'F8 글쓰기 3: 필수, 최대 1000자' },
@@ -57,9 +61,6 @@ export const ANSWER_MIN = RULES.answer.min
 export const ANSWER_MAX = RULES.answer.max
 export const GUESTBOOK_MAX = RULES.guestbook.max
 export const CHAT_REQUEST_MAX = RULES.chatRequest.max
-export const CHAT_MESSAGE_MAX = RULES.chatMessage.max
-export const MEETUP_NOTICE_MAX = RULES.meetupNotice.max
-export const MEETUP_APPLY_MESSAGE_MAX = RULES.meetupApplyMessage.max
 export const POST_TITLE_MAX = RULES.postTitle.max
 export const POST_BODY_MAX = RULES.postBody.max
 export const COMMENT_MAX = RULES.comment.max

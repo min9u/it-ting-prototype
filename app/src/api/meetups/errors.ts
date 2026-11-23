@@ -2,6 +2,7 @@
  * 07 모임 — code → 화면 문구 (명세 07-meetup.md 의 "에러" 표 모두). 공통 코드는 common/errors.ts.
  * 화면은 code 로만 분기한다: errorText(e, MEETUP_ERRORS) 또는 useOptimistic({ errors: MEETUP_ERRORS })
  */
+import { RULES } from '../../lib/validation'
 import type { ErrorTable } from '../common/errors'
 
 export const MEETUP_ERRORS: ErrorTable = {
@@ -29,9 +30,10 @@ export const MEETUP_ERRORS: ErrorTable = {
 
 /**
  * 입력 칸 길이 (명세 07 "글자 수": 모임 이름 30 · 소개 1,000 · 준비물 100 · 장소 100 · 상세 주소 100 · 접속 링크 500 · 남길 말 100, 정원 2~50).
- * lib/validation.ts RULES 의 옛 값(소개 300 · 준비물 40 · 장소 60 · 상세 주소 40)과 다르다 → 모임 화면은 이 값을 쓴다 (공용 파일은 보고만)
+ * 글자 수의 원본은 lib/validation.ts RULES 하나 (2026-11-22 명세 값으로 맞춤). 여기는 모임 화면 · 목 서버가 쓰기 편하게 모은 이름
  */
 export const MEETUP_LIMITS = {
-  title: 30, description: 1000, supplies: 100, place: 100, placeDetail: 100, joinUrl: 500, message: 100,
-  capacityMin: 2, capacityMax: 50, keyword: 50,
+  title: RULES.meetupTitle.max, description: RULES.meetupIntro.max, supplies: RULES.meetupSupplies.max, place: RULES.meetupPlace.max,
+  placeDetail: RULES.meetupPlaceDetail.max, joinUrl: RULES.meetupJoinUrl.max, message: RULES.meetupApplyMessage.max,
+  capacityMin: 2, capacityMax: 50, keyword: RULES.searchKeyword.max,
 } as const

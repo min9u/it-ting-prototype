@@ -18,10 +18,11 @@ export const BOARD_CATS: PostCategory[] = ['모임 홍보', '모임 후기', '�
 export const PAGE_SIZE = 20
 // 글자 수 제한은 lib/validation.ts 한 곳에서 (제목 50 · 본문 1000 · 댓글 300)
 export { POST_TITLE_MAX as TITLE_MAX, POST_BODY_MAX as BODY_MAX, COMMENT_MAX } from '../../lib/validation'
+import { RULES } from '../../lib/validation'
 /** 관심사 태그 5개 · 사진 3장 · 검색어 50자 */
 export const TAG_MAX = 5
 export const PHOTO_MAX = 3
-export const KEYWORD_MAX = 50
+export const KEYWORD_MAX = RULES.searchKeyword.max
 /** 관심사 대분류 12개 이름 (00 공통 5. 커뮤니티 글 태그는 대분류) */
 export const BIG_INTERESTS = CATEGORIES.map((c) => c.name)
 export const bigOf = (name: string) => CATEGORIES.find((c) => c.name === name)
