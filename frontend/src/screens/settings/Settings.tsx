@@ -109,7 +109,7 @@ export function CreditsPage() {
           <ul>
             {CREDITS.map((c) => (
               <li key={c.url}>
-                "{c.title}" by {c.author} (<a href={c.url} target="_blank" rel="noreferrer">{c.url}</a>), CC BY 3.0 — 색을 바꿔 사용
+                &quot;{c.title}&quot; by {c.author} (<a href={c.url} target="_blank" rel="noreferrer">{c.url}</a>), CC BY 3.0 — 색을 바꿔 사용
               </li>
             ))}
           </ul>

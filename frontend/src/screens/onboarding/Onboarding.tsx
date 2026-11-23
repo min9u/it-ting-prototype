@@ -191,7 +191,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
               <span className={s.counter}>{p.name.length} / {NICK_MAX}</span>
             </div>
             {taken && <span className={s.error} role="alert">{p.error}</span>}
-            {!taken && <span className={s.hintLine}>나중에 내 땅굴의 "내 정보 수정"에서 바꿀 수 있어요</span>}
+            {!taken && <span className={s.hintLine}>나중에 내 땅굴의 &quot;내 정보 수정&quot;에서 바꿀 수 있어요</span>}
           </div>
 
           <div className={s.field}>

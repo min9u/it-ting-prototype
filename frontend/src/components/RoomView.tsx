@@ -132,7 +132,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
     styleMounted.current = k
     h.setStyle?.(styleRef.current ?? null)
   }
-  useEffect(() => { syncStyle(handle.current) }, [styleKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { syncStyle(handle.current) }, [styleKey])
   const onMailboxRef = useRef(onMailbox)
   onMailboxRef.current = onMailbox
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
     const on = !!p && shownRef.current
     if (on) a.dataset.on = ''; else delete a.dataset.on
   }
-  useEffect(placeHost, [shown]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(placeHost, [shown])
   // loadingStill 이면 그림을 3D 아래에 계속 둠 (3D 가 0.6초에 걸쳐 나타나는 동안 비지 않게. 방 바깥은 둘 다 투명)
   const placeholder = loader ? (gaveUp && !ready) || loadingStill : !ready
   return (

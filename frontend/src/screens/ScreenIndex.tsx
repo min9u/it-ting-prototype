@@ -115,7 +115,7 @@ export default function ScreenIndex() {
     <main style={{ maxWidth: 880, margin: '0 auto', padding: '40px 20px 80px' }}>
       <img src={logo} alt="디굴디굴" width={92} height={48} />
       <h1 className="display" style={{ fontSize: 30, marginTop: 12 }}>화면 목록</h1>
-      <p style={{ color: 'var(--ink-500)', marginTop: 6 }}>Figma "03. Screens" 기준. ✅ 는 스크린샷과 대조한 화면, 나머지는 메타데이터 기반이라 스크린샷 대조가 필요해요.</p>
+      <p style={{ color: 'var(--ink-500)', marginTop: 6 }}>Figma &quot;03. Screens&quot; 기준. ✅ 는 스크린샷과 대조한 화면, 나머지는 메타데이터 기반이라 스크린샷 대조가 필요해요.</p>
       {GROUPS.map((g) => (
         <section key={g.title} style={{ marginTop: 28 }}>
           <h2 className="display" style={{ fontSize: 20, marginBottom: 8 }}>{g.title}</h2>

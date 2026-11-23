@@ -494,7 +494,8 @@ export function createRoomFx(o: RoomFxOptions): RoomFx {
   /** 이번 프레임에 놓은 배지·이름표 자리 (선반 소품끼리 붙어 있어 겹치면 위로 올림) */
   const taken: { x0: number; y0: number; x1: number; y1: number }[] = []
   const place = (w: number, h: number, cx: number, bottom: number) => {
-    let x0 = Math.min(W - w - 6, Math.max(6, cx - w / 2)), y0 = bottom - h
+    const x0 = Math.min(W - w - 6, Math.max(6, cx - w / 2))
+    let y0 = bottom - h
     for (let k = 0; k < 5; k++) {
       const hit = taken.find((r) => x0 < r.x1 && x0 + w > r.x0 && y0 < r.y1 && y0 + h > r.y0)
       if (!hit) break

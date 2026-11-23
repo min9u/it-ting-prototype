@@ -107,7 +107,7 @@ export default function LowLab() {
           </div>
         )
       })()}
-      {!lowOn && <div style={{ fontSize: 12, background: '#f3e2cc', padding: '6px 8px', borderRadius: 8, marginBottom: 8 }}>아래 선택은 저사양일 때만 적용돼요. GPU PC에서 보려면 "저사양 강제".</div>}
+      {!lowOn && <div style={{ fontSize: 12, background: '#f3e2cc', padding: '6px 8px', borderRadius: 8, marginBottom: 8 }}>아래 선택은 저사양일 때만 적용돼요. GPU PC에서 보려면 &quot;저사양 강제&quot;.</div>}
       {ITEMS.map((it) => (
         <label key={it.k} style={{ display: 'flex', gap: 8, padding: '5px 0', borderTop: '1px solid #eadccb', cursor: 'pointer', opacity: lowOn ? 1 : .55 }}>
           <input type="checkbox" checked={lab[it.k]} onChange={(e) => setLab({ [it.k]: e.target.checked } as Partial<LabState>)} />

@@ -106,11 +106,11 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
    * 저사양으로 시작했으면 지난 그림을 남겨 두고(preserveDrawingBuffer) 두더지 둘레 사각형만 다시 그림 (땅굴 부분 그리기와 같은 방식)
    * 카메라가 움직이면(줌·굴 이동) 배경을 다시 찍음
    */
-  const useBackdrop = () => q.level === 'low' && !!q.lab?.A
-  const scissorOk = useBackdrop()
+  const wantBackdrop = () => q.level === 'low' && !!q.lab?.A
+  const scissorOk = wantBackdrop()
   const renderer = createRenderer(container, { exposure: 1.0, shadowType: THREE.PCFShadowMap, quality: q, preserve: scissorOk })
   // 기기 단계 측정(kind)은 하지 않음: 옛 밭은 장면이 무거워 그리기 시간이 들쭉날쭉 (docs/rendering-experiments-3.md 2번)
-  let backdrop: Backdrop | null = useBackdrop() ? createBackdrop(renderer) : null
+  let backdrop: Backdrop | null = wantBackdrop() ? createBackdrop(renderer) : null
   /*
    * 예열 (docs/rendering-experiments-3.md 1번 c, 랜딩 첫 화면 0.65초 멈춤): 예전엔 마운트하자마자 첫 프레임을 그려서
    * 그 자리에서 셰이더를 컴파일했음. 이제는 밭을 다 만든 뒤 warmScene(셰이더 미리 컴파일 + 물체마다 1×1 그리기를 나눠서)이 끝날 때까지
@@ -778,7 +778,7 @@ export function mountFieldScene(container: HTMLElement, opts: FieldSceneOptions 
       Object.values(I).forEach((i) => i.useLow())
       const g = ground.geometry; ground.geometry = groundGeo(96); g.dispose()
       // 자동으로 저사양이 됐을 때도 A 는 켬 (부분 사각형은 preserveDrawingBuffer 가 없어서 전체 붙이기만)
-      if (useBackdrop() && !backdrop) backdrop = createBackdrop(renderer)
+      if (wantBackdrop() && !backdrop) backdrop = createBackdrop(renderer)
     },
   }, q)
   if (precompile) {

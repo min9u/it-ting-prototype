@@ -259,5 +259,5 @@ describe('커뮤니티 (F8 10 인기 글 · 신고 4)', () => {
 })
 /** 글 저장소는 React 훅(usePosts)으로만 전체를 줌 → renderHook 으로 읽음 */
 function usePostsSnapshot(): BoardPost[] {
-  return renderHook(() => usePosts()).result.current
+  return renderHook(usePosts).result.current
 }

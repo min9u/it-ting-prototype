@@ -7,7 +7,7 @@ import type { FurnChoice } from '../data/myBurrow'
 import type { RoomStyle } from '../data/roomStyle'
 
 /** D 시험판: 저사양 + 실험실 D 면 Worker 에서 그림 (안 되면 원래대로) */
-const useWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
+const wantWorker = () => { const q = quality(); return q.level === 'low' && !!q.lab?.D && workerRenderSupported() }
 
 /** 땅굴 방 3D (RoomView 가 React.lazy 로 불러옴 → three.js 는 별도 청크) */
 export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostName, hostWorn, worn, mailbox, onMailbox, focusX, className, label, onReady, overlay, furniture, paused, fx, getStyle }: {
@@ -43,7 +43,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
 }) {
   // 관심사가 바뀌어도 장면을 다시 만들지 않고 방 배치만 다시 계산 (새 관심사의 소품만 떨어짐). Worker 시험판은 손잡이가 없어 예전처럼 다시 만듦.
   // 벽지가 바뀌면(대표 관심사 대분류가 달라짐) 방 전체 모습이 바뀌므로 deps 의 wallpaper 로 다시 만듦
-  const live = !useWorker()
+  const live = !wantWorker()
   const handleRef = useRef<RoomSceneHandle | null>(null)
   useEffect(() => { handleRef.current?.setInterests?.(interests ?? []) }, [interests?.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
@@ -51,7 +51,7 @@ export default function RoomCanvas({ ownerId, interests, wallpaper, still, hostN
       deps={`${ownerId}|${hostName ?? ''}|${live ? '' : (interests ?? []).join(',')}|${wallpaper ?? ''}|${still ? 1 : 0}`}
       mount={(el, fx0) => {
         const o = { ownerId, interests, wallpaper, hostName, hostWorn, worn, still, mailbox, onMailbox, focusX: fx0, furniture, fx, style: getStyle?.() ?? undefined }
-        return useWorker() ? mountRoomWorker(el, o, () => mountRoomScene(el, o)) : mountRoomScene(el, o)
+        return wantWorker() ? mountRoomWorker(el, o, () => mountRoomScene(el, o)) : mountRoomScene(el, o)
       }}
       focusX={focusX}
       className={className}

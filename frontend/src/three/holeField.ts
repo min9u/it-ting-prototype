@@ -198,21 +198,21 @@ const cellKey = (x: number, z: number) => `${Math.floor((x + 54) / CELL)},${Math
 export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): HoleFieldHandle {
   const q = quality()
   // A·P (위 설명). 저사양으로 시작했을 때만 부분 그리기(지난 그림을 남기는 preserveDrawingBuffer 는 나중에 못 바꿈). 시험용 ?fa=0 · ?partial=0
-  const useA = () => q.level === 'low' && !!q.lab?.A && testParam('fa') !== '0'
-  const scissorOk = useA() && (q.lab?.P ?? true) && testParam('partial') !== '0'
+  const wantA = () => q.level === 'low' && !!q.lab?.A && testParam('fa') !== '0'
+  const scissorOk = wantA() && (q.lab?.P ?? true) && testParam('partial') !== '0'
   /*
    * S 배경은 선명하게 (아래 baker, 기본 켬 2026-11-16 docs/rendering-experiments-2.md): WebGL 캔버스를 투명하게 두고
    * 뒤 2D 캔버스에 1배(기기 배율) 배경, 두더지·링만 0.55배. 실험실 S 를 따름. 시험용 ?fsharp=0 끔.
    * 2026-11-16 3차: 굽기는 sharpBake.ts (렌더 타깃에 띠로 나눠, MSAA, 비동기 읽기). 띠 수·MSAA 는 기기 단계(q.bakeStrips·bakeSamples),
    * 시험용 ?fstrips=1 (한 번에) ?fmsaa=0
    */
-  let sharpField = useA() && (q.lab?.S ?? true) && testParam('fsharp') !== '0'
+  let sharpField = wantA() && (q.lab?.S ?? true) && testParam('fsharp') !== '0'
   let bakeStrips = +(testParam('fstrips') ?? q.bakeStrips)
   let bakeSamples = +(testParam('fmsaa') ?? q.bakeSamples)
   const renderer = createRenderer(container, { alpha: sharpField, exposure: 1.0, shadowType: THREE.PCFSoftShadowMap, quality: q, preserve: scissorOk })
   // 배경 렌더 타깃 배율 (?bdscale=2 → 캔버스의 2배로 그려 붙일 때 2×2 평균 = 안티앨리어싱)
   const bdScale = +(testParam('bdscale') ?? '1').replace('_', '.')
-  let backdrop: Backdrop | null = useA() ? createBackdrop(renderer, { scale: bdScale, kind: 'hole' }) : null
+  let backdrop: Backdrop | null = wantA() ? createBackdrop(renderer, { scale: bdScale, kind: 'hole' }) : null
   // R 카메라가 움직이는 동안 낮은 해상도 배경 (캔버스 대비 배율, 0 = 끔, 기본 기기 단계 strong 0.6 → 0.33배, weak 0.4 → 0.22배). 시험용 ?panscale=0_6
   let panScale = +(testParam('panscale') ?? String(q.panScale)).replace('_', '.')
   let panBd: Backdrop | null = null
@@ -1523,7 +1523,7 @@ export function mountHoleField(container: HTMLElement, opts: HoleFieldOptions): 
       renderer.setPixelRatio(nq.pixelRatio)
       sun.castShadow = false; renderer.shadowMap.enabled = false
       // 자동으로 저사양이 됐을 때도 A 는 켬 (부분 사각형은 preserveDrawingBuffer 가 없어서 전체 붙이기만)
-      if (useA() && !backdrop) backdrop = createBackdrop(renderer, { scale: bdScale })
+      if (wantA() && !backdrop) backdrop = createBackdrop(renderer, { scale: bdScale })
     },
   }, q)
 
