@@ -11,6 +11,8 @@
   3. 니치한 취미를 가진 사람끼리 잘 찾도록 (드문 태그에 가중치)
 - 목적: 팀원에게 보여줄 UI/UX 프로토타입 (색·타이포 시스템 포함)
 
+> **이어서 할 때 먼저 읽기**: [docs/handoff-2026-11-23.md](docs/handoff-2026-11-23.md) (2026-11-23 기준 상태와 다음 일)
+
 ## 작업 방식 메모
 - 사용자와는 **한국어**로 대화
 - 기획상 애매한 점은 **객관식 + 자유 입력 선택지**로 질문 (사용자가 선호)
@@ -187,6 +189,8 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-22 [꾸미기 가구 탭 · 랜딩 부제 다시 넣기 (KAN-40)](docs/decor-furniture-tab-2026-11-22.md): 팀 명세 KAN-40 머지(dev 6bc5111)에 맞춰 ① 랜딩 제목·부제(`fix/landing-furniture-copy`) ② 꾸미기 모드 **가구 탭 + 두더지 탭**(`feat/decor-furniture-tab`, 옛 색 탭은 안 되살림): 세부 관심사 칩(57개 선택 · 33개 고정) + "○○ 가구 고르기 · n개 중 1개" 카드, 저장은 바뀐 것만, 방문자 뷰도 주인이 고른 가구. **고른 단어는 백엔드 명세에 저장 칸이 없어 목 서버에만**(한글 단어, 실제 모드는 501 로 실패 알림), 요청 사항은 `api/burrow/PENDING` 주석. 자리 없을 때 처리는 구현 안 함(명세 미정)
 - 2026-11-22 [꾸미기 가구 탭 고정: 한 관심사를 바꿔도 다른 관심사는 그대로](docs/decor-furniture-stable-2026-11-22.md): 자전거 벽걸이 → 헬멧처럼 단어 크기 종류가 바뀌면 `placeWords` 가 순서대로 다시 놓아 뒤 관심사가 다른 칸으로 밀리던 것(#29 버그). 기준 배치(맨 앞 단어) → 다른 단어 자리 예약 → 선택 순으로 바꿔, 선택이 다른 관심사의 단어·자리를 못 바꿈(무작위 3000회 위반 310 → 0). 저장 · 내 땅굴 · 방문자 뷰 같은 결과 시험. 자리 없을 때 처리는 선택지만 문서에(예약 못 한 경우 0건)
 - 2026-11-23 [API v1 맞추기 완료](docs/backend/api-v1-alignment.md): 영역 7개(인증·설정 / 온보딩·내 땅굴 / 탐색·방문 / 채팅 / 모임 / 커뮤니티 / 알림) 병렬 작업 + 합친 뒤 정리로 **명세 API 111개 전부**, 화면은 API 훅으로만 읽고 씀, 실시간은 SSE 하나(STOMP 삭제), 명세 밖 기능(차단·모임 신고·접속 중·꾸미기 소품/색 탭 등) 삭제. 영역별 문서 `docs/backend/api-v1/*.md`, **백엔드 질문 모음** [questions-for-backend.md](docs/backend/api-v1/questions-for-backend.md), **바뀐 기능 목록** [feature-changes.md](docs/backend/api-v1/feature-changes.md). 시험 588개, 스모크 103화면(가속 켬·끔) 통과. 목 콘솔 `__digulMock`(남이 한 행동 흉내), `__digulChat`
+- 2026-11-23 [Next.js 전환](docs/nextjs-migration.md): 저장소 맨 위 **`frontend/`** = Next.js 16.4 App Router(React 19.3, TS 6). 라우트 48개 같은 주소(`lib/nav.tsx` react-router 이름 어댑터), 화면은 브라우저에서만 그림, 에셋은 Turbopack asset 규칙, 실험실은 `NEXT_PUBLIC_LABS`(dev 켬 · build 끔, `page.lab.tsx`), `/api/v1` rewrite(`API_PROXY_TARGET`), SSE 위해 `compress:false`. 시험 630 · 스모크 105화면 · 실험실 빠짐 검사 통과, Vite 앱과 픽셀 비교 같음(전역 CSS 명시도 `:not(template)`). `app/`(Vite)는 공유 빌드용으로 남김
+- 2026-11-23 **[인수인계: 다른 컴퓨터에서 이어서 하기](docs/handoff-2026-11-23.md)**: 지금 상태, 다음 일(명세 다시 확인 → 커밋 나누기 연습 → Jira → 팀 리포 계획서 · PR), 팀과 정할 것, 새 컴퓨터 설정(서명 키 포함)
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
