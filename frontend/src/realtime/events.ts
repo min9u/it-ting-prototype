@@ -1,6 +1,6 @@
 /**
  * 앱 전체가 같이 쓰는 실시간 소식 연결 하나 (SSE, realtime/eventStream.ts).
- * 목/실제: VITE_API_REAL_AREAS 에 'events' 가 있거나 VITE_API_MODE=real 이면 실제 서버 (api/config.ts areaMode('events'))
+ * 목/실제: NEXT_PUBLIC_API_REAL_AREAS 에 'events' 가 있거나 NEXT_PUBLIC_API_MODE=real 이면 실제 서버 (api/config.ts areaMode('events'))
  *
  *   startEventStream()   로그인 영역에 들어올 때 (App.tsx AppLayout)
  *   stopEventStream()    로그아웃할 때

@@ -1,4 +1,4 @@
-/** 10 설정 · 계정 — 실제/목 고르기 (VITE_API_REAL_AREAS=settings) */
+/** 10 설정 · 계정 — 실제/목 고르기 (NEXT_PUBLIC_API_REAL_AREAS=settings) */
 import { areaMode, selectArea } from '../config'
 import { mock } from './mock'
 import { real } from './real'

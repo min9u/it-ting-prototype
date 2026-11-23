@@ -1,6 +1,6 @@
 /**
  * 00 공통 — 실제 서버 호출. 명세: docs/backend/team-spec/api/00-common.md
- * 백엔드 구현됨(2026-11-22): GET /campuses · GET /generations → VITE_API_REAL_AREAS=common 으로 실제 서버에 붙여 볼 수 있다.
+ * 백엔드 구현됨(2026-11-22): GET /campuses · GET /generations → NEXT_PUBLIC_API_REAL_AREAS=common 으로 실제 서버에 붙여 볼 수 있다.
  *
  * ENDPOINTS: 이 영역이 명세대로 구현한 API ("메서드 주소", 주소의 id 자리는 명세 그대로 {이름}).
  * src/tests/api-v1-endpoints.test.ts 가 명세 제목과 비교한다.

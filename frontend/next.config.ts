@@ -26,6 +26,8 @@ export default function config(phase: string): NextConfig {
 
   return {
     reactStrictMode: true,
+    // next dev 가 frontend/AGENTS.md 를 만들지 않게 (에이전트 규칙은 팀 리포 맨 위 AGENTS.md 한 곳에서)
+    agentRules: false,
     // 실험실 페이지는 page.lab.tsx. 켤 때만 페이지 확장자에 넣음
     pageExtensions: labs ? ['tsx', 'ts', 'lab.tsx'] : ['tsx', 'ts'],
     env: {
@@ -34,9 +36,10 @@ export default function config(phase: string): NextConfig {
       // 빌드 표시: 저사양 정지 그림 캐시(three/stills.ts)의 키 앞에 붙여, 다시 배포하면 예전 그림을 안 씀
       NEXT_PUBLIC_BUILD_STAMP: dev ? 'dev' : Date.now().toString(36),
     },
-    // 개발 서버만 압축을 끔: 압축 미들웨어가 /api/v1 rewrite 로 넘긴 실시간 소식(SSE, text/event-stream)을 모아 두어
-    // 이벤트가 늦게 오거나 안 옴 (docs/nextjs-migration.md "SSE"). 배포는 Nginx 가 /api 를 Spring 으로 바로 넘김
-    compress: !dev,
+    // 압축 끔: Next 의 gzip 미들웨어가 /api/v1 rewrite 로 넘긴 실시간 소식(SSE, text/event-stream)을 모아 두어
+    // 이벤트가 안 옴 (next start 에서 5초 동안 10바이트, 끄면 바로 옴. docs/nextjs-migration.md "SSE").
+    // 배포는 앞단 Nginx 가 압축하고 /api 를 Spring 으로 바로 넘기는 구성을 전제로 함
+    compress: false,
     experimental: {
       // rewrite 프록시의 기본 대기 30초가 지나면 SSE 연결이 끊김 → 1시간 (끊겨도 realtime/events.ts 가 다시 연결)
       proxyTimeout: 60 * 60 * 1000,

@@ -1,11 +1,11 @@
 /**
  * API 설정: 목(mock) ↔ 실제(real) 전환과 목 서버 손잡이(?api=…)
  *
- * - VITE_API_MODE=mock|real (기본 mock, 공유 빌드도 mock). 모든 영역의 기본값
- * - VITE_API_REAL_AREAS=common,auth  → 이 영역만 실제 서버 (백엔드가 구현한 영역부터 하나씩 켬)
- * - VITE_API_MOCK_AREAS=chat,meetups → VITE_API_MODE=real 이어도 이 영역은 목
+ * - NEXT_PUBLIC_API_MODE=mock|real (기본 mock, 공유 빌드도 mock). 모든 영역의 기본값
+ * - NEXT_PUBLIC_API_REAL_AREAS=common,auth  → 이 영역만 실제 서버 (백엔드가 구현한 영역부터 하나씩 켬)
+ * - NEXT_PUBLIC_API_MOCK_AREAS=chat,meetups → NEXT_PUBLIC_API_MODE=real 이어도 이 영역은 목
  *   영역 이름은 AREAS. 실시간 소식 연결(SSE)은 이름 'events'
- * - VITE_API_BASE: 실제 서버 주소 (기본 '/api/v1' → 같은 출처 + Vite 프록시/Nginx). 영역 코드는 '/meetups' 처럼 뒤만 씀
+ * - NEXT_PUBLIC_API_BASE: 실제 서버 주소 (기본 '/api/v1' → 같은 출처 + next.config rewrites/Nginx). 영역 코드는 '/meetups' 처럼 뒤만 씀
  * - 손잡이: 주소에 ?api=slow 처럼 붙이면 목 서버가 느려지거나 실패한다. 여러 개는 쉼표로 (?api=slow,writefail)
  *   붙이면 이 탭(sessionStorage)에 기억해서 화면을 옮겨 다녀도 유지되고, ?api=off 로 끈다.
  *   해시 라우터(공유 빌드)에서는 #/meetups/m1?api=slow 처럼 해시 뒤에 붙여도 된다.

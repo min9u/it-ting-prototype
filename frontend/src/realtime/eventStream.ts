@@ -9,7 +9,7 @@
  *   const off = eventStream().subscribe<{ unreadCount: number }>('NOTIFICATION_UNREAD_CHANGED', (d) => …)
  *   eventStream().onReconnect(() => queryClient.invalidateQueries({ queryKey: notificationKeys.all }))
  *   React 에서는 realtime/useEventStream.ts 의 useEventStream · useRefetchOnReconnect
- * 목 (VITE_API_REAL_AREAS 에 'events' 가 없고 VITE_API_MODE 가 mock 일 때):
+ * 목 (NEXT_PUBLIC_API_REAL_AREAS 에 'events' 가 없고 NEXT_PUBLIC_API_MODE 가 mock 일 때):
  *   mockEvents.emit('CHAT_REQUEST_COUNT_CHANGED', { receivedCount: 3 })   ← 영역 mock.ts 가 "서버가 보낸 것"처럼
  *   mockEvents.drop(3000)  끊김 흉내 (그동안 emit 한 것은 사라짐 = 명세와 같음), mockEvents.down(true) 서버 꺼짐
  *

@@ -5,7 +5,7 @@
  *   import { useMeetupDetail, meetupKeys, MEETUP_ERRORS } from '../api/meetups'
  * (여기서 export * 로 다 모으면 영역끼리 이름이 겹칠 때 깨지므로 모으지 않는다)
  *
- * 모드: VITE_API_MODE=mock(기본)|real, 영역별 VITE_API_REAL_AREAS · VITE_API_MOCK_AREAS (api/config.ts)
+ * 모드: NEXT_PUBLIC_API_MODE=mock(기본)|real, 영역별 NEXT_PUBLIC_API_REAL_AREAS · NEXT_PUBLIC_API_MOCK_AREAS (api/config.ts)
  * 구조와 규칙: docs/backend/api-v1-foundation.md
  */
 import { commonApi } from './common/api'

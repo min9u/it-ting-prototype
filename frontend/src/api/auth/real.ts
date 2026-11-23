@@ -1,6 +1,6 @@
 /**
  * 02 로그인 · 회원가입 — 실제 서버 호출. 명세: docs/backend/team-spec/api/02-auth.md
- * 백엔드 구현됨(2026-11-22): POST /sessions · DELETE /sessions/current · GET /me → VITE_API_REAL_AREAS=auth
+ * 백엔드 구현됨(2026-11-22): POST /sessions · DELETE /sessions/current · GET /me → NEXT_PUBLIC_API_REAL_AREAS=auth
  *
  * 세션은 쿠키(ITTING_SESSION, HttpOnly)라 프론트는 아무것도 저장하지 않는다. 갱신 API 는 없다 (401 이면 로그인 화면).
  * 가입 진행 기록도 서버가 가입 쿠키로 가리킨다 (프론트는 읽지 않음). 비밀번호만 화면 상태로 들고 있다가 POST /users 에 담는다.
