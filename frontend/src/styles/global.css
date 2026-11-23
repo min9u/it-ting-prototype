@@ -19,19 +19,25 @@ img { max-width: 100%; display: block; }
 h1, h2, h3, h4, p { margin: 0; }
 ul, ol { margin: 0; padding: 0; list-style: none; }
 
-.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+/*
+ * 아래 전역 클래스 선택자 끝의 :not(template) 은 명시도를 요소 하나만큼(0,0,1) 올리는 장치 (docs/nextjs-migration.md "화면 비교").
+ * Vite 앱은 화면 모듈 CSS 다음에 이 파일이 와서 "명시도가 같으면 전역이 이김"(예: .btn-sm 높이가 모듈 .calBtn 높이를 이김).
+ * Next 는 전역 CSS 가 먼저 와서 같으면 모듈이 이김 → (0,0,1) 을 더하면 "전역 ≥ 모듈이면 전역" 이 되어 Vite 와 똑같은 결과.
+ * 모듈이 더 구체적이면(예: .actions button, .side .calBtn) 두 앱 모두 모듈이 이김. 새 전역 클래스를 더할 때도 붙일 것
+ */
+.display:not(template) { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible:not(template) { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글 (아이콘·점의 뜻 설명) */
-.sr-only {
+.sr-only:not(template) {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
 /* 공통 폼 */
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field > label, .field-label { font-size: 13px; color: var(--ink-700); font-weight: 600; }
-.input, .textarea {
+.field:not(template) { display: flex; flex-direction: column; gap: 6px; }
+.field:not(template) > label, .field-label:not(template) { font-size: 13px; color: var(--ink-700); font-weight: 600; }
+.input:not(template), .textarea:not(template) {
   width: 100%;
   border: 1px solid var(--line-strong);
   background: #fff;
@@ -39,46 +45,46 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   padding: 13px 15px;
   outline: none;
 }
-.input:focus, .textarea:focus { border-color: var(--brown-600); }
-.textarea { resize: vertical; min-height: 96px; }
-.hint { font-size: 12px; color: var(--ink-400); }
-.error { font-size: 12px; color: var(--alert); }
+.input:not(template):focus, .textarea:not(template):focus { border-color: var(--brown-600); }
+.textarea:not(template) { resize: vertical; min-height: 96px; }
+.hint:not(template) { font-size: 12px; color: var(--ink-400); }
+.error:not(template) { font-size: 12px; color: var(--alert); }
 
 /* 공통 버튼 */
-.btn {
+.btn:not(template) {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   height: 48px; padding: 0 22px; border-radius: var(--radius-md);
   font-family: var(--font-display); font-size: 17px;
   transition: transform .12s, background .15s, box-shadow .15s;
 }
-.btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--brown-700); color: var(--on-brown); }
-.btn-primary:hover { background: #5d3f31; }
-.btn-primary:disabled { background: #cdbcae; cursor: default; }
-.btn-ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--ink-700); }
-.btn-ghost:hover { background: var(--surface-item); }
-.btn-cta { background: var(--cta); color: #fff8f0; }
-.btn-cta:hover { background: var(--cta-hover); }
-.btn-cta:disabled { background: #e8d6c8; color: #b9a596; cursor: default; }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:disabled { background: #eadbcd; color: #b9a596; cursor: default; }
-.btn-line { background: #fffaf5; border: 1px solid var(--line-strong); color: var(--ink-800); }
-.btn-line:hover { background: var(--surface-item); }
-.btn-soft { background: var(--surface-item); color: var(--ink-700); }
-.btn-block { width: 100%; }
-.btn-sm { height: 36px; padding: 0 14px; font-size: 15px; }
+.btn:not(template):active { transform: translateY(1px); }
+.btn-primary:not(template) { background: var(--brown-700); color: var(--on-brown); }
+.btn-primary:not(template):hover { background: #5d3f31; }
+.btn-primary:not(template):disabled { background: #cdbcae; cursor: default; }
+.btn-ghost:not(template) { background: transparent; border: 1px solid var(--line-strong); color: var(--ink-700); }
+.btn-ghost:not(template):hover { background: var(--surface-item); }
+.btn-cta:not(template) { background: var(--cta); color: #fff8f0; }
+.btn-cta:not(template):hover { background: var(--cta-hover); }
+.btn-cta:not(template):disabled { background: #e8d6c8; color: #b9a596; cursor: default; }
+.btn-danger:not(template) { background: var(--danger); color: #fff; }
+.btn-danger:not(template):disabled { background: #eadbcd; color: #b9a596; cursor: default; }
+.btn-line:not(template) { background: #fffaf5; border: 1px solid var(--line-strong); color: var(--ink-800); }
+.btn-line:not(template):hover { background: var(--surface-item); }
+.btn-soft:not(template) { background: var(--surface-item); color: var(--ink-700); }
+.btn-block:not(template) { width: 100%; }
+.btn-sm:not(template) { height: 36px; padding: 0 14px; font-size: 15px; }
 
-.link-accent { color: var(--accent); font-family: var(--font-display); font-size: 15px; }
-.link-accent:hover { text-decoration: underline; }
+.link-accent:not(template) { color: var(--accent); font-family: var(--font-display); font-size: 15px; }
+.link-accent:not(template):hover { text-decoration: underline; }
 
-.card {
+.card:not(template) {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
 
 /* 페이지 제목 나무 팻말 (2026-11-11 Figma: 게시판·모임·내 모임·저장한 글·설정 제목 222×60) */
-.page-sign {
+.page-sign:not(template) {
   display: inline-grid; place-items: center;
   min-width: 222px; height: 60px; padding: 0 34px;
   font-family: var(--font-display); font-weight: 400; font-size: 28px; color: var(--ink-900);
@@ -90,22 +96,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   box-shadow: inset 0 -3px 0 rgba(196, 140, 92, .25), 0 3px 8px rgba(120, 70, 30, .1);
 }
 
-.count-badge {
+.count-badge:not(template) {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 18px; padding: 0 5px; border-radius: 4px;
   background: var(--accent); color: var(--surface);
   font-size: 12px; font-weight: 600; line-height: 1;
 }
 
-.footer {
+.footer:not(template) {
   display: flex; gap: 16px; align-items: center;
   padding: 24px 32px 32px; color: var(--ink-400); font-size: 12px;
 }
-.footer strong { font-family: var(--font-display); font-weight: 400; color: var(--ink-500); font-size: 15px; }
-.footer > span { margin-right: auto; }
-.footer > button { font-size: 12px; color: var(--ink-500); }
-.footer > button:hover { text-decoration: underline; }
-.footer > button b { font-weight: 700; }
+.footer:not(template) strong { font-family: var(--font-display); font-weight: 400; color: var(--ink-500); font-size: 15px; }
+.footer:not(template) > span { margin-right: auto; }
+.footer:not(template) > button { font-size: 12px; color: var(--ink-500); }
+.footer:not(template) > button:hover { text-decoration: underline; }
+.footer:not(template) > button b { font-weight: 700; }
 
 /* 움직임 줄이기: CSS 애니메이션·전환을 거의 0으로, 부드러운 스크롤 끔. JS 쪽(3D 입장 연출 등)은 lib/a11y.ts prefersReducedMotion() */
 @media (prefers-reduced-motion: reduce) {
