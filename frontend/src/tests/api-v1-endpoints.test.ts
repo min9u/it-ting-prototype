@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import { AREAS, type Area } from '../api/config'
 import { ENDPOINTS_BY_AREA } from '../api/endpoints'
+import { TEAM_DOCS } from './teamDocs'
 
 const FS = 'node:fs' // 브라우저 타입에 node 가 없어서 문자열로 불러옴 (rules.test 와 같은 방식)
 const fs = (await import(/* @vite-ignore */ FS)) as {
@@ -19,7 +20,7 @@ const fs = (await import(/* @vite-ignore */ FS)) as {
   existsSync(p: string): boolean
 }
 
-const SPEC_DIR = '../docs/backend/team-spec/api' // vitest 는 app/ 에서 돎
+const SPEC_DIR = `${TEAM_DOCS}/api`
 const HEADING = /^#+ ((?:GET|POST|PATCH|PUT|DELETE) \/api\/v1\S*)\s*$/
 
 /** 명세 API: "메서드 주소" → 문서 이름 */

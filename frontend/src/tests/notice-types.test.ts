@@ -13,10 +13,11 @@ import { toAppId, toDtoId } from '../api/common/ids'
 import { addNotice, liveNotices, noticePrefs, noticeStore, unreadOf, type NoticeRecord } from '../data/notifications'
 import { mockEvents } from '../realtime/events'
 import { isUtcInstant } from '../lib/time'
+import { TEAM_DOCS } from './teamDocs'
 
 const FS = 'node:fs' // 브라우저 타입에 node 가 없어서 문자열로 불러옴 (api-v1-endpoints.test 와 같은 방식)
 const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, enc: string): string }
-const SPEC = fs.readFileSync('../docs/backend/team-spec/api/09-notification.md', 'utf8') // vitest 는 app/ 에서 돎
+const SPEC = fs.readFileSync(`${TEAM_DOCS}/api/09-notification.md`, 'utf8')
 const CAT_KO: Record<string, NotificationCategory> = { 모임: 'MEETUP', 채팅: 'CHAT', 커뮤니티: 'COMMUNITY', 게시판: 'COMMUNITY', 땅굴: 'BURROW', 공지: 'NOTICE' }
 
 /** 명세 "알림의 종류" 표: | `TYPE` | 갈래 | 만드는 때 | 받는 사람 | actor | `TARGET` | */

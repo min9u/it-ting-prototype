@@ -10,10 +10,11 @@ import { TAG_TREE } from '../data/interestTags'
 import { categoryCodeOfName, interestCodeOfName, interestIdsOf, toInterestCatalog } from '../api/onboarding/interestMap'
 import { toAppId } from '../api/common/ids'
 import { categoryCodeOfSeed, categorySeedId, interestCodeOfSeed, interestSeedId } from '../api/mock/seedIds'
+import { TEAM_DOCS } from './teamDocs'
 
 const FS = 'node:fs'
 const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, enc: string): string }
-const SPEC = '../docs/backend/team-spec/spec/00-common.md' // vitest 는 app/ 에서 돎
+const SPEC = `${TEAM_DOCS}/spec/00-common.md`
 
 /** "| 🍽️ 음식·음료 (7) | 맛집탐방, 카페/커피, … |" → { cat, count, subs } */
 function specTable() {

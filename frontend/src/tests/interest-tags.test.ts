@@ -20,7 +20,7 @@ import { GUEST_ROOMS } from '../data/guestRooms'
 import { BIG_INTERESTS, getPosts } from '../data/boardStore'
 import { getMeetupState } from '../data/meetupStore'
 import { GLYPH_NAMES } from '../three/interestFx/icons'
-import legacyRaw from '../../../design/digul_3d_handoff_v3/docs/interest_catalog.json'
+import legacyRaw from './fixtures/interest_catalog_v2.json' // 3D 핸드오프 v3 docs/interest_catalog.json 사본 (frontend/ 밖을 읽지 않게)
 
 /** 사용자가 2026-11-18 에 준 목록 그대로 */
 const USER_LIST = `
