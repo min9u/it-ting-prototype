@@ -41,6 +41,10 @@ export default function config(phase: string): NextConfig {
       // rewrite 프록시의 기본 대기 30초가 지나면 SSE 연결이 끊김 → 1시간 (끊겨도 realtime/events.ts 가 다시 연결)
       proxyTimeout: 60 * 60 * 1000,
     },
+    // /onboarding → 온보딩 1 (Vite 앱의 <Navigate to="/onboarding/name" replace />). 서버에서 307 로 보냄
+    async redirects() {
+      return [{ source: '/onboarding', destination: '/onboarding/name', permanent: false }]
+    },
     async rewrites() {
       if (target === 'off') return []
       return [{ source: '/api/v1/:path*', destination: `${target}/api/v1/:path*` }]
