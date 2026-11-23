@@ -13,18 +13,18 @@ import { findMeetup, startMs } from './meetupStore'
  * - 설정 › 알림 설정에서 끈 갈래의 새 알림은 만들지 않는다. 끄기 전에 받은 알림은 목록에 남고, 빨간 점에만 빠진다
  * - 알림 설정 스위치(noticePrefs)는 10 설정 영역이 쓴다 (api/settings/mock.ts). 여기 두는 까닭은 "만들 때의 규칙"이 읽기 때문
  */
-export type NoticeKind = '모임' | '채팅' | '커뮤니티' | '땅굴' | '공지'
-export const NOTICE_KINDS: NoticeKind[] = ['모임', '채팅', '커뮤니티', '땅굴', '공지']
+export type NoticeKind = '모임' | '채팅' | '게시판' | '땅굴' | '공지'
+export const NOTICE_KINDS: NoticeKind[] = ['모임', '채팅', '게시판', '땅굴', '공지']
 
 /** 갈래 ↔ 화면 이름 (탭 · 설정 스위치) */
-export const KIND_OF_CATEGORY: Record<NotificationCategory, NoticeKind> = { MEETUP: '모임', CHAT: '채팅', COMMUNITY: '커뮤니티', BURROW: '땅굴', NOTICE: '공지' }
-export const CATEGORY_OF_KIND: Record<NoticeKind, NotificationCategory> = { 모임: 'MEETUP', 채팅: 'CHAT', 커뮤니티: 'COMMUNITY', 땅굴: 'BURROW', 공지: 'NOTICE' }
+export const KIND_OF_CATEGORY: Record<NotificationCategory, NoticeKind> = { MEETUP: '모임', CHAT: '채팅', COMMUNITY: '게시판', BURROW: '땅굴', NOTICE: '공지' }
+export const CATEGORY_OF_KIND: Record<NoticeKind, NotificationCategory> = { 모임: 'MEETUP', 채팅: 'CHAT', 게시판: 'COMMUNITY', 땅굴: 'BURROW', 공지: 'NOTICE' }
 
 /** 종류 아이콘 (원형 · 종류별 색 · 한 글자). 땅굴 색은 명세에 "디자인에서 정한다"라 이끼색으로 정함 */
 export const KIND_META: Record<NoticeKind, { label: string; bg: string; desc: string }> = {
   모임: { label: '모', bg: '#A5532F', desc: '참여 신청, 수락, 일정, 빈자리 같은 모임 소식을 알려드려요.' },
   채팅: { label: '채', bg: '#5B8A72', desc: '새 메시지와 대화 요청을 알려드려요.' },
-  커뮤니티: { label: '커', bg: '#C28A2E', desc: '내 글과 댓글에 달린 댓글, 좋아요를 알려드려요.' },
+  게시판: { label: '게', bg: '#C28A2E', desc: '내 글과 댓글에 달린 댓글, 좋아요를 알려드려요.' },
   땅굴: { label: '땅', bg: '#7A8448', desc: '내 방명록에 새 글이 남겨지면 알려드려요.' },
   공지: { label: '공', bg: '#6B4533', desc: '서비스 공지를 알려드려요.' },
 }
@@ -98,12 +98,12 @@ function seed(): NoticeRecord[] {
 }
 
 type Prefs = Record<NoticeKind, boolean>
-const ALL_ON: Prefs = { 모임: true, 채팅: true, 커뮤니티: true, 땅굴: true, 공지: true }
+const ALL_ON: Prefs = { 모임: true, 채팅: true, 게시판: true, 땅굴: true, 공지: true }
 
 /** 알림 (메모리, 목 DB) */
 export const noticeStore = createStore({ list: seed() })
 /** 알림 설정 (F10, 브라우저에 저장. 10 설정 영역이 바꿈) */
-export const noticePrefs = createStore({ kinds: ALL_ON, browserPush: false }, 'digul.noticePrefs.v1')
+export const noticePrefs = createStore({ kinds: ALL_ON, browserPush: false }, 'digul.noticePrefs.v2')
 
 export const useNotices = () => noticeStore.use().list
 

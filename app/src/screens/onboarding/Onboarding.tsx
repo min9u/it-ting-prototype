@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { nicknameCharsMessage } from '../../lib/validation'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/logo-clear.png'
 import MoleDresser, { MolePreview, MoleWithItems, WornChips } from '../../components/MoleDresser'
@@ -158,6 +159,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
   const trimmed = p.name.trim()
   // 겹치는지는 서버가 정함: "다음"에서 POST /nicknames/check (성공하면 5분 동안 맡아 둠)
   const check = useCheckNickname()
+  const charMsg = nicknameCharsMessage(p.name)
   const taken = !!p.error
   const next = () => check.mutate(trimmed, {
     onSuccess: () => { p.setError(null); p.onNext() },
@@ -187,11 +189,12 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
           <div className={s.field}>
             <label htmlFor="ob-nick">닉네임</label>
             <div className={s.inputWrap}>
-              <input id="ob-nick" value={p.name} maxLength={NICK_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="다른 두더지에게 보이는 이름" autoComplete="off" aria-invalid={taken} />
+              <input id="ob-nick" value={p.name} maxLength={NICK_MAX} onChange={(e) => p.setName(e.target.value)} placeholder="다른 두더지에게 보이는 이름" autoComplete="off" aria-invalid={taken || !!charMsg} />
               <span className={s.counter}>{p.name.length} / {NICK_MAX}</span>
             </div>
             {taken && <span className={s.error} role="alert">{p.error}</span>}
-            {!taken && <span className={s.hintLine}>나중에 내 땅굴의 "내 정보 수정"에서 바꿀 수 있어요</span>}
+            {!taken && charMsg && <span className={s.error} role="alert">{charMsg}</span>}
+            {!taken && !charMsg && <span className={s.hintLine}>나중에 내 땅굴의 "내 정보 수정"에서 바꿀 수 있어요</span>}
           </div>
 
           <div className={s.field}>
@@ -216,7 +219,7 @@ function NameStep(p: { name: string; setName: (v: string) => void; worn: string[
       </section>
       <div className={s.actions}>
         <span />
-        <button className={s.next} disabled={!trimmed || taken || check.isPending} onClick={next}>{check.isPending ? '확인 중…' : '다음'}</button>
+        <button className={s.next} disabled={!trimmed || taken || !!charMsg || check.isPending} onClick={next}>{check.isPending ? '확인 중…' : '다음'}</button>
       </div>
     </>
   )

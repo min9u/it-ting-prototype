@@ -183,7 +183,7 @@ export function BoardActivity({ kind }: { kind: ActivityKind }) {
     <div className={s.wrap}>
       <div className={s.layout}>
         <section className={s.subBoard}>
-          <Link to="/board" className={s.backLink}><ChevronLeft size={16} /> 커뮤니티로 돌아가기</Link>
+          <Link to="/board" className={s.backLink}><ChevronLeft size={16} /> 게시판으로 돌아가기</Link>
           <h1 className="page-sign">{ACTIVITY_LABEL[kind]}</h1>
           <div className={s.filterBar}>
             <CatTabs value={cat} onChange={(c) => { setCat(c); setPage(1) }} />

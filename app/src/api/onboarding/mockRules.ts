@@ -5,7 +5,7 @@
  */
 import { MAX_PICK, subOf } from '../../data/interests'
 import { QUESTIONS, type Question } from '../../data/questions'
-import { RULES } from '../../lib/validation'
+import { NICKNAME_CHARS, RULES } from '../../lib/validation'
 import { conflict, invalidInput, notFound } from '../mock/server'
 import { interestCodeOfSeed } from '../mock/seedIds'
 import { toAppId } from '../common/ids'
@@ -18,7 +18,10 @@ const MIN_PICK = 3
 /** 닉네임 모양 (1 ~ 12자). 앞뒤 공백 처리는 구현 단계로 넘겼으므로 목은 잘라서 셈 */
 export function nicknameError(nickname: unknown): string | null {
   if (typeof nickname !== 'string' || !nickname.trim()) return '닉네임을 입력해야 합니다.'
-  if (nickname.trim().length > RULES.nickname.max) return `${RULES.nickname.max}자 이하로 써야 합니다.`
+  // 명세 03 "닉네임 규칙"(KAN-44): 앞뒤 공백을 지운 뒤 한글 · 영어 · 숫자로 1 ~ 12자
+  const n = nickname.trim()
+  if ([...n].length > RULES.nickname.max) return `${RULES.nickname.max}자 이하로 써야 합니다.`
+  if (!NICKNAME_CHARS.test(n)) return '한글, 영어, 숫자만 쓸 수 있습니다.'
   return null
 }
 
@@ -50,14 +53,17 @@ export function answersErrors(answers: unknown): FieldError[] {
   if (new Set(qids).size !== qids.length) out.push({ field: 'answers', message: '세 질문이 서로 달라야 합니다.' })
   ;(answers as AnswerRequest[]).forEach((a, i) => {
     const t = typeof a?.answer === 'string' ? a.answer.trim() : ''
-    if (t.length < RULES.answer.min || t.length > RULES.answer.max) out.push({ field: `answers[${i}].answer`, message: `${RULES.answer.min}자 이상 ${RULES.answer.max}자 이하로 써야 합니다.` })
+    // 이모지도 한 자로 센다 (명세 03, DB CHAR_LENGTH 와 같은 기준 → 코드 포인트 수)
+    const len = [...t].length
+    if (len < RULES.answer.min || len > RULES.answer.max) out.push({ field: `answers[${i}].answer`, message: `${RULES.answer.min}자 이상 ${RULES.answer.max}자 이하로 써야 합니다.` })
   })
   return out
 }
 
 /** 모양 오류가 하나라도 있으면 400 INVALID_INPUT (fields 에 모두) */
 export function throwIfInvalid(fields: FieldError[]) {
-  if (fields.length) throw invalidInput(fields)
+  // 명세 03: fields 는 field 이름 순
+  if (fields.length) throw invalidInput([...fields].sort((a, b) => (a.field < b.field ? -1 : a.field > b.field ? 1 : 0)))
 }
 
 /** interestIds(처음 값 id, api/mock/seedIds) → 앱 관심사 이름 (없는 관심사면 404 INTEREST_NOT_FOUND) */

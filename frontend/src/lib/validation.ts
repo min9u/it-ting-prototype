@@ -56,6 +56,13 @@ export type RuleName = keyof typeof RULES
 
 /* ---------- 예전 이름 (화면·데이터 파일이 쓰던 상수) ---------- */
 export const NICKNAME_MAX = RULES.nickname.max
+/** 닉네임 글자 규칙 (명세 03 "닉네임 규칙", KAN-44): 앞뒤 공백을 지운 뒤 한글 · 영어 · 숫자만 */
+export const NICKNAME_CHARS = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9]+$/
+/** 닉네임 글자 안내 (규칙에 맞으면 null) */
+export function nicknameCharsMessage(nickname: string): string | null {
+  const n = nickname.trim()
+  return n && !NICKNAME_CHARS.test(n) ? '한글, 영어, 숫자만 쓸 수 있어요' : null
+}
 export const INTRO_MAX = RULES.intro.max
 export const ANSWER_MIN = RULES.answer.min
 export const ANSWER_MAX = RULES.answer.max

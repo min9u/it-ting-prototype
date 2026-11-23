@@ -30,7 +30,7 @@ export type NotifKey = keyof NotificationSettingValuesDto
 export const NOTIF_KINDS: readonly { key: NotifKey; label: string; letter: string; color: string; desc: string }[] = [
   { key: 'isMeetupOn', label: '모임', letter: '모', color: '#A5532F', desc: '참여 신청, 수락, 일정, 빈자리 같은 모임 소식을 알려드려요.' },
   { key: 'isChatOn', label: '채팅', letter: '채', color: '#5B8A72', desc: '새 메시지와 대화 요청을 알려드려요.' },
-  { key: 'isCommunityOn', label: '커뮤니티', letter: '커', color: '#C28A2E', desc: '내 글과 댓글에 달린 댓글, 좋아요를 알려드려요.' },
+  { key: 'isCommunityOn', label: '게시판', letter: '게', color: '#C28A2E', desc: '내 글과 댓글에 달린 댓글, 좋아요를 알려드려요.' },
   { key: 'isBurrowOn', label: '땅굴', letter: '땅', color: '#7A8448', desc: '내 방명록에 새 글이 남겨지면 알려드려요.' },
   { key: 'isNoticeOn', label: '공지', letter: '공', color: '#6B4533', desc: '서비스 공지를 알려드려요.' },
 ]

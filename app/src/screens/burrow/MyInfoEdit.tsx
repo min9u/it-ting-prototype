@@ -18,7 +18,7 @@ import m from './MyBurrow.module.css'
 
 // 자기소개 최대 150자 (lib/validation.ts)
 export { INTRO_MAX } from '../../lib/validation'
-import { INTRO_MAX } from '../../lib/validation'
+import { INTRO_MAX, nicknameCharsMessage } from '../../lib/validation'
 
 /** 내 땅굴 값 → 수정 화면 값 */
 const draftOf = (b: MyBurrowVM): ProfileDraft => ({
@@ -68,7 +68,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
   // 닉네임을 바꾸면 잠깐 기다렸다가 확인 (명세 04 "닉네임을 바꿨을 때 POST /nicknames/check")
   const checkMut = check.mutate
   useEffect(() => {
-    if (!nick || !nickChanged) { setNickState({ kind: 'idle' }); return }
+    if (!nick || !nickChanged || nicknameCharsMessage(nick)) { setNickState({ kind: 'idle' }); return }
     setNickState({ kind: 'checking' })
     let alive = true
     const t = setTimeout(() => checkMut(nick, {
@@ -78,7 +78,9 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
     return () => { alive = false; clearTimeout(t) }
   }, [nick, nickChanged, checkMut])
 
+  const charMsg = nicknameCharsMessage(nick)
   const nickMsg = !nick ? { bad: true, text: '닉네임을 입력해 주세요' }
+    : charMsg ? { bad: true, text: charMsg }
     : nickState.kind === 'bad' ? { bad: true, text: nickState.text }
       : nickState.kind === 'checking' ? { bad: false, text: '확인하는 중…' }
         : nickState.kind === 'ok' ? { bad: false, text: '✓ 사용할 수 있는 닉네임이에요' } : null
@@ -86,7 +88,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
   const floors = campusList.find((c) => c.name === d.campus)?.floors.map((f) => f.floor) ?? (d.campus === start.campus ? [start.floor] : [])
   const moved = d.campus !== start.campus || d.floor !== start.floor
   const qOk = d.qna.length === 3 && d.qna.every((x) => answerOk(x.a))
-  const valid = !!nick && nickState.kind !== 'bad' && nickState.kind !== 'checking' && floors.includes(d.floor)
+  const valid = !!nick && !charMsg && nickState.kind !== 'bad' && nickState.kind !== 'checking' && floors.includes(d.floor)
     && d.interests.length >= MIN_PICK && d.interests.length <= MAX_PICK && qOk && d.intro.length <= INTRO_MAX
   const ready = !!catalog.data && !!campuses.data
   const dirty = JSON.stringify(d) !== JSON.stringify(start)

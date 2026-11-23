@@ -197,7 +197,7 @@ describe('두더지 꾸미기 (3D 핸드오프 v2 accessories.md v1.2)', () => {
 
 describe('알림 목록 (F9 알림 4·8, API 09 "주는 방식")', () => {
   const DAY = 86_400_000, NOW = new Date(2026, 10, 16, 12, 0).getTime()
-  const on: Record<NoticeKind, boolean> = { 모임: true, 채팅: true, 커뮤니티: true, 땅굴: true, 공지: true }
+  const on: Record<NoticeKind, boolean> = { 모임: true, 채팅: true, 게시판: true, 땅굴: true, 공지: true }
   const n = (id: string, ago: number, unread = false, type: NoticeRecord['type'] = 'MEETUP_UPDATED'): NoticeRecord =>
     ({ id, type, actorId: null, targetId: 'm1', at: NOW - ago, readAt: unread ? null : NOW - ago + 1 })
   it(`최근 ${NOTICE_TTL_DAYS}일만, 안 읽은 것 맨 위 → 최신순`, () => {

@@ -91,7 +91,7 @@
 
 ### 온보딩을 마치지 않은 계정
 
-`nextStep`이 `ONBOARDING`인 계정은 이 문서의 API, [온보딩 API](03-onboarding.md), [공통 API](00-common.md) 가운데 "온보딩 중에도"라고 적힌 것만 부를 수 있다. 다른 API를 부르면 `403`과 `ONBOARDING_INCOMPLETE`로 답한다.
+`nextStep`이 `ONBOARDING`인 계정은 이 문서의 API, 로그인 없이 부르는 API, "온보딩 중에도"라고 적힌 API([온보딩 API](03-onboarding.md), [공통 API](00-common.md)의 학기 · 관심사 · 질문 목록)만 부를 수 있다. 다른 API를 부르면 `403`과 `ONBOARDING_INCOMPLETE`로 답한다.
 
 ```json
 {
@@ -108,7 +108,7 @@
 
 ### 새 학기를 고르지 않은 계정
 
-새 학기 들판이 열리면 이번 학기의 캠퍼스 · 층을 반드시 골라야 한다([명세](../spec/05-explore-visit.md#땅굴-메인--새-학기-안내)). `nextStep`이 `NEW_TERM`인 계정은 이 문서의 API, 로그인 없이 부르는 [공통 API](00-common.md), "새 학기를 고르기 전에도"라고 적힌 API만 부를 수 있다. 다른 API를 부르면 `403`과 `NEW_TERM_INCOMPLETE`로 답한다.
+새 학기 들판이 열리면 이번 학기의 캠퍼스 · 층을 반드시 골라야 한다([명세](../spec/05-explore-visit.md#땅굴-메인--새-학기-안내)). `nextStep`이 `NEW_TERM`인 계정은 이 문서의 API, 로그인 없이 부르는 API, "새 학기를 고르기 전에도"라고 적힌 API([공통 API](00-common.md)의 학기 · 관심사 · 질문 목록, 이사 API)만 부를 수 있다. 온보딩 API도 부를 수 없다. 다른 API를 부르면 `403`과 `NEW_TERM_INCOMPLETE`로 답한다.
 
 ```json
 {
@@ -906,7 +906,8 @@ POST /api/v1/password-resets/3fa9c1d27b4e4f0a9c51/complete
 - **로그인 실패의 응답 시간**(KAN-38): 없는 이메일이어도 비밀번호 비교를 한 번 해서, 응답 시간으로 가입 여부를 알 수 없게 한다. 72바이트보다 긴 비밀번호는 비교하지 않고 `LOGIN_FAILED`다.
 - **정지 기록이 겹칠 때**(KAN-38): `ACCOUNT_SUSPENDED`의 `detail`은 지금 정지 중인 기록 가운데 가장 늦게 끝나는 것의 사유와 끝 시각이다.
 - **세션만 남은 계정**(KAN-38): `GET /api/v1/me`를 불렀는데 세션의 계정이 없거나 탈퇴했으면 세션을 지우고 `401`과 `UNAUTHENTICATED`로 답한다.
-- **`nextStep`의 `NEW_TERM`**(KAN-38): 땅굴 입구 · 학기 테이블이 생기기 전까지는 계산하지 않는다. 그동안 `onboarded_at`이 있으면 `HOME`이다.
+- **`nextStep`의 `NEW_TERM`**(KAN-44): 온보딩을 마쳤고 내 땅굴 입구의 학기가 이번 학기(열린 학기 가운데 가장 최근에 열린 것)가 아니면 `NEW_TERM`이다. 열린 학기가 하나도 없으면 고를 학기가 없으므로 `HOME`이다.
+- **막는 장치**(KAN-44): 로그인한 요청마다 계정의 `nextStep`을 계산해, `ONBOARDING`이면 "온보딩 중에도", `NEW_TERM`이면 "새 학기를 고르기 전에도"인 API만 통과시킨다. 표시가 없는 새 API는 막힌다. 로그인하지 않은 요청은 로그인 검사가 먼저 `401`로 답한다.
 
 - **인증 코드**(KAN-39): 유효 5분, 재전송 간격 60초, 5번 틀리면 코드를 지운다([인증 코드](#인증-코드)).
 - **보내기 실패**(KAN-39): 메일 서버나 Mattermost에 보내지 못하면 `503`과 `VERIFICATION_SEND_FAILED`. 바로 다시 부를 수 있다.

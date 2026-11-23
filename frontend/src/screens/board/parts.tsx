@@ -291,7 +291,7 @@ export function GonePage({ message }: { message: string }) {
     <div className={s.wrap}>
       <div className={s.gonePage}>
         <EmptyMole message={message}>
-          <Link to="/board" className="btn btn-primary btn-sm"><ChevronLeft size={16} /> 커뮤니티로</Link>
+          <Link to="/board" className="btn btn-primary btn-sm"><ChevronLeft size={16} /> 게시판으로</Link>
         </EmptyMole>
       </div>
       <Footer />

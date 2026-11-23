@@ -17,13 +17,13 @@ import { isUtcInstant } from '../lib/time'
 const FS = 'node:fs' // 브라우저 타입에 node 가 없어서 문자열로 불러옴 (api-v1-endpoints.test 와 같은 방식)
 const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, enc: string): string }
 const SPEC = fs.readFileSync('../docs/backend/team-spec/api/09-notification.md', 'utf8') // vitest 는 app/ 에서 돎
-const CAT_KO: Record<string, NotificationCategory> = { 모임: 'MEETUP', 채팅: 'CHAT', 커뮤니티: 'COMMUNITY', 땅굴: 'BURROW', 공지: 'NOTICE' }
+const CAT_KO: Record<string, NotificationCategory> = { 모임: 'MEETUP', 채팅: 'CHAT', 커뮤니티: 'COMMUNITY', 게시판: 'COMMUNITY', 땅굴: 'BURROW', 공지: 'NOTICE' }
 
 /** 명세 "알림의 종류" 표: | `TYPE` | 갈래 | 만드는 때 | 받는 사람 | actor | `TARGET` | */
 function specTypes() {
   const out = new Map<string, { category: NotificationCategory; target: string; actor: boolean }>()
   for (const line of SPEC.split('\n')) {
-    const m = /^\| `([A-Z_]+)` \| (모임|채팅|커뮤니티|땅굴|공지) \|.*\| ([^|]+) \| `([A-Z_]+)`(?:\([^)]*\))? \|$/.exec(line.trim())
+    const m = /^\| `([A-Z_]+)` \| (모임|채팅|커뮤니티|게시판|땅굴|공지) \|.*\| ([^|]+) \| `([A-Z_]+)`(?:\([^)]*\))? \|$/.exec(line.trim())
     if (m) out.set(m[1], { category: CAT_KO[m[2]], target: m[4], actor: m[3].trim() !== '`null`' })
   }
   return out
@@ -72,7 +72,7 @@ describe('09 알림 갈 곳 (명세 "눌렀을 때 갈 곳")', () => {
       target: { type: 'POST', id: 204, title: '토요일 아침 한강 러닝 같이 하실 분', startsAt: null }, isRead: false, createdAt: '2026-11-19T03:02:00Z',
     }
     const a = toAppNotice(d)
-    expect(a).toMatchObject({ id: '7201', kind: '커뮤니티', unread: true, to: '/board/204', request: false })
+    expect(a).toMatchObject({ id: '7201', kind: '게시판', unread: true, to: '/board/204', request: false })
     expect(a.sub).toBe('‘토요일 아침 한강 러닝 같이 하실 분’ · 새벽산책님')
   })
   it('일정 임박 문구: 1시간 전 · 24시간 전', () => {
@@ -130,16 +130,16 @@ describe('09 알림 목 서버 (명세 모양 · 주는 방식)', () => {
   it('안 읽은 수는 모든 갈래, 빨간 점은 켜 둔 갈래만', () => {
     const now = Date.now()
     const list: NoticeRecord[] = [{ id: 'a', type: 'CHAT_MESSAGE_RECEIVED', actorId: 'mingu', targetId: 'r-mingu', at: now, readAt: null }]
-    const on = { 모임: true, 채팅: true, 커뮤니티: true, 땅굴: true, 공지: true }
+    const on = { 모임: true, 채팅: true, 게시판: true, 땅굴: true, 공지: true }
     expect(unreadOf(list, on, now)).toEqual({ unreadCount: 1, hasUnread: true })
     expect(unreadOf(list, { ...on, 채팅: false }, now)).toEqual({ unreadCount: 1, hasUnread: false })
     expect(liveNotices([{ ...list[0], at: now - 31 * 86_400_000 }], now)).toHaveLength(0)
   })
   it('만들 때의 규칙: 내가 한 일 · 꺼 둔 갈래는 안 만듦, 새 메시지는 대화방마다 한 줄', () => {
     expect(addNotice({ type: 'POST_LIKED', actorId: 'me', targetId: 'p6' })).toBeNull()
-    noticePrefs.set((s) => ({ kinds: { ...s.kinds, 커뮤니티: false } }))
+    noticePrefs.set((s) => ({ kinds: { ...s.kinds, 게시판: false } }))
     expect(addNotice({ type: 'POST_LIKED', actorId: 'yerin', targetId: 'p6' })).toBeNull()
-    noticePrefs.set((s) => ({ kinds: { ...s.kinds, 커뮤니티: true } }))
+    noticePrefs.set((s) => ({ kinds: { ...s.kinds, 게시판: true } }))
     const before = noticeStore.get().list.length
     const a = addNotice({ type: 'CHAT_MESSAGE_RECEIVED', actorId: 'yerin', targetId: 'r-room-x' })!
     const b = addNotice({ type: 'CHAT_MESSAGE_RECEIVED', actorId: 'mingu', targetId: 'r-room-x' })!

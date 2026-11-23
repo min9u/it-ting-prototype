@@ -43,8 +43,8 @@ const GROUPS: { title: string; items: [string, string, string, boolean?][] }[] =
     ['🧪 땅굴 다양성 실험실 (칠하기·무늬·모양·자동)', '/lab/style', '실험', true],
     ['🧪 땅굴 비교 실험실 (아무 관심사로 방문자 뷰 방)', `/lab/rooms?interests=${encodeURIComponent('사주/타로,곤충/파충류/기타,LP/음반')}&name=${encodeURIComponent('니치형')}`, '실험', true],
   ] },
-  { title: '커뮤니티', items: [
-    ['커뮤니티 목록 (02 F8)', '/board', 'F8-01', true],
+  { title: '게시판', items: [
+    ['게시판 목록 (02 F8)', '/board', 'F8-01', true],
     ['글 상세 · 확정 시안 B', '/board/p1', 'F8-04', true],
     ['글쓰기', '/board/write', 'F8-05', true],
     ['글 수정 (내 글)', '/board/p6/edit', 'F8-06', true],

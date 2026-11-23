@@ -64,7 +64,7 @@ export function mockGoogleVerify(purpose: GoogleVerifyPurpose, email: string | n
 
 /* ===== 알림 설정 ===== */
 const KIND_OF: [keyof NotificationSettingValuesDto, NoticeKind][] = [
-  ['isMeetupOn', '모임'], ['isChatOn', '채팅'], ['isCommunityOn', '커뮤니티'], ['isBurrowOn', '땅굴'], ['isNoticeOn', '공지'],
+  ['isMeetupOn', '모임'], ['isChatOn', '채팅'], ['isCommunityOn', '게시판'], ['isBurrowOn', '땅굴'], ['isNoticeOn', '공지'],
 ]
 function settingValues(): NotificationSettingValuesDto {
   const k = noticePrefs.get().kinds
