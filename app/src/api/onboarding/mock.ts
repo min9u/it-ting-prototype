@@ -4,6 +4,7 @@
  *        data/interests(내 관심사) · data/moleItems(내 두더지)
  * id: 관심사 · 대분류 · 질문은 앱 코드(cafe_coffee · food · music-1)를 toDtoId 로 목 번호로 (앱 쪽 toAppId 로 되돌아옴)
  */
+import { setMockNextStep } from '../../data/auth'
 import { CATEGORIES, ME_ID } from '../../data/mock'
 import { setMyInterests } from '../../data/interests'
 import { setMyWorn } from '../../data/moleItems'
@@ -79,6 +80,8 @@ export const mock: OnboardingApi = {
     setMyWorn(wornFromMole(body.mole))
     setMyInterests(names)
     resetMyRoom()
+    // 5 세션의 다음 단계가 HOME 으로 (목 세션 = data/auth). 안 하면 LOGIN_FREE = false 일 때 가드가 온보딩 1 로 되돌림
+    setMockNextStep('HOME')
     return { userId: toDtoId(ME_ID), nextStep: 'HOME' as const, burrowId: toDtoId(ME_ID) }
   }),
 }

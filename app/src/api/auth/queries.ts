@@ -1,14 +1,18 @@
 /**
  * 02 로그인 · 회원가입 — TanStack Query 훅과 캐시 키
  *
- * 로그인 · 가입 같은 "로그인 없이 부르는 쓰기"는 useMutation 을 쓰지 않고 화면이 authApi 를 바로 부른다.
- * (공용 MutationCache 가 401 이면 "다시 로그인"으로 보내는데, 로그인 실패 LOGIN_FAILED 도 401 이라서)
- * 성공한 뒤에는 useSessionReset() 으로 내 계정 캐시를 새로 받는다.
+ * 로그인 · 가입 같은 "로그인 없이 부르는 쓰기"는 아래 useLogin · useSignup … 훅 (meta.quiet401: 로그인 실패 LOGIN_FAILED 도 401 이라
+ * 공용 MutationCache 가 "다시 로그인"으로 보내지 않게). 성공한 뒤에는 useSessionReset() 으로 내 계정 캐시를 새로 받는다.
  */
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isUnauthorized } from '../client'
+import type { ApiMeta } from '../queryClient'
 import { authApi } from './api'
 import { toMe, type MeVM } from './mappers'
+import type {
+  EmailVerificationCheckRequest, EmailVerificationRequest, LoginRequest, PasswordResetCompleteRequest, PasswordResetRequest, SignupRequest,
+  SsafyVerificationRequest,
+} from './types'
 
 export const authKeys = {
   all: ['auth'] as const,
@@ -47,6 +51,23 @@ export function usePasswordResetLink(token: string | null) {
     gcTime: 0,
   })
 }
+
+/* ===== 로그인 없이 부르는 쓰기 (401 이 정상 답이라 공용 "다시 로그인"을 끔) ===== */
+const PUBLIC_META: ApiMeta = { quiet401: true }
+function usePublicMutation<V, R>(fn: (v: V) => Promise<R>) {
+  return useMutation({ mutationFn: fn, meta: { ...PUBLIC_META } })
+}
+/** 로그인 (POST /sessions). 401 LOGIN_FAILED · 403 ACCOUNT_SUSPENDED 는 화면이 code 로 */
+export const useLogin = () => usePublicMutation((v: LoginRequest) => authApi.login(v))
+/** 이메일 인증 코드 보내기 · 확인 */
+export const useSendEmailCode = () => usePublicMutation((v: EmailVerificationRequest) => authApi.sendEmailCode(v))
+export const useCheckEmailCode = () => usePublicMutation((v: EmailVerificationCheckRequest) => authApi.checkEmailCode(v))
+/** SSAFY 인증 코드 보내기 · 가입 */
+export const useSendSsafyCode = () => usePublicMutation((v: SsafyVerificationRequest) => authApi.sendSsafyCode(v))
+export const useSignup = () => usePublicMutation((v: SignupRequest) => authApi.signup(v))
+/** 비밀번호 재설정 메일 · 새 비밀번호 */
+export const useRequestPasswordReset = () => usePublicMutation((v: PasswordResetRequest) => authApi.requestPasswordReset(v))
+export const useCompletePasswordReset = () => usePublicMutation((v: { token: string; body: PasswordResetCompleteRequest }) => authApi.completePasswordReset(v.token, v.body))
 
 /** 목 모드: 이 영역 저장소가 바뀌면 캐시를 새로 받는 훅 (api/mockSync.tsx 가 부름). 세션은 쓰기 뒤 useSessionReset 으로 맞춤 */
 export function useAuthMockSync() { /* 지켜볼 저장소 없음 */ }

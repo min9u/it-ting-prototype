@@ -119,3 +119,23 @@ describe('에러 문구 (code → 화면)', () => {
     expect(errorText(new ApiError(500, 'INTERNAL_ERROR', 'boom'))).toBe('서버에 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.')
   })
 })
+
+describe('공용 QueryClient 의 오류 처리 (api/queryClient.ts)', () => {
+  it('401 은 로그인 화면으로, meta.quiet401 이면 안 함 · 403 ONBOARDING_INCOMPLETE 는 온보딩 처리', async () => {
+    const { queryClient, setOnboardingIncompleteHandler } = await import('../api/queryClient')
+    const unauth = vi.fn(), onboarding = vi.fn()
+    setUnauthorizedHandler(unauth)
+    setOnboardingIncompleteHandler(onboarding)
+    const run = (e: ApiError, meta?: Record<string, unknown>) =>
+      queryClient.getMutationCache().build(queryClient, { mutationFn: () => Promise.reject(e), meta }).execute(undefined).catch(() => {})
+    await run(new ApiError(401, 'LOGIN_FAILED', '실패'), { quiet401: true })
+    expect(unauth).not.toHaveBeenCalled()
+    await run(new ApiError(401, 'UNAUTHENTICATED', '로그인 필요'))
+    expect(unauth).toHaveBeenCalledTimes(1)
+    await run(new ApiError(403, 'ONBOARDING_INCOMPLETE', '온보딩'))
+    expect(onboarding).toHaveBeenCalledTimes(1)
+    await run(new ApiError(403, 'FORBIDDEN', '권한'))
+    expect(onboarding).toHaveBeenCalledTimes(1)
+    setUnauthorizedHandler(null); setOnboardingIncompleteHandler(null)
+  })
+})

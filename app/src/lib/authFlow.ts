@@ -79,7 +79,7 @@ export function handleUnauthorized(reason = 'unauthorized') {
 
 /**
  * 403 ONBOARDING_INCOMPLETE (02 "온보딩을 마치지 않은 계정"): 어느 API 에서 와도 온보딩 1 로.
- * 공용 QueryCache · MutationCache 의 onError 에서 부르면 됨 (api/queryClient.ts 는 공통 담당 파일이라 아직 연결 안 함)
+ * 공용 QueryCache · MutationCache 의 onError 가 부름 (api/queryClient.ts onApiError, main.tsx 에서 끼움)
  */
 export function handleOnboardingIncomplete() {
   if (LOGIN_FREE) return

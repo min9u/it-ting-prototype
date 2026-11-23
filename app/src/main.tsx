@@ -3,14 +3,14 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { router } from './App'
-import { queryClient } from './api/queryClient'
+import { queryClient, setOnboardingIncompleteHandler } from './api/queryClient'
 import { setUnauthorizedHandler } from './api/client'
 import GpuNotice from './components/GpuNotice'
 import LowLab from './components/LowLab'
 import DeviceGate from './components/DeviceGate'
 import NetworkBanner from './components/NetworkBanner'
 import { installChunkReload } from './lib/chunkReload'
-import { handleUnauthorized, registerNavigator } from './lib/authFlow'
+import { handleOnboardingIncomplete, handleUnauthorized, registerNavigator } from './lib/authFlow'
 // Pretendard는 CDN 대신 번들에 포함 (아티팩트 배포는 외부 CSS를 막음)
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css'
 import './styles/global.css'
@@ -21,6 +21,8 @@ installChunkReload()
 registerNavigator((to, o) => { void router.navigate(to, o) })
 // API 401 이 리프레시로도 안 풀리면 → lib/authFlow (지금은 LOGIN_FREE 라 기록만)
 setUnauthorizedHandler(() => handleUnauthorized('api 401'))
+// 어느 API 든 403 ONBOARDING_INCOMPLETE → 온보딩 1 (lib/authFlow)
+setOnboardingIncompleteHandler(handleOnboardingIncomplete)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

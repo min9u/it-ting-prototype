@@ -16,7 +16,7 @@ import {
 } from '../../data/auth'
 import { accountStore, createAccount, MY_GOOGLE_EMAIL } from '../../data/account'
 import { campusesInOrder } from '../../data/campusFloors'
-import { ME_HOME } from '../../data/field'
+import { ME_HOME, isNewTermPending } from '../../data/field'
 import { ME_ID } from '../../data/mock'
 import { checkPassword, emailValid } from '../../lib/authRules'
 import { toIso } from '../../lib/time'
@@ -113,10 +113,20 @@ export const mockMailbox = {
   resetLink: (email: string) => `/password-reset/new?token=${lastResetToken(email) ?? requestReset(email)}`,
 }
 
+/**
+ * 목 세션의 다음 단계. 온보딩을 마친 계정이 새 학기 들판을 아직 고르지 않았으면(05 목 data/field isNewTermPending, 시연 ?newterm=demo) NEW_TERM
+ * (명세 02 "새 학기를 고르지 않은 계정"). LOGIN_FREE 면 ONBOARDING 말고는 HOME 대신 그대로 들여보냄
+ */
+function nextStepNow(): MeDto['nextStep'] {
+  const step = mockNextStep()
+  if (step === 'ONBOARDING') return 'ONBOARDING'
+  if (isNewTermPending()) return 'NEW_TERM'
+  return LOGIN_FREE ? 'HOME' : step
+}
 const meDto = (): MeDto => {
   const campusFloorKey = `${ME_HOME.campus}|${ME_HOME.floor}`
   return {
-    userId: toDtoId(ME_ID), nextStep: LOGIN_FREE ? (mockNextStep() === 'ONBOARDING' ? 'ONBOARDING' : 'HOME') : mockNextStep(),
+    userId: toDtoId(ME_ID), nextStep: nextStepNow(),
     campusName: ME_HOME.campus, generation: ME_HOME.gen, floor: ME_HOME.floor, campusFloorId: toDtoId(campusFloorKey),
   }
 }

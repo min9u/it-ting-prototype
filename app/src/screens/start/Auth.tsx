@@ -8,7 +8,8 @@ import { isApiError } from '../../api/client'
 import { errorText, fieldErrorText, toDtoId, useCampuses, useGenerations } from '../../api/common'
 import {
   AUTH_ERRORS, AUTH_FIELD_OF, AUTH_IS_MOCK, authApi, goGoogle, MOCK_GOOGLE, mockGoogleCallback, mockMailbox, pathAfterLogin, secondsLeft,
-  suspendedFromQuery, toMe, toSuspension, usePasswordResetLink, useSessionReset, type GooglePurpose, type SuspendedDetail, type SuspensionVM,
+  suspendedFromQuery, toMe, toSuspension, useCheckEmailCode, useCompletePasswordReset, useLogin, usePasswordResetLink, useRequestPasswordReset,
+  useSendEmailCode, useSendSsafyCode, useSessionReset, useSignup, type GooglePurpose, type SuspendedDetail, type SuspensionVM,
 } from '../../api/auth'
 import { useAccount } from '../../api/settings'
 import { LOGIN_FREE } from '../../data/auth'
@@ -152,6 +153,7 @@ function SuspendedDialog({ v, onClose }: { v: SuspensionVM | null; onClose: () =
  */
 export function Login() {
   const nav = useNavigate()
+  const login = useLogin()
   const loc = useLocation() as { state?: { email?: string; toast?: string; from?: string } }
   const resetSession = useSessionReset()
   const email = useEmailField(loc.state?.email ?? '')
@@ -188,7 +190,7 @@ export function Login() {
     }
     setFailed(false); setFormErr(null); setBusy('pw')
     try {
-      const r = await authApi.login({ email: email.value.trim(), password: pw })
+      const r = await login.mutateAsync({ email: email.value.trim(), password: pw })
       void resetSession()
       // 로그인이 필요해서 왔으면(RequireLogin · 401, lib/authFlow.ts) 가려던 주소로. 온보딩을 마저 해야 하면 그쪽이 먼저
       nav(pathAfterLogin(r.nextStep, takeReturnTo(loc.state?.from)), { replace: true })
@@ -317,6 +319,8 @@ export function MockGoogle() {
  */
 export function SignupEmail() {
   const nav = useNavigate()
+  const sendCode = useSendEmailCode()
+  const checkCode = useCheckEmailCode()
   const loc = useLocation() as { state?: { email?: string } }
   const email = useEmailField(loc.state?.email || signupDraft.email)
   const code = useCodeField()
@@ -334,7 +338,7 @@ export function SignupEmail() {
     if (!email.valid) { email.touch(); return }
     setBusy('send'); setEmailErr(null); setFormErr(null)
     try {
-      const r = await authApi.sendEmailCode({ email: email.value })
+      const r = await sendCode.mutateAsync({ email: email.value })
       setSentTo(email.value); code.reset(); ttl.until(r.expiresAt); gap.start(RESEND_GAP)
       setTimeout(() => codeRef.current?.focus(), 0)
     } catch (e) {
@@ -352,7 +356,7 @@ export function SignupEmail() {
     if (!sent || !code.complete || expired || busy) return
     setBusy('check'); setFormErr(null)
     try {
-      await authApi.checkEmailCode({ email: email.value, code: code.code })
+      await checkCode.mutateAsync({ email: email.value, code: code.code })
       signupDraft.email = email.value
       nav('/signup/password')
     } catch (err) {
@@ -483,6 +487,8 @@ function Select({ id, label, value, options, onChange, placeholder, disabled, er
  */
 export function SignupSsafy() {
   const nav = useNavigate()
+  const sendCode = useSendSsafyCode()
+  const signup = useSignup()
   const [params] = useSearchParams()
   const resetSession = useSessionReset()
   const viaGoogle = params.get('via') === 'google'
@@ -533,7 +539,7 @@ export function SignupSsafy() {
   const send = async () => {
     setBusy('send'); setMmErr(null); setFormErr(null)
     try {
-      const r = await authApi.sendSsafyCode({ generation: Number(gen), mattermostId: mm })
+      const r = await sendCode.mutateAsync({ generation: Number(gen), mattermostId: mm })
       setSentTo(`${gen}|${mm}`); code.reset(); ttl.until(r.expiresAt); gap.start(RESEND_GAP)
       setTimeout(() => codeRef.current?.focus(), 0)
     } catch (e) { fail(e) } finally { setBusy(null) }
@@ -544,7 +550,7 @@ export function SignupSsafy() {
     if (!ready || busy) return
     setBusy('submit'); setFormErr(null); setFloorErr(null)
     try {
-      const r = await authApi.signup({
+      const r = await signup.mutateAsync({
         ...(viaGoogle ? {} : { password: signupDraft.password }),
         code: code.code, campusFloorId: toDtoId(floorId), hasAgreedTerms: terms, hasAgreedPrivacy: privacy,
       })
@@ -628,6 +634,7 @@ export function SignupSsafy() {
  */
 export function PasswordReset() {
   const nav = useNavigate()
+  const requestReset = useRequestPasswordReset()
   const loc = useLocation() as { state?: { email?: string } }
   const email = useEmailField(loc.state?.email ?? '')
   const [busy, setBusy] = useState(false)
@@ -638,7 +645,7 @@ export function PasswordReset() {
     if (busy) return
     setBusy(true); setFormErr(null)
     try {
-      await authApi.requestPasswordReset({ email: email.value })
+      await requestReset.mutateAsync({ email: email.value })
       nav('/password-reset/sent', { state: { email: email.value } })
     } catch (err) {
       setBusy(false)
@@ -674,6 +681,7 @@ export function PasswordReset() {
  */
 export function PasswordResetSent() {
   const nav = useNavigate()
+  const requestReset = useRequestPasswordReset()
   const loc = useLocation() as { state?: { email?: string } }
   const email = loc.state?.email ?? 'demo@ssafy.com'
   const gap = useCountdown()
@@ -682,7 +690,7 @@ export function PasswordResetSent() {
   const resend = async () => {
     gap.start(RESEND_GAP)
     try {
-      await authApi.requestPasswordReset({ email })
+      await requestReset.mutateAsync({ email })
       setToast({ title: '재설정 메일을 다시 보냈어요', desc: '이전에 보낸 링크는 더 이상 쓸 수 없어요' })
     } catch (e) { setToast({ title: '메일을 보내지 못했어요', desc: errorText(e, AUTH_ERRORS) }) }
   }
@@ -718,6 +726,7 @@ export function PasswordResetSent() {
  */
 export function PasswordResetNew() {
   const nav = useNavigate()
+  const complete = useCompletePasswordReset()
   const [params] = useSearchParams()
   const token = params.get('token')
   const link = usePasswordResetLink(token)
@@ -737,7 +746,7 @@ export function PasswordResetNew() {
     if (!ready || busy) return
     setBusy(true); setPwErr(null); setFormErr(null)
     try {
-      await authApi.completePasswordReset(token, { password: pw })
+      await complete.mutateAsync({ token, body: { password: pw } })
       nav('/login', { replace: true, state: { toast: '비밀번호를 바꿨어요. 새 비밀번호로 로그인해 주세요' } })
     } catch (err) {
       setBusy(false)
