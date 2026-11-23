@@ -13,6 +13,7 @@ import { CATEGORIES, ME_ID, USERS } from '../../data/mock'
 import { meetupCategoryOf } from '../../data/meetupCategory'
 import { confirmedOf, findMeetup, getMeetupState, myOf, parseHour, recruitOf, startMs, type MeetupX } from '../../data/meetupStore'
 import {
+  addCommentBy, likeBy,
   addComment, addReply, claimImage, commentCount, createPost, deleteComment, deletePost, editComment, findComment, getPost, getPosts,
   hotInterests, hotPosts, isListed, isMine, likesOf, myActivity, myBigInterests, myCommentsOn, nickOf, registerImage, reportComment,
   reportOther, reportPost, scoreOf, setCommentLike, setLike, setSave, updatePost, uploadedImage, viewPost,
@@ -21,6 +22,7 @@ import {
 import type { PostCategory } from '../../data/types'
 import { toIso } from '../../lib/time'
 import { COMMENT_MAX, POST_BODY_MAX, POST_TITLE_MAX } from '../../lib/validation'
+import { notifyMockUser } from '../notifications/mock'
 import type { CommunityApi } from './real'
 import type {
   CommentDto, CommentThreadDto, InterestCategoryRefDto, MyPostCardDto, MyPostsTab, PostCardDto, PostCategoryCode, PostDetailDto,
@@ -373,3 +375,26 @@ export const mock: CommunityApi = {
   createReport: (req) => mockWrite(() => createReport(req)),
 }
 
+/**
+ * 다른 사람이 하는 일 흉내 (받는 사람이 나면 알림, 명세 09). 개발 서버 콘솔: __digulMock.community
+ * postId 를 빼면 내가 쓴 가장 최근 공개 글
+ */
+const myLatestPost = () => getPosts().filter((p) => isMine(p) && p.status === 'public').sort((a, b) => b.at - a.at)[0]?.id
+export const mockCommunityActors = {
+  /** userId 가 글에 댓글 → 글쓴이에게 POST_COMMENTED */
+  comment(userId = 'yerin', postId = myLatestPost(), text = '좋은 글 고마워요!') {
+    const p = postId ? getPost(postId) : undefined
+    if (!p || p.status !== 'public' || !rawPerson(userId)) return null
+    const id = addCommentBy(p.id, userId, text)
+    notifyMockUser(p.authorId, 'POST_COMMENTED', { actorId: userId, targetId: p.id })
+    return id
+  },
+  /** userId 가 글에 좋아요 → 글쓴이에게 POST_LIKED */
+  like(userId = 'mingu', postId = myLatestPost()) {
+    const p = postId ? getPost(postId) : undefined
+    if (!p || p.status !== 'public' || !rawPerson(userId)) return false
+    likeBy(p.id)
+    notifyMockUser(p.authorId, 'POST_LIKED', { actorId: userId, targetId: p.id })
+    return true
+  },
+}

@@ -22,6 +22,7 @@ import {
 } from '../../data/field'
 import { dmRoomWith, receivedFrom, roomOf, sendRequest, sentRequestTo, REQUEST_TTL_DAYS } from '../../data/chat'
 import { emitMessage } from '../chat/mock'
+import { notifyMockUser } from '../notifications/mock'
 import { addGuestbookEntry, guestbookCountOf } from '../../data/guestbookStore'
 import type { GuestbookEntry } from '../../data/types'
 import { seoulYmd, toIso } from '../../lib/time'
@@ -228,4 +229,17 @@ export const mock: ExploreApi = {
     return { chatRequestId: toDtoId(r.id), createdAt: toIso(r.at), expiresAt: toIso(r.at + REQUEST_TTL_DAYS * 86_400_000), chatRoomId: null }
   }),
 
+}
+
+/**
+ * 다른 사람이 하는 일 흉내: authorId 가 내 땅굴(ownerId 기본 나)의 방명록에 글을 씀 → 주인에게 GUESTBOOK_ENTRY_CREATED (명세 09).
+ * 쓰기 API(POST /burrows/{burrowId}/guestbook-entries)와 같은 저장소. 개발 서버 콘솔: __digulMock.guestbook.write('yerin', '놀러 왔어요')
+ */
+export const mockGuestbookActors = {
+  write(authorId = 'yerin', text = '땅굴 구경 잘하고 가요!', ownerId = ME_ID) {
+    if (authorId === ownerId || !rawPerson(authorId)) return null
+    const g = addGuestbookEntry(ownerId, authorId, text)
+    notifyMockUser(ownerId, 'GUESTBOOK_ENTRY_CREATED', { actorId: authorId })
+    return g.id
+  },
 }

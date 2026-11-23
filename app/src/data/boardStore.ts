@@ -409,6 +409,14 @@ export function addComment(postId: string, text: string): string {
   mapComments(postId, (l) => [...l, { id, authorId: ME_ID, text, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }])
   return id
 }
+/** 다른 사람이 댓글 쓰기 (목 서버의 "다른 계정" 흉내, api/community/mock.ts mockCommunityActors) → 새 댓글 id */
+export function addCommentBy(postId: string, authorId: string, text: string): string {
+  const id = newCommentId('c')
+  mapComments(postId, (l) => [...l, { id, authorId, text, at: Date.now(), likes: 0, status: 'public', reports: 0, replies: [] }])
+  return id
+}
+/** 다른 사람이 좋아요 (내 좋아요 여부는 그대로, 수만 + 1) */
+export function likeBy(postId: string) { patch(postId, (p) => ({ ...p, likes: p.likes + 1 })) }
 /** 답글 쓰기 (parentId 는 댓글) → 새 답글 id. mention 은 답글에 다시 답할 때의 닉네임 */
 export function addReply(postId: string, parentId: string, text: string, mention?: string): string {
   const id = newCommentId('r')

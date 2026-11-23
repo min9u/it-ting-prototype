@@ -347,3 +347,26 @@ export function draftOf(m: MeetupX): Draft {
   }
 }
 export const userName = (id: string) => USERS[id]?.nickname ?? '두더지'
+
+/* ===== 다른 사람이 하는 일 (목 서버의 "다른 계정" 흉내. api/meetups/mock.ts mockMeetupActors 가 부름) ===== */
+/** 다른 사람이 모임에 참여 신청 (주최자가 신청 관리에서 봄). 이미 신청했으면 그대로 */
+export function receiveApplication(id: string, userId: string, msg = '') {
+  if (applicantsOf(id).some((a) => a.userId === userId) || membersOf(id).includes(userId)) return false
+  state.applicants = { ...state.applicants, [id]: [{ userId, msg, at: Date.now() }, ...applicantsOf(id)] }
+  emit()
+  return true
+}
+/** 주최자가 내 신청을 수락 · 거절. 신청 대기가 아니거나(수락은) 자리가 없으면 false */
+export function hostDecidesMine(id: string, accept: boolean) {
+  const m = findMeetup(id)
+  if (!m || myOf(id)?.st !== 'pending') return false
+  if (accept) {
+    if (leftOf(m) <= 0) return false
+    setMy(id, { st: 'joined' })
+    setMembers(id, [...membersOf(id), ME_ID])
+  } else {
+    setMy(id, { ...state.my[id], st: 'rejected' })
+  }
+  emit()
+  return true
+}

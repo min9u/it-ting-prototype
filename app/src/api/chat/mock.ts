@@ -23,6 +23,8 @@ import {
   GONE_ID, type ChatMsg, type Req, type Room,
 } from '../../data/chat'
 import { mockEvents } from '../../realtime/events'
+import { markChatNoticesRead } from '../../data/notifications'
+import { pushMockNotification } from '../notifications/mock'
 import { ENV } from '../../lib/env'
 import { toIso } from '../../lib/time'
 import type { ChatApi } from './real'
@@ -165,6 +167,7 @@ export const mock: ChatApi = {
     const r = accessRoom(chatRoomId)
     if (!r.messages.some((m) => toDtoId(m.id) === messageId)) throw invalidInput({ messageId: '이 대화방의 메시지가 아닙니다.' })
     markReadUpTo(r.id, messageId)
+    markChatNoticesRead(r.id) // 서버가 함께 하는 일: 그 방의 새 메시지 알림도 읽음 (명세 06 · 09)
     return { unreadCount: unreadOf(roomOf(r.id)!) }
   }),
   leave: (chatRoomId) => mockWrite(() => {
@@ -236,6 +239,8 @@ function scheduleReply(roomId: string) {
   const who = pick(others)
   setTimeout(() => incoming(r.id, pick(REPLIES), who), 1500 + Math.random() * 2000)
 }
+/** 남이 보낸 메시지 → 그 방에 있는 나에게 CHAT_MESSAGE_RECEIVED (대화방마다 한 줄로 묶임, 명세 09) */
+const notifyMessage = (roomId: string, from: string) => pushMockNotification('CHAT_MESSAGE_RECEIVED', { actorId: from, targetId: roomId })
 /** 상대 메시지 (소식으로 보냄) */
 function incoming(roomId: string, text = pick(REPLIES), from?: string) {
   const r = roomOf(roomId)
@@ -243,7 +248,7 @@ function incoming(roomId: string, text = pick(REPLIES), from?: string) {
   const who = from ?? (r.kind === 'dm' ? r.partnerId! : membersOf(r).find((x) => x !== ME_ID))
   if (!who) return null
   const msg = appendMessage(r.id, { authorId: who, text })
-  if (msg) emitMessage(r.id, msg)
+  if (msg) { emitMessage(r.id, msg); notifyMessage(r.id, who) }
   return msg
 }
 
@@ -267,7 +272,7 @@ export function startChatMockDriver() {
       // 끊긴 동안 상대가 보낸 메시지 (소식은 사라지고, 다시 붙으면 조회 API 로 받아 옴)
       setTimeout(() => {
         const r = getChatState().rooms.find((x) => x.kind === 'dm' && !x.closed)
-        if (r) appendMessage(r.id, { authorId: r.partnerId!, text: '(끊긴 동안 보낸 메시지) ' + pick(REPLIES) })
+        if (r && appendMessage(r.id, { authorId: r.partnerId!, text: '(끊긴 동안 보낸 메시지) ' + pick(REPLIES) })) notifyMessage(r.id, r.partnerId!)
       }, ms / 2)
       loop()
     }, 20_000 + Math.random() * 20_000)
@@ -278,7 +283,12 @@ export function startChatMockDriver() {
       /** 상대 메시지 오기 */
       incoming: (roomId = 'r-yerin', text?: string) => incoming(roomId, text),
       /** 새 대화 요청 받기 (요청 N 이 바로 바뀜) */
-      request: (userId = 'kim', message = '안녕하세요! 대화하고 싶어요') => { const q = receiveRequest(userId, message); emitCount(); return q.id },
+      request: (userId = 'kim', message = '안녕하세요! 대화하고 싶어요') => {
+        const q = receiveRequest(userId, message)
+        emitCount()
+        pushMockNotification('CHAT_REQUEST_RECEIVED', { actorId: userId, targetId: q.id })
+        return q.id
+      },
       /** 1:1 상대가 나감 · 탈퇴 → 읽기 전용 */
       partnerLeaves: (roomId = 'r-mingu', gone = false) => { const msg = closeByPartner(roomId, gone ? 'gone' : 'left'); if (msg) emitMessage(roomId, msg) },
       /** 실시간 연결 끊기 */

@@ -123,6 +123,14 @@ export function pushMockNotification(type: NotificationType, o: { actorId?: stri
   return addNotice({ type, actorId: o.actorId, targetId: o.targetId })
 }
 
+/**
+ * 받는 사람이 정해진 알림 (명세 "알림의 종류"의 받는 사람). 목에서 알림을 볼 수 있는 계정은 나 하나라서,
+ * 받는 사람이 나일 때만 만든다. 다른 영역 목의 "다른 사람이 한 일" 흉내가 부름 (예: 누가 내 모임에 신청 → 주최자 = 나)
+ */
+export function notifyMockUser(receiverId: string, type: NotificationType, o: { actorId?: string | null; targetId?: string | null } = {}) {
+  return receiverId === ME_ID ? pushMockNotification(type, o) : null
+}
+
 /* ===== 목 서버 ===== */
 export const mock: NotificationsApi = {
   popup: (signal) => mockRead((): NotificationPopupDto => {

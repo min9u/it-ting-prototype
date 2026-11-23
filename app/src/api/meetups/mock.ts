@@ -11,10 +11,11 @@ import { meetupCategoryOf } from '../../data/meetupCategory'
 import { getChatState, groupRoomId, leaveRoom, roomOf } from '../../data/chat'
 import {
   NOW, accept, apply, applicantsOf, cancelMeetup, confirmedOf, createMeetup, deleteMeetup, findMeetup, getMeetupState, isPast, isoMs, kick,
-  membersOf, myOf, parseHour, quit, recruitClosedByTime, recruitOf, reject, setAlert, setWish, startMs, updateMeetup, withdraw,
+  hostDecidesMine, membersOf, myOf, parseHour, quit, receiveApplication, recruitClosedByTime, recruitOf, reject, setAlert, setWish, startMs, updateMeetup, withdraw,
   type Draft, type MeetupState, type MeetupX,
 } from '../../data/meetupStore'
 import { msToWall, parseIso, seoulParts, seoulYmd, toIso } from '../../lib/time'
+import { notifyMockUser } from '../notifications/mock'
 import { MEETUP_LIMITS } from './errors'
 import type { MeetupsApi } from './real'
 import type {
@@ -384,4 +385,27 @@ export const mock: MeetupsApi = {
       items: shown.map((m) => ({ ...meetupCard(m, s), myStatus: st(m), chatRoomId: chatRoomOf(m.id, st(m)) })),
     }
   }, { signal }),
+}
+
+/**
+ * 다른 사람이 하는 일 흉내 (목에서 로그인한 계정은 나 하나라, 알림을 만드는 "남의 행동"은 이것으로만 일어남).
+ * 서버처럼 저장소를 바꾸고, 받는 사람이 나면 알림을 만든다 (명세 09 "알림의 종류"). 개발 서버 콘솔: __digulMock.meetups
+ * 내가 한 일(신청 · 수락 · 취소 …)의 알림은 받는 사람이 남이라 목에서는 만들지 않는다
+ */
+export const mockMeetupActors = {
+  /** userId 가 모임에 참여 신청 → 주최자에게 MEETUP_APPLICATION_RECEIVED. meetupId 를 빼면 내가 연 모집 중 모임 하나 */
+  apply(userId = 'seobeok', meetupId?: string, msg = '같이 하고 싶어요!') {
+    const s = getMeetupState()
+    const m = meetupId ? findMeetup(meetupId) : s.list.find((x) => x.hostId === ME_ID && recruitOf(x, s) === 'open')
+    if (!m || m.hostId === userId || recruitOf(m) !== 'open' || !receiveApplication(m.id, userId, msg)) return null
+    notifyMockUser(m.hostId, 'MEETUP_APPLICATION_RECEIVED', { actorId: userId, targetId: m.id })
+    return m.id
+  },
+  /** 주최자가 내 신청을 수락(MEETUP_APPLICATION_ACCEPTED, actor 주최자) · 거절(MEETUP_APPLICATION_REJECTED, actor 없음) */
+  decide(meetupId: string, accept = true) {
+    const m = findMeetup(meetupId)
+    if (!m || !hostDecidesMine(meetupId, accept)) return false
+    notifyMockUser(ME_ID, accept ? 'MEETUP_APPLICATION_ACCEPTED' : 'MEETUP_APPLICATION_REJECTED', { actorId: accept ? m.hostId : null, targetId: m.id })
+    return true
+  },
 }
