@@ -88,7 +88,8 @@ const files = []
 const walk = (d) => {
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const f = path.join(d, e.name)
-    if (e.isDirectory()) { if (e.name !== 'cache') walk(f) } else if (/\.(js|mjs|cjs|html|rsc|json|txt|map|css)$/.test(e.name)) files.push(f)
+    // .next/cache(빌드 캐시) · .next/dev(next dev 결과, 배포에 안 쓰임. next build 가 지우지 않음)는 건너뜀
+    if (e.isDirectory()) { if (!(d === NEXT_DIR && (e.name === 'cache' || e.name === 'dev'))) walk(f) } else if (/\.(js|mjs|cjs|html|rsc|json|txt|map|css)$/.test(e.name)) files.push(f)
   }
 }
 walk(NEXT_DIR)

@@ -115,7 +115,8 @@
 | 스모크 실험실 끈 빌드 · gpu=on | 105개 OK 105 |
 | 스모크 실험실 켠 빌드 · gpu=on | 105개 OK 105 (`/dev/crash` 는 예상한 오류 화면) |
 | 스모크 실험실 켠 빌드 · gpu=off | 105개 OK 105 |
-| `npm run check:labs-off` | 통과 (4개 주소 404, 결과물에 실험실 글 없음) |
+| 스모크 실험실 끈 빌드 · gpu=off (CSS 고친 뒤 마지막) | OK 104 · 경고 1: 첫 화면 `/start` 의 "로딩 중"이 기다림(9초) 끝에 남음 → 그 화면만 다시 돌리면 OK(9.1초). 가속 끈 크롬의 첫 3D 준비 시간 경계 |
+| `npm run check:labs-off` | 통과 (4개 주소 404, 결과물에 실험실 글 없음). `.next/dev`(next dev 결과, next build 가 안 지움)는 검색에서 뺌 |
 | `node scripts/nav-check.mjs --url=…` (next start) | 6/6: 글쓰기 중 헤더 링크 막기 · 나가기 · 브라우저 뒤로가기 막기 · 나가기 · 로그인→회원가입 이메일 state · 온보딩 단계 오가도 입력 유지 |
 | SSE rewrite (가짜 SSE 서버) | next dev · next start 모두 1초마다 이벤트 |
 
