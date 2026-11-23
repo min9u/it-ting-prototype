@@ -58,6 +58,7 @@
 | 기수, Mattermost ID, SSAFY 인증 코드 | `POST /api/v1/ssafy-verifications`를 부를 때 |
 
 - 서버는 가입 진행 기록을 만들 때 그 기록을 가리키는 가입 쿠키를 준다. 브라우저가 이후 요청에 쿠키를 함께 보내고, 서버는 쿠키로 기록을 찾는다. 프론트엔드 코드는 이 쿠키를 읽거나 다루지 않는다.
+- 가입 진행 기록은 만든 뒤 1시간 동안 둔다. 가입 쿠키는 `ITTING_SIGNUP`이고 `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/v1`, `Max-Age` 1시간이다. 값은 추측할 수 없는 무작위 값이다.
 - 비밀번호는 가입 진행 기록에 두지 않는다. 프론트엔드가 회원가입 2에서 받은 값을 화면 상태로 갖고 있다가 `POST /api/v1/users`에 담아 보낸다.
 - 가입 진행 기록이 없거나 시간이 지난 채로 `POST /api/v1/ssafy-verifications`나 `POST /api/v1/users`를 부르면 `409`와 `SIGNUP_EXPIRED`로 답한다. 프론트엔드는 가입을 처음부터 다시 시작하게 한다.
 - 계정을 만들면 가입 진행 기록을 지운다. 같은 브라우저에서 가입을 새로 시작하면 이전 기록을 덮어쓴다.
@@ -128,6 +129,9 @@
 ### 인증 코드
 
 - 이메일 인증과 SSAFY 인증 모두 숫자 6자리다.
+- 유효 시간은 보낸 뒤 5분이다. 재전송 간격은 60초다.
+- 5번 틀리면 코드를 지운다. 그 뒤로는 맞는 코드를 넣어도 `VERIFICATION_CODE_EXPIRED`이고, 코드를 다시 받아야 한다. 코드를 지워도 재전송 간격은 그대로 센다.
+- 메일 서버나 Mattermost에 보내지 못하면 `503`과 `VERIFICATION_SEND_FAILED`로 답한다. 만든 코드는 지우고 재전송 간격도 세지 않으므로 바로 다시 부를 수 있다.
 - 코드는 DB가 아니라 임시 저장소(Redis)에 두고, 유효 시간이 지나면 저절로 사라진다([DB 설계](../db/account.md)).
 - 코드를 보내는 API는 코드가 만료되는 시각 `expiresAt`을 준다. 프론트엔드는 이 값으로 남은 시간을 표시한다.
 - 코드를 다시 보내는 API는 따로 없다. 같은 API를 다시 부르면 새 코드를 보내고 이전 코드는 쓸 수 없게 된다.
@@ -163,8 +167,8 @@ POST /api/v1/email-verifications
 1. `email`이 이메일 형식인지 본다. 아니면 `400`과 `INVALID_INPUT`.
 2. `user.email`에 같은 이메일이 있으면 `409`와 `EMAIL_DUPLICATED`. 탈퇴한 계정은 이메일을 비워 두므로 걸리지 않는다.
 3. 이 이메일로 마지막으로 보낸 뒤 재전송 간격이 지나지 않았으면 `429`와 `TOO_MANY_REQUESTS`.
-4. 숫자 6자리 코드를 만들어 Redis에 이메일, 코드, 보낸 시각을 저장한다. 이 이메일의 이전 코드는 덮어쓴다.
-5. 그 이메일로 코드를 담은 메일을 보낸다.
+4. 숫자 6자리 코드를 만들어 Redis에 이메일, 코드, 보낸 시각을 저장한다. 이 이메일의 이전 코드는 덮어쓴다. 이메일은 대소문자를 가리지 않는다.
+5. 그 이메일로 코드를 담은 메일을 보낸다. 제목은 "[디굴디굴] 이메일 인증 코드"다. 보내지 못하면 4에서 저장한 것을 지우고 `503`과 `VERIFICATION_SEND_FAILED`.
 
 DB에는 아무것도 저장하지 않는다.
 
@@ -191,6 +195,7 @@ DB에는 아무것도 저장하지 않는다.
 | 상태 | `code` | 때 |
 |---|---|---|
 | `409` | `EMAIL_DUPLICATED` | 이미 가입한 이메일 |
+| `503` | `VERIFICATION_SEND_FAILED` | 메일 서버에 보내지 못함. 바로 다시 부를 수 있다 |
 
 ```json
 {
@@ -231,7 +236,7 @@ POST /api/v1/email-verifications/check
 
 1. `code`가 숫자 6자리인지 본다. 아니면 `400`과 `INVALID_INPUT`.
 2. Redis에서 그 이메일의 코드를 찾는다. 없으면(만료됐거나 보낸 적이 없음) `400`과 `VERIFICATION_CODE_EXPIRED`.
-3. 코드가 다르면 `400`과 `VERIFICATION_CODE_MISMATCH`.
+3. 코드가 다르면 `400`과 `VERIFICATION_CODE_MISMATCH`. 틀린 횟수가 5번이 되면 코드를 지운다.
 4. Redis의 코드를 지운다. 같은 코드는 다시 쓸 수 없다.
 5. [가입 진행 기록](#가입-진행)을 만들고 가입 쿠키를 준다. 이 브라우저에 이전 가입 진행 기록이 있으면 덮어쓴다.
 
@@ -274,7 +279,7 @@ DB에는 아무것도 저장하지 않는다. 계정은 `POST /api/v1/users`에�
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
 | 본문 | `generation` | 숫자 | ✓ | 기수. [`GET /api/v1/generations`](00-common.md#get-apiv1generations)가 준 값 가운데 하나 |
-| 본문 | `mattermostId` | 문자열 | ✓ | SSAFY Mattermost ID |
+| 본문 | `mattermostId` | 문자열 | ✓ | SSAFY Mattermost ID. 앞뒤 공백과 앞의 `@`를 떼고 소문자로 바꾼다. 바꾼 값이 영문 소문자 · 숫자 · `.` · `-` · `_` 3 ~ 22자여야 한다(Mattermost 아이디 규칙) |
 
 ```text
 POST /api/v1/ssafy-verifications
@@ -286,18 +291,28 @@ POST /api/v1/ssafy-verifications
 
 ### 서버가 하는 일
 
-1. 가입 쿠키로 [가입 진행 기록](#가입-진행)을 찾는다. 없거나 시간이 지났으면 `409`와 `SIGNUP_EXPIRED`.
-2. `generation`이 기수 목록에 있는지 본다. 없으면 `400`과 `INVALID_INPUT`.
-3. `user.mattermost_id`에 같은 값이 있으면 `409`와 `MATTERMOST_ID_DUPLICATED`.
-4. 재전송 간격이 지나지 않았으면 `429`와 `TOO_MANY_REQUESTS`.
-5. 숫자 6자리 코드를 만들어 가입 진행 기록에 기수, Mattermost ID, 코드, 보낸 시각을 담는다. 이전 코드는 덮어쓴다.
-6. 그 기수의 Mattermost에서 그 ID로 코드를 담은 메시지를 보낸다.
+1. 입력값의 모양을 본다(`generation`이 있는지, `mattermostId`의 모양). 어긋나면 `400`과 `INVALID_INPUT`.
+2. 가입 쿠키로 [가입 진행 기록](#가입-진행)을 찾는다. 없거나 시간이 지났으면 `409`와 `SIGNUP_EXPIRED`.
+3. `generation`이 기수 목록에 있는지 본다. 없으면 `400`과 `INVALID_INPUT`(`fields`에 `generation`).
+4. `user.mattermost_id`에 같은 값이 있으면 `409`와 `MATTERMOST_ID_DUPLICATED`.
+5. 재전송 간격이 지나지 않았으면 `429`와 `TOO_MANY_REQUESTS`.
+6. 숫자 6자리 코드를 만들어 가입 진행 기록에 기수, Mattermost ID, 코드, 보낸 시각을 담는다. 이전 코드는 덮어쓴다.
+7. 그 기수의 Mattermost에서 그 ID로 코드를 담은 DM을 보낸다. 아래 "Mattermost로 보내는 방법"을 따른다. 보내지 못하면 6에서 담은 것을 지우고 `503`과 `VERIFICATION_SEND_FAILED`.
 
 | 값 | 저장하는 곳 |
 |---|---|
 | `generation`, `mattermostId`, 만든 코드, 보낸 시각 | 임시 저장소의 가입 진행 기록 |
 
 Mattermost ID가 틀려 메시지가 가지 않아도 같은 응답을 준다. 명세는 화면 문구로 ID를 다시 확인하라고 안내한다(회원가입 3 · 6). DB에는 아무것도 저장하지 않는다.
+
+#### Mattermost로 보내는 방법
+
+- 기수마다 그 기수 Mattermost 서버의 팀원 계정에서 만든 Incoming Webhook을 여러 개 둔다(서버 설정 `itting.mattermost.webhooks.<기수>`). 웹후크에 `channel: "@<mattermostId>"`를 보내면 그 사람에게 웹후크를 만든 팀원 이름으로 DM이 간다.
+- 메시지는 "[디굴디굴] SSAFY 인증 코드는 123456입니다. 5분 안에 입력해 주세요."다.
+- 한 계정에 메시지가 몰리지 않게 웹후크를 돌아가며 쓴다.
+- 한 웹후크가 실패하면 같은 기수의 다음 웹후크로 다시 보낸다.
+- 없는 아이디와 지워진 웹후크는 Mattermost가 같은 `400`으로 답해 구별할 수 없다. 모든 웹후크가 `400`이면 아이디가 틀린 것으로 보고 성공으로 답한다. 연결 오류나 `5xx`가 섞여 모두 실패하면 `503`과 `VERIFICATION_SEND_FAILED`다.
+- 그 기수에 웹후크가 하나도 없으면 `503`과 `VERIFICATION_SEND_FAILED`다.
 
 ### 응답 `data`
 
@@ -323,6 +338,7 @@ Mattermost ID가 틀려 메시지가 가지 않아도 같은 응답을 준다. �
 |---|---|---|
 | `409` | `SIGNUP_EXPIRED` | 가입 진행 기록이 없거나 시간이 지남 |
 | `409` | `MATTERMOST_ID_DUPLICATED` | 다른 계정이 가입에 쓴 Mattermost ID |
+| `503` | `VERIFICATION_SEND_FAILED` | Mattermost에 보내지 못함. 바로 다시 부를 수 있다 |
 
 ## POST /api/v1/users
 
@@ -335,7 +351,7 @@ SSAFY 인증 코드를 확인하고 계정을 만든다. 회원가입 3의 "땅�
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
-| 본문 | `password` | 문자열 | | 이메일 가입이면 필수다. 회원가입 2에서 받은 비밀번호이고 [00 공통](../spec/00-common.md) 9의 규칙을 따른다(8자 이상, 영문 · 숫자 · 특수기호 `!@#$%`를 각각 1개 이상). Google 가입이면 보내지 않는다 |
+| 본문 | `password` | 문자열 | | 이메일 가입이면 필수다. 회원가입 2에서 받은 비밀번호이고 [00 공통](../spec/00-common.md) 9의 규칙을 따른다(8자 이상 20자 이하, 영문 · 숫자 · 특수기호 `!@#$%`만, 각각 1개 이상). Google 가입이면 보내지 않는다 |
 | 본문 | `code` | 문자열 | ✓ | Mattermost로 받은 숫자 6자리 |
 | 본문 | `campusFloorId` | 숫자 | ✓ | 고른 캠퍼스-층의 id. [`GET /api/v1/campuses`](00-common.md#get-apiv1campuses)의 `floors[].id` |
 | 본문 | `hasAgreedTerms` | 참/거짓 | ✓ | 이용약관 동의. `true`여야 한다 |
@@ -372,9 +388,9 @@ Google 가입:
 
 ### 서버가 하는 일
 
-1. 가입 쿠키로 [가입 진행 기록](#가입-진행)을 찾는다. 없거나 시간이 지났으면 `409`와 `SIGNUP_EXPIRED`.
-2. 입력값의 모양을 본다. `code`가 숫자 6자리인지, 두 동의가 모두 `true`인지, 이메일 가입이면 `password`가 규칙에 맞는지다. 어긋나면 `400`과 `INVALID_INPUT`이고 `fields`에 어긋난 필드를 담는다.
-3. 가입 진행 기록의 SSAFY 인증 코드와 비교한다. 코드를 보낸 적이 없거나 만료됐으면 `VERIFICATION_CODE_EXPIRED`, 다르면 `VERIFICATION_CODE_MISMATCH`.
+1. 입력값의 모양을 본다. `code`가 숫자 6자리인지, 두 동의가 모두 `true`인지, `password`를 보냈으면 규칙에 맞는지다. 어긋나면 `400`과 `INVALID_INPUT`이고 `fields`에 어긋난 규칙마다 한 줄씩 담는다.
+2. 가입 쿠키로 [가입 진행 기록](#가입-진행)을 찾는다. 없거나 시간이 지났으면 `409`와 `SIGNUP_EXPIRED`. 이메일 가입인데 `password`가 없으면 `400`과 `INVALID_INPUT`.
+3. 가입 진행 기록의 SSAFY 인증 코드와 비교한다. 코드를 보낸 적이 없거나 만료됐으면 `VERIFICATION_CODE_EXPIRED`, 다르면 `VERIFICATION_CODE_MISMATCH`(5번 틀리면 코드를 지운다).
 4. `campusFloorId`가 지우지 않은 캠퍼스-층인지 본다. 아니면 `404`와 `CAMPUS_FLOOR_NOT_FOUND`.
 5. 아래 표의 값을 한 트랜잭션으로 저장한다.
 6. 저장하다 값이 겹치면 모두 되돌린다. 이메일이 겹치면 `409`와 `EMAIL_DUPLICATED`, Mattermost ID가 겹치면 `409`와 `MATTERMOST_ID_DUPLICATED`, Google 식별자가 겹치면 `409`와 `GOOGLE_ACCOUNT_DUPLICATED`.
@@ -753,9 +769,11 @@ POST /api/v1/password-resets
 ### 서버가 하는 일
 
 1. `email`이 이메일 형식인지 본다. 아니면 `400`과 `INVALID_INPUT`.
-2. `user.email`로 계정을 찾는다. 계정이 없거나 비밀번호가 없는 계정(Google로만 가입)이면 아무것도 하지 않고 성공으로 답한다.
-3. 계정이 있으면 링크에 넣을 값(`token`)을 만들어 Redis에 계정과 함께 30분 동안 저장한다. 그 계정의 이전 링크는 지운다.
-4. 그 이메일로 재설정 링크를 담은 메일을 보낸다.
+2. 같은 이메일로 60초 안에 다시 요청했으면 아무것도 하지 않고 성공으로 답한다. `429`로 답하지 않는다. 가입한 이메일만 걸려 가입 여부가 드러나기 때문이다.
+3. `user.email`로 계정을 찾는다. 계정이 없거나, 탈퇴했거나, 비밀번호가 없는 계정(Google로만 가입)이면 아무것도 하지 않고 성공으로 답한다. 정지된 계정은 재설정할 수 있다(로그인은 여전히 막힌다).
+4. 그 계정으로 60초 안에 메일을 보냈으면 아무것도 하지 않고 성공으로 답한다. DB는 이메일의 대소문자와 악센트를 가리지 않아 다른 입력이 같은 계정이 되므로, 입력한 이메일과 계정 둘 다로 간격을 센다.
+5. 계정이 있으면 링크에 넣을 값(`token`, 추측할 수 없는 무작위 값)을 만들어 Redis에 계정과 함께 30분 동안 저장한다. 그 계정의 이전 링크는 지운다.
+6. 응답을 먼저 주고, 계정의 이메일로 재설정 링크를 담은 메일을 따로 보낸다. 링크는 `{프론트엔드 주소}/password-reset/{token}`, 제목은 "[디굴디굴] 비밀번호 재설정"이다. 가입한 이메일일 때만 응답이 늦어져 응답 시간으로 가입 여부가 드러나지 않게 한다. 보내지 못하면 서버 로그에만 남긴다.
 
 DB에는 아무것도 저장하지 않는다.
 
@@ -844,9 +862,9 @@ POST /api/v1/password-resets/3fa9c1d27b4e4f0a9c51/complete
 ### 서버가 하는 일
 
 1. `password`의 규칙을 본다. 어긋나면 `400`과 `INVALID_INPUT`. 이때는 링크를 지우지 않으므로 다시 시도할 수 있다.
-2. Redis에서 `token`으로 계정을 찾는다. 없으면 `404`와 `PASSWORD_RESET_LINK_INVALID`.
-3. 그 계정의 `user.password_hash`를 새 비밀번호의 해시로 바꾼다.
-4. Redis에서 링크를 지운다. 같은 링크는 다시 쓸 수 없다.
+2. Redis에서 `token`으로 계정을 찾고 그 자리에서 링크를 지운다. 없거나 30분이 지났으면 `404`와 `PASSWORD_RESET_LINK_INVALID`. 찾기와 지우기를 한 번에 해서 같은 링크로 동시에 두 번 바꿀 수 없다.
+3. 그 계정의 `user.password_hash`를 새 비밀번호의 해시로 바꾼다. 그 사이 계정이 탈퇴했으면 `404`와 `PASSWORD_RESET_LINK_INVALID`.
+4. 같은 링크는 다시 쓸 수 없다.
 5. 그 계정의 로그인 세션을 모두 지운다. 로그인돼 있던 기기는 모두 로그아웃된다.
 
 ### 응답 `data`
@@ -890,10 +908,17 @@ POST /api/v1/password-resets/3fa9c1d27b4e4f0a9c51/complete
 - **세션만 남은 계정**(KAN-38): `GET /api/v1/me`를 불렀는데 세션의 계정이 없거나 탈퇴했으면 세션을 지우고 `401`과 `UNAUTHENTICATED`로 답한다.
 - **`nextStep`의 `NEW_TERM`**(KAN-38): 땅굴 입구 · 학기 테이블이 생기기 전까지는 계산하지 않는다. 그동안 `onboarded_at`이 있으면 `HOME`이다.
 
+- **인증 코드**(KAN-39): 유효 5분, 재전송 간격 60초, 5번 틀리면 코드를 지운다([인증 코드](#인증-코드)).
+- **보내기 실패**(KAN-39): 메일 서버나 Mattermost에 보내지 못하면 `503`과 `VERIFICATION_SEND_FAILED`. 바로 다시 부를 수 있다.
+- **가입 진행 기록**(KAN-39): 1시간, 가입 쿠키 `ITTING_SIGNUP`([가입 진행](#가입-진행)).
+- **Mattermost**(KAN-39): 기수마다 웹후크를 여러 개 두고 돌아가며 쓰고, 실패하면 다음 웹후크로 보낸다([Mattermost로 보내는 방법](#mattermost로-보내는-방법)).
+- **비밀번호 길이**(KAN-39): 8자 이상 20자 이하([00 공통](../spec/00-common.md) 9).
+- **재설정 메일 요청 간격**(KAN-41): 같은 이메일로 60초 안에 다시 요청하면 메일만 보내지 않고 같은 `201`으로 답한다.
+- **재설정 메일을 보내는 때**(KAN-41): 응답을 먼저 주고 메일은 따로 보낸다. 응답 시간으로 가입 여부가 드러나지 않게 한다.
+- **재설정 링크**(KAN-41): `{프론트엔드 주소}/password-reset/{token}`. 프론트엔드 주소는 서버 설정 `itting.frontend-url`이다. 정지된 계정도 재설정할 수 있다.
+- **입력 모양을 먼저 본다**(KAN-39): `POST /api/v1/ssafy-verifications`와 `POST /api/v1/users`는 가입 진행 기록을 찾기 전에 입력값의 모양부터 본다.
+
 ## 구현 단계로 넘기는 것
 
-- 인증 코드의 유효 시간과 재전송 간격(명세에서 제안 상태다)
-- 인증 코드를 틀릴 수 있는 횟수
-- 가입 진행 기록을 두는 시간, 가입 쿠키의 이름
 - Google 로그인을 마친 뒤 돌아갈 프론트엔드 주소(이미 가입한 계정, 처음 쓰는 Google 계정, 실패한 경우)
 - 정지된 계정이 Google로 로그인했을 때 사유와 기간을 프론트엔드에 전하는 방법

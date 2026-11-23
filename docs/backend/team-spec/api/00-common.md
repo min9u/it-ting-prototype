@@ -236,7 +236,7 @@ GET /api/v1/terms
 
 ### 주는 방식
 
-- 이미 열린 학기만 준다(`term.opened_at`이 지금보다 앞선 줄). 열 날짜가 아직 오지 않은 학기는 주지 않는다.
+- 이미 열린 학기만 준다(`term.opened_at`이 지금이거나 지금보다 앞선 줄). 열 날짜가 아직 오지 않은 학기는 주지 않는다.
 - 최근에 열린 학기부터 준다. 그래서 첫 번째 항목이 이번 학기다.
 - 열린 학기가 하나도 없으면 `items`는 `[]`다.
 - 나누지 않고 한 번에 모두 준다.
@@ -300,7 +300,7 @@ GET /api/v1/interest-categories
 
 ### 응답 예시
 
-대분류 12개 가운데 2개만 적었다.
+대분류 12개 가운데 2개, 세부 관심사는 앞의 몇 개만 적었다.
 
 ```json
 {
@@ -309,19 +309,19 @@ GET /api/v1/interest-categories
     "items": [
       {
         "id": 1,
-        "name": "음악·댄스",
+        "name": "음식·음료",
         "interests": [
-          { "id": 46, "name": "K-POP", "userCount": 128 },
-          { "id": 47, "name": "재즈/클래식", "userCount": 31 },
-          { "id": 48, "name": "작곡/미디/DJ", "userCount": 4 }
+          { "id": 1, "name": "맛집탐방", "userCount": 128 },
+          { "id": 2, "name": "카페/커피", "userCount": 31 },
+          { "id": 3, "name": "주류/와인/위스키", "userCount": 4 }
         ]
       },
       {
-        "id": 3,
+        "id": 2,
         "name": "스포츠",
         "interests": [
-          { "id": 12, "name": "러닝/마라톤", "userCount": 57 },
-          { "id": 13, "name": "클라이밍", "userCount": 22 }
+          { "id": 8, "name": "헬스/필라테스/요가", "userCount": 57 },
+          { "id": 9, "name": "러닝/마라톤", "userCount": 22 }
         ]
       }
     ]
@@ -378,9 +378,9 @@ GET /api/v1/intro-questions?type=TMI
   "success": true,
   "data": {
     "items": [
-      { "id": 2, "type": "INTEREST", "interestCategoryId": 1, "content": "요즘 가장 많이 듣는 노래는?" },
-      { "id": 5, "type": "INTEREST", "interestCategoryId": 3, "content": "운동하고 나서 꼭 먹는 것은?" },
-      { "id": 21, "type": "TMI", "interestCategoryId": null, "content": "최근에 산 것 중 가장 잘 산 것은?" }
+      { "id": 1, "type": "INTEREST", "interestCategoryId": 1, "content": "요즘 가장 자주 가는 맛집이나 카페는?" },
+      { "id": 3, "type": "INTEREST", "interestCategoryId": 2, "content": "운동을 시작하게 된 계기는?" },
+      { "id": 25, "type": "TMI", "interestCategoryId": null, "content": "최근에 산 것 가운데 가장 잘 산 것은?" }
     ]
   },
   "error": null
@@ -480,5 +480,11 @@ GET /api/v1/users/31/profile
 ## 구현 단계로 넘기는 것
 
 - 캠퍼스 · 층 · 기수 목록의 실제 값. 지금은 캠퍼스 · 층에 명세의 임시 값(서울 · 대전 · 부울경 · 구미 · 광주, 1 ~ 20층)을 마이그레이션으로 넣었고, 기수는 서버 설정 `itting.generations`에 15 · 16을 두었다(2026-11-22)
-- 대분류, 세부 관심사, 질문을 주는 순서(DB 설계에 순서 칼럼이 없어 임시로 id 순이다)
 - 프로필 사진을 올리는 API와 사진 주소의 모양(올리는 곳이 명세의 보류한 결정이고, 파일 업로드 방식을 정하지 않았다)
+
+## 구현하며 정한 것
+
+- **관심사 · 질문의 순서**(KAN-43): 순서 칼럼은 두지 않고 id 순 그대로 준다. 관심사는 명세 [00 공통](../spec/00-common.md) 5의 표 순서대로 넣어 id 순이 표 순서와 같다.
+- **학기 처음 값**(KAN-43): 2026 하반기 하나(2026-07-01 00:00 한국 시간에 열림). 다음 학기는 여는 방법이 정해지기 전까지 마이그레이션으로 더한다.
+- **자기소개 질문 처음 값**(KAN-43): 명세에 문구가 없어 초안 40개를 넣었다(관심사 질문은 대분류마다 2개 = 24개, TMI 16개). 문구는 [작업 기록](../work/KAN-43.md#부록-자기소개-질문-초안)에 있다.
+- **"온보딩 중에도", "새 학기를 고르기 전에도"**(KAN-43): 온보딩 · 새 학기를 마치지 않은 계정을 막는 장치는 03 · 05에서 만든다. 그때 `GET /api/v1/terms`, `/interest-categories`, `/intro-questions`는 막지 않는다. 지금은 로그인만 확인한다.

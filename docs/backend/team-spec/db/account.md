@@ -174,7 +174,7 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 | 컬럼 이름 | 타입 | 외래키·기본키 | NULL 허용 여부·UNIQUE 여부·도메인 범위 | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | `NOT NULL`, PK로 유일 | 자동 증가. 관심사 대분류 ID |
-| `name` | 미정 (문자열) | — | NULL 허용·UNIQUE 여부 미정 | 대분류 표시 이름 |
+| `name` | `VARCHAR(20)` | — | `NOT NULL`, UNIQUE | 대분류 표시 이름. 이모지(아이콘)는 넣지 않는다(프론트엔드가 갖는다) |
 | `created_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 | `updated_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 | `deleted_at` | `DATETIME` | — | `NULL` 허용, 개별 UNIQUE 없음 | 삭제한 시각. NULL이면 삭제되지 않음 |
@@ -189,7 +189,7 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | `NOT NULL`, PK로 유일 | 자동 증가. 세부 관심사 ID |
 | `interest_category_id` | `BIGINT` | FK → `interest_category.id` | `NOT NULL`, 개별 UNIQUE 없음 | 세부 관심사가 속한 대분류 |
-| `name` | 미정 (문자열) | — | NULL 허용·UNIQUE 여부 미정 | 세부 관심사 표시 이름 |
+| `name` | `VARCHAR(30)` | — | `NOT NULL`, UNIQUE(대분류가 달라도 겹치지 않음) | 세부 관심사 표시 이름 |
 | `created_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 | `updated_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 | `deleted_at` | `DATETIME` | — | `NULL` 허용, 개별 UNIQUE 없음 | 삭제한 시각. NULL이면 삭제되지 않음 |
@@ -204,7 +204,7 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 | --- | --- | --- | --- | --- |
 | `user_id` | `BIGINT` | 복합 PK, FK → `user.id` | `NOT NULL`, 개별 UNIQUE 없음 | 관심사를 고른 사용자 |
 | `interest_id` | `BIGINT` | 복합 PK, FK → `interest.id` | `NOT NULL`, 개별 UNIQUE 없음 | 선택한 세부 관심사 |
-| `sort_order` | `TINYINT` | — | `NOT NULL`, 개별 UNIQUE 없음, `1`이 대표 관심사 | 사용자마다 관심사를 고른 순서. 이 값으로 선택 목록을 정렬 |
+| `sort_order` | `TINYINT` | — | `NOT NULL`, 개별 UNIQUE 없음, `1`–`10`(CHECK), `1`이 대표 관심사 | 사용자마다 관심사를 고른 순서. 이 값으로 선택 목록을 정렬 |
 | `created_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 | `updated_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 
@@ -223,7 +223,9 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 | `created_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 질문이 생성된 시각 |
 | `updated_at` | `DATETIME` | — | `NOT NULL`, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 
-관리자가 질문을 추가·수정하며, 숨기거나 지우지 않는다.
+관리자가 질문을 추가·수정하며, 숨기거나 지우지 않는다. `type`과 `interest_category_id`의 짝(`INTEREST`면 대분류 필수, `TMI`면 비움)은 CHECK 제약으로 지킨다(KAN-43).
+
+처음 값(KAN-43 마이그레이션): 대분류 12개와 세부 관심사 90개는 [00 공통](../spec/00-common.md) 5의 표 순서대로 넣어 id 순이 표 순서와 같다. 자기소개 질문은 명세에 문구가 없어 초안 40개(대분류마다 관심사 질문 2개 = 24개, TMI 16개)를 넣었다. 문구는 [작업 기록](../work/KAN-43.md#부록-자기소개-질문-초안)에 있고, 바꿀 때는 새 마이그레이션으로 고친다.
 
 ### `user_answer`
 
@@ -248,10 +250,10 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 
 | 값 | 무엇을 기억하나 | 만료 |
 |---|---|---|
-| 이메일 인증 코드 | 보낸 이메일 주소, 숫자 6자리 코드, 마지막으로 보낸 시각(재전송 간격 제한) | 유효 시간은 명세에 없음 |
-| 가입 진행 기록 | 가입 방법, 인증한 이메일 또는 Google 식별자와 Google 이메일. 가입 쿠키로 찾는다 | 두는 시간은 구현 단계에서 정함. 계정을 만들면 지운다([로그인 · 회원가입 API](../api/02-auth.md#가입-진행)) |
-| SSAFY(Mattermost) 인증 코드 | 가입 진행 기록 안에 Mattermost ID, 기수, 숫자 6자리 코드, 마지막으로 보낸 시각 | 유효 시간은 명세에 없음 |
-| 비밀번호 재설정 링크 | 계정, 링크 값 | 30분. 한 번 쓰면 지운다. 다시 보내면 이전 링크를 지운다 |
+| 이메일 인증 코드 | 숫자 6자리 코드, 만료 시각, 틀린 횟수(키는 소문자로 바꾼 이메일, `itting:email-code:<이메일>`). 마지막으로 보낸 시각은 따로 둔다(`itting:email-code-sent:<이메일>`) | 5분. 5번 틀리면 지운다. 보낸 시각은 60초(재전송 간격) |
+| 가입 진행 기록 | 가입 방법, 인증한 이메일 또는 Google 식별자와 Google 이메일. 가입 쿠키로 찾는다(`itting:signup:<토큰>`) | 1시간. 계정을 만들면 지운다([로그인 · 회원가입 API](../api/02-auth.md#가입-진행)) |
+| SSAFY(Mattermost) 인증 코드 | 가입 진행 기록 안에 Mattermost ID, 기수, 숫자 6자리 코드, 만료 시각, 틀린 횟수, 마지막으로 보낸 시각 | 코드는 5분, 5번 틀리면 지운다. 재전송 간격 60초 |
+| 비밀번호 재설정 링크 | 계정, 만료 시각(`itting:password-reset:<링크 값>`). 계정마다 마지막 링크(`itting:password-reset-user:<계정 id>`), 입력한 이메일마다(`itting:password-reset-sent:<이메일>`)와 계정마다(`itting:password-reset-sent-user:<계정 id>`) 마지막으로 요청한 시각 | 30분. 한 번 쓰면 지운다. 다시 보내면 이전 링크를 지운다. 요청 간격 60초(입력 이메일과 계정 둘 다) |
 | 맡아 둔 닉네임 | 닉네임, 맡은 계정 | 5분. 닉네임을 저장하거나 다른 닉네임을 확인하면 지운다([온보딩 API](../api/03-onboarding.md#닉네임-맡아-두기)) |
 
 ## 저장하지 않는 것
@@ -288,5 +290,5 @@ SSAFY 인증이 완료되면 기수와 캠퍼스·층을 저장한다. `profile_
 아래 항목은 [명세의 보류한 결정](../spec/open-issues.md)과 함께 검토한다.
 
 - 내 정보 수정에서 관심사를 넣고 뺄 때의 순서 규칙, 뺀 관심사에 딸린 질문 · 답변의 처리(남은 검토 항목 44)
-- 닉네임에 쓸 수 있는 문자, 인증 코드의 유효 시간과 재전송 간격
+- 닉네임에 쓸 수 있는 문자
 - 같은 이메일의 Google 계정과 이메일 계정의 관계

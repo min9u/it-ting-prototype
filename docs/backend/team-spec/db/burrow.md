@@ -102,15 +102,15 @@ A가 B의 땅굴에 글을 쓰고 B도 A의 땅굴에 글을 쓴 뒤 A가 탈퇴
 | 컬럼 이름 | 타입 | 외래키·기본키 | NULL 허용 여부·UNIQUE 여부·도메인 범위 | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | NOT NULL, PK로 유일 | 자동 증가 학기 ID |
-| `year` | 미정 (정수형) | — | NOT NULL, 개별 UNIQUE 없음 | 학기 연도 |
-| `half` | 미정 (정수형) | — | NOT NULL, 개별 UNIQUE 없음, 1 상반기, 2 하반기 | 연도 내 학기 구분 |
+| `year` | `SMALLINT` | — | NOT NULL, 개별 UNIQUE 없음 | 학기 연도 |
+| `half` | `TINYINT` | — | NOT NULL, 개별 UNIQUE 없음, 1 상반기, 2 하반기(CHECK) | 연도 내 학기 구분 |
 | `opened_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 들판을 연 시각 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 만들어진 시각 |
 | `updated_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |
 
 복합 UNIQUE는 `UNIQUE(year, half)`다. 지난 학기도 계속 탐색할 수 있다. 지난 학기 들판에는 새 학기에 아직 접속하지 않은 사용자의 입구만 남는다.
 
-새 학기를 여는 방법(직접 / 날짜에 자동)은 [보류한 결정](../spec/open-issues.md)이다. 어느 쪽이든 `term`에 행이 생긴다.
+새 학기를 여는 방법(직접 / 날짜에 자동)은 [보류한 결정](../spec/open-issues.md)이다. 어느 쪽이든 `term`에 행이 생긴다. 처음 값은 2026 하반기 하나이고 2026-07-01 00:00(한국 시간)에 열린 것으로 넣었다(KAN-43). 여는 방법이 정해지기 전까지 다음 학기는 새 마이그레이션으로 더한다.
 
 ### `campus`
 
