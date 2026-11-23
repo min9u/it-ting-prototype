@@ -78,7 +78,7 @@
 | 비밀번호 재설정 링크 | 화면이 저장소를 바로 확인 | `GET /password-resets/{token}` 으로 확인 후 화면 |
 | 공지 | 저장소 목록을 화면이 잘라 페이지 | `GET /notices?page&size=10` |
 | 로그아웃 · 탈퇴 정리 | `stopChatRealtime()` 만 | + `stopEventStream()` · 캐시 비우기 · 푸시 정리 |
-| 비밀번호 확인 칸 문구 | "비밀번호가 달라요"(Figma) | "비밀번호가 일치하지 않아요"(명세 02 회원가입 2 · 4) |
+| 비밀번호 확인 칸 문구 | "비밀번호가 달라요"(Figma) | 2026-11-22 "비밀번호가 일치하지 않아요" → **2026-11-23 "비밀번호가 달라요"** (명세 dev 9ea6698 회원가입 2 · 4 · 새 비밀번호 설정 2가 돌아옴) |
 | **차단 관리 화면 · 차단 API 초안** | 설정 › 차단 관리 (`/settings/blocked`) | **삭제** (spec/README "이번 범위에 없는 것") |
 
 그대로 둔 것: 3D 모델 크레딧 메뉴(명세 메뉴에는 없지만 CC-BY 표기 의무), `LOGIN_FREE`(팀 공유 빌드, 지금 `true`), 시연 손잡이(`?demo=error|suspended`, `?account=google|email`, `?hosting=0`, `?modal=logout`, `?token=demo`).
@@ -89,7 +89,7 @@
 2. **Google 로그인 취소의 code**: 명세가 이름을 정하지 않아 목은 `GOOGLE_LOGIN_CANCELED`. 화면은 모르는 code 면 "Google 로그인을 마치지 못했어요"
 3. **정지 계정의 Google 로그인**: 사유 · 기간을 `/login?error=ACCOUNT_SUSPENDED&reason=…&endsAt=…` 쿼리로 받는다고 가정. 없으면 "정지된 계정이라 로그인할 수 없어요"만
 4. **재설정 메일 속 링크**: `/password-reset/new?token=<token>` (메일 본문을 만드는 백엔드가 이 주소를 써야 함)
-5. **재전송 간격 · 코드 유효 시간**: 버튼은 30초 뒤 다시 켬. 남은 시간은 서버의 `expiresAt`. 서버가 429 를 주면 칸 밑에 문구. 목은 코드 5분 · 간격 25초
+5. **재전송 간격 · 코드 유효 시간**: ~~버튼은 30초 뒤 다시 켬, 목은 간격 25초~~ → 명세 dev 9ea6698 이 정함(아래 8장): 코드 5분 · 간격 60초. 버튼은 60초 뒤 다시 켬. 남은 시간은 서버의 `expiresAt`. 서버가 429 를 주면 칸 밑에 문구
 6. **로그인 뒤 가려던 주소**: `nextStep` 이 `HOME` 일 때만 되돌아감. `ONBOARDING` 이면 온보딩 1, `NEW_TERM` 이면 내 땅굴(새 학기 안내가 먼저)
 7. **NEW_TERM**: 가드는 그대로 들여보냄. 새 학기 안내 팝업은 05 탐색 영역
 8. **푸시 내용 모양** (10 "구현 단계로 넘기는 것"): 서비스 워커는 `{ title, body, url }` JSON 으로 가정, 글이면 본문
@@ -121,3 +121,19 @@
 - `npx tsc -b --noEmit` · `npm run build` 통과
 - `npm test`: 34 파일 · 454 통과 · 85 todo (전 107 todo 에서 02 · 10 의 22개가 빠짐). 새 시험 `src/tests/auth-settings-api.test.ts` 18개(매퍼 · 목 서버 명세 code, `LOGIN_FREE = false` 로 바꿔서). 다른 작업자들과 동시에 돌 때 `field-fence.test.ts` 가 한 번 5초 시간 초과로 실패했지만 다시 돌리면 통과 (느려서, 이 작업과 관계없음)
 - 개발 서버(5411) 스모크: `/settings` 12화면 · `/login` · `/signup` 3화면 · `/password-reset` 4화면 · `/auth/google` · `/oauth/mock-google` 모두 OK (콘솔 에러 · 실패 요청 없음). 스크린샷으로 회원가입 3 · 알림 설정 · Google 연동(Google 전용 계정) · 회원 탈퇴 · 흉내 Google 화면 확인
+
+## 8. 명세 dev 9ea6698 반영 (2026-11-23)
+
+[team-spec](../team-spec/README.md) 사본을 dev `9ea6698` 로 새로 받아(커밋 `f1afd17`) 달라진 것을 맞췄다.
+
+| 명세 | 프론트 |
+|---|---|
+| api-convention `503`: 바깥 서비스(메일 · Mattermost)가 잠시 응답하지 않음 | 02 의 `503 VERIFICATION_SEND_FAILED` 문구 "코드를 보내지 못했어요. 다시 받아 주세요"(`AUTH_ERRORS`). 서버가 코드를 지우고 간격도 세지 않으므로 화면은 "코드 받기"로 돌아가 바로 다시 받게 함(이메일 칸 · Mattermost 칸 밑). 목: `sendfail@ssafy.com` · Mattermost ID `sendfail` 이면 늘 503 (`data/auth.ts` 맨 위 시연 목록) |
+| 인증 코드: 5분, 재전송 60초, **5번 틀리면 코드를 지움**(그 뒤로는 맞는 코드도 `VERIFICATION_CODE_EXPIRED`, 간격은 그대로 셈) | 목이 틀린 횟수를 세어 5번째에 지움(이메일 · SSAFY 둘 다, 보낸 시각은 따로 둬서 간격은 그대로). 화면은 남은 시간이 있는데 EXPIRED 면 "코드를 여러 번 틀렸어요. 코드를 다시 받아 주세요"(`CODE_LOCKED`), 시간이 지났으면 전처럼 `CODE_EXPIRED`. 재전송 버튼 60초(`RESEND_GAP`), 목 간격 60초(`MOCK_RESEND_GAP_MS`) |
+| 이메일은 대소문자를 가리지 않음 | 목의 코드 · 재설정 기록을 소문자 이메일로 찾음 |
+| Mattermost ID: 앞뒤 공백 · 앞의 `@` 를 떼고 소문자로, 영문 소문자 · 숫자 · `.` `-` `_` 3 ~ 22자 | `lib/authRules.ts` `normalizeMattermostId` · `checkMattermostId` · `MM_ID_RE`. 회원가입 3 은 정규화한 값을 보내고, 쓸 수 없는 문자 · 22자 넘음은 바로 "영문 · 숫자 · . - _ 로 3~22자를 입력해 주세요", 3자보다 짧으면 "코드 받기"만 꺼 둠. 목도 같은 정규화 · 검사(어긋나면 400 `INVALID_INPUT` `fields[mattermostId]`) |
+| 비밀번호 8자 이상 **20자 이하** | `passwordChecks().length` 가 8 ~ 20, 규칙 줄 "8~20자 · 영문, 숫자, 특수기호(!@#$%) 각 1개 이상", 20자를 넘기면 칸 밑에 "20자 이하로 정해 주세요". 설정 비밀번호 변경 규칙 목록 "8자 이상 20자 이하여야 해요" |
+| `POST /ssafy-verifications` · `POST /users` 는 **입력 모양을 가입 진행 기록보다 먼저** 봄, `fields` 는 어긋난 규칙마다 한 줄, 이메일 가입인데 `password` 가 없으면 기록을 찾은 뒤 400 | 목을 같은 순서로(`passwordFieldErrors`: 길이 · 문자 · 영문 · 숫자 · 특수기호마다 한 줄) |
+| 가입 진행 기록 1시간(쿠키 `ITTING_SIGNUP`) | 목 `SIGNUP_TTL` 30분 → 1시간 |
+| 재설정 메일: 같은 이메일로 60초 안에 다시 요청하면 **아무것도 하지 않고 성공**(429 를 주지 않음) | 목이 60초 안의 두 번째 요청에는 새 링크를 만들지 않음(이전 링크가 그대로 유효). 화면의 "다시 보내기"는 60초 뒤에 켜지므로 보이는 차이는 없음 |
+| 재설정 완료: 링크 찾기와 지우기를 한 번에, 탈퇴 사이면 404 | 목은 그대로(규칙 검사 → 링크 확인 순서는 이미 같음) |
