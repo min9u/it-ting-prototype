@@ -9,7 +9,6 @@ import { authKeys } from '../auth'
 import { exploreKeys } from '../explore'
 import { burrowApi } from './api'
 import { toGuestbookPage, toMyBurrow, type MyBurrowVM } from './mappers'
-import type { FurnChoice } from '../../data/myBurrow'
 import { GUESTBOOK_PAGE_SIZE } from './real'
 import type { ProfileUpdateRequest } from './types'
 
@@ -45,22 +44,6 @@ export function useUpdateMole() {
     onSuccess: (mole) => {
       const worn = wornOfMole(mole)
       qc.setQueryData<MyBurrowVM>(burrowKeys.mine, (old) => (old ? { ...old, worn, owner: { ...old.owner, worn } } : old))
-      refresh()
-    },
-  })
-}
-
-/**
- * 가구 단어 저장 (꾸미기 모드 가구 탭 "저장하기"). furniture = 세부 관심사 id → 단어
- * ⚠ 서버 명세에 없는 목 전용 (api/burrow/PENDING). 실제 모드에서는 실패로 알림
- */
-export function useUpdateFurniture() {
-  const qc = useQueryClient()
-  const refresh = useRefreshMe()
-  return useMutation({
-    mutationFn: (furniture: FurnChoice) => burrowApi.updateFurniture({ furniture }),
-    onSuccess: (saved) => {
-      qc.setQueryData<MyBurrowVM>(burrowKeys.mine, (old) => (old ? { ...old, furniture: { ...saved } } : old))
       refresh()
     },
   })

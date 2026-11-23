@@ -1,14 +1,14 @@
 /**
  * 내 땅굴(F4) · 온보딩(F3)이 같이 쓰는 내 정보 (백엔드 대신 메모리 + sessionStorage, data/interests 의 관심사 저장과 같은 방식)
  * - 프로필: 닉네임 · 자기소개 · 질문 3개와 답변 · 캠퍼스 · 층 (기수는 SSAFY 인증 값이라 못 바꿈, 반은 받지 않음 — 00 공통 4·19)
- * - 가구 고르기: 세부 관심사 id → 가구 id (02 F4 꾸미기 모드 · 가구 탭, 00 공통 5 "땅굴 가구는 세부 관심사로 센다")
- * - 땅굴 무드: 대표 관심사(내 관심사 목록 맨 앞)의 대분류로 정함 (00 공통 5, F3 3a 3번, F4 꾸미기 가구 탭 3번)
- * - 방 모습(벽지·가구 선택)은 내 땅굴과 남이 보는 내 땅굴이 같은 함수로 정함 → data/roomLook.ts roomLookOf
+ * - 가구: 세부 관심사마다 하나로 정해져 있고 고르지 않음 (00 공통 5, 맨 앞 단어). 단어 후보(wordChoices)는 실험실 · 시험만 씀
+ * - 땅굴 무드: 대표 관심사(내 관심사 목록 맨 앞)의 대분류로 정함 (00 공통 5, F3 3a 3번, 04 가구와 땅굴 무드)
+ * - 방 모습(벽지 · 가구)은 내 땅굴과 남이 보는 내 땅굴이 같은 함수로 정함 → data/roomLook.ts roomLookOf
  */
 import { wordsOfSub } from './interestWords'
 import { placeWords } from './roomPlanV38'
 import { ME_ID, USERS } from './mock'
-import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
+import { INTEREST_SUBS, interestCatOf, subOf, toSubIds } from './interests'
 import { FURNITURE_CATALOG, type FurnitureRow, type RoomPlan } from './roomPlan'
 import { wallpaperForCategory } from './wallpapers'
 import { ME_HOME, MY_FLOOR, moveMyBurrow } from './field'
@@ -121,8 +121,8 @@ export interface MyRoomPick {
 const ROOM_KEY = 'digul.myRoom.v1'
 export const getMyRoomPick = (): MyRoomPick => ({ wallpaperId: null, themeId: null, ...load<Partial<MyRoomPick>>(ROOM_KEY, {}) })
 export const setMyRoomPick = (p: Partial<MyRoomPick>) => save(ROOM_KEY, { ...getMyRoomPick(), ...p })
-/** 온보딩을 새로 마치면 꾸민 것을 처음으로 (가구 선택도) */
-export function resetMyRoom() { save(ROOM_KEY, {}); save(FURN_KEY, {}) }
+/** 온보딩을 새로 마치면 꾸민 것을 처음으로 */
+export function resetMyRoom() { save(ROOM_KEY, {}) }
 
 /* ---------- 가구 (세부 관심사마다 하나) ---------- */
 const rowOf = (id: string | null | undefined) => (id ? FURNITURE_CATALOG.find((r) => r.id === id) : undefined)
@@ -144,18 +144,13 @@ export function furnitureCandidates(subId: string, picks: string[]): FurnitureRo
   const others = [...siblings.slice(i + 1), ...siblings.slice(0, i)].filter((s) => !mine.has(s.id)).map((s) => rowOf(s.prop)).filter((r): r is FurnitureRow => !!r)
   return [base, ...others.slice(0, 2)]
 }
-/** v3.8: 소분류에서 고를 수 있는 단어 ("/"로 묶인 소분류만. 한 단어는 고정이라 빈 목록). 고른 값 FurnChoice[subId] = 단어 */
+/**
+ * v3.8: 소분류에서 고를 수 있는 단어 ("/"로 묶인 소분류만. 한 단어는 고정이라 빈 목록). 고른 값 FurnChoice[subId] = 단어.
+ * 앱 화면은 고르지 않는다(명세 00 공통 5: 가구는 세부 관심사마다 하나 = 맨 앞 단어). 꾸미기 가구 탭과 목 전용 저장(digul.myFurnitureBySub)은
+ * 2026-11-23 뺐고, 이 함수와 FurnChoice 는 실험실(/lab/rooms) · 방 배치 계산(placeWords · planRoom) · 시험이 쓴다
+ */
 export const wordChoices = (subId: string): string[] => { const w = wordsOfSub(subId); return w?.pickable ? w.words.map((x) => x.word) : [] }
 export type FurnChoice = Record<string, string>
-const FURN_KEY = 'digul.myFurnitureBySub'
-/** 예전(관심사 v2) 소분류 id 로 저장된 선택은 새 id 로 옮김 (옮길 곳이 없으면 버림, data/interests migrateSubId) */
-export const getMyFurnChoice = (): FurnChoice => {
-  const c = load<FurnChoice>(FURN_KEY, {})
-  const out: FurnChoice = {}
-  for (const [k, v] of Object.entries(c ?? {})) { const id = migrateSubId(k); if (id && typeof v === 'string' && !(id in out)) out[id] = v }
-  return out
-}
-export const setMyFurnChoice = (c: FurnChoice) => save(FURN_KEY, c)
 /** 관심사를 바꾸면: 뺀 관심사의 고른 가구는 사라지고, 그대로 둔 관심사는 유지, 새 관심사는 기본 가구 */
 export function pruneChoice(c: FurnChoice, picks: string[]): FurnChoice {
   const keep = new Set(toSubIds(picks))

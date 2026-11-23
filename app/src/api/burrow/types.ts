@@ -21,13 +21,6 @@ export interface MyBurrowEntranceDto {
   campusFloorId: Id
   slot: number
 }
-/**
- * 고른 가구 단어 (세부 관심사 id 글자 → 단어. "/"로 묶인 관심사 중 맨 앞 단어가 아닌 것을 골랐을 때만 들어 있음).
- * ⚠ 백엔드 명세(2026-11-22)에 없는 목 전용 값 — api/burrow/PENDING 에 서버가 줄 것을 적어 둠. 없으면 모두 맨 앞 단어
- */
-export type FurnitureDto = Record<string, string>
-/** ⚠ 목 전용: 꾸미기 모드 가구 탭 "저장하기" 요청 (명세에 저장 API 없음) */
-export interface FurnitureUpdateRequest { furniture: FurnitureDto }
 export interface MyBurrowDto {
   /** 방명록 목록을 부를 때 쓰는 땅굴 id */
   burrowId: Id
@@ -45,8 +38,6 @@ export interface MyBurrowDto {
   regularCount: number
   /** 방명록 글 수 (가려진 글 뺌). 1 이상이면 우체통 깃발을 올림 */
   guestbookCount: number
-  /** ⚠ 목 전용 (명세에 없음, PENDING 참고): 내가 고른 가구 단어. 서버가 주기 전에는 없음 = 모두 맨 앞 단어 */
-  furniture?: FurnitureDto
   entrance: MyBurrowEntranceDto
 }
 

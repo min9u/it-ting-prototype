@@ -12,7 +12,7 @@
  * 3. (2단계) 꾸미기 값 = 대표 관심사 대분류의 색 묶음(data/roomStyle CATEGORY_THEMES) + 집주인 id 씨앗 자동 꾸미기.
  *    집주인이 색 테마를 골랐으면 그 테마로. 같은 사람은 늘 같은 방 (씨앗 = 회원 id. 서버를 붙이면 내 땅굴도 'me' 가 아니라 실제 회원 id 로)
  */
-import { wordChoices, getMyFurnChoice, getMyRoomPick, leadCategory, pruneChoice, type FurnChoice } from './myBurrow'
+import { wordChoices, getMyRoomPick, leadCategory, pruneChoice, type FurnChoice } from './myBurrow'
 import { WALLPAPERS, wallpaperForCategory } from './wallpapers'
 import { ALL_THEME_IDS, autoStyle, autoStyleFor, categoryTheme, hashSeed, type RoomStyle } from './roomStyle'
 
@@ -20,7 +20,7 @@ import { ALL_THEME_IDS, autoStyle, autoStyleFor, categoryTheme, hashSeed, type R
 export interface SavedRoom {
   /** 꾸미기에서 고른 벽지 (안 골랐으면 null) */
   wallpaperId: string | null
-  /** 세부 관심사 id → 가구 id (꾸미기 가구 탭) */
+  /** 세부 관심사 id → 가구 단어. 앱 화면은 늘 빈 값(= 맨 앞 단어, 명세: 가구는 고르지 않음). 실험실 · 시험만 채움 */
   furniture: FurnChoice
   /** 꾸미기에서 고른 색 테마 id (data/roomStyle, 안 골랐으면 null = 대표 관심사 대분류의 묶음). 'base' = 디자이너 원래 색 */
   themeId?: string | null
@@ -44,8 +44,8 @@ export interface RoomLook {
 /** 대표 관심사(고른 것 중 맨 앞)의 대분류. 이름·id 섞여도 됨, 모르는 값은 건너뜀 */
 export const leadCategoryOf = (interests: string[]): string | null => leadCategory(interests) ?? null
 
-/** 내가 저장한 방 (목: sessionStorage. 서버를 붙이면 GET /burrows/{내 id} 의 room 과 같은 값) */
-export const mySavedRoom = (): SavedRoom => { const p = getMyRoomPick(); return { wallpaperId: p.wallpaperId, furniture: getMyFurnChoice(), themeId: p.themeId ?? null } }
+/** 내가 저장한 방 (목: sessionStorage). 가구는 고르지 않으므로 늘 빈 값 */
+export const mySavedRoom = (): SavedRoom => { const p = getMyRoomPick(); return { wallpaperId: p.wallpaperId, furniture: {}, themeId: p.themeId ?? null } }
 
 /** 저장된 가구 선택 중 지금 관심사에 맞는 것만 (꾸미기 소품 탭에서 고를 수 있는 단어만, v3.8) */
 export function validFurniture(furniture: FurnChoice | null | undefined, interests: string[]): FurnChoice {

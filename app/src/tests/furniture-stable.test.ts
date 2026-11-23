@@ -1,5 +1,7 @@
 /**
- * 꾸미기 가구 탭: 한 관심사의 가구를 바꿔도 다른 관심사의 단어 · 자리는 그대로 (사용자 제보 2026-11-22, 명세 04 · KAN-40)
+ * 가구 단어 선택(placeWords 의 choice): 한 관심사의 가구를 바꿔도 다른 관심사의 단어 · 자리는 그대로 (사용자 제보 2026-11-22, KAN-40)
+ * 꾸미기 가구 탭은 2026-11-23 다시 뺐다(명세 dev 9ea6698: 가구는 세부 관심사마다 하나, 고르지 않음). 앱 화면은 늘 맨 앞 단어이고,
+ * 선택 인자는 실험실(/lab/rooms)이 쓰므로 배치 규칙 시험은 남긴다. 아래 "앱 화면" 시험은 가구 탭이 없고 고른 값이 방에 가지 않는지 본다
  * 관심사 8개: 맛집탐방, 힙합/락, 웹툰/만화, 사주/타로, 애니메이션, 자전거/바이크/드라이브, 캠핑/글램핑, 자수/뜨개/패브릭
  *
  * 원인(수정 전): placeWords 가 고른 단어까지 넣고 관심사를 앞에서부터 차례로 자리에 넣었다. 작은 가구는 "몇 번째 작은 가구인가"로
@@ -7,7 +9,7 @@
  * (vitest 설정이 *.test.ts 만 읽어서 JSX 대신 createElement)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { createElement as h } from 'react'
@@ -111,19 +113,17 @@ describe('저장 · 일반 화면 · 방문자 뷰가 같은 결과', () => {
     expect(drawn(NAMES, validFurniture(stored, NAMES))).toEqual(editing)
   })
 
-  it('목 서버에 저장하고 다시 받은 값 · 방문자가 받는 값으로 그려도 꾸미던 모습과 같음', async () => {
+  it('목 서버 응답에는 가구 값이 없음 (내 땅굴 · 남의 땅굴): 방은 관심사만으로 = 맨 앞 단어', async () => {
     sessionStorage.clear(); localStorage.clear(); sessionStorage.setItem('digul.api.knobs', 'fast')
     vi.resetModules()
     const I = await import('../data/interests')
     I.setMyInterests(NAMES)
     const burrow = (await import('../api/burrow/mock')).mock
     const { userBurrowDto } = await import('../api/explore/mock')
-    await burrow.updateFurniture({ furniture: choice })
-    const mine = (await burrow.myBurrow()).furniture!
-    const visitor = userBurrowDto('me').furniture!
-    const editing = drawn(NAMES, choice)
-    expect(drawn(NAMES, validFurniture(mine, NAMES))).toEqual(editing)
-    expect(drawn(NAMES, validFurniture(visitor, NAMES))).toEqual(editing)
+    expect('updateFurniture' in burrow).toBe(false)
+    expect('furniture' in (await burrow.myBurrow())).toBe(false)
+    expect('furniture' in userBurrowDto('me')).toBe(false)
+    expect(drawn(NAMES, {})).toEqual(drawn(NAMES, validFurniture({}, NAMES)))
   })
 })
 
@@ -139,8 +139,8 @@ vi.mock('../components/RoomView', () => ({
 afterEach(cleanup)
 beforeEach(() => { shown.length = 0 })
 
-describe('꾸미기 화면: 가구 탭을 눌러도 다른 관심사 값은 안 바뀜', () => {
-  it('미니 앰프 → 헬멧 → 벽걸이 자전거: 방에 넘어가는 furniture 가 고른 관심사 키만 가짐', async () => {
+describe('꾸미기 화면: 두더지 탭만 (가구 탭 없음, 2026-11-23)', () => {
+  it('꾸미기 모드에 "가구" 탭이 없고, 방에 넘어가는 가구 값은 늘 빈 값(= 맨 앞 단어)', async () => {
     sessionStorage.clear(); localStorage.clear(); sessionStorage.setItem('digul.api.knobs', 'fast')
     vi.resetModules()
     const I = await import('../data/interests')
@@ -148,16 +148,10 @@ describe('꾸미기 화면: 가구 탭을 눌러도 다른 관심사 값은 안 
     const MyBurrow = (await import('../screens/burrow/MyBurrow')).default
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(h(QueryClientProvider, { client: qc }, h(MemoryRouter, { initialEntries: ['/burrow?mode=decor'] }, h(MyBurrow))))
-    await waitFor(() => expect(screen.getByRole('tab', { name: '가구' })).toBeTruthy(), { timeout: 4000 })
-    const last = () => shown[shown.length - 1].furniture
-    const chip = (n: string) => fireEvent.click(screen.getByRole('tab', { name: n }))
-    const card = (name: string) => fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }))
-    expect(last()).toEqual({})
-    chip('힙합/락'); card('미니 앰프')
-    expect(last()).toEqual({ [HIPHOP]: '락' })
-    chip('자전거/바이크/드라이브'); card('헬멧')
-    expect(last()).toEqual({ [HIPHOP]: '락', [CYCLE]: '바이크' })
-    card('벽걸이 자전거')
-    expect(last()).toEqual({ [HIPHOP]: '락' })
+    await waitFor(() => expect(screen.getByRole('tab', { name: '두더지' })).toBeTruthy(), { timeout: 4000 })
+    expect(screen.queryByRole('tab', { name: '가구' })).toBeNull()
+    expect(screen.getAllByRole('tab').filter((t) => t.textContent === '두더지')).toHaveLength(1)
+    expect(shown.length).toBeGreaterThan(0)
+    expect(shown.every((x) => Object.keys(x.furniture).length === 0)).toBe(true)
   })
 })

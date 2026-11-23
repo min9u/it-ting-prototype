@@ -9,17 +9,14 @@ import { TOAST, Toast, type ToastSpec } from '../../components/Feedback'
 import { QueryGate, SkeletonLines } from '../../components/AsyncState'
 import { PenIcon } from '../../components/Icons'
 import { ME_ID } from '../../data/mock'
-import { roomLookOf } from '../../data/roomLook'
-import { toSubIds } from '../../data/interests'
-import type { FurnChoice } from '../../data/myBurrow'
-import { placeWords } from '../../data/roomPlanV38'
+import { NO_SAVED_ROOM, roomLookOf } from '../../data/roomLook'
 import { toastApiError } from '../../api'
 import {
-  BURROW_ERRORS, reportGuestbookEntry, useDeleteGuestbookEntry, useGuestbookEntries, useMyBurrow, useUpdateFurniture, useUpdateMole, type MyBurrowVM,
+  BURROW_ERRORS, reportGuestbookEntry, useDeleteGuestbookEntry, useGuestbookEntries, useMyBurrow, useUpdateMole, type MyBurrowVM,
 } from '../../api/burrow'
 import GuestbookModal from './GuestbookModal'
 import MyInfoEdit, { INTRO_MAX } from './MyInfoEdit'
-import DecorPanel, { type DecorTab } from './DecorPanel'
+import DecorPanel from './DecorPanel'
 import FxPanel from '../../components/FxPanel'
 import s from './Burrow.module.css'
 import m from './MyBurrow.module.css'
@@ -27,17 +24,12 @@ import m from './MyBurrow.module.css'
 type Mode = 'info' | 'edit' | 'decor'
 /** 관심사 이펙트: 내 땅굴 (나와 같은 관심사는 없음). 같은 객체를 써서 장면을 다시 만들지 않게 */
 const MY_FX = {}
-/** 가구 단어 선택이 같은가 (맨 앞 단어는 저장하지 않으므로 키가 있는 것끼리만 비교) */
-const sameFurn = (a: FurnChoice, b: FurnChoice) => {
-  const ka = Object.keys(a), kb = Object.keys(b)
-  return ka.length === kb.length && ka.every((k) => a[k] === b[k])
-}
 
 /**
  * 땅굴 메인 – 내 땅굴 (명세 04, 2026-11-22 API v1 맞춤). 값은 모두 GET /me/burrow (api/burrow useMyBurrow)
- * 1 "땅굴 꾸미기" → 꾸미기 모드(가구 탭 · 두더지 탭, KAN-40). 마우스를 올리면 아래에 안내 말풍선(닫기 버튼 없음, 벗어나면 사라짐)
+ * 1 "땅굴 꾸미기" → 꾸미기 모드(두더지 탭만, 명세 dev 9ea6698. 가구 탭은 2026-11-23 다시 뺌). 마우스를 올리면 아래에 안내 말풍선(닫기 버튼 없음, 벗어나면 사라짐)
  * 2 상태 배지 "단골 N명" (regularCount, 숫자만)
- * 3 땅굴을 화면 전체에. 가구는 세부 관심사마다 하나("/"로 묶인 관심사는 꾸미기 가구 탭에서 고른 단어, 목 서버에만 저장), 무드는 대표 관심사의 대분류. 가구를 누르면 관심사 이름 말풍선
+ * 3 땅굴을 화면 전체에. 가구 · 무드는 API 없이 관심사로 정함 (가구는 세부 관심사마다 정해진 하나 = 맨 앞 단어, 무드는 대표 관심사의 대분류). 가구를 누르면 관심사 이름 말풍선
  * 4 내 정보 카드: 닉네임, 캠퍼스 · 기수 · 층, 자기소개, 관심사 태그 / 7 관심사 아래 질문 3개와 답변(펼친 채로)
  * 5 연필 → 내 정보 수정 (카드가 수정 패널로, PATCH /me/profile) / 6 자기소개가 없으면 안내 + "자기소개 쓰기" → 내 정보 수정
  * 8 우체통(방명록): 글이 하나라도 있으면(guestbookCount ≥ 1) 깃발 · 편지 · 빛, 없으면 꺼짐. 누르면 방명록 전체 보기
@@ -68,38 +60,24 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
   const [gbPage, setGbPage] = useState(1)
   const [toast, setToast] = useState<ToastSpec | null>(null)
 
-  const [furnDraft, setFurnDraft] = useState<FurnChoice>(b.furniture)
-  const [tab, setTab] = useState<DecorTab>(params.get('tab') === 'mole' ? 'mole' : 'furniture')
-  const [focusSub, setFocusSub] = useState<string | null>(null)
-
   const mole = useUpdateMole()
-  const furniture = useUpdateFurniture()
   const gb = useGuestbookEntries(b.burrowId, gbPage, { enabled: allOpen })
   const delGb = useDeleteGuestbookEntry(b.burrowId)
   // 지운 뒤 마지막 페이지가 비면 한 페이지 앞으로
   useEffect(() => { if (gb.data && gb.data.totalPages > 0 && gbPage > gb.data.totalPages) setGbPage(gb.data.totalPages) }, [gb.data, gbPage])
   useEffect(() => { if (allOpen) setGbPage(1) }, [allOpen])
 
-  const startDecor = () => { setWornDraft(b.worn); setFurnDraft(b.furniture); setTab('furniture'); setMode('decor'); setHintOn(false) }
-  const wornDirty = wornDraft.join(',') !== b.worn.join(',')
-  const furnDirty = !sameFurn(furnDraft, b.furniture)
-  const decorDirty = wornDirty || furnDirty
+  const startDecor = () => { setWornDraft(b.worn); setMode('decor'); setHintOn(false) }
+  const decorDirty = wornDraft.join(',') !== b.worn.join(',')
   const showPanel = panelOpen || mode !== 'info'
   const focusX = showPanel ? 0.403 : 0.5
-  // 방 모습: 관심사 + 꾸미기에서 고른 가구 단어. 남이 내 땅굴을 볼 때와 같은 함수 (data/roomLook.ts). 꾸미는 중에는 고르는 값이 저장 전에도 바로 보임
-  const shownFurn = mode === 'decor' ? furnDraft : b.furniture
-  const look = useMemo(() => roomLookOf(ME_ID, b.interests, { wallpaperId: null, themeId: null, furniture: shownFurn }), [b.interests, shownFurn])
-  // 꾸미기를 열면 처음 가리킬 관심사 = 방에 가구가 실제로 놓이는 첫 관심사
-  const firstSub = useMemo(() => placeWords(toSubIds(b.interests), shownFurn).placed[0]?.sub ?? null, [b.interests, shownFurn])
-  const highlight = mode === 'decor' && tab === 'furniture' ? focusSub ?? firstSub : null
+  // 방 모습: 관심사로만 정함 (명세: 가구는 세부 관심사마다 하나로 정해져 있고 방을 꾸미는 값을 저장하는 API 는 없음). 남이 내 땅굴을 볼 때와 같은 함수 (data/roomLook.ts)
+  const look = useMemo(() => roomLookOf(ME_ID, b.interests, NO_SAVED_ROOM), [b.interests])
 
-  // 바뀐 것만 저장 (두더지 = PATCH /me/mole, 가구 단어 = 목 서버에만 있음). 둘 다 끝나야 내 땅굴로 돌아가고, 실패하면 꾸미기에 그대로 있음
-  const saveDecor = () => {
-    const jobs: Promise<unknown>[] = []
-    if (wornDirty) jobs.push(mole.mutateAsync(wornDraft).catch((e) => { toastApiError(e, '두더지를 저장하지 못했어요', BURROW_ERRORS); throw e }))
-    if (furnDirty) jobs.push(furniture.mutateAsync(furnDraft).catch((e) => { toastApiError(e, '가구를 저장하지 못했어요', BURROW_ERRORS); throw e }))
-    Promise.all(jobs).then(() => { setMode('info'); setToast(TOAST.edited) }, () => {})
-  }
+  const saveDecor = () => mole.mutate(wornDraft, {
+    onSuccess: () => { setMode('info'); setToast(TOAST.edited) },
+    onError: (e) => toastApiError(e, '두더지를 저장하지 못했어요', BURROW_ERRORS),
+  })
   const onSaved = (next: MyBurrowVM, moved: boolean) => {
     setMode('info'); setFocusIntro(false)
     setToast(moved ? { title: TOAST.edited.title, desc: `이번 학기 들판의 내 땅굴 입구가 ${next.campus}-${next.floor}층으로 옮겨졌어요` } : TOAST.edited)
@@ -113,7 +91,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
   return (
     <main className={s.page}>
       <RoomView ownerId={ME_ID} interests={b.interests} wallpaper={look.wallpaper} style={look.style} worn={mode === 'decor' ? wornDraft : b.worn} focusX={focusX} label="내 땅굴"
-        furniture={look.furniture} highlight={highlight}
+        furniture={look.furniture}
         mailbox={b.guestbookCount > 0} onMailbox={() => setAllOpen(true)} fx={MY_FX}>
         {mode === 'decor' ? (
           <span className={s.decorPill}><i aria-hidden /> 꾸미는 중 · 바뀐 모습이 바로 보여요</span>
@@ -123,7 +101,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
               <SceneButton tone="cream" onClick={startDecor} onFocus={() => setHintOn(true)} onBlur={() => setHintOn(false)} aria-describedby={hintOn ? 'decor-hint' : undefined}>땅굴 꾸미기</SceneButton>
               {hintOn && (
                 <p id="decor-hint" className={`${s.decorHint} ${m.decorHint}`} role="tooltip">
-                  내가 직접 방을 꾸밀 수 있어요.<br />다양한 가구들을 사용해 보세요!
+                  내 두더지를 꾸밀 수 있어요.<br />가구는 고른 관심사로 정해져요!
                 </p>
               )}
             </span>
@@ -140,10 +118,8 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
       )}
 
       {mode === 'decor' && (
-        <DecorPanel tab={tab} setTab={setTab} picks={b.interests}
-          worn={wornDraft} setWorn={setWornDraft} furn={furnDraft} setFurn={setFurnDraft}
-          focusSub={focusSub} setFocusSub={setFocusSub} dirty={decorDirty} saving={mole.isPending || furniture.isPending}
-          onCancel={() => { setWornDraft(b.worn); setFurnDraft(b.furniture); setMode('info') }}
+        <DecorPanel worn={wornDraft} setWorn={setWornDraft} dirty={decorDirty} saving={mole.isPending}
+          onCancel={() => { setWornDraft(b.worn); setMode('info') }}
           onSave={saveDecor} />
       )}
 

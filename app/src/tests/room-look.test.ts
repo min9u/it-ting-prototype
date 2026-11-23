@@ -38,7 +38,7 @@ async function visitLook(id: string) {
   return L.roomLookOf(b.owner.id, b.owner.interests)
 }
 /** 내 땅굴이 하는 일 그대로 (screens/burrow/MyBurrow.tsx) */
-const myLook = () => L.roomLookOf(ME_ID, I.getMyInterests(USERS[ME_ID].interests), { ...M.getMyRoomPick(), furniture: M.getMyFurnChoice() })
+const myLook = () => L.roomLookOf(ME_ID, I.getMyInterests(USERS[ME_ID].interests), L.NO_SAVED_ROOM)
 
 describe('계산 규칙: 대표 관심사(맨 앞)의 대분류', () => {
   it('맨 앞 관심사의 대분류로 벽지를 정함 (뒤에 드문 관심사가 있어도)', () => {
@@ -71,9 +71,8 @@ describe('같은 사람은 내 땅굴과 방문자 뷰가 같은 방', () => {
     expect(v.from.wallpaper).toBe('auto')
     expect(v.wallpaper).toBe(wallpaperForCategory(L.leadCategoryOf(USERS.yerin.interests) ?? undefined))
   })
-  it('관심사를 바꾸면 계산 값이 따라가고(저장 안 함), 뺀 관심사의 가구는 사라짐', async () => {
+  it('관심사를 바꾸면 계산 값이 따라가고(저장 안 함), 가구는 고르지 않아 늘 빈 값(= 맨 앞 단어)', async () => {
     const book = subsOf('book').slice(0, 3).map((s) => s.name_ko)
-    M.setMyFurnChoice({ [INTEREST_SUBS.find((s) => s.name_ko === I.getMyInterests(USERS[ME_ID].interests)[1])!.id]: 'whatever' })
     I.setMyInterests(book)
     const v = await visitLook(ME_ID)
     expect(v.lead).toBe('book')

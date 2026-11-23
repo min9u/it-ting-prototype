@@ -60,7 +60,7 @@ export interface RoomSceneOptions {
   mailbox?: boolean
   /** 우체통을 누름 → 방명록 전체 보기 (Worker 시험판에는 안 넘어감) */
   onMailbox?: () => void
-  /** 꾸미기 가구 탭에서 고른 가구 (세부 관심사 id → 가구 id, data/myBurrow). 그 뒤 바뀌는 건 handle.setFurniture */
+  /** 세부 관심사마다 고른 가구 단어 (data/myBurrow FurnChoice). 앱 화면은 늘 빈 값 = 맨 앞 단어, 실험실만 씀. 그 뒤 바뀌는 건 handle.setFurniture */
   furniture?: FurnChoice
   /** 가구 칠하기·무늬·마감·모양 (data/roomStyle.ts, 2026-11-16 실험). 없으면 디자이너 원래 모습 */
   style?: RoomStyle
@@ -78,8 +78,6 @@ export interface RoomSceneHandle extends SceneHandle {
    * (이미 있던 건 제자리, 빠진 관심사의 소품은 사라짐). 벽지가 바뀌면 장면을 새로 만들어야 해서 RoomCanvas 가 deps 로 처리
    */
   setInterests?(interests: string[]): void
-  /** 지금 고르는 가구를 점선 상자와 "관심사 · 가구 이름" 꼬리표로 표시 (세부 관심사 id, null 이면 끔. F4 꾸미기 가구 탭 6번) */
-  setHighlight?(subId: string | null): void
 }
 
 /** S 선명한 방 그림 (같은 탭 안에서만, 최근 3개). 키 = 방 주인·관심사·벽지·크기·카메라 */
@@ -957,34 +955,6 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     clearTimeout(tipTimer)
     tipTimer = window.setTimeout(() => { tip.style.opacity = '0'; tip.style.transform = 'translate(-50%, calc(-100% - 18px)) scale(.8)' }, 1800)
   }
-  /*
-   * 꾸미기 가구 탭: 지금 고르는 가구를 점선 상자 + "관심사 · 가구 이름" 꼬리표로 표시 (F4 꾸미기 가구 탭 6번).
-   * 상자는 그 슬롯 묶음의 경계 상자를 화면에 투영한 사각형 (프레임마다, 루프가 쉬면 바꿀 때만)
-   */
-  const hl = document.createElement('div')
-  Object.assign(hl.style, { position: 'absolute', left: '0', top: '0', width: '0', height: '0', pointerEvents: 'none', zIndex: '4', border: '2px dashed rgba(255,250,244,.95)', borderRadius: '10px', boxShadow: '0 0 0 1px rgba(62,42,31,.18)', display: 'none' })
-  const hlTag = document.createElement('span')
-  Object.assign(hlTag.style, { position: 'absolute', left: '-2px', bottom: 'calc(100% + 8px)', font: '600 12px/1 Pretendard, system-ui, sans-serif', padding: '6px 10px', borderRadius: '12px', background: 'rgba(62,42,31,.9)', color: '#fbf4ec', whiteSpace: 'nowrap' })
-  hl.append(hlTag)
-  container.append(hl)
-  let hlSub: string | null = null
-  const hlBox = new THREE.Box3(), hlV = new THREE.Vector3()
-  const placeHighlight = () => {
-    const d = hlSub ? drops.find((x) => x.it.sub === hlSub && x.it.row.type !== 'pet') : undefined
-    if (!d || !d.g.visible) { hl.style.display = 'none'; return }
-    d.g.updateMatrixWorld(true)
-    hlBox.setFromObject(d.g)
-    if (hlBox.isEmpty()) { hl.style.display = 'none'; return }
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-    for (let i = 0; i < 8; i++) {
-      hlV.set(i & 1 ? hlBox.max.x : hlBox.min.x, i & 2 ? hlBox.max.y : hlBox.min.y, i & 4 ? hlBox.max.z : hlBox.min.z).project(camera)
-      const x = (hlV.x * .5 + .5) * W, y = (-hlV.y * .5 + .5) * H
-      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y)
-    }
-    const pad = 10
-    Object.assign(hl.style, { display: 'block', left: `${x0 - pad}px`, top: `${y0 - pad}px`, width: `${x1 - x0 + pad * 2}px`, height: `${y1 - y0 + pad * 2}px` })
-    hlTag.textContent = `${subOf(d.it.sub!)?.name_ko ?? ''} · ${d.it.row.name_ko}`
-  }
   /**
    * 관심사·고른 단어가 바뀜 (v3.8): 새 선택으로 방 배치를 다시 계산해(planRoom) 지금 방과 견줌.
    * 같은 자리 · 같은 모델은 그대로 두고, 달라진 것만 빼고 새로 놓음.
@@ -1035,7 +1005,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       if (!u || cached) place(cached?.getObjectByName(it.row.node) ?? null)
       else softLoad(u).then((gl) => { roots.set(u, gl?.scene ?? null); place(gl?.scene.getObjectByName(it.row.node) ?? null) })
     }
-    if (changed) { syncFeet(); backdrop?.invalidate(); sharpOff(); fullNext = true; placeHighlight(); loop.wake() }
+    if (changed) { syncFeet(); backdrop?.invalidate(); sharpOff(); fullNext = true; loop.wake() }
   }
   const applyFurniture = (choice: FurnChoice) => {
     furnChoice = { ...choice }
@@ -1282,7 +1252,6 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
         sh.position.set(a.object.position.x, .012, a.object.position.z)
       }
       drawBubbles(t)
-      if (hlSub) placeHighlight()
       reportHost()
       draw(full)
     },
@@ -1337,7 +1306,6 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
     },
     setFurniture: (c) => applyFurniture(c),
     setInterests: (l) => applyInterests(l),
-    setHighlight(sub) { hlSub = sub; placeHighlight() },
     setWorn(ids) { worn = ids; mole?.setWorn(ids); if (mole) toDynamicLayer(mole.object); loop.wake() },
     setFrozen: (on) => loop.setFrozen(on),
     setStyle(next) {
@@ -1400,7 +1368,7 @@ export function mountRoomScene(container: HTMLElement, opts: RoomSceneOptions = 
       wallMat?.map?.dispose(); wallMat?.dispose()
       styler?.dispose()
       for (const d of dusts) d.mats.forEach((m) => m.dispose())
-      bubbles.forEach((b) => b.el.remove()); hint.remove(); tip.remove(); hl.remove(); clearTimeout(tipTimer)
+      bubbles.forEach((b) => b.el.remove()); hint.remove(); tip.remove(); clearTimeout(tipTimer)
       el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('wheel', onWheel)
       el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave)
       // glb 지오메트리·텍스처는 캐시가 다음 장면에서 다시 쓰므로 해제하지 않음 (GPU 쪽은 렌더러·컨텍스트와 함께 풀림)

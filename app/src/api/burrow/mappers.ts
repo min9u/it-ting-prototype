@@ -7,7 +7,6 @@ import { toPersonFromDisplay, type CampusOption, type Person } from '../common/m
 import type { PageDto } from '../common/types'
 import { appInterestName, interestIdsOf, wornOfMole, type InterestCatalog } from '../onboarding'
 import type { GuestbookEntry } from '../../data/types'
-import type { FurnChoice } from '../../data/myBurrow'
 import type { GuestbookEntryDto, MyBurrowDto, ProfileUpdateRequest } from './types'
 
 /** 내 땅굴 (앱 모양). id 는 앱 id 글자 */
@@ -30,8 +29,6 @@ export interface MyBurrowVM {
   regularCount: number
   guestbookCount: number
   entrance: { termId: string; campusFloorId: string; slot: number }
-  /** 고른 가구 단어 (세부 관심사 id → 단어, 없으면 맨 앞 단어). ⚠ 서버 명세에 없는 값이라 지금은 목 서버만 줌 (api/burrow/PENDING) */
-  furniture: FurnChoice
 }
 
 export function toMyBurrow(d: MyBurrowDto): MyBurrowVM {
@@ -45,7 +42,6 @@ export function toMyBurrow(d: MyBurrowDto): MyBurrowVM {
     answers: [...d.answers].sort((a, b) => a.slot - b.slot).map((a) => ({ slot: a.slot, questionId: toAppId(a.introQuestionId), question: a.question, answer: a.answer })),
     worn, regularCount: d.regularCount, guestbookCount: d.guestbookCount,
     entrance: { termId: toAppId(d.entrance.termId), campusFloorId: toAppId(d.entrance.campusFloorId), slot: d.entrance.slot },
-    furniture: { ...(d.furniture ?? {}) },
   }
 }
 

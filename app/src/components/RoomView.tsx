@@ -60,10 +60,11 @@ interface Props {
    * 집주인이 안 보이거나 입장 연출·리액션 말풍선 중이면 숨김. 3D 를 못 쓰면 예전처럼 방 가운데쯤 고정
    */
   hostBubble?: ReactNode
-  /** 꾸미기 가구 탭에서 고른 가구 (세부 관심사 id → 가구 id). 바뀌면 장면을 다시 만들지 않고 그 자리만 갈아 끼움 (내 땅굴, 2026-11-16) */
+  /**
+   * 세부 관심사마다 고른 가구 단어 (세부 관심사 id → 단어). 앱 화면은 늘 빈 값 = 맨 앞 단어(명세: 가구는 고르지 않음).
+   * 실험실(/lab/rooms)이 단어를 바꿔 볼 때만 씀. 바뀌면 장면을 다시 만들지 않고 그 자리만 갈아 끼움
+   */
   furniture?: FurnChoice
-  /** 지금 고르는 가구 자리를 점선으로 표시할 세부 관심사 id (꾸미기 가구 탭) */
-  highlight?: string | null
   /** 안 보이는 동안 그리기 멈춤 (랜딩에서 투명하게 숨긴 층, docs/rendering-experiments-2.md) */
   paused?: boolean
   /**
@@ -94,7 +95,7 @@ function LoaderMole() {
   return <MoundMole width={132} height={106} headClass={styles.loaderHead} />
 }
 
-export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, highlight = null, paused, loadingStill = false, fx, style: styleIn }: Props) {
+export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, hostName, hostWorn, worn, children, label, still, loader = true, onLoaded, mailbox = false, onMailbox, hostBubble, furniture, paused, loadingStill = false, fx, style: styleIn }: Props) {
   const diverse = useSyncExternalStore(subscribeLook, lookDiverse)
   const style = diverse ? styleIn ?? null : null
   const [ready, setReady] = useState(false)
@@ -114,14 +115,11 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
   const mailboxRef = useRef(mailbox)
   mailboxRef.current = mailbox
   useEffect(() => { handle.current?.setMailbox?.(mailbox) }, [mailbox])
-  // 고른 가구·점선 표시: 처음 값은 장면을 만들 때, 그 뒤는 handle 로
+  // 고른 가구 단어: 처음 값은 장면을 만들 때, 그 뒤는 handle 로
   const furnRef = useRef(furniture)
   furnRef.current = furniture
   const furnKey = Object.entries(furniture ?? {}).sort().join(',')
   useEffect(() => { if (furnRef.current) (handle.current as RoomSceneHandle | null)?.setFurniture?.(furnRef.current) }, [furnKey])
-  const hlRef = useRef(highlight)
-  hlRef.current = highlight
-  useEffect(() => { (handle.current as RoomSceneHandle | null)?.setHighlight?.(highlight) }, [highlight])
   // 꾸미기 값: 처음 값은 장면을 만들 때(getStyle), 그 뒤 바뀌면(🎨 스위치 · 꾸미기 테마) setStyle. styleMounted = 지금 장면에 입힌 값
   const styleRef = useRef(style)
   styleRef.current = style
@@ -207,7 +205,6 @@ export default function RoomView({ ownerId, focusX = 0.5, interests, wallpaper, 
             syncStyle(h as RoomSceneHandle)
             ;(h as RoomSceneHandle).setMailbox?.(mailboxRef.current)
             if (furnRef.current) (h as RoomSceneHandle).setFurniture?.(furnRef.current)
-            ;(h as RoomSceneHandle).setHighlight?.(hlRef.current)
             hostAt.current = null; placeHost()
             h.still?.then((ok) => { if (ok && handle.current === h) setStillUp(true) })
             h.onHostScreen?.((p) => { if (handle.current !== h) return; hostAt.current = p; placeHost() })

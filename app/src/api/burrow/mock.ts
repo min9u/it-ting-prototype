@@ -6,11 +6,9 @@
  */
 import { ME_ID } from '../../data/mock'
 import { CAMPUS_FLOORS, ME_HOME, locateUser, moveMyBurrow } from '../../data/field'
-import { getMyInterests, setMyInterests, subOf } from '../../data/interests'
+import { setMyInterests } from '../../data/interests'
 import { setMyWorn } from '../../data/moleItems'
-import {
-  MY_REGULARS_COUNT, getMyFurnChoice, getMyProfile, nickTaken, pruneChoice, qnaOf, setMyFurnChoice, setMyProfile, wordChoices,
-} from '../../data/myBurrow'
+import { MY_REGULARS_COUNT, getMyProfile, nickTaken, qnaOf, setMyProfile } from '../../data/myBurrow'
 import { findGuestbookEntry, guestbookCountOf, ownerOfBurrow, removeGuestbookEntry, reportGuestbookEntry, visibleGuestbookOf } from '../../data/guestbookStore'
 import { isGuestbookHidden } from '../../lib/format'
 import { registerMockReportTarget } from '../community/mock'
@@ -27,8 +25,6 @@ import {
 import { GUESTBOOK_PAGE_SIZE, type BurrowApi } from './real'
 import type { GuestbookEntryDto, MyBurrowDto } from './types'
 
-/** 지금 내 관심사 이름 (고른 순서) */
-const myInterestNames = () => getMyInterests(rawPerson(ME_ID)?.interests ?? [])
 
 /** 지금 내 땅굴 (목 저장소 → 명세 모양) */
 export function myBurrowDto(): MyBurrowDto {
@@ -45,8 +41,6 @@ export function myBurrowDto(): MyBurrowDto {
     regularCount: MY_REGULARS_COUNT,
     guestbookCount: guestbookCountOf(ME_ID),
     entrance: { termId: toDtoId(spot?.floor.term ?? '2026 하반기'), campusFloorId, slot: spot?.seat ?? 1 },
-    // ⚠ 명세에 없는 목 전용 값 (PENDING). 지금 관심사에 맞는 것만
-    furniture: pruneChoice(getMyFurnChoice(), myInterestNames()),
   }
 }
 
@@ -82,22 +76,6 @@ export const mock: BurrowApi = {
     return { head: body.head, face: body.face, neck: body.neck, hand: body.hand }
   }),
 
-  /** ⚠ 명세에 없는 목 전용 (PENDING): 고른 단어를 저장. 고를 수 있는 내 관심사의 단어만 받고, 맨 앞 단어는 저장하지 않음(= 기본값) */
-  updateFurniture: (body) => mockWrite(() => {
-    const mine = pruneChoice(Object.fromEntries(Object.keys(body?.furniture ?? {}).map((k) => [k, ''])), myInterestNames())
-    const fields: FieldError[] = []
-    const clean: Record<string, string> = {}
-    for (const [sub, word] of Object.entries(body?.furniture ?? {})) {
-      if (!(sub in mine) || !subOf(sub)) { fields.push({ field: `furniture.${sub}`, message: '내 관심사가 아니거나 알 수 없는 관심사입니다.' }); continue }
-      const words = wordChoices(sub)
-      if (!words.includes(word)) { fields.push({ field: `furniture.${sub}`, message: '고를 수 없는 가구입니다.' }); continue }
-      if (word !== words[0]) clean[sub] = word
-    }
-    throwIfInvalid(fields)
-    setMyFurnChoice(clean)
-    return clean
-  }),
-
   updateProfile: (body) => mockWrite(() => {
     // 1 모양: 다섯 값이 모두 있는지 + 칸마다 규칙 (어긋난 것 모두)
     const fields: FieldError[] = []
@@ -125,8 +103,6 @@ export const mock: BurrowApi = {
       qna: qs.map((q, i) => ({ qid: q.id, a: body.answers[i].answer.trim() })), campus: cf.campus, floor: cf.floor,
     })
     setMyInterests(names)
-    // 관심사를 바꾸면 뺀 관심사의 고른 가구는 사라지고 그대로 둔 것은 유지 (명세 04 가구와 땅굴 무드)
-    setMyFurnChoice(pruneChoice(getMyFurnChoice(), names))
     return myBurrowDto()
   }),
 
