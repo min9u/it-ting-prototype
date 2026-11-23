@@ -45,9 +45,9 @@ export const ENDPOINTS: readonly string[] = [
 export const REPORT_REASON_CODE: Record<string, ReportReason> = { '스팸·홍보': 'SPAM', '욕설·비하·괴롭힘': 'ABUSE', 음란물: 'OBSCENE', 기타: 'ETC' }
 /**
  * ReportDialog 가 주는 사유("기타: …" 포함) → POST /reports 본문.
- * targetId 는 앱 id(문자열)도 받는다 (toDtoId). 'MEETUP' 은 명세에 없는 옛 대상 — 모임 화면이 아직 부를 수 있어 받아만 둔다 (모임 신고는 이번 범위 아님)
+ * 명세 모양 그대로: targetType POST · COMMENT · MEMBER · GUESTBOOK, targetId 숫자(앱 id 문자열을 주면 toDtoId), reason SPAM · ABUSE · OBSCENE · ETC
  */
-export function reportBody<T extends ReportTargetType | 'MEETUP'>(targetType: T, targetId: Id | string, picked: string): { targetType: T; targetId: Id; reason: ReportReason; detail: string | null } {
+export function reportBody(targetType: ReportTargetType, targetId: Id | string, picked: string): ReportRequest {
   const etc = picked.startsWith('기타:')
   return { targetType, targetId: toDtoId(targetId), reason: etc ? 'ETC' : REPORT_REASON_CODE[picked] ?? 'ETC', detail: etc ? picked.slice(3).trim() : null }
 }

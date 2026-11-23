@@ -180,3 +180,12 @@ describe('04 내 땅굴 (목 서버)', () => {
     expect(await failure(burrow.deleteGuestbookEntry(id))).toMatchObject({ status: 404, code: 'GUESTBOOK_ENTRY_NOT_FOUND' })
   })
 })
+
+describe('신고 본문 (POST /reports, api/burrow/report.ts → api/community reportBody)', () => {
+  it('방명록 글 · 사용자 신고는 명세 모양: 숫자 targetId, 사유 코드 OBSCENE, 기타면 detail', async () => {
+    const { reportBody } = await import('../api/community/real')
+    expect(reportBody('GUESTBOOK', 'me-gb1', '음란물')).toEqual({ targetType: 'GUESTBOOK', targetId: toDtoId('me-gb1'), reason: 'OBSCENE', detail: null })
+    expect(reportBody('MEMBER', 'yerin', '기타: 사칭')).toEqual({ targetType: 'MEMBER', targetId: toDtoId('yerin'), reason: 'ETC', detail: '사칭' })
+    expect(typeof reportBody('MEMBER', 'yerin', '스팸·홍보').targetId).toBe('number')
+  })
+})
