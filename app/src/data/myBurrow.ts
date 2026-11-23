@@ -11,7 +11,7 @@ import { ME_ID, USERS } from './mock'
 import { INTEREST_SUBS, interestCatOf, migrateSubId, subOf, toSubIds } from './interests'
 import { FURNITURE_CATALOG, type FurnitureRow, type RoomPlan } from './roomPlan'
 import { wallpaperForCategory } from './wallpapers'
-import { ME_HOME } from './field'
+import { ME_HOME, MY_FLOOR, moveMyBurrow } from './field'
 import { questionOf, type Question } from './questions'
 
 /* ---------- 저장 도우미 ---------- */
@@ -50,14 +50,22 @@ const DEFAULT_PROFILE: MyProfile = {
 const PROFILE_KEY = 'digul.myProfile'
 export function getMyProfile(): MyProfile {
   const p = { ...DEFAULT_PROFILE, ...load<Partial<MyProfile>>(PROFILE_KEY, {}) }
-  // 들판·프로필 팝업이 쓰는 소속(ME_HOME)도 같이 맞춤
-  ME_HOME.campus = p.campus; ME_HOME.floor = p.floor
+  // 들판·프로필 팝업이 쓰는 소속(ME_HOME)도 같이 맞춤. 저장해 둔 캠퍼스-층이 내 땅굴 입구와 다르면(새로고침) 입구도 그 들판으로
+  syncHome(p.campus, p.floor)
   return p
+}
+/**
+ * 프로필의 캠퍼스-층을 내 땅굴 입구에 맞춤 (명세 04 내 정보 수정 "캠퍼스-층을 저장할 때": 프로필과 다르면 입구를 새 층으로, 자리를 새 들판의 다음 번호로).
+ * 입구(MY_FLOOR)와 같으면 아무것도 안 바꿈 → 닉네임만 바꿔 저장해도 자리가 그대로이고, 새 학기 안내 시연(입구가 지난 학기 들판)도 안 풀림
+ */
+function syncHome(campus: string, floor: number) {
+  if (campus !== MY_FLOOR.campus || floor !== MY_FLOOR.floor) moveMyBurrow(campus, floor)
+  else { ME_HOME.campus = campus; ME_HOME.floor = floor }
 }
 export function setMyProfile(p: Partial<MyProfile>) {
   const next = { ...getMyProfile(), ...p }
   save(PROFILE_KEY, next)
-  ME_HOME.campus = next.campus; ME_HOME.floor = next.floor
+  syncHome(next.campus, next.floor)
   // 다른 화면(헤더·프로필 팝업)이 USERS.me 를 읽으므로 닉네임·자기소개도 맞춰 둠
   USERS[ME_ID].nickname = next.nickname
   USERS[ME_ID].intro = next.intro

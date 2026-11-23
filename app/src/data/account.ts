@@ -3,7 +3,9 @@ import { createStore } from '../lib/store'
 /**
  * F10 계정 — 목 서버의 "DB" (api/settings/mock.ts · api/auth/mock.ts 만 쓴다. 화면은 api/settings 를 거친다).
  * 가입 방식 · Google 연동 · 비밀번호(목) · 관리자 역할. 프로토타입이라 브라우저(localStorage)에만 저장한다.
- * 차단은 팀 명세에서 뺀 기능이라(spec/README "이번 범위에 없는 것") 저장소에도 두지 않는다 (2026-11-22 모두 지움)
+ *
+ * 차단은 팀 명세에서 뺀 기능이다(spec/README "이번 범위에 없는 것"): 화면 · API 초안 · 이 저장소의 차단 목록까지 모두 지웠다.
+ * (예전 브라우저에 저장된 `digul.account.v1` 에 blocked 값이 남아 있어도 읽지 않으니 그대로 둬도 된다)
  */
 
 export type SignupMethod = 'email' | 'google'
@@ -39,7 +41,6 @@ const today = () => {
   const d = new Date()
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
-
 
 export function linkGoogle(email: string) { accountStore.set({ googleEmail: email }) }
 export function unlinkGoogle() { if (hasPassword()) accountStore.set({ googleEmail: null }) }

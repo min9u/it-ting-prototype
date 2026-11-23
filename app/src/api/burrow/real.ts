@@ -5,9 +5,9 @@
  * ENDPOINTS: 명세대로 구현한 API (명세 제목 그대로). src/tests/api-v1-endpoints.test.ts 가 명세와 비교한다
  * 이 영역 API 는 모두 온보딩을 마친 계정만 (아니면 403 ONBOARDING_INCOMPLETE · NEW_TERM_INCOMPLETE, 공통 문구)
  */
-import { http, seg } from '../client'
+import { ApiError, http, seg } from '../client'
 import type { Id, MoleDto, PageDto } from '../common/types'
-import type { GuestbookEntryDto, GuestbookQuery, MoleUpdateRequest, MyBurrowDto, ProfileUpdateRequest } from './types'
+import type { FurnitureDto, FurnitureUpdateRequest, GuestbookEntryDto, GuestbookQuery, MoleUpdateRequest, MyBurrowDto, ProfileUpdateRequest } from './types'
 
 export const ENDPOINTS: readonly string[] = [
   'GET /api/v1/me/burrow',
@@ -27,6 +27,12 @@ export const real = {
   updateMole: (body: MoleUpdateRequest) => http.patch<MoleDto>('/me/mole', body),
   /** PATCH /me/profile — 다섯 값 모두. 응답은 바뀐 내 땅굴 전체 (다시 조회하지 않음) */
   updateProfile: (body: ProfileUpdateRequest) => http.patch<MyBurrowDto>('/me/profile', body),
+  /**
+   * ⚠ 명세에 없음 (PENDING 참고): 꾸미기 모드 가구 탭 "저장하기". 서버에 API 가 생기기 전까지 실제 모드에서는 저장하지 못한다
+   * (거짓으로 성공한 척하지 않고 실패로 알림). 목 서버에서만 저장됨
+   */
+  updateFurniture: (_body: FurnitureUpdateRequest): Promise<FurnitureDto> =>
+    Promise.reject(new ApiError(501, 'NOT_IMPLEMENTED', '가구 저장은 서버에 아직 없어요.')),
   /** GET /burrows/{burrowId}/guestbook-entries — 최신순 페이지 (가려진 글 뺌). 없는 땅굴 404 BURROW_NOT_FOUND */
   guestbookEntries: (burrowId: Id, q: GuestbookQuery = {}, signal?: AbortSignal) =>
     http.get<PageDto<GuestbookEntryDto>>(`/burrows/${seg(burrowId)}/guestbook-entries`, { page: q.page, size: q.size }, signal),

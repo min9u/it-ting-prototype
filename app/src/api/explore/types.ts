@@ -134,6 +134,11 @@ export interface UserBurrowDto {
   }
   /** 이 땅굴이 놓인 들판의 입구 ("탐색"을 누르면 이 들판으로) */
   entrance: EntranceDto
+  /**
+   * ⚠ 목 전용 (명세에 없음, api/burrow/PENDING 참고): 주인이 꾸미기 가구 탭에서 고른 가구 단어 (세부 관심사 id → 단어).
+   * 서버가 주기 전에는 없음 = 모두 맨 앞 단어. 방문자도 주인이 고른 가구를 봐야 해서 서버가 줘야 함
+   */
+  furniture?: Record<string, string>
 }
 
 /* ===== 방명록 ===== */

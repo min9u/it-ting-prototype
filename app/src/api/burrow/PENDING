@@ -2,3 +2,11 @@
 # 이 영역 작업자가 하나를 명세대로 만들면 real.ts 의 ENDPOINTS 에 적고 여기서 지운다.
 # 다 하면 이 파일은 주석만 남긴다. src/tests/api-v1-endpoints.test.ts 가 이 목록을 "할 일(todo)"로 보고,
 # 명세에 있는데 ENDPOINTS 에도 PENDING 에도 없으면 실패한다.
+
+# ── 명세에 없어서 백엔드에 요청할 것 (2026-11-22, KAN-40 가구 탭) ──
+# 가구 단어 저장 API 없음. 내 땅굴 · 남의 땅굴 조회 응답에 furniture 필요.
+#   - 꾸미기 모드 가구 탭에서 세부 관심사마다 고른 단어(90개 중 57개)를 저장할 칸과 API. 지금은 목 서버에만 있음
+#     (api/burrow/mock.ts updateFurniture · MyBurrowDto.furniture · api/explore UserBurrowDto.furniture, 모두 선택 값)
+#   - 저장 API 는 PATCH /me/mole 처럼 화면마다 따로 둘지, 내 땅굴 조회 GET /me/burrow 와 남의 땅굴 조회 GET /users/{userId}/burrow 응답에 furniture 를 담아야 함
+#     (방문자도 주인이 고른 가구를 봄 / 관심사를 바꿀 때 뺀 것은 지우고 그대로 둔 것은 단어 유지)
+# 정할 질문: 단어를 지금처럼 한글 단어로 저장할지, 영어 코드 표를 만들어 코드만 저장할지(DB 설계 G4 는 코드 저장을 제안). 코드 표가 필요하면 90개 중 57개 소분류의 단어 코드 목록을 프론트가 만들어 드림

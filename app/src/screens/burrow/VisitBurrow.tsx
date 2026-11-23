@@ -104,8 +104,11 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const shared = b.shared
   // 관심사 이펙트: 나와 같은 관심사 가구가 빛남 · 집주인 대화 의향(목 데이터) 반딧불 (docs/interest-effects.md)
   const [fx] = useState(() => ({ viewer: getMyInterests(me.interests), talk: talkMoodOf(owner.id) }))
-  // 방 모습: 관심사로 계산 (명세: 가구와 무드는 저장하지도 주지도 않음, 프론트가 interests 로 그림). 내 땅굴과 같은 함수 (data/roomLook.ts)
-  const look = useMemo(() => roomLookOf(owner.id, owner.interests), [owner.id, owner.interests])
+  // 방 모습: 관심사로 계산 + 주인이 꾸미기 가구 탭에서 고른 가구 단어(b.furniture, 서버가 주기 전에는 없음 = 맨 앞 단어). 내 땅굴과 같은 함수 (data/roomLook.ts)
+  const look = useMemo(
+    () => roomLookOf(owner.id, owner.interests, Object.keys(b.furniture).length ? { wallpaperId: null, themeId: null, furniture: b.furniture } : null),
+    [owner.id, owner.interests, b.furniture],
+  )
 
   /** 방명록 남기기: 글 수를 먼저 올리고, 끝나면 첫 페이지를 다시 받음 (새 글이 맨 위). 실패하면 입력값을 되돌림 */
   const submitGb = () => {
@@ -199,7 +202,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
           <h2 id="req-title" className="display">대화 요청하기</h2>
           <div className={s.reqField}>
             <textarea value={reqMsg} maxLength={CHAT_REQUEST_MAX} onChange={(e) => setReqMsg(e.target.value)} aria-label="첫 인사" aria-describedby="req-count"
-              placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 소품 이야기로 시작하면 쉬워요.`} />
+              placeholder={`${owner.nickname}님에게 보낼 첫 인사를 적어주세요. 땅굴에서 본 가구 이야기로 시작하면 쉬워요.`} />
             <div className={s.reqFieldFoot}>
               <span id="req-count">{reqMsg.length} / {CHAT_REQUEST_MAX}</span>
               <span>겹치는 관심사 {shared.length}개</span>
