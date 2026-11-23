@@ -25,6 +25,7 @@ npm run dev            # 개발 서버 http://localhost:3000 (실험실 켜짐, 
 | `npm run smoke` | 화면 스모크: 빌드 결과를 `next start -p 3100` 으로 띄우고 헤드리스 크롬으로 화면 105개를 엶 |
 | `npm run smoke -- --gpu=off` | 그래픽 가속 끈 크롬으로 (저사양 PC 흉내) |
 | `npm run check:labs-off` | 실험실 끈 빌드를 만들고 실험실 주소 404 · 결과물에 실험실 코드 없음을 확인 |
+| `node scripts/nav-check.mjs --url=http://127.0.0.1:3000` | 떠 있는 서버에서 화면 이동 어댑터 확인 (나가기 막기 · 뒤로가기 막기 · 이동 state · 온보딩 입력 유지). `next dev` 는 첫 컴파일이 느려서 `next start` 추천 |
 
 스모크 옵션: `--only=meetups`(주소에 meetups 가 든 화면만) · `--url=http://127.0.0.1:3000`(떠 있는 서버 사용, 이때 `--labs=on|off`) · `--list` · `--no-fail`. 결과는 `shots/smoke/<gpu>/report.md` 와 화면별 PNG (커밋 안 함). 크롬 경로는 `CHROME=...` 로 바꿈.
 

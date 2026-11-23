@@ -100,7 +100,7 @@
 8. **`import.meta.url`(three/stills.ts 의 빌드 표시)**: Vite 는 청크 파일 이름이었지만 Next 에서는 아님 → `next.config.ts` 가 빌드마다 `NEXT_PUBLIC_BUILD_STAMP` 를 넣음
 9. **react-router 를 직접 쓰던 곳**: `LowLab` · `GpuNotice` 의 `router.subscribe` → `usePathname`, `RouteError` 의 `useRouteError` → error.tsx 의 `error` prop, `main.tsx` 의 `registerNavigator(router.navigate)` → `NavBridge`, `installChunkReload`(vite:preloadError) 는 Next 에 없는 이벤트라 뺌(청크 실패는 에러 경계의 `isChunkLoadError` 가 처리)
 10. **테스트 2개가 `MemoryRouter` 를 씀** → `src/tests/memoryRouter.ts`: Next 앱 라우터가 넣는 컨텍스트(AppRouter · Pathname · SearchParams · PathParams)를 직접 넣어 jsdom 에서 그림
-11. **린트**: Next 기본 설정이 처음 72개 오류. 진짜 고친 것: 훅 이름처럼 보이는 일반 함수(`useA` · `useBackdrop` · `useWorker` → `want*`, rules-of-hooks 오탐), JSX 따옴표, prefer-const, 안 쓰는 disable 주석. 설정으로 조정: React Compiler 용 규칙 3개(`refs` · `set-state-in-effect` · `purity`)는 경고(이 프로젝트는 Compiler 를 안 쓰고 3D 연결에 일부러 씀), `no-img-element` 끔(이미지가 주소 문자열), 생성 파일 `mole.ts` · `furniture.ts` 제외. 결과 오류 0 · 경고 55
+11. **린트**: Next 기본 설정이 처음 72개 오류. 진짜 고친 것: 훅 이름처럼 보이는 일반 함수(`useA` · `useBackdrop` · `useWorker` → `want*`, rules-of-hooks 오탐), JSX 따옴표, prefer-const, 안 쓰는 disable 주석. 설정으로 조정: React Compiler 용 규칙 3개(`refs` · `set-state-in-effect` · `purity`)는 경고(이 프로젝트는 Compiler 를 안 쓰고 3D 연결에 일부러 씀), `no-img-element` 끔(이미지가 주소 문자열), 생성 파일 `mole.ts` · `furniture.ts` 제외. 결과 오류 0 · 경고 56
 12. `next dev` 가 `frontend/AGENTS.md` 를 만들어 넣음 → `agentRules: false` (규칙은 팀 리포 맨 위 AGENTS.md)
 13. **CSS 순서가 달라 버튼 높이 등이 바뀜** (화면 비교에서 발견): Vite 앱은 `main.tsx` 가 `App`(화면들의 모듈 CSS)을 먼저 불러오고 `global.css` 를 나중에 불러와서, 명시도가 같으면 전역 클래스가 이겼음(예: 모임 옆 "캘린더로 보기"는 `.btn-sm` 36px 이 모듈 `.calBtn` 46px 을 이김, 방명록 "남기기", 모임 상세 버튼들). Next 는 루트 레이아웃의 전역 CSS 가 먼저라 모듈이 이김 → 모임 화면 전부 · 방명록 모달이 0.9~3% 달랐음. 처음엔 `.btn.btn` 처럼 클래스를 겹쳤더니 반대로 `.actions button`(모듈, 0,1,1)이 지던 곳(확인 창 버튼)이 틀어짐 → 전역 클래스 선택자에 `:not(template)` 을 붙여 **명시도를 요소 하나(0,0,1)만큼** 올림. 정수 명시도에서 "전역+0,0,1 > 모듈" ⇔ "전역 ≥ 모듈" 이라 Vite 의 "같으면 전역" 과 정확히 같은 결과. `styles/global.css` 주석에 적음
 
@@ -109,19 +109,26 @@
 | 검사 | 결과 |
 |---|---|
 | `npx tsc --noEmit` | 통과 |
-| `npm run lint` | 오류 0 · 경고 55 (React Compiler 규칙 경고) |
+| `npm run lint` | 오류 0 · 경고 56 (거의 React Compiler 규칙 경고) |
 | `npm test` | 45 파일 · 630 통과 (+ todo 2), Vite 앱과 같은 수 |
 | `npm run build` | 통과 (라우트 45개, 실험실 끔) |
 | 스모크 실험실 끈 빌드 · gpu=on | 105개 OK 105 |
-| 스모크 실험실 켠 빌드 · gpu=on | (아래 "화면 비교"에 기록) |
-| 스모크 실험실 켠 빌드 · gpu=off | (아래 "화면 비교"에 기록) |
+| 스모크 실험실 켠 빌드 · gpu=on | 105개 OK 105 (`/dev/crash` 는 예상한 오류 화면) |
+| 스모크 실험실 켠 빌드 · gpu=off | 105개 OK 105 |
 | `npm run check:labs-off` | 통과 (4개 주소 404, 결과물에 실험실 글 없음) |
-| `scripts/nav-check.mjs` (next dev) | (아래) |
+| `node scripts/nav-check.mjs --url=…` (next start) | 6/6: 글쓰기 중 헤더 링크 막기 · 나가기 · 브라우저 뒤로가기 막기 · 나가기 · 로그인→회원가입 이메일 state · 온보딩 단계 오가도 입력 유지 |
 | SSE rewrite (가짜 SSE 서버) | next dev · next start 모두 1초마다 이벤트 |
 
 ## 화면 비교 (Vite ↔ Next)
 
-(작성 중)
+두 앱의 빌드를 같은 스모크(크롬 157, 1440×960, 화면마다 저장소 비움)로 105개 화면을 찍고 같은 주소끼리 픽셀을 비교 (색 차 합 30 넘는 픽셀 비율 + 다른 영역 상자).
+
+- 처음: 모임 화면 전부(옆 "캘린더로 보기" · "모임 만들기", 상세 신청 버튼) 0.8~1%, 방명록 모달 3.4%, 오늘의 추천 1.3% → 원인은 CSS 순서 (위 "문제 13"). 고친 뒤 이 화면들은 0%
+- 고친 뒤 남은 차이는 모두 같은 화면의 "움직이는 것"뿐:
+  - `/look` 19.6%: 들판 풀 · 꽃 배치가 Math.random 이라 열 때마다 다름 (three/fieldScene.ts). 표지판 · 두더지 · 글은 같음
+  - 땅굴 · 채팅 찻방 · 온보딩 두더지 미리보기 0.1~0.7%: 3D 두더지 동작 프레임, 채팅 "오후 3:12" 같은 상대 시각(찍은 시각이 다름)
+  - `/dev/crash` 3.6%: Vite 빌드에는 없는 주소(없는 주소 화면), Next 실험실 켠 빌드에는 있는 화면(에러 경계 화면) — 의도한 차이
+- 눈으로 본 화면(랜딩 · 내 땅굴 · 탐색 · 방문 · 채팅 · 모임 목록/상세 · 게시판 · 알림 · 설정 · 온보딩): 글꼴(Pretendard · Do Hyeon) · 색 · 배치 같음. 로그인 · 회원가입 · 게시판 · 설정 · 온보딩 관심사/소개 등 정적인 화면 40여 개는 0.00%
 
 ## 남은 차이
 
