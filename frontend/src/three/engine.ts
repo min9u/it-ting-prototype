@@ -42,7 +42,7 @@ export interface Quality {
   bakeSamples: number
   /** 탐색 들판 점프 카메라 이동 중 배경 해상도 (캔버스 대비, holeField R) */
   panScale: number
-  /** 찻방 숨쉬기·두리번만 할 때 fps (TeaRoomCanvas) */
+  /** 찻방 숨쉬기·두리번만 할 때 fps (chatRoomScene) */
   idleFps: number
 }
 

@@ -94,7 +94,7 @@ frontend/
    ├─ api/               API 영역별 real/mock, 공통 클라이언트 · React Query
    ├─ realtime/          SSE
    ├─ data/ · lib/       데이터 · 유틸. lib/env.ts(환경 변수) · lib/nav.tsx(화면 이동 어댑터)
-   ├─ three/             three.js 장면 (mole.ts · furniture.ts 는 생성 파일: 직접 고치지 말 것)
+   ├─ three/             three.js 장면
    ├─ labs/              화면 안 실험실 조각 고르기
    ├─ assets/            glb · 이미지 · 벽지 (import 하면 주소 문자열)
    ├─ styles/            토큰 · 전역 CSS

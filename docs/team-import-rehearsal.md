@@ -159,10 +159,10 @@ node tools/team-import/report.mjs /tmp/import.json     # 결과 표
 - **CI 는 실행해 보지 못함** (푸시 안 함). 워크플로 YAML 문법만 확인, `actions/checkout@v7` · `actions/setup-node@v7` 은 지금 최신 태그(v7.0.1 · v7.1.0)
 - **팀 명세가 바뀌면 프론트 테스트가 깨짐**: `api-v1-endpoints` · `interest-map` · `notice-types` 테스트가 팀 리포 `docs/api` · `docs/spec` 을 직접 읽음 (예: 명세 API 111개). 옮기기 직전에 팀 `origin/dev` 명세를 이 리포 사본(`docs/backend/team-spec/`)에 다시 맞추고 `frontend/` 를 고친 뒤 스크립트를 돌릴 것. 반대로 나중에 백엔드가 명세를 바꾸면 프론트 CI 가 실패해서 알려 줌 (좋은 점이지만 백엔드 PR 은 `frontend/**` 경로 필터에 안 걸려서 다음 프론트 PR 에서 드러남)
 - **주소만 여는 커밋 4개** (회원가입 · 비밀번호 찾기 · 글쓰기 · 내 활동): 리뷰어가 "화면 추가인데 코드가 없다"고 볼 수 있음. 본문에 까닭을 적었음. 더 깔끔하게 하려면 옮기기 전에 이 리포에서 `Auth.tsx` → `Login` · `Signup` · `PasswordReset` 파일로, `Board.tsx` 의 묶음을 페이지별로 나누는 리팩터를 먼저 하면 됨 (이번엔 `frontend/` 를 안 고친다는 규칙이라 안 함)
-- **안 쓰는 파일도 같이 감** (지우면 커밋이 더 깔끔): `src/assets/prop-thumbs/` 131개(676KB, 테스트만 봄, 꾸미기 가구 탭을 뺀 뒤 남음), `src/assets/room-v2.webp`, `components/GuestbookItem.tsx`, `three/TeaRoomCanvas.tsx`, `three/mole.ts` · `three/furniture.ts`(옛 생성 파일). 지울지 사용자 결정 필요
+- ~~**안 쓰는 파일도 같이 감**~~ → 2026-11-23 사용자 결정으로 `frontend/`에서 지움: `src/assets/prop-thumbs/` 131개(676KB) · `src/assets/room-v2.webp` · `components/GuestbookItem.*` · `three/TeaRoomCanvas.tsx` · `three/mole.ts` · `three/furniture.ts`. `prop-tab.test.ts`의 썸네일 시험을 빼고, 썸네일 커밋은 `test: 관심사 가구 단어 테스트 추가`로 바뀜. `app/`(공유 빌드)은 그대로 (`mole.ts` · `furniture.ts`는 `explore/3d/lib/build-app.js`가 만드는 파일)
 - **큰 바이너리**: 모델 · 텍스처 약 14MB + Draco 0.75MB 가 팀 리포 이력에 들어감 (Git LFS 없음). 팀이 괜찮은지 확인
 - **커밋 62개 한 PR**: 리뷰 부담. PR 본문에 커밋 순서 묶음(설정 · 3D · API · 화면 · 테스트 · CI)을 표로 보여 주면 좋음. 팀 규칙상 계획서(`docs/work/KAN-<번호>.md`)도 같은 PR 에 들어가야 하는데, 이 스크립트는 계획서를 만들지 않음 → 계획서 커밋(`docs:`)을 맨 끝에 손으로 더하거나 `plan.json` 에 `team` 항목으로 추가
 - `AGENTS.md` 의 "(KAN-25에서 추가)" 를 지웠음. KAN-25 를 쓰기로 하면 그 표기를 남길지 정할 것
-- 린트 경고는 커밋이 쌓이며 0 → 56 (이 리포와 같은 수, 거의 React Compiler 규칙 경고). 오류는 모든 커밋에서 0
+- 린트 경고는 커밋이 쌓이며 0 → 56(파일 정리 뒤 55) (이 리포와 같은 수, 거의 React Compiler 규칙 경고). 오류는 모든 커밋에서 0
 - 커밋 1 · 2 는 테스트 파일이 없어 `--passWithNoTests`. 화면 스모크(`npm run smoke`, 헤드리스 크롬 105화면)는 커밋마다 돌리지 않았음 (마지막 트리는 이 리포 `frontend/` 와 같아서 이 리포의 스모크 결과가 그대로 해당)
 - 연습 브랜치 이름 `chore/fe/KAN-0-frontend-import` 의 `KAN-0` 은 자리표시. 실제 번호를 받으면 `--branch` 만 바꿈

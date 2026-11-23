@@ -61,33 +61,3 @@ describe('소품 탭: 저장 · 관심사 바꾸면', () => {
     expect(wordsOfSub(sw.subId)).toBeTruthy()
   })
 })
-
-describe('소품 썸네일 (3D 핸드오프 v3.8.1, 규격은 docs/room-interest-v3-8-step4-5.md 3번)', () => {
-  const FS = 'node:fs'
-  const NODES = SUB_WORDS.filter((s) => s.pickable).flatMap((s) => s.words.map((w) => w.node))
-  const load = async () => (await import(/* @vite-ignore */ FS)) as { readdirSync(p: string): string[]; readFileSync(p: string): Uint8Array }
-  const DIR = 'src/assets/prop-thumbs'
-
-  it('단어를 고를 수 있는 소분류의 모델 131개 전부 썸네일이 있고, 남는 파일은 없음', async () => {
-    const fs = await load()
-    expect(NODES).toHaveLength(131)
-    expect(new Set(NODES).size).toBe(131)
-    const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.webp')).map((f) => f.replace(/\.webp$/, ''))
-    expect(NODES.filter((n) => !files.includes(n)), '없는 썸네일').toEqual([])
-    expect(files.filter((f) => !NODES.includes(f)), '모델과 이름이 안 맞는 파일').toEqual([])
-  })
-  it('규격: 192×192 투명(알파) WebP, 파일당 12KB 이하', async () => {
-    const fs = await load()
-    for (const n of NODES) {
-      const b = fs.readFileSync(`${DIR}/${n}.webp`)
-      expect(new TextDecoder().decode(b.subarray(0, 4)), n).toBe('RIFF')
-      expect(new TextDecoder().decode(b.subarray(8, 12)), n).toBe('WEBP')
-      // 알파가 있는 WebP 는 VP8X 확장 헤더: 플래그 바이트 0x10 = 알파, 캔버스 폭·높이(−1) 3바이트씩
-      expect(new TextDecoder().decode(b.subarray(12, 16)), `${n} VP8X`).toBe('VP8X')
-      expect(b[20] & 0x10, `${n} 알파`).toBe(0x10)
-      const w = 1 + (b[24] | (b[25] << 8) | (b[26] << 16)), h = 1 + (b[27] | (b[28] << 8) | (b[29] << 16))
-      expect([w, h], n).toEqual([192, 192])
-      expect(b.byteLength, n).toBeLessThanOrEqual(12 * 1024)
-    }
-  })
-})
