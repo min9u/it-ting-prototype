@@ -165,6 +165,8 @@ server {
 - Nginx 뒤에서 https 를 알아듣게: `server.forward-headers-strategy=framework` (리다이렉트 주소·`Secure` 쿠키 판단).
 
 ### 2-3. WebSocket · STOMP (프론트 `app/src/realtime/`, 자세한 약속은 frontend-hardening.md 1-4)
+
+> **2026-11-22 대체됨**: 백엔드 확정 명세 v1 은 실시간을 SSE 하나(`GET /api/v1/me/event-stream`)로 정했고 프론트의 STOMP 코드 · `/ws` 프록시 · `VITE_WS_URL` · `VITE_REALTIME` 은 지웠다 ([api-v1-foundation.md](backend/api-v1-foundation.md)). 아래는 옛 기록
 ```java
 @Configuration @EnableWebSocketMessageBroker
 public class WsConfig implements WebSocketMessageBrokerConfigurer {
@@ -193,9 +195,8 @@ public class WsConfig implements WebSocketMessageBrokerConfigurer {
 `app/.env.production` (커밋해도 되는 값만. `VITE_` 값은 JS 에 그대로 박혀 누구나 볼 수 있음)
 ```
 VITE_HASH_ROUTER=0
-VITE_API_BASE=/api
-VITE_WS_URL=/ws
-VITE_REALTIME=stomp
+VITE_API_BASE=/api/v1
+VITE_API_MODE=real
 ```
 - 목록과 뜻: `app/.env.example`, 읽는 곳: `app/src/lib/env.ts` 하나.
 - `"0"`·`"false"` 는 거짓으로 읽는다 (예전에는 `VITE_HASH_ROUTER=0` 도 참이었음, D3).

@@ -570,9 +570,9 @@
   VITE_API_MODE=real
   DEV_PROXY_TARGET=http://localhost:8080
   ```
-  개발 서버가 `/api`·`/ws`를 백엔드로 넘겨서, 브라우저 입장에선 같은 출처라 CORS(다른 출처 요청 차단) 문제가 없다. `API_PROXY_TARGET`이라는 이름도 같은 뜻으로 읽는다 (`app/vite.config.ts`)
-- 채팅 실시간은 `VITE_REALTIME=stomp`, 주소는 `VITE_WS_URL`(기본 `/ws`)
-- 영역 하나만 먼저 붙이려면 `app/src/api/<영역>.ts` 맨 아래의 `API_MODE === 'real' ? real : mock`을 그 영역만 `real`로
+  개발 서버가 `/api`(실시간 소식 SSE 포함)를 백엔드로 넘겨서, 브라우저 입장에선 같은 출처라 CORS(다른 출처 요청 차단) 문제가 없다. `API_PROXY_TARGET`이라는 이름도 같은 뜻으로 읽는다 (`app/vite.config.ts`)
+- 실시간은 2026-11-22 부터 SSE 하나(`GET /api/v1/me/event-stream`)라 따로 정할 값이 없다 (옛 `VITE_REALTIME` · `VITE_WS_URL` 은 지움)
+- 영역 하나만 먼저 붙이려면 `VITE_API_REAL_AREAS=common,auth` 처럼 영역 이름을 적는다 ([api-v1-foundation.md](backend/api-v1-foundation.md) 2장 "실제 서버로 바꾸기")
 - `VITE_`로 시작하는 값은 빌드 결과에 글자 그대로 박혀 누구나 볼 수 있다. 비밀 키를 넣지 않는다
 - 자세한 것: [backend/frontend-data-layer.md](backend/frontend-data-layer.md)
 

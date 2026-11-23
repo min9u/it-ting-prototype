@@ -40,7 +40,7 @@ const QUICK = ['땅굴 구경 잘했어요!', '같이 게임 한 판 해요', '�
  * - 대화 버튼은 chat.status 4가지 (CHATTING 대화하기 · REQUEST_SENT 요청 보냄 · REQUEST_RECEIVED 누르면 안내 토스트 · NONE 팝업)
  * - 우체통 깃발 = 방명록 글이 하나라도 있으면 (guestbookCount), 단골 = PUT/DELETE, 방 모습 = 관심사로 계산 (서버는 가구 · 무드를 주지 않음)
  * - 내가 거절했던 요청이 남은 사람에게 보내면 서버가 바로 대화방을 열어 줌 → 그 대화방으로
- * 데모용 쿼리: ?modal=request · ?toast=request · ?panel=open
+ * 데모용 쿼리: ?modal=request · ?modal=guestbook(우체통) · ?toast=request · ?panel=open
  */
 export default function VisitBurrow() {
   const { userId = 'yerin' } = useParams()
@@ -80,7 +80,7 @@ function VisitBurrowView({ b }: { b: BurrowVM }) {
   const qc = useQueryClient()
   const act = useVisitActions(b)
   const send = useSendChatRequest(owner.id)
-  const [allOpen, setAllOpen] = useState(false)
+  const [allOpen, setAllOpen] = useState(params.get('modal') === 'guestbook')
   // 방명록 목록 · 지우기는 04 API (주인 · 방문자가 같이 씀): 서버가 나눈 5개씩 페이지, 우체통 창을 열 때만 받음
   const [gbPage, setGbPage] = useState(1)
   const gb = useGuestbookEntries(b.burrowId, gbPage, { enabled: allOpen })

@@ -60,7 +60,7 @@
 | 오프라인 | 시도를 멈추고 30초마다 한 번만 확인, `online` 이벤트면 바로 |
 | bfcache 로 돌아옴 | 소켓이 닫혀 있으므로 바로 다시 연결 |
 | 인증 실패 | STOMP `ERROR`(401·expired 등) 또는 닫힘 코드 4401 → 다시 시도하지 않고 `lib/authFlow.ts handleUnauthorized()` |
-| 로그아웃·탈퇴 | `stopChatRealtime()` (설정 화면) |
+| 로그아웃·탈퇴 | `afterSignOut()` → `stopEventStream()` (lib/signOut.ts, 2026-11-22 SSE 로 바뀜) |
 | 연결 시작 | 로그인 영역(`App.tsx` AppLayout)에 들어올 때 `startChatRealtime()`. 시작 화면·로그인 화면에서는 연결하지 않음 |
 
 ### 1-3. 화면에서 보이는 것

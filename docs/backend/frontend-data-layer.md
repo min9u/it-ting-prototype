@@ -1,6 +1,6 @@
 # 프론트 데이터 계층 (API · 목 서버 · 화면 상태)
 
-> **2026-11-22 바뀜**: 백엔드 확정 명세(v1)에 맞춰 `api/` 구조를 영역 폴더로 나눴다 (`api/queries.tsx` · `types.ts` · `mappers.ts` · `api/<영역>.ts` 는 없어짐). 지금 구조와 규칙은 [api-v1-foundation.md](api-v1-foundation.md). 아래는 2026-11-16 기록
+> **이 문서는 옛 기록이다 (2026-11-22 대체됨)**: 백엔드 확정 명세(v1)에 맞춰 `api/` 구조를 영역 폴더로 나눴고(`api/queries.tsx` · `types.ts` · `mappers.ts` · `api/<영역>.ts` · `api/mock/serialize.ts` 는 없어짐), 실시간은 WebSocket 대신 SSE 하나, 401 리프레시는 없어졌다. **지금 구조와 규칙은 [api-v1-foundation.md](api-v1-foundation.md)**(합친 뒤 정리는 7장), 영역별 결과는 [api-v1/](api-v1/), 바뀐 기능은 [api-v1/feature-changes.md](api-v1/feature-changes.md). 아래는 2026-11-16 기록으로만 둔다
 
 - 날짜: 2026-11-16
 - 요청: 백엔드 API 명세가 나오기 전에 프론트를 연결에 대비시키기 — API 계층, 목 서버, 로딩·에러·없음 상태, 날짜 통일
