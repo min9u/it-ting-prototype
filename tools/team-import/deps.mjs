@@ -92,6 +92,14 @@ export function buildGraph(root, files) {
         for (const x of files) if (re.test(x)) deps.add(x)
       }
     }
+    // 테스트가 fs 로 직접 읽는 파일 · 폴더 ('src/assets/x.glb', `src/assets/models/room/${f}`, 'src/assets/prop-thumbs')
+    if (/\.test\.ts$/.test(f)) {
+      for (const m of src.matchAll(/['"`](src\/[^'"`$\s]+)/g)) {
+        const p = m[1].replace(/\/$/, '')
+        if (set.has(p)) deps.add(p)
+        else for (const x of files) if (x.startsWith(`${p}/`)) deps.add(x)
+      }
+    }
     for (const s of specs) {
       const r = resolve(f, s)
       if (r) deps.add(r)
