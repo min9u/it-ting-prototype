@@ -3,6 +3,7 @@
  */
 import { toAppId, toDtoId, toPersonFromDisplay, type Id, type Person } from '../common'
 import { CATEGORIES } from '../../data/mock'
+import { categorySeedId } from '../mock/seedIds'
 import type { PostCategory, Tone } from '../../data/types'
 import { parseIso } from '../../lib/time'
 import type {
@@ -19,7 +20,7 @@ export const POST_SORT_CODE: Record<PostSortLabel, PostSort> = { 최신순: 'LAT
 /* ===== 관심사 대분류: 화면은 이름, 서버는 id ===== */
 /**
  * 받은 응답에서 본 { id, name } 을 기억해 둔다 → 거르기(interestCategoryId) · 글쓰기(interestCategoryIds)에 이름으로 id 를 찾는다.
- * 못 본 이름은 앱 대분류 표(data/mock CATEGORIES)의 코드로 (목 서버는 이 코드를 숫자로 바꿔 쓴다).
+ * 못 본 이름은 앱 대분류 표(data/mock CATEGORIES)의 순서로 (명세 dev 9ea6698: 대분류 id 는 00 공통 5 표 순서 1 ~ 12, api/mock/seedIds).
  * 실제 서버의 대분류 id 는 GET /interest-categories(온보딩 영역)로 채우는 것이 맞다 → docs/backend/api-v1/08-community.md
  */
 const catIdByName = new Map<string, Id>()
@@ -28,7 +29,7 @@ export function interestCategoryIdOf(name: string): Id | undefined {
   const seen = catIdByName.get(name)
   if (seen != null) return seen
   const cat = CATEGORIES.find((c) => c.name === name)
-  return cat ? toDtoId(cat.id) : undefined
+  return cat ? categorySeedId(cat.id) : undefined
 }
 const catNames = (l: InterestCategoryRefDto[]) => { rememberInterestCategories(l); return l.map((c) => c.name) }
 

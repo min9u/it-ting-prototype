@@ -8,6 +8,7 @@ import { ApiError } from '../client'
 import { cursorPage, emptyCursor, emptyPage, forbidden, invalidInput, items, mockRead, mockWrite, notFound, paginate, conflict } from '../mock/server'
 import { rawPerson, userDisplay, interestTags } from '../common/mockPeople'
 import { toAppId, toDtoId } from '../common/ids'
+import { categoryCodeOfSeed, categorySeedId } from '../mock/seedIds'
 import type { Id } from '../common/types'
 import { CATEGORIES, ME_ID, USERS } from '../../data/mock'
 import { meetupCategoryOf } from '../../data/meetupCategory'
@@ -36,10 +37,10 @@ const HOUR = 3_600_000
 
 /** 목 사진은 대개 색 칸뿐이라 "tone:<색>" 주소로 (올린 사진은 object URL). 실제 서버는 이미지 URL */
 export const photoUrl = (ph: BoardPhoto) => ph.url ?? `tone:${ph.tone}`
-/** 관심사 대분류 이름 → { id, name } (id 는 대분류 코드 'outdoor' 의 목 번호) */
-const catRef = (name: string): InterestCategoryRefDto => ({ id: toDtoId(CATEGORIES.find((c) => c.name === name)?.id ?? name), name })
+/** 관심사 대분류 이름 → { id, name } (id 는 백엔드 처음 값과 같은 번호, api/mock/seedIds) */
+const catRef = (name: string): InterestCategoryRefDto => ({ id: categorySeedId(CATEGORIES.find((c) => c.name === name)?.id ?? name), name })
 /** 받은 대분류 id → 이름 (없는 id 면 undefined) */
-const catNameOf = (id: Id) => { const app = toAppId(id); return CATEGORIES.find((c) => c.id === app)?.name }
+const catNameOf = (id: Id) => { const code = categoryCodeOfSeed(id); return CATEGORIES.find((c) => c.id === code)?.name }
 
 export function postCard(p: BoardPost, opts: { hiddenVisible?: boolean } = {}): PostCardDto {
   return {

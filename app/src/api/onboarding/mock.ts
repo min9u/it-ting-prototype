@@ -2,7 +2,8 @@
  * 03 온보딩 (+ 00 관심사 · 질문 · 프로필 팝업) — 목 서버 (명세 모양 그대로).
  * "DB": data/mock CATEGORIES(관심사 + 목 인원수) · data/questions QUESTIONS · data/myBurrow(닉네임 · 질문 답) ·
  *        data/interests(내 관심사) · data/moleItems(내 두더지)
- * id: 관심사 · 대분류 · 질문은 앱 코드(cafe_coffee · food · music-1)를 toDtoId 로 목 번호로 (앱 쪽 toAppId 로 되돌아옴)
+ * id: 대분류 · 세부 관심사는 백엔드 처음 값과 같은 번호(00 공통 5 표 순서, api/mock/seedIds.ts). 앱은 이름으로 잇는다.
+ *     질문은 앱 코드(music-1)를 toDtoId 로 목 번호로 (앱 쪽 toAppId 로 되돌아옴). 순서는 대분류 표 순서 → TMI (백엔드 처음 값과 같은 순서)
  */
 import { setMockNextStep } from '../../data/auth'
 import { CATEGORIES, ME_ID } from '../../data/mock'
@@ -13,6 +14,7 @@ import { QUESTIONS } from '../../data/questions'
 import { toIso } from '../../lib/time'
 import { badRequest, invalidInput, items, mockRead, mockWrite, notFound } from '../mock/server'
 import { toAppId, toDtoId } from '../common/ids'
+import { categorySeedId, interestSeedId } from '../mock/seedIds'
 import { interestTags, rawPerson, userDisplay } from '../common/mockPeople'
 import type { FieldError, UserDisplayDto } from '../common/types'
 import { getMyWorn } from '../../data/moleItems'
@@ -32,15 +34,17 @@ export function userDisplayDto(appId: string): UserDisplayDto {
 
 export const mock: OnboardingApi = {
   interestCategories: (signal) => mockRead(() => items(CATEGORIES.map((c) => ({
-    id: toDtoId(c.id), name: c.name,
-    interests: c.tags.map((t) => ({ id: toDtoId(t.id), name: t.name, userCount: t.count })),
+    id: categorySeedId(c.id), name: c.name,
+    interests: c.tags.map((t) => ({ id: interestSeedId(t.id), name: t.name, userCount: t.count })),
   }))), { signal }),
 
   introQuestions: (type, signal) => mockRead(() => {
     if (type && type !== 'INTEREST' && type !== 'TMI') throw invalidInput({ type: 'INTEREST, TMI 가운데 하나여야 합니다.' })
-    const all = QUESTIONS.map((q) => ({
+    // 백엔드 처음 값의 순서(id 순): 관심사 질문(대분류 표 순서) → TMI
+    const order = (q: (typeof QUESTIONS)[number]) => (q.kind === 'tmi' || !q.category ? 1000 : Number(categorySeedId(q.category)))
+    const all = [...QUESTIONS].sort((a, b) => order(a) - order(b)).map((q) => ({
       id: toDtoId(q.id), type: q.kind === 'tmi' ? 'TMI' as const : 'INTEREST' as const,
-      interestCategoryId: q.kind === 'tmi' || !q.category ? null : toDtoId(q.category), content: q.text,
+      interestCategoryId: q.kind === 'tmi' || !q.category ? null : categorySeedId(q.category), content: q.text,
     }))
     return items(type ? all.filter((q) => q.type === type) : all)
   }, { signal }),

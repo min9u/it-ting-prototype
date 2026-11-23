@@ -12,6 +12,7 @@ import { moleDto as moleDtoOf } from './moleCodes'
 import { ME_HOME, affOf, fieldUserOf } from '../../data/field'
 import type { User } from '../../data/types'
 import { toDtoId } from './ids'
+import { categorySeedId, interestSeedId } from '../mock/seedIds'
 import type { InterestTagDto, MoleDto, UserDisplayDto } from './types'
 
 /** 목 데이터에서 탈퇴한 사람을 가리키는 id (앱의 GONE_ID 와 같음) */
@@ -52,7 +53,8 @@ export function interestTags(id: string, viewerId: string = ME_ID): InterestTagD
   const viewer = rawPerson(viewerId)
   const mine = new Set(viewer ? (viewerId === ME_ID ? getMyInterests(viewer.interests) : viewer.interests) : [])
   return names.map((name) => ({
-    id: toDtoId(subOf(name)?.id ?? name), name, interestCategoryId: toDtoId(categoryOf(name)?.id ?? 'etc'),
+    // 관심사 · 대분류 id 는 백엔드 처음 값과 같은 번호 (api/mock/seedIds)
+    id: interestSeedId(subOf(name)?.id ?? name), name, interestCategoryId: categorySeedId(categoryOf(name)?.id ?? 'etc'),
     isShared: id !== viewerId && mine.has(name),
   }))
 }

@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { TAG_TREE } from '../data/interestTags'
 import { categoryCodeOfName, interestCodeOfName, interestIdsOf, toInterestCatalog } from '../api/onboarding/interestMap'
 import { toAppId } from '../api/common/ids'
+import { categoryCodeOfSeed, categorySeedId, interestCodeOfSeed, interestSeedId } from '../api/mock/seedIds'
 
 const FS = 'node:fs'
 const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, enc: string): string }
@@ -52,6 +53,21 @@ describe('명세 00 공통 5 관심사 표 → 앱 코드', () => {
     const extra = TAG_TREE.flatMap((c) => c.subs.map(([, n]) => n)).filter((n) => !specNames.has(n))
     expect(extra).toEqual([])
   })
+  it('앱 표(TAG_TREE)의 순서가 명세 표 순서와 같음 (백엔드 처음 값의 id 순, 명세 dev 9ea6698)', () => {
+    expect(TAG_TREE.map((c) => c.id)).toEqual(rows.map((r) => categoryCodeOfName(r.cat)))
+    expect(TAG_TREE.flatMap((c) => c.subs.map(([code]) => code))).toEqual(rows.flatMap((r) => r.subs.map((n) => interestCodeOfName(n))))
+  })
+  it('목 서버 id = 처음 값: 대분류 1 ~ 12 · 세부 1 ~ 90 이 표 순서, 되돌리기도 됨', () => {
+    expect(categorySeedId('food')).toBe(1)
+    expect(categorySeedId('sports')).toBe(2)
+    expect(interestSeedId('restaurant_tour')).toBe(1)
+    expect(interestSeedId('fitness_yoga')).toBe(8)
+    expect(interestSeedId('running')).toBe(9)
+    const subs = rows.flatMap((r) => r.subs)
+    expect(interestCodeOfName(subs[89])).toBe(interestCodeOfSeed(90))
+    expect(categoryCodeOfSeed(12)).toBe(categoryCodeOfName(rows[11].cat))
+    expect(interestCodeOfSeed(91)).toBeNull()
+  })
   it('이름 비교는 공백을 무시함 ("음식 · 음료" = "음식·음료")', () => {
     expect(categoryCodeOfName('음식 · 음료')).toBe('food')
     expect(interestCodeOfName(' 카페/커피 ')).toBe('cafe_coffee')
@@ -60,7 +76,7 @@ describe('명세 00 공통 5 관심사 표 → 앱 코드', () => {
 })
 
 describe('받은 목록 → 앱 모양 · 요청 id', () => {
-  // 실제 서버처럼 DB 숫자 id (앱 코드와 관계없는 값)
+  // 실제 서버처럼 DB 숫자 id. 잇기는 이름으로 하므로 id 가 처음 값 순서와 달라도 됨 (일부러 다르게)
   const dto = { items: [
     { id: 1, name: '음악·댄스', interests: [{ id: 46, name: 'K-POP', userCount: 128 }, { id: 48, name: '작곡/미디/DJ', userCount: 4 }] },
     { id: 3, name: '스포츠', interests: [{ id: 12, name: '러닝/마라톤', userCount: 57 }, { id: 99, name: '새로 생긴 관심사', userCount: 0 }] },

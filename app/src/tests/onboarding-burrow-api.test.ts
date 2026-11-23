@@ -53,6 +53,12 @@ describe('00 목록 · 프로필 (목 서버)', () => {
     const cat = toInterestCatalog(d)
     expect(cat.unmapped).toEqual([])
     expect(cat.categories[0].tags[1]).toMatchObject({ id: 'cafe_coffee', name: '카페/커피' })
+    // 백엔드 처음 값과 같은 번호: 대분류 1 ~ 12, 세부 1 ~ 90 이 00 공통 5 표 순서 (명세 dev 9ea6698 api/00 응답 예시)
+    expect(d.items.map((c) => c.id)).toEqual(Array.from({ length: 12 }, (_, i) => i + 1))
+    expect(d.items.flatMap((c) => c.interests.map((i) => i.id))).toEqual(Array.from({ length: 90 }, (_, i) => i + 1))
+    expect(d.items[0]).toMatchObject({ id: 1, name: '음식·음료' })
+    expect(d.items[0].interests.slice(0, 3).map((i) => [i.id, i.name])).toEqual([[1, '맛집탐방'], [2, '카페/커피'], [3, '주류/와인/위스키']])
+    expect(d.items[1].interests.slice(0, 2).map((i) => [i.id, i.name])).toEqual([[8, '헬스/필라테스/요가'], [9, '러닝/마라톤']])
   })
   it('GET /intro-questions: type 거르기, TMI 는 interestCategoryId null, 대분류 코드로 이어짐', async () => {
     const all = await onboarding.introQuestions()
@@ -61,6 +67,10 @@ describe('00 목록 · 프로필 (목 서버)', () => {
     expect(tmi.items.length).toBeLessThan(all.items.length)
     const qs = toQuestions(all, toInterestCatalog(await onboarding.interestCategories()))
     expect(qs.find((q) => q.id === 'music-1')).toMatchObject({ kind: 'interest', category: 'music_dance' })
+    // 처음 값의 순서: 관심사 질문(대분류 1 → 12) → TMI
+    const catOrder = all.items.map((q) => q.interestCategoryId ?? 99)
+    expect(catOrder).toEqual([...catOrder].sort((x, y) => x - y))
+    expect(all.items[0]).toMatchObject({ type: 'INTEREST', interestCategoryId: 1 })
     expect(await failure(onboarding.introQuestions('X' as never))).toMatchObject({ status: 400, code: 'INVALID_INPUT' })
   })
   it('GET /users/{userId}/profile: 사용자 표시 + 관심사(겹침), 없는 사람은 404 USER_NOT_FOUND', async () => {

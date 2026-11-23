@@ -7,6 +7,7 @@ import { MAX_PICK, subOf } from '../../data/interests'
 import { QUESTIONS, type Question } from '../../data/questions'
 import { RULES } from '../../lib/validation'
 import { conflict, invalidInput, notFound } from '../mock/server'
+import { interestCodeOfSeed } from '../mock/seedIds'
 import { toAppId } from '../common/ids'
 import type { FieldError, Id, MoleDto } from '../common/types'
 import { MOLE_CODE, itemIdOfCode } from '../common/moleCodes'
@@ -59,10 +60,10 @@ export function throwIfInvalid(fields: FieldError[]) {
   if (fields.length) throw invalidInput(fields)
 }
 
-/** interestIds(목 번호) → 앱 관심사 이름 (없는 관심사면 404 INTEREST_NOT_FOUND) */
+/** interestIds(처음 값 id, api/mock/seedIds) → 앱 관심사 이름 (없는 관심사면 404 INTEREST_NOT_FOUND) */
 export function interestNamesOf(ids: Id[]): string[] {
   return ids.map((id) => {
-    const s = subOf(toAppId(id))
+    const s = subOf(interestCodeOfSeed(id) ?? '')
     if (!s) throw notFound('INTEREST', '관심사를 찾을 수 없습니다.')
     return s.name_ko
   })

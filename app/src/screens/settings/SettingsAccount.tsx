@@ -88,7 +88,7 @@ export function PasswordPage() {
           <div className={s.infoBody}>
             <h3>비밀번호 규칙</h3>
             <ul aria-live="polite">
-              <li className={rule(c.length)}>8자 이상이어야 해요.</li>
+              <li className={rule(c.length)}>8자 이상 20자 이하여야 해요.</li>
               <li className={rule(c.letter && c.digit && c.special && c.allowed)}><b>영문, 숫자, 특수기호(!@#$%)를 각각 1개 이상 넣어야 해요.</b></li>
               <li className={nextErr === SETTINGS_ERRORS.PASSWORD_UNCHANGED ? s.ruleBad : undefined}>지금 쓰는 비밀번호와 같으면 안 돼요.</li>
               <li>다른 서비스와 같은 비밀번호는 피하는 게 좋아요.</li>

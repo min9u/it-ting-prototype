@@ -16,7 +16,8 @@
  */
 import { TAG_TREE } from '../../data/interestTags'
 import type { Category, Tag } from '../../data/types'
-import { toAppId, toDtoId } from '../common/ids'
+import { toAppId } from '../common/ids'
+import { categoryCodeOfSeed } from '../mock/seedIds'
 import type { Id, ItemsDto } from '../common/types'
 import type { InterestCategoryDto } from './types'
 
@@ -84,12 +85,11 @@ export function interestIdsOf(names: string[], catalog: InterestCatalog): Id[] {
   })
 }
 
-/** 서버 대분류 id → 앱 대분류 코드 (목록을 아직 못 받았으면 목 번호를 되돌려 봄) */
+/**
+ * 서버 대분류 id → 앱 대분류 코드. 받은 목록(이름으로 이은 표)이 먼저이고,
+ * 목록을 아직 못 받았으면 처음 값의 순서(명세 dev 9ea6698: id 순 = 00 공통 5 표 순서)로 찾아 봄
+ */
 export function categoryCodeOfId(id: Id | null, catalog?: InterestCatalog | null): string | null {
   if (id == null) return null
-  const appId = toAppId(id)
-  return catalog?.categoryCodeOfId.get(appId) ?? (CAT_BY_CODE.has(appId) ? appId : null)
+  return catalog?.categoryCodeOfId.get(toAppId(id)) ?? categoryCodeOfSeed(id)
 }
-
-/** 목 서버용: 앱 코드 → DTO id (목 번호. 실제 서버는 DB 가 정함) */
-export const mockInterestId = (code: string): Id => toDtoId(code)
