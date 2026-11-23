@@ -13,6 +13,8 @@ export const AUTH_ERRORS: ErrorTable = {
   VERIFICATION_CODE_MISMATCH: '인증 코드가 맞지 않아요',
   VERIFICATION_CODE_EXPIRED: '인증 시간이 지났어요. 코드를 다시 받아 주세요',
   TOO_MANY_REQUESTS: '코드를 방금 보냈어요. 잠시 뒤 다시 받아 주세요',
+  // 503: 메일 서버 · Mattermost 가 잠시 응답하지 않음. 서버가 코드를 지우고 간격도 세지 않아 바로 다시 받을 수 있다
+  VERIFICATION_SEND_FAILED: '코드를 보내지 못했어요. 다시 받아 주세요',
   SIGNUP_EXPIRED: '가입 시간이 지났어요. 처음부터 다시 진행해 주세요',
   MATTERMOST_ID_DUPLICATED: '이미 가입에 쓰인 Mattermost ID예요',
   CAMPUS_FLOOR_NOT_FOUND: '없는 캠퍼스 · 층이에요. 다시 골라 주세요',

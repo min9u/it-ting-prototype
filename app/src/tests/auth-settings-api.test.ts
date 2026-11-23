@@ -95,6 +95,46 @@ describe('02 목 서버 (명세 code)', () => {
     expect(await codeOf(A.authApi.sendEmailCode({ email: 'mole@ssafy.com' }))).toBe('EMAIL_DUPLICATED')
     expect(await codeOf(A.authApi.login({ email: 'mole@ssafy.com', password: 'wrong123!' }))).toBe('LOGIN_FAILED')
   })
+  it('인증 코드: 5번 틀리면 지워져 맞는 코드도 EXPIRED, 이메일은 대소문자를 가리지 않음, 재전송 간격은 그대로', async () => {
+    await A.authApi.sendEmailCode({ email: 'Five@SSAFY.com' })
+    for (let i = 0; i < 5; i++) expect(await codeOf(A.authApi.checkEmailCode({ email: 'five@ssafy.com', code: '000000' }))).toBe('VERIFICATION_CODE_MISMATCH')
+    expect(await codeOf(A.authApi.checkEmailCode({ email: 'five@ssafy.com', code: '123456' }))).toBe('VERIFICATION_CODE_EXPIRED')
+    expect(await codeOf(A.authApi.sendEmailCode({ email: 'five@ssafy.com' }))).toBe('TOO_MANY_REQUESTS')
+  })
+  it('503 VERIFICATION_SEND_FAILED: 메일 · Mattermost 로 못 보냄, 간격을 세지 않아 바로 다시 부를 수 있음', async () => {
+    const fail = async (p: Promise<unknown>) => { try { await p; return 'OK' } catch (e) { const x = e as { status: number; code: string }; return `${x.status} ${x.code}` } }
+    expect(await fail(A.authApi.sendEmailCode({ email: 'sendfail@ssafy.com' }))).toBe('503 VERIFICATION_SEND_FAILED')
+    expect(await fail(A.authApi.sendEmailCode({ email: 'sendfail@ssafy.com' }))).toBe('503 VERIFICATION_SEND_FAILED')
+    await A.authApi.sendEmailCode({ email: 'mm@ssafy.com' })
+    await A.authApi.checkEmailCode({ email: 'mm@ssafy.com', code: '123456' })
+    expect(await fail(A.authApi.sendSsafyCode({ generation: 14, mattermostId: 'sendfail' }))).toBe('503 VERIFICATION_SEND_FAILED')
+    expect(await fail(A.authApi.sendSsafyCode({ generation: 14, mattermostId: '@SendFail' }))).toBe('503 VERIFICATION_SEND_FAILED')
+  })
+  it('Mattermost ID: 모양이 틀리면 가입 진행 기록보다 먼저 INVALID_INPUT, @ · 대문자는 정규화', async () => {
+    const S2 = { generation: 14 }
+    expect(await codeOf(A.authApi.sendSsafyCode({ ...S2, mattermostId: 'ab' }))).toBe('INVALID_INPUT')
+    expect(await codeOf(A.authApi.sendSsafyCode({ ...S2, mattermostId: 'mole kim' }))).toBe('INVALID_INPUT')
+    expect(await codeOf(A.authApi.sendSsafyCode({ ...S2, mattermostId: '@Taken.Mole' }))).toBe('MATTERMOST_ID_DUPLICATED')
+  })
+  it('POST /users: 입력 모양을 가입 진행 기록보다 먼저 보고, 비밀번호는 어긋난 규칙마다 한 줄 (8~20자)', async () => {
+    const floorId = (await import('../api/common')).toDtoId('서울|2')
+    try {
+      await A.authApi.signup({ code: '123456', campusFloorId: floorId, hasAgreedTerms: true, hasAgreedPrivacy: true, password: 'a'.repeat(21) })
+      throw new Error('통과됨')
+    } catch (e) {
+      const x = e as { code: string; fields: { field: string }[] }
+      expect(x.code).toBe('INVALID_INPUT')
+      expect(x.fields.filter((f) => f.field === 'password').length).toBe(3) // 길이 · 숫자 · 특수기호
+    }
+  })
+  it('비밀번호 재설정: 같은 이메일로 60초 안에 다시 요청하면 새 링크 없이 성공', async () => {
+    await A.authApi.requestPasswordReset({ email: 'gap@ssafy.com' })
+    const t1 = new URL(A.mockMailbox.resetLink('gap@ssafy.com'), 'http://x').searchParams.get('token')
+    expect(await A.authApi.requestPasswordReset({ email: 'GAP@ssafy.com' })).toBeNull()
+    const t2 = new URL(A.mockMailbox.resetLink('gap@ssafy.com'), 'http://x').searchParams.get('token')
+    expect(t2).toBe(t1)
+    expect(await A.authApi.checkPasswordReset(t1 ?? '')).toBeNull()
+  })
   it('Google 로그인 콜백: 가입한 계정 → /auth/google, 처음 → 회원가입 3, 정지 → /login?error=…, 취소', () => {
     expect(A.mockGoogleCallback('LOGIN', A.MOCK_GOOGLE.member)).toBe(A.GOOGLE_RETURN.loggedIn)
     expect(A.mockGoogleCallback('LOGIN', A.MOCK_GOOGLE.fresh)).toBe('/signup/ssafy?via=google')

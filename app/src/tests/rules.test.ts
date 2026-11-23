@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { checkPassword, confirmMismatch, consumeResetToken, emailHasBadChar, emailValid, lastResetToken, requestReset, resetTokenValid, RESET_TTL_MS } from '../data/auth'
 import { passwordChecks, passwordOk } from '../data/account'
+import { checkMattermostId, normalizeMattermostId, PW_MISMATCH } from '../lib/authRules'
 import { ANSWER_MAX, ANSWER_MIN, QUESTIONS, answerOk, recommendedQuestions } from '../data/questions'
 import { NICK_MAX, nickTaken } from '../data/myBurrow'
 import { INTEREST_SUBS } from '../data/interests'
@@ -20,9 +21,10 @@ import { NOTICE_TTL_DAYS, liveNotices, unreadOf, type NoticeKind, type NoticeRec
 import { HIDE_AT, getPost, hotPosts, reportPost, scoreOf, updatePost, usePosts, type BoardPost } from '../data/boardStore'
 import { USERS } from '../data/mock'
 
-describe('비밀번호 (00 공통 9: 8자 이상, 영문·숫자·특수기호 !@#$% 각 1개 이상, 그 밖의 문자는 못 씀)', () => {
+describe('비밀번호 (00 공통 9: 8~20자, 영문·숫자·특수기호 !@#$% 각 1개 이상, 그 밖의 문자는 못 씀)', () => {
   const cases: [string, boolean][] = [
     ['digul123!', true], ['Abcdef1@', true], ['abc12!', false] /* 6자 */, ['abcdefgh', false], ['12345678!', false],
+    ['abcdefghij1234567!@#', true] /* 20자 */, ['abcdefghij1234567!@#$', false] /* 21자 */,
     ['abcdefg1', false], ['abcdefg!', false], ['abcd 123!', false] /* 공백 */, ['비밀번호123!a', false], ['abcd123^', false], ['', false],
   ]
   it.each(cases)('%s → %s', (pw, ok) => {
@@ -32,6 +34,9 @@ describe('비밀번호 (00 공통 9: 8자 이상, 영문·숫자·특수기호 !
   it('auth.ts 와 account.ts 의 "쓸 수 없는 문자" 판단이 같음', () => {
     for (const [pw] of cases) expect(checkPassword(pw).allowed, pw).toBe(passwordChecks(pw).allowed)
   })
+  it('비밀번호 확인 문구는 명세 그대로 (02 회원가입 2 · 4, 새 비밀번호 설정 2)', () => {
+    expect(PW_MISMATCH).toBe('비밀번호가 달라요')
+  })
   it('비밀번호 확인: 덜 친 동안은 기다리고, 갈라지거나 길이가 같은데 다르면 바로 오류', () => {
     expect(confirmMismatch('digul123!', '')).toBe(false)
     expect(confirmMismatch('digul123!', 'digul')).toBe(false)
@@ -39,6 +44,23 @@ describe('비밀번호 (00 공통 9: 8자 이상, 영문·숫자·특수기호 !
     expect(confirmMismatch('digul123!', 'digul123?')).toBe(true)
     expect(confirmMismatch('digul123!', 'digul123!')).toBe(false)
     expect(confirmMismatch('digul123!', 'digul123!!')).toBe(true)
+  })
+})
+
+describe('Mattermost ID (API 02 POST /ssafy-verifications: 공백 · 앞의 @ 떼고 소문자, 영문 소문자·숫자·.-_ 3~22자)', () => {
+  it.each([
+    ['  @Yejin.Kim ', 'yejin.kim', true], ['mole_01-a', 'mole_01-a', true], ['ab', 'ab', false], ['a'.repeat(22), 'a'.repeat(22), true],
+    ['a'.repeat(23), 'a'.repeat(23), false], ['예진', '예진', false], ['mole kim', 'mole kim', false], ['@@mole', 'mole', true],
+  ])('%s → %s (%s)', (raw, value, ok) => {
+    const c = checkMattermostId(raw)
+    expect(c.value).toBe(value)
+    expect(normalizeMattermostId(raw)).toBe(value)
+    expect(c.ok).toBe(ok)
+  })
+  it('짧은 동안은 오류를 띄우지 않고, 쓸 수 없는 문자 · 22자 넘음은 바로 오류', () => {
+    expect(checkMattermostId('ab').bad).toBe(false)
+    expect(checkMattermostId('mo le').bad).toBe(true)
+    expect(checkMattermostId('a'.repeat(23)).bad).toBe(true)
   })
 })
 

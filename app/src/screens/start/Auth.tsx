@@ -14,8 +14,8 @@ import {
 import { useAccount } from '../../api/settings'
 import { LOGIN_FREE } from '../../data/auth'
 import {
-  CODE_EXPIRED, CODE_LEN, CODE_NOT_DIGIT, CODE_WRONG, EMAIL_BAD, PW_BAD_CHAR, PW_MISMATCH, PW_RULE_TEXT, RESEND_GAP,
-  checkPassword, confirmMismatch, emailHasBadChar, emailValid,
+  CODE_EXPIRED, CODE_LEN, CODE_LOCKED, CODE_NOT_DIGIT, CODE_WRONG, EMAIL_BAD, MM_ID_BAD, PW_BAD_CHAR, PW_MAX, PW_MISMATCH, PW_RULE_TEXT, PW_TOO_LONG, RESEND_GAP,
+  checkMattermostId, checkPassword, confirmMismatch, emailHasBadChar, emailValid,
 } from '../../lib/authRules'
 import { takeReturnTo } from '../../lib/authFlow'
 import { toIso } from '../../lib/time'
@@ -34,6 +34,11 @@ import s from './Start.module.css'
  */
 
 const codeOf = (e: unknown) => (isApiError(e) ? e.code : '')
+/**
+ * 인증 코드 칸의 서버 오류 문구. 남은 시간이 있는데 EXPIRED 면 5번 틀려서 서버가 코드를 지운 것 (API 02 "인증 코드")
+ */
+const codeErrText = (c: string, left: number | null) =>
+  c === 'VERIFICATION_CODE_MISMATCH' ? CODE_WRONG : (left ?? 0) > 0 ? CODE_LOCKED : CODE_EXPIRED
 
 /** 흐린 땅굴 방 배경 (Figma: Scene 1520×980 블러 + Dim) */
 function BlurRoom() {
@@ -313,7 +318,8 @@ export function MockGoogle() {
 
 /**
  * 시작 v2 – 회원가입 1 · 이메일 (1/3)
- * 3 쓸 수 없는 문자는 바로 "이메일 형식을 확인해 주세요" · 4 입력란 오른쪽 칩(코드 받기 → 재전송: POST /email-verifications, 30초 간격)
+ * 3 쓸 수 없는 문자는 바로 "이메일 형식을 확인해 주세요" · 4 입력란 오른쪽 칩(코드 받기 → 재전송: POST /email-verifications, 60초 간격)
+ *   보내지 못하면(503 VERIFICATION_SEND_FAILED) 서버가 코드를 지우고 간격도 세지 않으므로 "코드 받기"로 돌아가 바로 다시 받게 함
  * 5 6자리 숫자 + 남은 시간(서버의 expiresAt), 숫자가 아니면 바로 "숫자 6자리를 입력해 주세요" · 6 스팸함 안내
  * 7 코드를 다 넣으면 다음 → POST /email-verifications/check (가입 진행 시작) → 회원가입 2
  */
@@ -343,7 +349,8 @@ export function SignupEmail() {
       setTimeout(() => codeRef.current?.focus(), 0)
     } catch (e) {
       const c = codeOf(e)
-      if (c === 'EMAIL_DUPLICATED' || c === 'TOO_MANY_REQUESTS') setEmailErr(errorText(e, AUTH_ERRORS))
+      if (c === 'VERIFICATION_SEND_FAILED') { setSentTo(null); code.reset() }
+      if (c === 'EMAIL_DUPLICATED' || c === 'TOO_MANY_REQUESTS' || c === 'VERIFICATION_SEND_FAILED') setEmailErr(errorText(e, AUTH_ERRORS))
       else if (c === 'INVALID_INPUT') setEmailErr(fieldErrorText(e, 'email') ?? EMAIL_BAD)
       else setFormErr(errorText(e, AUTH_ERRORS))
     } finally { setBusy(null) }
@@ -361,7 +368,7 @@ export function SignupEmail() {
       nav('/signup/password')
     } catch (err) {
       const c = codeOf(err)
-      if (AUTH_FIELD_OF[c] === 'code') code.setServerErr(c === 'VERIFICATION_CODE_MISMATCH' ? CODE_WRONG : CODE_EXPIRED)
+      if (AUTH_FIELD_OF[c] === 'code') code.setServerErr(codeErrText(c, ttl.left))
       else if (c === 'INVALID_INPUT') code.setServerErr(fieldErrorText(err, 'code') ?? CODE_NOT_DIGIT)
       else setFormErr(errorText(err, AUTH_ERRORS))
       setBusy(null)
@@ -424,6 +431,7 @@ function PasswordPair({ pw, pw2, setPw, setPw2, label = '비밀번호', serverEr
           onKeyUp={onKey} placeholder="••••••••••" autoComplete="new-password" aria-invalid={!rule.allowed} aria-describedby="pw1-rule" />
         <span id="pw1-rule" className={`${s.ruleLine} ${rule.ok ? s.ruleLineOk : ''}`}>{rule.ok && <b aria-hidden>✓ </b>}{PW_RULE_TEXT}</span>
         {!rule.allowed && <span className={s.err} role="alert">{PW_BAD_CHAR}</span>}
+        {rule.allowed && pw.length > PW_MAX && <span className={s.err} role="alert">{PW_TOO_LONG}</span>}
         {serverErr && <span className={s.err} role="alert">{serverErr}</span>}
         {caps && <span className={s.err}>캡스락이 켜져 있어요</span>}
       </div>
@@ -481,7 +489,8 @@ function Select({ id, label, value, options, onChange, placeholder, disabled, er
 /**
  * 시작 v2 – 회원가입 3 · SSAFY 인증 (3/3)
  * 1 진행 표시 (Google 가입이면 이 화면 하나뿐이라 숨김) · 2 "SSAFY 인증을 해요"
- * 3 기수(GET /generations) · 캠퍼스 · 층(GET /campuses) 목록에서 고름 · 4 Mattermost ID + 코드 받기(POST /ssafy-verifications, 다시 누르면 재전송)
+ * 3 기수(GET /generations) · 캠퍼스 · 층(GET /campuses) 목록에서 고름 · 4 Mattermost ID + 코드 받기(POST /ssafy-verifications, 다시 누르면 재전송, 60초 간격)
+ *   ID 는 서버처럼 정규화(앞뒤 공백 · 앞의 @ 떼고 소문자)해 영문 소문자 · 숫자 · . - _ 3~22자일 때만 보냄. 503 VERIFICATION_SEND_FAILED 면 "코드 받기"로 돌아감
  * 5 6자리 숫자 + 남은 시간 · 6 안내 문구 · 7 약관 동의(필수 2개) · 8 다 마치면 땅굴 파기(POST /users) → 온보딩 1
  * 가입 진행 기록이 없거나 시간이 지나면 409 SIGNUP_EXPIRED → 처음부터 (이메일은 회원가입 1, Google 은 로그인의 "Google로 계속하기")
  */
@@ -509,7 +518,8 @@ export function SignupSsafy() {
   const [floorErr, setFloorErr] = useState<string | null>(null)
   const [formErr, setFormErr] = useState<string | null>(null)
   const [expiredSignup, setExpiredSignup] = useState(false)
-  const sent = sentTo != null && sentTo === `${gen}|${mm}`
+  const mmCheck = checkMattermostId(mm)
+  const sent = sentTo != null && sentTo === `${gen}|${mmCheck.value}`
   const expired = sent && ttl.left === 0
   const cooling = sent && (gap.left ?? 0) > 0
   const codeErr = code.notDigit ? CODE_NOT_DIGIT : expired ? CODE_EXPIRED : code.serverErr
@@ -525,7 +535,8 @@ export function SignupSsafy() {
     const c = codeOf(e)
     if (c === 'SIGNUP_EXPIRED') { setExpiredSignup(true); return }
     const field = AUTH_FIELD_OF[c]
-    if (field === 'code') code.setServerErr(c === 'VERIFICATION_CODE_MISMATCH' ? CODE_WRONG : CODE_EXPIRED)
+    if (field === 'code') code.setServerErr(codeErrText(c, ttl.left))
+    else if (c === 'VERIFICATION_SEND_FAILED') { setSentTo(null); code.reset(); setMmErr(errorText(e, AUTH_ERRORS)) }
     else if (field === 'mattermostId' || c === 'TOO_MANY_REQUESTS') setMmErr(errorText(e, AUTH_ERRORS))
     else if (field === 'floor') setFloorErr(errorText(e, AUTH_ERRORS))
     else if (c === 'INVALID_INPUT') {
@@ -539,8 +550,10 @@ export function SignupSsafy() {
   const send = async () => {
     setBusy('send'); setMmErr(null); setFormErr(null)
     try {
-      const r = await sendCode.mutateAsync({ generation: Number(gen), mattermostId: mm })
-      setSentTo(`${gen}|${mm}`); code.reset(); ttl.until(r.expiresAt); gap.start(RESEND_GAP)
+      if (!mmCheck.ok) { setMmErr(MM_ID_BAD); return }
+      // 서버와 같은 정규화(앞뒤 공백 · 앞의 @ 떼고 소문자)를 한 값을 보냄
+      const r = await sendCode.mutateAsync({ generation: Number(gen), mattermostId: mmCheck.value })
+      setSentTo(`${gen}|${mmCheck.value}`); code.reset(); ttl.until(r.expiresAt); gap.start(RESEND_GAP)
       setTimeout(() => codeRef.current?.focus(), 0)
     } catch (e) { fail(e) } finally { setBusy(null) }
   }
@@ -584,13 +597,13 @@ export function SignupSsafy() {
             <div className={s.field}>
               <label htmlFor="ss-mm">Mattermost ID</label>
               <div className={s.inputBox}>
-                <input id="ss-mm" className={`${s.input} ${s.inputChip} ${mmErr ? s.inputBad : ''}`} value={mm} onChange={(e) => { setMm(e.target.value.trim()); setMmErr(null) }}
-                  placeholder="yejin.kim" autoComplete="off" aria-invalid={!!mmErr} />
-                <button type="button" className={s.inInputBtn} disabled={!mm || !gen || cooling || busy === 'send'} onClick={() => void send()} title={!gen ? '기수를 먼저 골라 주세요' : undefined}>
+                <input id="ss-mm" className={`${s.input} ${s.inputChip} ${mmErr || mmCheck.bad ? s.inputBad : ''}`} value={mm} onChange={(e) => { setMm(e.target.value); setMmErr(null) }}
+                  placeholder="yejin.kim" autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={!!mmErr || mmCheck.bad} />
+                <button type="button" className={s.inInputBtn} disabled={!mmCheck.ok || !gen || cooling || busy === 'send'} onClick={() => void send()} title={!gen ? '기수를 먼저 골라 주세요' : undefined}>
                   {busy === 'send' ? '보내는 중' : sent ? (cooling ? `재전송 ${gap.left}` : '재전송') : '코드 받기'}
                 </button>
               </div>
-              {mmErr && <span className={s.err} role="alert">{mmErr}</span>}
+              {mmErr ? <span className={s.err} role="alert">{mmErr}</span> : mmCheck.bad && <span className={s.err} role="alert">{MM_ID_BAD}</span>}
             </div>
             <div className={s.field}>
               <label htmlFor="ss-code">인증 코드</label>
@@ -676,7 +689,7 @@ export function PasswordReset() {
 
 /**
  * 비밀번호 찾기 · 메일 보냄
- * 1 입력한 이메일과 관계없이 같은 문구 · 2 다시 보내기(POST /password-resets 다시, 이전 링크는 무효, 30초 간격) · 3 링크는 30분 동안, 한 번만
+ * 1 입력한 이메일과 관계없이 같은 문구 · 2 다시 보내기(POST /password-resets 다시, 이전 링크는 무효, 60초 간격: 서버도 같은 이메일로 60초 안이면 메일 없이 성공) · 3 링크는 30분 동안, 한 번만
  * 목 서버: 실제 메일이 없어서 "체험용 · 메일 속 링크 열기"(목 메일함)로 새 비밀번호 화면에 들어감
  */
 export function PasswordResetSent() {

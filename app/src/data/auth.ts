@@ -11,7 +11,8 @@
  * 가입 (늘)
  *  - taken@ssafy.com           → 409 EMAIL_DUPLICATED (이미 가입한 이메일)
  *  - Mattermost ID taken.mole  → 409 MATTERMOST_ID_DUPLICATED
- *  - 인증 코드 000000          → 400 VERIFICATION_CODE_MISMATCH (그 밖의 6자리 숫자는 통과)
+ *  - sendfail@ssafy.com · Mattermost ID sendfail → 503 VERIFICATION_SEND_FAILED (메일 · Mattermost 로 못 보냄, 바로 다시 할 수 있음)
+ *  - 인증 코드 000000          → 400 VERIFICATION_CODE_MISMATCH (그 밖의 6자리 숫자는 통과). 5번 틀리면 코드를 지움 → VERIFICATION_CODE_EXPIRED
  * Google (목 Google 화면 /oauth/mock-google)
  *  - 가입한 계정(MOCK_GOOGLE.member) → 로그인 / 처음 쓰는 계정 → 회원가입 3 / banned.mole@gmail.com → 정지 팝업
  */
@@ -20,10 +21,13 @@ export {
   EMAIL_BAD, emailHasBadChar, emailValid, CODE_LEN, RESEND_GAP, CODE_NOT_DIGIT, CODE_WRONG, CODE_EXPIRED,
 } from '../lib/authRules'
 
-/** 목 서버의 인증 코드 유효 시간 (명세: 구현 단계에서 정함. 시안의 4:52 에서 줄어드는 시간) */
+/** 목 서버의 인증 코드 유효 시간 (API 02 "인증 코드": 5분) */
 export const CODE_TTL = 5 * 60
-/** 목 서버의 재전송 간격 (이보다 빨리 다시 부르면 429 TOO_MANY_REQUESTS) */
-export const MOCK_RESEND_GAP_MS = 25_000
+/**
+ * 목 서버의 재전송 간격 (API 02: 60초. 이보다 빨리 다시 부르면 429 TOO_MANY_REQUESTS).
+ * 화면의 RESEND_GAP 카운트다운과 같은 값이라 화면에서는 429 를 보기 어렵다
+ */
+export const MOCK_RESEND_GAP_MS = 60_000
 /** 목 서버의 코드 확인: 000000 만 틀림 */
 export const verifyCode = (code: string) => code !== '000000'
 
@@ -33,6 +37,9 @@ export const DEMO = {
   newEmail: 'new@ssafy.com',
   takenEmail: 'taken@ssafy.com',
   takenMattermost: 'taken.mole',
+  /** 보내기 실패(503 VERIFICATION_SEND_FAILED) 시연: 이 이메일 · 이 Mattermost ID 로 코드를 받으면 늘 실패 */
+  sendFailEmail: 'sendfail@ssafy.com',
+  sendFailMattermost: 'sendfail',
 } as const
 
 /* ===== 00 공통 19 기수 (캠퍼스 · 층 목록은 data/campusFloors.ts 한 곳) ===== */
