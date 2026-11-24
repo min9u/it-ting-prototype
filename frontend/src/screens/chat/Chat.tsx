@@ -144,15 +144,26 @@ function ListItem({ room, active, myId }: { room: ChatRoomItem; active: boolean;
 /* ===================== 대화 (1:1 · 모임) ===================== */
 const EMOJIS = ['😊', '😂', '🥹', '👍', '🙏', '🎉', '☕', '🍵', '🐾', '🌱', '🏕️', '📚']
 
+/**
+ * 대화방을 무엇으로 그릴지. 다시 불러와 404(나간 대화 · 없는 대화)면 받아 둔 대화보다 없음 안내가 먼저
+ * (뒤로 가기로 나간 대화에 돌아와도 이전 메시지 · 입력창이 남지 않게, 명세 06 나간 대화방은 다시 못 들어감)
+ */
+export function roomPaneView(q: { data?: unknown; error: unknown; isPending: boolean }): 'notFound' | 'room' | 'loading' | 'error' {
+  if (isNotFound(q.error)) return 'notFound'
+  if (q.data) return 'room'
+  return q.isPending ? 'loading' : 'error'
+}
+
 /** 대화방 불러오기 · 없음 · 오류 */
 function RoomPane({ roomId, onProfile, onToast }: { roomId: string; onProfile: (p: Person) => void; onToast: (t: string) => void }) {
   const room = useChatRoom(roomId)
-  if (room.data) return <RoomView room={room.data} onProfile={onProfile} onToast={onToast} />
+  const view = roomPaneView(room)
+  if (view === 'room' && room.data) return <RoomView room={room.data} onProfile={onProfile} onToast={onToast} />
   return (
     <>
       <TeaRoom mode="empty" guests={[meGuest()]} />
-      <section className={`${s.panel} ${room.isPending ? '' : s.emptyPanel}`}>
-        {room.isPending ? <SkeletonRows count={4} label="대화를 불러오는 중" /> : isNotFound(room.error) ? (
+      <section className={`${s.panel} ${view === 'loading' ? '' : s.emptyPanel}`}>
+        {view === 'loading' ? <SkeletonRows count={4} label="대화를 불러오는 중" /> : view === 'notFound' ? (
           <EmptyMole message="없는 대화예요">
             <p className={s.emptyText}>나간 대화이거나 주소가 잘못됐어요.</p>
             <Link to="/chat" className="btn btn-line">대화 목록으로</Link>
