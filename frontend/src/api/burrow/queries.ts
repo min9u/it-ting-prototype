@@ -3,7 +3,8 @@
  * 저장 응답으로 화면을 바로 바꾼다 (명세: 내 정보 저장 → 바뀐 내 땅굴 전체, 두더지 저장 → 저장한 두더지. 다시 조회하지 않음)
  */
 import { useEffect } from 'react'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSessionMutation } from '../sessionMutation'
 import { areaMode } from '../config'
 import { setMyWorn } from '../../data/moleItems'
 import { toDtoId } from '../common/ids'
@@ -53,7 +54,7 @@ function useRefreshMe() {
 export function useUpdateMole() {
   const qc = useQueryClient()
   const refresh = useRefreshMe()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (worn: string[]) => burrowApi.updateMole(toMoleDto(worn)),
     onSuccess: (mole) => {
       const worn = wornOfMole(mole)
@@ -68,7 +69,7 @@ export function useUpdateMole() {
 export function useUpdateProfile() {
   const qc = useQueryClient()
   const refresh = useRefreshMe()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async (body: ProfileUpdateRequest) => toMyBurrow(await burrowApi.updateProfile(body)),
     onSuccess: (vm) => { qc.setQueryData(burrowKeys.mine, vm); refresh() },
   })
@@ -88,7 +89,7 @@ export function useGuestbookEntries(burrowId: string | null | undefined, page: n
 /** 방명록 글 지우기. 끝나면 목록 · 글 수(내 땅굴)를 새로 받음 (명세: 지운 뒤 목록을 다시 불러 글 수와 페이지를 맞춤) */
 export function useDeleteGuestbookEntry(burrowId: string | null | undefined) {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (entryId: string) => burrowApi.deleteGuestbookEntry(toDtoId(entryId)),
     onSettled: () => {
       if (burrowId) void qc.invalidateQueries({ queryKey: burrowKeys.guestbook(burrowId) })

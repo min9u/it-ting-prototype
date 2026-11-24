@@ -5,7 +5,8 @@
  *   const run = useOptimistic()
  *   run.mutate({ call: () => meetupsApi.like(id), patches: [patch(meetupKeys.detail(id), (d) => …)], errors: MEETUP_ERRORS })
  */
-import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query'
+import { useQueryClient, type QueryKey } from '@tanstack/react-query'
+import { useSessionMutation } from './sessionMutation'
 import { isAbort, isApiError, isUnauthorized } from './client'
 import { errorText, type ErrorTable } from './common/errors'
 import { showErrorToast } from './queryClient'
@@ -38,7 +39,7 @@ export function toastApiError(e: unknown, title = '저장하지 못했어요', t
 
 export function useOptimistic() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (op: OptimisticOp) => op.call(),
     onMutate: async (op) => {
       const snapshots: [QueryKey, unknown][] = []

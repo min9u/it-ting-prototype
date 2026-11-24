@@ -5,7 +5,7 @@
  * 순서: logout() → 화면 이동(랜딩) → afterSignOut().
  * 캐시를 먼저 비우면 아직 떠 있는 설정 화면이 다시 불러오다 401 을 받아 로그인 화면으로 튈 수 있어서, 이동한 뒤에 비운다
  */
-import { queryClient } from '../api/queryClient'
+import { newSession, queryClient } from '../api/queryClient'
 import { isUnauthorized } from '../api/client'
 import { authApi } from '../api/auth'
 import { stopEventStream } from '../realtime/events'
@@ -15,6 +15,7 @@ import { disablePush, forgetPush } from './browserPush'
 /** 세션이 끝난 뒤: 실시간 연결을 끊고, 받아 둔 서버 데이터를 모두 버림 (다음 사람에게 보이지 않게) */
 export function afterSignOut() {
   stopEventStream()
+  newSession() // 그 전에 시작한 쓰기가 늦게 끝나도 다음 사람의 캐시를 안 바꾸게 (api/sessionMutation)
   queryClient.clear()
   outbox.clear() // 보내지 못한 채팅 메시지 (서버 캐시 밖, 탭 메모리)
 }

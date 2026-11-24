@@ -2,7 +2,8 @@
  * 05 탐색 · 방문 (+ 00 학기) — TanStack Query 훅과 캐시 키. 화면은 이 훅과 exploreApi 만 쓴다
  */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSessionMutation } from '../sessionMutation'
 import { isApiError } from '../client'
 import { patch, useOptimistic } from '../optimistic'
 import { useMockStoreSync } from '../storeSync'
@@ -116,7 +117,7 @@ export function useVisitActions(b: Pick<BurrowVM, 'burrowId' | 'owner'>) {
 /** 대화 요청 보내기. 결과: 요청을 만들었으면 chatRequestId, 바로 대화방이 열렸으면 chatRoomId */
 export function useSendChatRequest(userId: string) {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async (message: string) => toChatRequestResult(await exploreApi.sendChatRequest({ receiverId: toDtoId(userId), message: message.trim() ? message : null })),
     onSuccess: (r) => {
       // "요청 보냄"으로 바로 바꾸고(대화방이 열렸으면 "대화하기"), 서버 값으로 다시 맞춤
@@ -143,7 +144,7 @@ export function useRemoveRegular() {
 /** 오늘의 추천 받기 → 받은 결과를 캐시에 (탐색의 빨간 점도 꺼짐) */
 export function useDrawRecommendation() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async (sel: { campusFloorId: string; generation: number }) =>
       toDailyRecommendation(await exploreApi.drawRecommendation({ campusFloorId: toDtoId(sel.campusFloorId), generation: sel.generation })),
     onSuccess: (vm) => { qc.setQueryData(exploreKeys.daily, vm) },
@@ -171,7 +172,7 @@ export function useNewTermRequired() {
 /** 이 층으로 정하기 (POST /me/burrow/move) → 막혀 있던 화면을 모두 다시 받음 */
 export function useMoveBurrow() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async (campusFloorId: string) => toMoved(await exploreApi.moveBurrow({ campusFloorId: toDtoId(campusFloorId) })),
     onSuccess: () => { void qc.invalidateQueries() },
   })

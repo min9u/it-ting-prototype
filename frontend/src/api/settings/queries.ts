@@ -1,5 +1,6 @@
 /** 10 설정 · 계정 — TanStack Query 훅과 캐시 키 */
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSessionMutation } from '../sessionMutation'
 import { useMockStoreSync } from '../storeSync'
 import { notificationKeys } from '../notifications'
 import { accountStore } from '../../data/account'
@@ -30,15 +31,15 @@ export function useAccount() {
 }
 /** PATCH /me/password. 실패는 화면이 code 로 칸을 고른다 (CURRENT_PASSWORD_MISMATCH · PASSWORD_UNCHANGED) */
 export function useChangePassword() {
-  return useMutation({ mutationFn: (req: PasswordChangeRequest) => settingsApi.changePassword(req) })
+  return useSessionMutation({ mutationFn: (req: PasswordChangeRequest) => settingsApi.changePassword(req) })
 }
 /** PUT /me/google-link (Google 에서 verified=true 로 돌아왔을 때) · DELETE /me/google-link → 계정 캐시를 응답으로 */
 export function useGoogleLink() {
   const qc = useQueryClient()
   const onSuccess = (d: AccountDto) => qc.setQueryData(settingsKeys.account, d)
   return {
-    link: useMutation({ mutationFn: () => settingsApi.linkGoogle(), onSuccess }),
-    unlink: useMutation({ mutationFn: () => settingsApi.unlinkGoogle(), onSuccess }),
+    link: useSessionMutation({ mutationFn: () => settingsApi.linkGoogle(), onSuccess }),
+    unlink: useSessionMutation({ mutationFn: () => settingsApi.unlinkGoogle(), onSuccess }),
   }
 }
 
@@ -57,7 +58,7 @@ export function useNotificationSettings() {
 export function useUpdateNotificationSettings() {
   const qc = useQueryClient()
   const key = settingsKeys.notificationSettings
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (values: NotificationSettingValuesDto) => settingsApi.updateNotificationSettings(values),
     onMutate: async (values) => {
       await qc.cancelQueries({ queryKey: key })
@@ -90,7 +91,7 @@ export function useWithdrawalCheck() {
   return useQuery({ queryKey: settingsKeys.withdrawalCheck, queryFn: ({ signal }) => settingsApi.withdrawalCheck(signal), select: toWithdrawalCheck, staleTime: 0 })
 }
 export function useWithdraw() {
-  return useMutation({ mutationFn: (req: WithdrawRequest) => settingsApi.withdraw(req) })
+  return useSessionMutation({ mutationFn: (req: WithdrawRequest) => settingsApi.withdraw(req) })
 }
 
 /** 목 모드: 저장소(관리자의 공지 작성 · 계정 데모 손잡이 · 알림 설정)가 바뀌면 이 영역 캐시를 새로 받음 (api/mockSync.tsx 가 부름) */

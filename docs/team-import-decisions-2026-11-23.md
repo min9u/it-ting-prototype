@@ -78,4 +78,6 @@
 - **Codex 재리뷰(`8ffdfb2`)**: 새 P0 1 · P1 1. ① P0 보내지 못한 채팅 메시지(`api/chat/outbox`, 탭 메모리)가 로그아웃 뒤에도 남음 → 로그아웃 · 401 · 로그인 성공 때 비우고 세대 번호로 늦은 전송 결과를 버림 ② P1 댓글을 다 받기 전에 쓰면 등록순이 깨짐(우리 리뷰 "확인 필요"였음) → 남은 페이지를 받은 뒤 맨 끝에(`appendTopComment`). 테스트 647. `lib/authFlow` 가 `api/chat/outbox` 를 쓰게 돼 커밋 계획에서 `outbox.ts` 를 화면 이동 어댑터 커밋으로 앞당김(커밋마다 빌드 유지). 팀 브랜치 커밋 77개, 다시 `@codex review`
 - 교훈: Codex 지적 4건 중 2건은 우리 로컬 리뷰의 "확인 필요"였음 → "확인 필요"도 재현 경로가 분명하면 PR 전에 고칠 것. 계정 전환은 서버 캐시만이 아니라 탭 메모리 저장소(outbox 등)까지 볼 것
 - **Codex 세 번째 리뷰(`92aa648`)**: 새 P1 1 — 받아 둔 글을 다시 불러와 404(지워짐 · 가려짐)를 받아도 이전 본문이 보임 → `QueryGate` 가 404 · 410 을 이전 값보다 먼저(일시적 실패만 이전 값 유지), 테스트 `query-gate.test.ts`(vitest 는 `.test.ts` 만 읽어 JSX 대신 createElement). 테스트 650 · 스모크(게시판 · 모임 · 땅굴) 통과. 팀 브랜치 커밋 79개, 다시 `@codex review`
+- **Codex 네 번째 리뷰(`54a4e5d`)**: 새 P0 1 — 쓰기를 보낸 뒤 응답 전에 계정이 바뀌면 늦게 끝난 요청의 되돌리기 · 성공 처리가 이전 계정 데이터를 새 계정 캐시에 넣음 → 세션 번호(`api/queryClient` `sessionGeneration`, 계정이 바뀔 때 `newSession`) + 쓰기 훅을 모두 `useSessionMutation`(`api/sessionMutation.ts`, 번호가 바뀌었으면 끝난 뒤 처리를 건너뜀, `api/auth` 만 예외). 테스트 `session-mutation.test.ts`(쓰기 훅이 모두 이걸 쓰는지도). 테스트 653. 팀 브랜치 커밋 81개
+- 그 사이 `dev` 가 `74f54b2`(KAN-52 커뮤니티 ②)로: `docs/api/08-community.md` 만 바뀜(가려진 글의 댓글: 수정 409 · 좋아요 404, 알림 제목). 프론트는 두 code 를 이미 처리, 새 명세로 테스트 653 통과. `COMMENT_EDIT_NOT_ALLOWED` 문구만 "가려진 글의 댓글"까지 넓히기로(다음 커밋에)
 

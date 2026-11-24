@@ -1,5 +1,5 @@
 import { LOGIN_FREE, START_PATHS, setAuthState } from '../data/auth'
-import { queryClient } from '../api/queryClient'
+import { newSession, queryClient } from '../api/queryClient'
 import { outbox } from '../api/chat/outbox'
 
 /**
@@ -56,6 +56,7 @@ export function takeReturnTo(stateFrom?: unknown): string | null {
 
 /** 계정마다 다른 서버 데이터를 모두 버림 (내 계정 ['auth','me'] 과 공개 목록 ['common', …] 은 남김). 401 · 로그인 성공 때 */
 export function dropUserData() {
+  newSession() // 그 전에 시작한 쓰기가 늦게 끝나도 새 계정 캐시를 안 바꾸게 (api/sessionMutation)
   outbox.clear() // 보내지 못한 채팅 메시지 (서버 캐시 밖, 탭 메모리)
   queryClient.removeQueries({ predicate: (q) => !(q.queryKey[0] === 'common' || (q.queryKey[0] === ME_KEY[0] && q.queryKey[1] === ME_KEY[1])) })
 }

@@ -14,6 +14,14 @@ import { createStore } from '../lib/store'
 /** 훅의 meta 로 줄 수 있는 것 */
 export interface ApiMeta { quiet401?: boolean }
 
+/**
+ * 세션 번호: 계정이 바뀔 때(401 · 로그인 성공 · 로그아웃 · 탈퇴) 늘어남 (lib/authFlow dropUserData, lib/signOut afterSignOut).
+ * 그 전에 시작한 쓰기가 늦게 끝나도 새 계정의 캐시를 바꾸지 않게 (api/sessionMutation useSessionMutation)
+ */
+let sessionGen = 0
+export const sessionGeneration = () => sessionGen
+export function newSession() { sessionGen++ }
+
 let onOnboardingIncomplete: (() => void) | null = null
 /** 403 ONBOARDING_INCOMPLETE 처리 (main.tsx 가 lib/authFlow handleOnboardingIncomplete 를 끼움. 직접 import 하면 순환 참조) */
 export function setOnboardingIncompleteHandler(f: (() => void) | null) { onOnboardingIncomplete = f }

@@ -3,7 +3,8 @@
  * 관심사 · 질문 목록은 운영자가 DB 에서 고치는 값이라 한 번 받으면 이 탭 안에서는 다시 받지 않는다 (staleTime Infinity)
  */
 import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSessionMutation } from '../sessionMutation'
 import { toDtoId } from '../common/ids'
 import { onboardingApi } from './api'
 import { toInterestCatalog, toProfile, toQuestions } from './mappers'
@@ -49,13 +50,13 @@ export function useUserProfile(userId: string | null | undefined) {
 
 /** 닉네임 확인 (온보딩 1 "다음", 내 정보 수정). 실패는 화면이 칸 밑에 보여 주므로 토스트 없음 */
 export function useCheckNickname() {
-  return useMutation({ mutationFn: (nickname: string) => onboardingApi.checkNickname(nickname) })
+  return useSessionMutation({ mutationFn: (nickname: string) => onboardingApi.checkNickname(nickname) })
 }
 
 /** 온보딩 확정 (온보딩 4 "관심사 확정"). 성공하면 모든 캐시를 새로 받음 (내 땅굴 · 내 계정 · 사람 표시가 바뀜) */
 export function useCompleteOnboarding() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (body: OnboardingCompleteRequest) => onboardingApi.completeOnboarding(body),
     // 새로 받는 것(GET /me 의 nextStep 포함)을 기다린 뒤 화면이 이동하게 Promise 를 돌려줌.
     // 안 기다리면 로그인 검사(RequireLogin)가 옛 nextStep ONBOARDING 을 보고 온보딩 1로 되돌림 (명세 03: 확정 → 내 땅굴)

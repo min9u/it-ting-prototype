@@ -3,7 +3,8 @@
  * 좋아요 · 저장 · 댓글 좋아요 · 댓글 수정은 낙관적(먼저 바꾸고 실패하면 되돌림 + 오류 토스트), 나머지 쓰기는 서버 답을 받고 캐시를 고친다.
  */
 import { useEffect, useState } from 'react'
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
+import { useSessionMutation } from '../sessionMutation'
 import { isApiError } from '../client'
 import { toAppId, toDtoId } from '../common/ids'
 import { patch, toastApiError, useOptimistic, type CachePatch } from '../optimistic'
@@ -225,7 +226,7 @@ export function usePostActions(postId: string) {
   const afterMine = () => { void qc.invalidateQueries({ queryKey: communityKeys.me }) }
 
   /** 댓글 · 답글 쓰기: 서버가 만든 댓글을 받아 끝에 붙임 (답글이면 parentCommentId 의 답글 끝) */
-  const addComment = useMutation({
+  const addComment = useSessionMutation({
     mutationFn: (v: { content: string; replyTo: string | null }) => communityApi.addComment(dto, { content: v.content, replyToCommentId: v.replyTo ? toDtoId(v.replyTo) : null }),
     onSuccess: (r) => {
       const made = toComment(r)
@@ -241,13 +242,13 @@ export function usePostActions(postId: string) {
     onError: (e) => toastApiError(e, '댓글을 등록하지 못했어요', COMMUNITY_ERRORS),
   })
   /** 댓글 지우기 (확인 팝업 뒤). 답글이 달린 댓글이면 답글도 */
-  const deleteComment = useMutation({
+  const deleteComment = useSessionMutation({
     mutationFn: (cid: string) => communityApi.deleteComment(toDtoId(cid)),
     onSuccess: (r, cid) => { setComments((d) => mapCommentData(d, cid, () => null)); setDetail((o) => ({ ...o, comments: r.commentCount })); afterMine() },
     onError: (e) => toastApiError(e, '댓글을 삭제하지 못했어요', COMMUNITY_ERRORS),
   })
   /** 글 지우기 */
-  const removePost = useMutation({
+  const removePost = useSessionMutation({
     mutationFn: () => communityApi.remove(dto),
     // 화면이 곧 목록으로 가므로 상세는 다시 받지 않음 (지운 글을 다시 받으면 404)
     onSuccess: () => { void qc.invalidateQueries({ queryKey: communityKeys.all, predicate: (q) => q.queryKey[1] !== 'detail' && q.queryKey[1] !== 'comments' }) },
@@ -295,7 +296,7 @@ export function useBookmark() {
 /** 내 글 지우기 (내가 쓴 글 목록에서): 지운 뒤 그 목록에 머묾 */
 export function useDeletePost() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (id: string) => communityApi.remove(toDtoId(id)),
     onSuccess: (_r, id) => { qc.removeQueries({ queryKey: communityKeys.detail(id) }); void qc.invalidateQueries({ queryKey: communityKeys.all }) },
     onError: (e) => toastApiError(e, '게시물을 삭제하지 못했어요', COMMUNITY_ERRORS),
@@ -305,7 +306,7 @@ export function useDeletePost() {
 /** 글쓰기 · 글 수정 (id 가 있으면 수정). 성공하면 글 id */
 export function useSavePost() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async ({ id, value }: { id?: string; value: PostFormValue }) => {
       const req = toPostWriteRequest(value)
       if (id) { await communityApi.update(toDtoId(id), req); return id }
@@ -318,7 +319,7 @@ export function useSavePost() {
 /** 사진 한 장 올리기 (POST /images) → 앱 id · 주소. 글쓰기(useUploadImage)와 채팅 사진 첨부가 같이 씀 (명세: 파일 올리기는 08 이 맡음) */
 export const uploadImage = async (file: File) => { const r = await communityApi.uploadImage(file); return { id: toAppId(r.imageId), url: r.url } }
 export function useUploadImage() {
-  return useMutation({ mutationFn: uploadImage })
+  return useSessionMutation({ mutationFn: uploadImage })
 }
 
 /**
@@ -327,7 +328,7 @@ export function useUploadImage() {
  */
 export function useReport() {
   const qc = useQueryClient()
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (v: { type: ReportTargetType; id: string; picked: string; onAlready?: () => void }) => communityApi.createReport(reportBody(v.type, v.id, v.picked)),
     onError: (e, v) => {
       if (isApiError(e) && e.code === 'ALREADY_REPORTED' && v.onAlready) { v.onAlready(); return }
