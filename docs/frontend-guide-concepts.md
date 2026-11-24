@@ -124,7 +124,7 @@ src/app/
 - 화면 상태를 주소에 담는다: `?panel=closed`, `?modal=guestbook`, `?page=3`. 시안 검토와 새로고침에 편하다. 전체 목록은 `/screens`(실험실 켠 빌드만)
 - 남의 땅굴은 왜 page가 비어 있나: Next는 주소 변수가 바뀌면 page를 새로 만든다. 땅굴을 옮겨 다녀도 3D·패널을 이어 쓰려고 레이아웃이 화면을 그린다 ([가이드 사건 24](frontend-guide.md#사건-24-주소-변수가-바뀌면-화면을-새로-만듦-2026-11-23))
 
-![주소 /burrow/yerin이 화면이 되기까지: src/app 폴더에서 (app)/burrow/(visit)/[userId]를 찾고, 로그인 검사와 헤더 틀(AppShell)을 지나 안쪽 자리에 VisitBurrow가 userId = 'yerin'으로 그려진다](guide-diagrams/route-flow.svg)
+![주소 /burrow/yerin이 화면이 되기까지: src/app 폴더에서 (app)/burrow/(visit)/ 아래 userId 폴더를 찾고, 로그인 검사와 헤더 틀(AppShell)을 지나 안쪽 자리에 VisitBurrow가 userId = 'yerin'으로 그려진다](guide-diagrams/route-flow.svg)
 
 ### 3-2. 새로고침하면 서버에 무엇이 가나
 | | 주소 모양 | 새로고침하면 | 이 프로젝트 |
