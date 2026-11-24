@@ -5,7 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* 배치: 왼쪽에 붙어 있는 목차(두 문서) + 오른쪽 읽기 칸 하나. 좁은 화면은 목차를 접어 맨 위로.
-   색은 앱의 디자인 토큰(app/src/styles/tokens.css: 크림 바탕 · 흙 갈색 글자 · 주황 행동색)을 그대로 씀 */
+   색은 앱의 디자인 토큰(frontend/src/styles/tokens.css: 크림 바탕 · 흙 갈색 글자 · 주황 행동색)을 그대로 씀 */
 :root {
   --paper: #fbf4ec;        /* 앱 페이지 바탕 */
   --rail: #f4e6d8;         /* 자기소개 박스 색 → 목차 */
@@ -195,7 +195,7 @@ body.zooming { overflow: hidden; }
   <aside class="rail" id="rail" aria-label="목차">
     <details class="toc-box" id="toc-box" open>
       <summary>목차</summary>
-      <div class="brand"><b>프론트엔드 가이드</b><span>디굴디굴 app/</span></div>
+      <div class="brand"><b>프론트엔드 가이드</b><span>디굴디굴 frontend/</span></div>
       <input class="toc-find" id="toc-find" type="search" aria-label="목차에서 찾기" placeholder="목차에서 찾기 (예: 사건, 3D, 배포)" autocomplete="off">
       <nav id="toc">
 <!--TOC-->

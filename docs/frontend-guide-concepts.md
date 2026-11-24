@@ -2,10 +2,10 @@
 
 디굴디굴 프론트엔드를 이해하는 데 필요한 개념을 이 프로젝트의 실제 코드로 설명하는 학습 문서다.
 
-- 날짜: 2026-11-17 (2026-11-10 가이드의 2~7장을 지금 코드에 맞게 고치고 데이터·실시간·그래픽 성능·테스트를 더함. 같은 날 그림·사진 추가)
+- 날짜: 2026-11-24 (2026-11-17 판을 지금 코드에 맞게 고침: Next.js `frontend/`, 백엔드 확정 API 명세 v1, 실시간 SSE. 1·3·5·6·7·10·11장을 다시 씀)
 - 대상 독자: 이 프로젝트의 기획·관리자, 프론트엔드를 처음 보는 팀원
 - 짝 문서: [frontend-guide.md](frontend-guide.md) (기술 선택의 이유, 사건 기록, 구조, 백엔드 연결, 용어집)
-- 읽는 법: 장마다 **개념 → 이 프로젝트에서는 → 직접 해 볼 것** 순서. 코드 위치는 `app/src/` 기준. 용어는 [가이드 8장 용어집](frontend-guide.md#8-용어집)
+- 읽는 법: 장마다 **개념 → 이 프로젝트에서는 → 직접 해 볼 것** 순서. 코드 위치는 `frontend/src/` 기준(예전 Vite 앱은 `app/`이라고 따로 적음). 용어는 [가이드 8장 용어집](frontend-guide.md#8-용어집)
 
 ## 목차
 1. [전체 그림: SPA](#1-전체-그림-spa)
@@ -14,7 +14,7 @@
 4. [스타일: 디자인 토큰과 CSS Modules](#4-스타일-디자인-토큰과-css-modules)
 5. [TypeScript로 데이터 모양 정하기](#5-typescript로-데이터-모양-정하기)
 6. [서버 데이터 다루기: TanStack Query](#6-서버-데이터-다루기-tanstack-query)
-7. [실시간: WebSocket과 STOMP](#7-실시간-websocket과-stomp)
+7. [실시간: SSE](#7-실시간-sse)
 8. [3D를 React 앱에 넣기](#8-3d를-react-앱에-넣기)
 9. [그래픽 성능의 기본 개념](#9-그래픽-성능의-기본-개념)
 10. [빌드 · 환경 변수 · 배포](#10-빌드--환경-변수--배포)
@@ -26,39 +26,44 @@
 
 ### 개념
 - **SPA(Single Page Application)**: 서버에서 HTML을 한 번만 받고, 그 뒤 화면 전환은 브라우저 안의 JavaScript가 처리한다. 메뉴를 눌러도 페이지가 새로고침되지 않는다
-- 브라우저는 TypeScript·JSX를 바로 읽지 못한다. **빌드 도구**(Vite)가 브라우저가 읽는 JavaScript로 바꾸고, 묶고(번들), 줄이고, 필요할 때 받을 조각(청크)으로 나눈다
+- 브라우저는 TypeScript·JSX를 바로 읽지 못한다. **빌드 도구**가 브라우저가 읽는 JavaScript로 바꾸고, 묶고(번들), 줄이고, 필요할 때 받을 조각(청크)으로 나눈다. 지금은 Next.js(안의 Turbopack)가, 예전 앱은 Vite가 이 일을 한다
+- Next.js는 서버에서 첫 화면을 그려 보내는 기능(서버 렌더링)도 있지만, 이 앱은 화면을 모두 브라우저에서만 그린다. 그래서 동작은 SPA와 같다 ([nextjs-migration.md](nextjs-migration.md) 결정 1)
 
-![전통 웹은 클릭할 때마다 서버가 새 HTML 페이지를 보내 화면이 다시 뜬다. SPA인 디굴디굴은 처음에 HTML 한 장과 JS를 받고, 3D 코드는 땅굴에 처음 들어갈 때 한 번, 게시판으로 갈 때는 글 목록 데이터(GET /api/posts)만 받는다](guide-diagrams/spa.svg)
+![전통 웹은 클릭할 때마다 서버가 새 HTML 페이지를 보내 화면이 다시 뜬다. SPA처럼 도는 디굴디굴은 처음에 HTML 한 장과 JS를 받고, 3D 코드는 땅굴에 처음 들어갈 때 한 번, 게시판으로 갈 때는 글 목록 데이터(GET /api/v1/posts)만 받는다](guide-diagrams/spa.svg)
 
 ### 이 프로젝트에서는
 ```
 브라우저
- └─ index.html   ─ <div id="root"> 하나뿐
-     └─ main.tsx   React를 root에 붙임. 데이터 캐시·라우터 연결, 옛 탭 대비, 늘 떠 있는 띠(가속 안내·오프라인)
-         └─ App.tsx  주소 → 화면 표 + 에러 경계 3겹
-             ├─ screens/     화면 (시작, 온보딩, 땅굴, 커뮤니티, 모임, 채팅, 알림, 설정, 관리자)
-             │    └─ components/  여러 화면이 같이 쓰는 조각
-             ├─ api/         서버와 말하는 층 (지금은 목 서버, 스위치로 실제 서버)
-             ├─ realtime/    채팅 실시간 연결
-             ├─ data/        목 저장소(가짜 DB)와 카탈로그 JSON
-             ├─ lib/         날짜·환경 변수·글자 수·저사양 판단 같은 도구
-             ├─ styles/      디자인 토큰, 전역 CSS
-             └─ three/       3D (그 화면에 들어갈 때만 따로 내려받음)
+ └─ src/app/layout.tsx      <html> · 글꼴 · 전역 CSS
+     └─ providers.tsx         브라우저에서만 그림 · 휴대폰 안내 · 데이터 캐시 · 가속 꺼짐 안내
+         ├─ (pc)/…            시작 화면 · 로그인 · 가입
+         ├─ onboarding/…      온보딩
+         └─ (app)/layout.tsx  로그인 영역 틀(AppShell): 로그인 검사 · 헤더 · 실시간 소식 연결
+             └─ …/page.tsx    주소마다 한 파일. 안에서 screens/ 의 화면 하나를 그림
+                 ├─ screens/     화면 (땅굴, 게시판, 모임, 채팅, 알림, 설정 …)
+                 │    └─ components/  여러 화면이 같이 쓰는 조각
+                 ├─ api/         서버와 말하는 층 (영역 폴더 11개, 영역마다 목 서버 ↔ 실제 서버)
+                 ├─ realtime/    실시간 소식(SSE) 연결 하나
+                 ├─ data/        목 저장소(가짜 DB)와 관심사 · 가구 표
+                 ├─ lib/         화면 이동 어댑터 · 환경 변수 · 날짜 · 글자 수 · 저사양 판단 같은 도구
+                 ├─ styles/      디자인 토큰, 전역 CSS
+                 └─ three/       3D (그 화면에 들어갈 때만 따로 내려받음)
 ```
 
 | 도구 | 역할 | 한 줄 설명 |
 |---|---|---|
-| Vite 8 | 개발 서버 + 빌드 | 개발 중엔 저장하면 바로 반영(HMR), 빌드 땐 묶고 줄여서 `dist/` |
-| React 19 | 화면 그리기 | "상태가 이러면 화면은 이렇게"를 컴포넌트로 |
-| TypeScript 7 | 타입 검사 | 데이터 모양이 틀리면 빌드 전에 에러 |
-| react-router 7 | 라우팅 | 주소마다 다른 화면 |
+| Next.js 16.4 | 틀 · 개발 서버 · 빌드 | `src/app/` 폴더 = 주소. 개발 중엔 저장하면 바로 반영, 빌드 땐 묶고 줄여서 `.next/` |
+| React 19.3 | 화면 그리기 | "상태가 이러면 화면은 이렇게"를 컴포넌트로 |
+| TypeScript 6.0 | 타입 검사 | 데이터 모양이 틀리면 빌드 전에 에러 |
+| `lib/nav.tsx` | 화면 이동 | react-router와 같은 이름(`useNavigate`·`Link`…)을 Next 위에 |
 | TanStack Query 5 | 서버 데이터 | 불러오는 중·오류·캐시·다시 받기 |
 | CSS Modules | 스타일 | 파일마다 클래스 이름이 따로라 충돌이 없음 |
 | three.js 0.165 | 3D | WebGL을 쉽게 쓰는 라이브러리 |
-| vitest 5 | 단위 테스트 | 함수가 규칙대로 답하는지 자동 채점 |
+| vitest 5 · ESLint 9 | 단위 테스트 · 린트 | 함수가 규칙대로 답하는지 자동 채점 · 코드 모양 검사 |
 
 ### 직접 해 볼 것
-- 개발 서버를 띄우고(`cd app && npm run dev`) 메뉴를 눌러 가며 개발자 도구(F12) → Network 탭을 본다. 페이지 전체가 다시 받아지지 않고, 3D 화면에 처음 들어갈 때만 큰 JS 파일이 새로 받아지는 것을 확인한다
+- 개발 서버를 띄우고(`cd frontend && npm run dev` → http://localhost:3000) 메뉴를 눌러 가며 개발자 도구(F12) → Network 탭을 본다. 페이지 전체가 다시 받아지지 않고, 3D 화면에 처음 들어갈 때만 큰 JS 파일이 새로 받아지는 것을 확인한다
+- 같은 탭에서 "페이지 소스 보기"를 열어 첫 HTML에 화면 내용이 없는 것을 본다(브라우저에서만 그리므로)
 
 ---
 
@@ -82,14 +87,14 @@
 
 ![같은 내 땅굴: 패널이 열리면 focusX 0.403으로 방이 왼쪽으로, ?panel=closed면 0.5로 가운데 온다 (스모크 화면)](guide-images/panel-focus.jpg)
 
-`key` 실제 사례: 채팅방 A → B로 바꿔도 메시지가 A 것으로 남던 버그는 `<RoomPane key={room.id}>`로 고쳤다 ([가이드 사건 13](frontend-guide.md#사건-13-채팅방을-바꿔도-이전-메시지가-남음))
+`key` 실제 사례: 채팅방 A → B로 바꿔도 메시지가 A 것으로 남던 버그는 `<RoomPane key={roomId}>`로 고쳤다. 반대로 Next에서는 주소 변수가 바뀌면 page를 새로 만들어, 남아야 할 입력이 사라지는 문제가 생겼다([가이드 사건 24](frontend-guide.md#사건-24-주소-변수가-바뀌면-화면을-새로-만듦-2026-11-23)) ([가이드 사건 13](frontend-guide.md#사건-13-채팅방을-바꿔도-이전-메시지가-남음))
 
 | 공용 컴포넌트 | 배울 점 |
 |---|---|
 | `components/Pagination.tsx` | 규칙(번호 5개씩 묶음, 6–10 …)을 **계산으로** 표현. state 없이 props만 받는 "순수" 컴포넌트 |
 | `components/Modal.tsx` | `createPortal`로 `body` 바로 밑에 그림(부모의 잘림에 안 걸림). Esc로 닫기, 팝업 안에서만 Tab이 돎, 뒤 화면은 `inert`(손 못 대게), 닫으면 연 버튼으로 초점 복귀. 닫기 함수는 ref에 둠 ([사건 16](frontend-guide.md#사건-16-팝업-입력칸이-초점을-빼앗김-2026-11-16)) |
 | `components/InterestChip.tsx` | 같은 모양에 색 톤만 바꾸는 **변형(variant)** props |
-| `lib/format.ts`의 `liveGuestbook` | "7일 지난 방명록은 숨김" 같은 **기획 규칙을 화면 밖 함수로** 빼서 테스트하기 쉽게 (`tests/format.test.ts`) |
+| `lib/format.ts`의 `visibleGuestbook` | "서로 다른 3명이 신고한 방명록은 가림" 같은 **기획 규칙을 화면 밖 함수로** 빼서 테스트하기 쉽게 (`tests/format.test.ts`) |
 
 ### 직접 해 볼 것
 - `/burrow?panel=closed`와 `/burrow`를 열어 방 위치가 다른 것을 보고, 그 차이를 만드는 계산을 `MyBurrow.tsx`에서 찾는다
@@ -101,50 +106,50 @@
 
 ### 3-1. 개념과 이 프로젝트
 - 클라이언트 라우팅: 주소가 바뀌어도 서버에 새 HTML을 요청하지 않고 JavaScript가 화면만 바꾼다
-- `<Link to="/board">`는 새로고침 없이 이동한다. 일반 `<a href>`를 쓰면 새로고침되거나 라우터가 모른다
-- **중첩 라우트 + 레이아웃**: 공통 틀(헤더)을 한 번만 쓰고 안쪽만 바꾼다
+- `<Link to="/board">`는 새로고침 없이 이동한다. 일반 `<a href>`를 쓰면 새로고침된다
+- **중첩 레이아웃**: 공통 틀(헤더)을 한 번만 쓰고 안쪽만 바꾼다
+- **Next App Router는 폴더가 곧 주소표**다. `page.tsx`가 있는 폴더가 주소가 되고, 같은 폴더의 `layout.tsx`가 그 아래 화면을 감싼다. `[userId]`처럼 대괄호 폴더는 주소 변수, `(app)`처럼 괄호 폴더는 주소에 안 나타나는 묶음이다
 
-`App.tsx` (줄여서)
-```tsx
-function AppLayout() {                          // 로그인 뒤 화면의 틀
-  useEffect(() => { startChatRealtime() }, [])  // 채팅 실시간 연결 시작
-  return (<><AppHeader /><Outlet /> …</>)       // 헤더 + 안쪽 자리
-}
-{ element: <RequireLogin><AppLayout /></RequireLogin>, children: [
-    { path: '/burrow', element: <MyBurrow /> },
-    { path: '/burrow/:userId', element: <VisitBurrow /> },   // :userId = 주소 변수
-    …
-]}
+`src/app/` (줄여서)
 ```
-- `:userId`는 `useParams()`로 꺼낸다 (`/burrow/yerin` → `yerin`)
-- 화면 상태를 주소에 담는다: `?panel=closed`, `?modal=guestbook`, `?page=3`. 시안 검토와 새로고침에 편하다. 전체 목록은 `/screens`
+src/app/
+  layout.tsx                       맨 바깥 틀
+  (app)/layout.tsx                 로그인 영역 틀 → components/AppShell.tsx (로그인 검사 · 헤더 · SSE 시작)
+  (app)/burrow/page.tsx            /burrow              → <MyBurrow />
+  (app)/burrow/(visit)/layout.tsx  /burrow/:userId 의 틀 → <VisitBurrow /> 를 여기서 그림
+  (app)/burrow/(visit)/[userId]/page.tsx   빈 page (주소만 엶)
+  (app)/meetups/[id]/page.tsx      /meetups/:id         → <MeetupDetail />
+```
+- 화면 코드는 Next를 직접 부르지 않고 `@/lib/nav`의 `useParams()`·`useNavigate()`·`Link`를 쓴다. react-router와 같은 이름이라 예전 앱의 화면 코드를 import 한 줄만 바꿔 옮겼다 (`/burrow/yerin` → `useParams().userId === 'yerin'`)
+- 화면 상태를 주소에 담는다: `?panel=closed`, `?modal=guestbook`, `?page=3`. 시안 검토와 새로고침에 편하다. 전체 목록은 `/screens`(실험실 켠 빌드만)
+- 남의 땅굴은 왜 page가 비어 있나: Next는 주소 변수가 바뀌면 page를 새로 만든다. 땅굴을 옮겨 다녀도 3D·패널을 이어 쓰려고 레이아웃이 화면을 그린다 ([가이드 사건 24](frontend-guide.md#사건-24-주소-변수가-바뀌면-화면을-새로-만듦-2026-11-23))
 
-![주소 /burrow/yerin이 화면이 되기까지: 라우터 표에서 /burrow/:userId를 찾고, 로그인 검사와 헤더 틀(AppLayout)을 지나 안쪽 자리(Outlet)에 VisitBurrow가 userId = 'yerin'으로 그려진다](guide-diagrams/route-flow.svg)
+![주소 /burrow/yerin이 화면이 되기까지: src/app 폴더에서 (app)/burrow/(visit)/[userId]를 찾고, 로그인 검사와 헤더 틀(AppShell)을 지나 안쪽 자리에 VisitBurrow가 userId = 'yerin'으로 그려진다](guide-diagrams/route-flow.svg)
 
-### 3-2. 브라우저 라우터와 해시 라우터
-| | 주소 모양 | 필요한 것 | 이 프로젝트 |
+### 3-2. 새로고침하면 서버에 무엇이 가나
+| | 주소 모양 | 새로고침하면 | 이 프로젝트 |
 |---|---|---|---|
-| `createBrowserRouter` | `/burrow` | 서버가 **어떤 주소로 와도 index.html을 돌려줘야** 함. 안 그러면 새로고침 때 404 | 일반 빌드(실서버용). Nginx `try_files` 필요 |
-| `createHashRouter` | `#/burrow` | `#` 뒤는 서버로 안 가서 아무 정적 호스팅에서나 동작 | 공유 빌드(아티팩트). 경로를 바꿀 수 없는 곳이라 |
+| Next 서버 (`next start`) | `/burrow` | 서버가 폴더로 주소를 알아 같은 화면. 없는 주소는 `not-found.tsx`(응답 404) | `frontend/` |
+| 브라우저 라우터 + 정적 서버 | `/burrow` | 서버가 **어떤 주소로 와도 index.html을 돌려줘야** 함. 안 그러면 404 | 예전 Vite 앱의 일반 빌드 (Nginx `try_files` 필요) |
+| 해시 라우터 | `#/burrow` | `#` 뒤는 서버로 안 가서 아무 정적 호스팅에서나 동작 | 예전 Vite 앱의 공유 빌드(아티팩트) |
 
 - 새로고침 때 서버에 무엇이 가는지는 [가이드 사건 11의 그림](frontend-guide.md#사건-11-새로고침하면-404-브라우저-라우터)
-
-- 빌드할 때 `ENV.hashRouter`(`lib/env.ts`, 값은 `.env.share`의 `VITE_HASH_ROUTER=1`)로 고른다. 같은 코드로 빌드 설정만 달리하는 방법은 실무에서 흔하다(개발/스테이징/운영)
-- 함정: 환경 변수는 늘 문자열이라 `"0"`도 참으로 읽혔다. 지금은 `flag()`가 `1·true·yes·on`만 참으로 읽는다 ([가이드 사건 11](frontend-guide.md#사건-11-새로고침하면-404-브라우저-라우터))
+- 함정: 환경 변수는 늘 문자열이라 `"0"`도 참으로 읽혔다. 지금은 `lib/env.ts`의 `flag()`가 `1·true·yes·on`만 참으로 읽는다 ([가이드 사건 11](frontend-guide.md#사건-11-새로고침하면-404-브라우저-라우터))
 
 ### 3-3. 에러 경계
 - **개념**: 렌더링 중에 에러가 나면 React는 그 위 화면을 통째로 지운다. 에러 경계는 "여기까지만 지우고 안내를 보여 줘"라는 칸막이다. 단, 버튼 클릭 처리나 비동기 코드 안의 에러는 경계가 잡지 않는다. 그런 에러는 그 코드가 직접 처리한다(예: 쓰기 실패 토스트)
-- **이 프로젝트**: 라우트 세 겹 (`App.tsx`)
-  1. 맨 바깥: 시작 화면·온보딩·관리자까지 모든 화면의 마지막 그물
-  2. 로그인 영역 틀: 헤더 자체가 깨질 때
-  3. 화면 하나(`RouteError inline`): 헤더는 남기고 안쪽만 "잠시 문제가 생겼어요 · 다시 시도"
+- **이 프로젝트**: Next는 폴더에 `error.tsx`를 두면 그 폴더 아래의 칸막이가 된다
+  1. `src/app/error.tsx`(+ 루트 레이아웃까지 깨지면 `global-error.tsx`): 시작 화면·온보딩·관리자까지 모든 화면의 마지막 그물. 헤더(로그인 영역 틀)가 깨질 때도 여기서 잡는다(같은 폴더의 layout 바깥은 못 감싸서 한 단계 위)
+  2. `src/app/(app)/error.tsx`: 화면 하나가 깨지면 헤더는 남기고 안쪽만 "잠시 문제가 생겼어요 · 다시 시도"
+  3. 모임·설정은 안쪽에 하나 더(`(app)/meetups/(shell)/error.tsx`, `(app)/settings/error.tsx`): 탭·왼쪽 메뉴도 남음
   - 3D는 따로 `components/SceneBoundary.tsx`가 감싼다. 3D만 비우고 그 화면이 깔아 둔 정지 그림·2D 두더지를 보여 준다
-  - 재배포 뒤 파일을 못 받은 에러(청크 404)면 한 번 새로고침한다
+  - 재배포 뒤 파일을 못 받은 에러(청크 404)면 한 번 새로고침한다 (`lib/chunkReload.ts` `isChunkLoadError`)
 - 어디서 무엇이 잡히는지 전체 표는 [가이드 5-3](frontend-guide.md#5-3-에러가-났을-때-어디서-잡히나)
 
 ### 직접 해 볼 것
 - 개발 서버에서 `/dev/crash`를 열어 헤더는 남고 안쪽만 안내가 나오는 것을 본다
 - 없는 주소(`/abc`)와 없는 모임(`/meetups/없는id`)이 각각 무엇을 보여 주는지 비교한다
+- `src/app/(app)/meetups/` 아래 폴더를 보고 `/meetups/m1/edit`가 어느 `page.tsx`인지 찾는다
 
 ---
 
@@ -153,7 +158,7 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 ### 개념
 - **디자인 토큰** = 색·글자 크기·간격에 붙인 이름. 디자인과 코드가 같은 말을 쓰게 한다
 - **CSS 변수**(`--brown-700`)로 토큰을 두면 한 곳만 고쳐도 전체가 바뀐다
-- **CSS Modules**: `Board.module.css`의 `.title`은 빌드 때 `_title_9r79a_297` 같은 고유 이름이 된다(2026-11-17 빌드에서 실제로 본 이름, 다시 빌드하면 바뀔 수 있음) → 다른 파일의 `.title`과 안 겹친다
+- **CSS Modules**: `Board.module.css`의 `.title`은 빌드 때 `_title_9r79a_297` 같은 고유 이름이 된다(2026-11-17 예전 Vite 빌드에서 실제로 본 이름. 빌드 도구마다 이름 모양이 다르고 다시 빌드하면 바뀔 수 있음) → 다른 파일의 `.title`과 안 겹친다
 
 ### 이 프로젝트에서는
 - `styles/tokens.css`: Figma 스크린샷에서 픽셀로 뽑은 색. 관심사 칩 8톤(`--tone-sage-bg` …)은 Figma 컴포넌트 이름(`Tone=Sage`)과 같은 이름
@@ -162,6 +167,7 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 ![Figma 시안에서 뽑은 색에 tokens.css가 이름을 붙이고, 컴포넌트 CSS는 그 이름만 쓴다. --brown-700 한 줄을 고치면 그 이름을 쓰는 CSS 17개(헤더 활성 메뉴, 쪽 번호, 게시판 탭 등)가 같이 바뀐다. CSS Modules는 같은 .title도 파일마다 다른 이름으로 바꾼다](guide-diagrams/tokens.svg)
 - 서체: 제목·버튼 Do Hyeon(Google Fonts), 본문 Pretendard(npm에서 받아 번들에 포함. 아티팩트가 외부 CSS를 막아서)
 - `styles/global.css`의 `[hidden]{display:none!important}`는 지우지 않는다. 컴포넌트의 `display` 값이 `hidden` 속성을 덮어 모달 배경이 남던 버그가 있었다
+- 같은 파일의 전역 클래스에 붙은 `:not(template)`도 지우지 않는다. Next는 전역 CSS를 모듈 CSS보다 먼저 불러와서, 명시도가 같으면 모듈이 이긴다. 예전 Vite 앱처럼 "같으면 전역이 이김"이 되도록 명시도를 요소 하나만큼 올린 것이다 ([가이드 사건 23](frontend-guide.md#사건-23-css-순서가-달라-버튼-높이가-바뀜-2026-11-23))
 - 움직임 줄이기(운영체제 설정 `prefers-reduced-motion`)를 켜면 전역 CSS가 애니메이션을 거의 끄고, 땅굴은 입장 연출 없이 다 차려진 방으로 연다
 - 색 대비가 기준보다 낮은 조합 목록은 [frontend-hardening.md](frontend-hardening.md) 4-6. 색은 디자인 결정이 필요해 아직 바꾸지 않았다
 
@@ -175,21 +181,23 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 
 ### 개념
 - `interface User { nickname: string; interests: string[] }` → 이 모양이 아닌 데이터를 넣으면 빌드 전에 에러
-- TypeScript는 "문자열인가"는 알지만 "ISO 날짜 문자열인가"는 모른다. 값의 뜻은 규칙과 테스트로 지킨다
+- TypeScript는 "문자열인가"는 알지만 "UTC 시각 문자열인가"는 모른다. 값의 뜻은 규칙과 테스트로 지킨다
 
 ### 이 프로젝트에서는
 - **두 가지 모양**을 나눴다
-  - 앱 모양: `data/types.ts`와 `data/*Store.ts` (화면이 쓰는 모양. 예: 모임에 `members: string[]`, 댓글은 `boardStore.ts`의 `BoardComment`)
-  - 서버 모양(DTO): `api/types.ts` (ERD 칼럼을 camelCase로 옮긴 것. ID는 문자열, 날짜는 `IsoDateTime`)
-  - 둘 사이 번역: `api/mappers.ts` (서버가 숫자 ID를 줘도 문자열로, ISO 날짜를 ms 숫자로, 탈퇴한 사람은 `'gone'`으로)
-  - 이렇게 나누면 서버 응답 모양이 바뀌어도 매퍼만 고치고 화면은 그대로 둔다
+  - 서버 모양(DTO): `api/<영역>/types.ts`. 백엔드 명세 v1을 **그대로** 옮겼다: ID는 숫자(`Id`), 시각은 UTC 문자열(`UtcInstant`, "…Z"), 날짜만은 `DateString`, enum은 대문자, 값이 없으면 `null`
+  - 앱 모양: 영역의 `mappers.ts`에 있는 `…VM` 타입과 `data/types.ts` (화면이 쓰는 모양. ID는 문자열, 시각은 ms 숫자)
+  - 둘 사이 번역: 영역의 `mappers.ts` (숫자 ID → 문자열 `toAppId`, UTC → ms `parseIso`, 탈퇴한 사람 → `'gone'`, 칸 이름 바꾸기)
+  - 이렇게 나누면 서버 응답 모양이 바뀌어도 그 영역의 `types.ts`와 `mappers.ts`만 고치고 화면은 그대로 둔다. 실제로 명세 v1에 맞출 때 ID가 문자열 → 숫자로 바뀌었는데 화면 주소(`/meetups/m1`)와 화면 코드는 그대로였다
+  - 목 서버는 저장소 id가 `'m1'` 같은 글자라서, DTO를 만들 때 큰 번호로 바꿨다가(`toDtoId`) 매퍼가 되돌린다(`api/common/ids.ts`). 목 번호는 9×10¹¹ 위라 실제 id와 겹치지 않는다
 
-![서버가 주는 댓글 모양(CommentDto)을 api/mappers.ts가 앱 모양(BoardComment)으로 바꾼다: ID는 문자열로, ISO 날짜는 ms 숫자로, 탈퇴한 사람은 'gone'으로. 화면(BoardPost.tsx)은 오른쪽 모양만 안다](guide-diagrams/dto-mapper.svg)
-- `npm run build`는 먼저 `tsc -b`(타입 검사)를 돌린다. 타입이 틀리면 빌드가 실패한다. 테스트 파일도 같이 검사한다
-- 예외: `three/mole.ts`, `three/furniture.ts`는 자동 생성 파일이라 타입 검사를 끈다(`// @ts-nocheck`). 원본은 `explore/3d/lib/`에 있다 (8-8)
+![서버가 주는 댓글 모양(CommentDto)을 api/community/mappers.ts의 toComment가 앱 모양(CommentVM)으로 바꾼다: 숫자 ID는 문자열로, UTC 시각은 ms 숫자로, 탈퇴한 사람은 'gone'으로. 화면(BoardPost.tsx)은 오른쪽 모양만 안다](guide-diagrams/dto-mapper.svg)
+- `npm run typecheck`(`tsc --noEmit`)가 타입을 검사하고, `npm run build`(Next)도 빌드 중에 검사한다. 테스트 파일도 같이 검사한다
+- TypeScript는 6.0이다. 예전 Vite 앱은 7.0을 썼는데, 7은 Next 빌드와 린트 도구가 쓰는 JS API가 없어 내렸다
 
 ### 직접 해 볼 것
-- `api/types.ts`에서 모임 DTO를 찾고, `api/mappers.ts`의 `toMeetupDetail`이 어떤 칸을 어떻게 바꾸는지 따라가 본다
+- `api/meetups/types.ts`에서 모임 상세 DTO를 찾고, `api/meetups/mappers.ts`의 `toMeetupDetail`이 어떤 칸을 어떻게 바꾸는지 따라가 본다
+- 같은 API를 명세 사본(`docs/backend/team-spec/api/07-meetup.md`)에서 찾아 칸 이름이 같은지 맞춰 본다
 
 ---
 
@@ -199,59 +207,68 @@ function AppLayout() {                          // 로그인 뒤 화면의 틀
 - 서버 데이터는 **비동기**다. 요청을 보내고 답이 올 때까지 기다린다. 그래서 화면은 늘 세 상태를 구분해야 한다: **불러오는 중 · 오류 · 받음**. 받았는데 비어 있는 것("없음", "빈 목록")도 따로다
 - **캐시**: 받은 데이터를 이름(캐시 키)으로 기억한다. 같은 화면에 다시 오면 기억한 값을 먼저 보여 주고 뒤에서 새로 받는다
 - **낙관적 업데이트**: "찜"을 누르면 서버 답을 기다리지 않고 화면을 먼저 바꾼다. 실패하면 되돌리고 알린다. 대부분 성공하니 사용자는 빠르다고 느낀다
+- **캐시는 누구의 것인가**: 캐시는 탭 하나에 하나다. 다른 계정으로 로그인하면 이전 계정의 캐시를 버려야 한다. 날아가는 중인 요청도 마찬가지다
 
 ### 이 프로젝트에서는
-화면 → 훅 → API 함수 → (목 서버 또는 실제 서버) → 매퍼 → 화면
+화면 → 영역 훅 → 영역 API(목 또는 실제) → 매퍼 → 화면
 ```tsx
-// api/queries.tsx
-export function useMeetupDetail(id: string) {
-  return useQuery({ queryKey: qk.meetup(id), queryFn: async ({ signal }) => toMeetupDetail(await api.meetups.get(id, signal)) })
+// api/meetups/queries.ts
+export function useMeetupDetail(id: string, enabled = true) {
+  return useQuery({ queryKey: meetupKeys.detail(id), enabled: enabled && !!id,
+    queryFn: async ({ signal }) => toMeetupDetail(await meetupsApi.get(toDtoId(id), signal)) })
 }
 // screens/meetups/MeetupDetail.tsx
 <QueryGate q={q} skeleton={<DetailSkeleton … />} notFound={<NotFound what="meetup" />}>
   {(d) => <MeetupDetailView d={d} />}
 </QueryGate>
 ```
-- `QueryGate`(`components/AsyncState.tsx`): 오는 중이면 스켈레톤, 404면 없음 안내, 그 밖 오류면 "다시 시도". **이미 받은 값이 있으면 다시 받다 실패해도 그 값을 계속 보여 준다**
+- `meetupsApi`는 `api/meetups/api.ts`가 `selectArea('meetups', real, mock)`으로 고른 것이다. 영역마다 목/실제를 따로 바꾼다 ([가이드 6-1](frontend-guide.md#6-1-목--실제-서버-전환))
+- `QueryGate`(`components/AsyncState.tsx`): 오는 중이면 스켈레톤, 404면 없음 안내, 그 밖 오류면 "다시 시도". 잠깐 실패면 이미 받은 값을 계속 보여 주고, **404·410이면 가진 값보다 없음 안내가 먼저**다 ([가이드 사건 28](frontend-guide.md#사건-28-다시-받아-404인데-이전-값이-보임-2026-11-24-codex-p1-3건))
 - 목록은 거르기를 바꿔도 이전 목록을 보여 주다 바꿔 끼운다(`keepPreviousData`) → 스켈레톤이 깜빡이지 않음
-- 쓰기는 `useOptimistic()`: 캐시를 먼저 바꾸고(patches) → 서버 호출 → 실패하면 원래대로 + 빨간 토스트(서버 `message`) → 성공·실패 어느 쪽이든 끝나면 관련 캐시를 새로 받음. 신청하기·대화 요청 보내기·수락처럼 두 번 눌리면 안 되는 버튼은 진행 중에 잠근다(`isPending`). 찜은 잠그지 않는다
-- 실제 서버용 `api/client.ts`: 10초 타임아웃, 쿠키 포함, 401이면 리프레시를 **한 번만** 시도, GET만 네트워크 오류·502/503/504일 때 두 번 재시도
-- 목 서버 `api/mock/server.ts`: 요청마다 0.15~0.4초 기다림. 주소 손잡이 `?api=slow|fast|fail|flaky|writefail|empty|notfound|unauth`로 행동을 바꿈 (이 탭에 기억, 왼쪽 아래 배지의 ✕로 끔)
+- 쓰기는 `useOptimistic()`(`api/optimistic.ts`): 캐시를 먼저 바꾸고(patches) → 서버 호출 → 실패하면 원래대로 + 빨간 토스트(문구는 영역 `errors.ts`의 code 표) + **바꿨던 캐시를 다시 받음** → 성공·실패 어느 쪽이든 끝나면 관련 캐시를 새로 받음. 찜·신청하기처럼 두 번 눌리면 안 되는 버튼은 진행 중에 잠근다(`isPending`)
+- 쓰기 훅은 모두 `useSessionMutation`(`api/sessionMutation.ts`) 위에 있다. 요청을 보낸 뒤 계정이 바뀌면(세션 번호가 다르면) 끝난 뒤 처리를 건너뛴다 ([가이드 사건 26](frontend-guide.md#사건-26-계정이-바뀌어도-이전-계정의-데이터가-남음-2026-11-24-codex-p0-3건))
+- 실제 서버용 `api/client.ts`: 주소 앞에 `/api/v1`, 10초 타임아웃, 쿠키 포함, 응답 틀 `{ success, data, error }`를 풀어 `data`만 돌려줌, 실패는 `ApiError{status, code, message, fields, detail}`, **401이면 바로 로그인 화면**(갱신 API가 없음), GET만 네트워크 오류·408·429·502~504일 때 두 번 재시도
+- 분기는 `code`로만 한다(명세: message 글자로 분기 금지). 예: `isApiError(e) && e.code === 'MEETUP_FULL'`. 입력 오류는 400 `INVALID_INPUT` + `fields[{field, message}]`를 칸 밑에
+- 목 서버 `api/mock/server.ts`: 요청마다 0.15~0.4초 기다림, 실패는 명세 code로(`notFound('MEETUP')` → 404 `MEETUP_NOT_FOUND`). 주소 손잡이 `?api=slow|fast|fail|flaky|writefail|empty|notfound|unauth`로 행동을 바꿈 (이 탭에 기억, 실험실 켠 빌드에서는 왼쪽 아래 배지의 ✕로 끔)
 
 ### 직접 해 볼 것
 - `/meetups/m6?api=writefail`에서 찜을 눌러, 화면이 먼저 바뀌었다 되돌아오고 위쪽에 빨간 토스트가 뜨는 것을 본다
 - `/board?api=slow`에서 스켈레톤을, `/board?api=empty`에서 빈 상태를 본다
-- 자세한 손잡이 표: [backend/frontend-data-layer.md](backend/frontend-data-layer.md) 3장
+- `src/tests/optimistic-rollback.test.ts`를 읽고 "되돌린 뒤 다시 받기"를 어떻게 확인하는지 본다
+- 자세한 규칙: [backend/api-v1-foundation.md](backend/api-v1-foundation.md) 2장
 
 ---
 
-## 7. 실시간: WebSocket과 STOMP
+## 7. 실시간: SSE
 
 ### 개념
-- 일반 HTTP는 "물어보면 답한다"이다. 채팅은 상대가 보낸 메시지를 서버가 **먼저** 알려 줘야 하므로 계속 열린 연결(WebSocket)이 필요하다
-- 연결이 계속 열려 있으면 새 문제가 생긴다: 끊김(와이파이 전환, 노트북 덮개), 다시 붙었을 때 놓친 메시지, 같은 메시지 두 번, 순서 뒤섞임, 로그인 만료
-- STOMP는 WebSocket 위의 메시지 규칙이다. "이 방(주제)을 구독한다", "이 주소로 보낸다"를 정해 둔다
+- 일반 HTTP는 "물어보면 답한다"이다. 채팅·알림은 상대가 보낸 메시지를 서버가 **먼저** 알려 줘야 하므로 계속 열린 연결이 필요하다
+- **SSE(Server-Sent Events)**: 브라우저가 연결 하나를 열어 두면 서버가 그 줄로 소식을 계속 보낸다. 서버 → 브라우저 한 방향이다. 보내기는 일반 API(`POST`)로 한다. 브라우저에는 `EventSource`가 들어 있다
+- **WebSocket(예전)**: 양쪽이 같은 연결로 주고받는다. 이 앱은 11-16 ~ 22에 WebSocket + STOMP를 썼다가, 백엔드 명세가 SSE로 정해져 지웠다
+- 연결이 계속 열려 있으면 새 문제가 생긴다: 끊김(와이파이 전환, 노트북 덮개), 다시 붙었을 때 놓친 소식, 같은 메시지 두 번, 로그인 만료, 계정 전환
+
+![보통 요청은 물어보면 답하고 끝나지만, 실시간 소식은 SSE 연결 하나로 서버가 먼저 보낸다. 끊기면 점점 길게 기다렸다 다시 붙고, 끊긴 동안의 소식은 오지 않으므로 조회 API로 다시 받아 맞춘다](guide-diagrams/realtime.svg)
 
 ### 이 프로젝트에서는
 ```
-화면 (Chat.tsx)            ← send · markRead · useChat
-  └ 저장소 (data/chat.ts)   ← 보내는 중/실패 상태, 받은 메시지 합치기, 안 읽은 수, 입력 중
-      └ hub.ts              ← 재연결 · 다시 받기 · 보내기 확인 · 탭 숨김 · 오프라인 · 인증 실패
-          └ Transport        ← mockTransport.ts (가짜 서버) 또는 stompTransport.ts (실제)
+화면 (Chat.tsx · 알림 · 헤더)       ← useChatEvents · useEventStream('NOTIFICATION_UNREAD_CHANGED', …)
+  └ 영역 훅 (api/chat/queries.ts …)   ← 소식을 캐시에 붙임 · 다시 붙으면 다시 받기 · 보내는 중/실패
+      └ realtime/events.ts            ← 앱 전체에 연결 하나 (startEventStream · stopEventStream)
+          └ realtime/eventStream.ts   ← EventSource · 다시 연결 · 로그인 확인 (목은 mockEvents)
 ```
-| 문제 | 이 프로젝트의 대응 (`app/src/realtime/`) |
+| 문제 | 이 프로젝트의 대응 (`frontend/src/realtime/`, `api/chat/`) |
 |---|---|
-| 끊김 | 지수 백오프 + 지터로 다시 시도 (0 ~ min(30초, 0.5초 × 2^n) 사이에서 무작위, 단 0.3초보다 짧게는 안 기다림) |
-| 놓친 메시지 | 다시 붙으면 구독부터 다시 하고, 방마다 "내가 가진 마지막 번호 이후"를 받음 |
-| 두 번 보임 | 보낼 때 clientId(UUID)를 붙이고, 서버가 같은 id로 돌려주면 임시 말풍선을 교체 (`order.ts`) |
-| 끊긴 동안 보내기 | 60초까지 쥐고 있다가 붙으면 보냄. 보낸 뒤 10초 안에 확인이 없으면 실패 + "다시 보내기" |
-| 탭을 오래 숨김 | 10분 넘으면 일부러 끊고, 다시 보이면 바로 연결 + 놓친 것 받기 |
-| 로그인 만료 | 다시 시도하지 않고 로그인 흐름으로 (`lib/authFlow.ts`) |
+| 끊김 | 지수 백오프 + 지터로 다시 시도 (0 ~ min(30초, 0.5초 × 2^n) 사이에서 무작위, 단 0.3초보다 짧게는 안 기다림, `backoff.ts`) |
+| 놓친 소식 | 명세상 다시 오지 않는다 → 다시 붙으면 `useRefetchOnReconnect`가 그 영역 캐시를 조회 API로 다시 받음 |
+| 두 번 보임 | 메시지 id로 한 번만. 내 메시지가 응답보다 먼저 소식으로 오면 본문·사진 수가 같은 가장 오래된 "보내는 중"을 대신 (명세에 보낸 쪽 id가 없어서) |
+| 보내기 | 일반 API `POST /chat-rooms/{id}/messages`. 누르면 바로 "보내는 중"(`api/chat/outbox.ts`), 실패하면 "다시 보내기 · 지우기". 연결이 끊겨도 보낼 수 있음 |
+| 로그인 만료 | `EventSource`는 상태 코드를 못 봐서, 두 번 잇달아 실패하면 `GET /me`로 확인해 401이면 멈추고 로그인 흐름으로 (`lib/authFlow.ts`) |
+| 계정 전환 | 로그아웃하면 연결을 끊고(`lib/signOut.ts`), 로그아웃·401·로그인 성공 때 outbox를 비움. 세대 번호로 늦게 끝난 전송 결과를 버림 |
 
 ### 직접 해 볼 것
-- `/chat/r-yerin?rt=flaky`(가끔 끊김)에서 메시지를 보내며 "다시 연결하는 중…" 띠와 놓친 메시지가 들어오는 것을 본다
-- `?rt=down`(서버 없음)에서 보낸 메시지가 60초 뒤 "다시 보내기"로 바뀌는 것을 본다
-- 개발 서버 콘솔에서 `__digulRealtime.mock.drop(5000)`으로 5초 끊어 본다 ([frontend-hardening.md](frontend-hardening.md) 1-5)
+- `/chat/r-yerin?rt=flaky`(가끔 끊김)에서 메시지를 보내며 "다시 연결하는 중…" 띠와, 다시 붙은 뒤 놓친 메시지가 들어오는 것을 본다
+- `?rt=down`(실시간 서버 없음)에서 메시지는 보내지지만 상대 답장이 화면에 안 오는 것을 본다
+- 개발 서버 콘솔에서 `__digulChat.drop(3000)`으로 3초 끊어 보고, `__digulChat.incoming('r-yerin', '안녕')`으로 상대 메시지를 흉내 낸다 ([backend/api-v1/06-chat.md](backend/api-v1/06-chat.md) 2장)
 
 ---
 
@@ -298,10 +315,10 @@ useEffect(() => {
 ```tsx
 const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 ```
-- `import()`를 만나면 Vite가 그 아래를 **별도 파일(청크)** 로 나눈다. 땅굴 화면에 들어갈 때만 내려받는다. three.js 본체가 든 청크는 원본 608KB, gzip 157KB ([testing-ci.md](testing-ci.md) 4장)
-- 같은 방식: 탐색 들판 `HoleFieldCanvas`, 찻방 `TeaRoomCanvas`, 랜딩 밭 `FieldCanvas`
+- `import()`를 만나면 빌드 도구(Next의 Turbopack, 예전엔 Vite)가 그 아래를 **별도 파일(청크)** 로 나눈다. 땅굴 화면에 들어갈 때만 내려받는다. 예전 Vite 빌드에서 three.js 본체가 든 청크는 원본 608KB, gzip 157KB였다 ([testing-ci.md](testing-ci.md) 4장)
+- 같은 방식: 탐색 들판 `HoleFieldCanvas`, 찻방 `ChatRoomCanvas`, 랜딩 밭 `FieldCanvas`
 - 3D가 준비되는 동안: "땅굴 파는 중..." 로딩 애니메이션 → 다 차려지면(`loaded`) 0.6초 페이드 인. 랜딩 밭은 같은 구도의 정지 그림을 깔아 두고 3D를 겹쳐 띄운다. 가속 꺼진 PC의 두 번째 방문은 기억해 둔 선명한 그림을 먼저 보여 준다
-- 반대로 화면(라우트)은 지금 거의 모두 처음에 한꺼번에 불러온다. 그래서 첫 화면 JS가 380KB(gzip)로 크다. 라우트별 지연 로딩이 다음 후보다 ([testing-ci.md](testing-ci.md) 4장)
+- 화면(라우트): 예전 Vite 앱은 모든 화면을 처음에 한꺼번에 불러와 첫 화면 JS가 380KB(gzip)였다 ([testing-ci.md](testing-ci.md) 4장). Next는 주소(`page.tsx`)마다 파일을 나눈다. Next 빌드의 첫 화면 크기는 아직 재지 않았다 (확인 못 함)
 
 ### 8-5. 3D 위에 HTML 올리기
 - 패널·버튼·이름표는 3D가 아니라 **HTML을 캔버스 위에 겹쳐서** 그린다. 글자가 선명하고 화면 읽기 프로그램이 읽을 수 있다
@@ -314,15 +331,15 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 - 단축키 공통 검사(`lib/a11y.ts` `shortcutAllowed`): 글 입력 중, 한글 조합 중, 팝업이 열렸을 때 등은 단축키가 쉰다. 그래야 채팅에 "w"를 쳤는데 두더지가 걷는 일이 없다
 
 ### 8-7. 데이터 → 3D (관심사 → 가구)
-- 관심사 목록은 `data/interestCatalog.json`(카테고리 11 · 세부 65 · 최대 10개), 가구는 `furnitureCatalog.json`, 자리는 `slots.json`
+- 관심사 목록은 `data/interestTags.ts`(대분류 12 · 소분류 90 · 최대 10개, 2026-11-18 확정본), 가구는 `furnitureCatalog.json`, 자리는 `slots.json`
 - `data/roomPlan.ts`의 `planRoom`이 three.js 없이 배치를 계산한다(어느 슬롯에 무엇, 떨어지는 순서·시각). 그래서 단위 테스트로 "무작위 조합 300개에서 슬롯이 안 겹친다"를 확인할 수 있다 (`tests/room-plan.test.ts`)
 - `roomScene.ts`는 그 계획대로 모델을 받아 놓는다. 새 모델이 오면 glb와 JSON만 바꾸면 된다
 
 ![관심사가 다르면 가구가 다르다: 내 땅굴과 예린의 땅굴. 같은 장면 코드가 관심사 목록만 달리 받아 배치했다 (스모크 화면)](guide-images/my-vs-yerin.jpg)
 
 ### 8-8. 원본은 한 곳에
-- 처음 만든 코드 두더지·가구는 `explore/3d/lib/`에 원본이 있고, `node explore/3d/lib/build-app.js`가 앱용 `three/mole.ts`, `three/furniture.ts`를 만든다. 이 두 파일은 직접 고치지 않는다
-- 지금 앱의 장면은 디자이너 glb를 쓰고 이 두 파일을 불러오지 않는다. 실험 페이지(`explore/3d/`)와 생성 관계 때문에 남겨 두었다
+- 처음 만든 코드 두더지·가구는 `explore/3d/lib/`에 원본이 있고, `node explore/3d/lib/build-app.js`가 예전 Vite 앱용 `app/src/three/mole.ts`, `furniture.ts`를 만든다. 이 두 파일은 직접 고치지 않는다
+- 지금 장면은 디자이너 glb를 쓰고 이 두 파일을 불러오지 않아서, `frontend/`에서는 지웠다(2026-11-23). 두더지 모델은 `three/moleModel.ts`가 디자이너 glb 하나를 읽는다
 
 ### 직접 해 볼 것
 - 개발자 도구 → Network에서 땅굴에 처음 들어갈 때 받는 파일(three 청크, glb)을 확인한다
@@ -401,42 +418,57 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 
 ## 10. 빌드 · 환경 변수 · 배포
 
-### 명령 (`app/`에서)
+### 명령 (`frontend/`에서)
 | 명령 | 하는 일 |
 |---|---|
-| `npm run dev` | 개발 서버 (http://localhost:5173). 저장하면 바로 반영(HMR) |
-| `npm run build` | `tsc -b`(타입 검사) → `vite build`(묶기·줄이기·파일명에 해시) → `dist/` |
-| `npm run build:share` | 팀 공유용: 상대 경로, 해시 라우터, glb를 JS 안에 → `dist-share/` + 아티팩트용 페이지 |
-| `npm run preview` | 빌드 결과를 로컬에서 띄우기 |
+| `npm run dev` | 개발 서버 (http://localhost:3000). 저장하면 바로 반영. 실험실 켜짐, 목 서버 |
+| `npm run build` | `next build`: 타입 검사 · 묶기 · 줄이기 · 파일명에 해시 → `.next/`. 실험실은 빠짐 |
+| `npm run start` | 빌드 결과를 Next 서버로 띄우기 (포트 3000) |
+| `npm run typecheck` / `npm run lint` | `tsc --noEmit` / ESLint |
 | `npm test` / `npm run test:watch` | 단위 테스트 한 번 / 저장할 때마다 |
-| `npm run smoke` | 빌드한 앱을 헤드리스 크롬으로 열어 모든 화면 돌기 (`-- --gpu=off`로 가속 끔) |
-| `npm run bundle-report` | 청크별 크기(gzip), 첫 화면 JS 합계, 예산 초과 경고 |
+| `npm run smoke` | 빌드한 앱을 `next start -p 3100`으로 띄워 헤드리스 크롬으로 모든 화면 돌기 (`-- --gpu=off`로 가속 끔) |
+| `npm run check:labs-off` | 실험실 끈 빌드를 만들어 실험실 주소 404 · 결과물에 실험실 코드 없음 확인 |
+
+예전 Vite 앱(`app/`)의 명령: `npm run build:share`(팀 공유용: 상대 경로, 해시 라우터, glb를 JS 안에 → `dist-share/` + 아티팩트용 페이지), `npm run bundle-report`(청크별 크기)
 
 ### 파일 이름 해시와 캐시
-- `index-e3pLAQnk.js`처럼 내용이 바뀌면 이름도 바뀐다 → 브라우저가 옛 캐시를 쓰지 않는다. 그래서 해시 붙은 파일은 오래 캐시해도 안전하고, `index.html`만 캐시하지 않으면 된다
+- `RoomCanvas-ab12.js`처럼 내용이 바뀌면 이름도 바뀐다 → 브라우저가 옛 캐시를 쓰지 않는다. 그래서 해시 붙은 파일은 오래 캐시해도 안전하고, HTML만 캐시하지 않으면 된다. Next는 `/_next/static/` 아래 파일에 해시를 붙인다
 - 대가: 열려 있던 옛 탭이 지워진 옛 이름을 찾는다 → 한 번 새로고침 ([가이드 사건 12](frontend-guide.md#사건-12-재배포-뒤-열려-있던-탭이-깨짐-청크-404))
+- 3D 모델·이미지도 import 하면 해시 붙은 주소 문자열이 된다(`next.config.ts`의 Turbopack `type: 'asset'` 규칙). `public/`에 두면 해시가 없어 캐시를 못 깨므로 Draco 해독기(`public/draco/`) 말고는 쓰지 않는다
 
 ### 환경 변수
-- 읽는 곳은 `lib/env.ts`의 `ENV` 하나. 목록과 설명은 `app/.env.example`
+- 읽는 곳은 `src/lib/env.ts`의 `ENV` 하나. 목록과 설명은 `frontend/.env.example` (예외: 실험실을 빌드에서 빼는 `src/labs/index.ts`는 `process.env`를 직접 읽음)
 - 값은 늘 문자열. 켜기/끄기는 `flag()`가 `1·true·yes·on`만 참으로 읽는다
-- `VITE_`로 시작하는 값은 빌드 결과 JS에 글자 그대로 들어가 누구나 볼 수 있다 → 비밀 키 금지
-- 개인 설정은 `app/.env.local`(git에 안 올라감), 공유 빌드는 `.env.share`
+- `NEXT_PUBLIC_`로 시작하는 값은 **빌드할 때** 결과 JS에 글자 그대로 들어가 누구나 볼 수 있다 → 비밀 키 금지. 바꾸면 다시 빌드하거나 개발 서버를 다시 켠다
+- 서버 전용 값(`API_PROXY_TARGET`)은 `next.config.ts`가 읽고 브라우저 코드에는 안 들어간다. 다만 rewrites가 빌드 결과에 들어가 `next build` 때 정해진다
+- 개인 설정은 `frontend/.env.local`(git에 안 올라감)
 
-![같은 app/src에서 빌드 두 가지가 나온다: 일반 빌드(dist/, 실서버용)와 공유 빌드(dist-share/, 아티팩트용). 공유 빌드는 해시 라우터, JS 안에 넣은 glb, JS 해독기, 목 서버를 쓴다](guide-diagrams/two-builds.svg)
-
-### 두 가지 빌드
-| | 일반 빌드 (`build`) | 공유 빌드 (`build:share`) |
+| 이름 | 기본 | 뜻 |
 |---|---|---|
-| 올리는 곳 | 실서버 (Nginx 가정) | Claude 아티팩트 |
-| 라우터 | 브라우저 라우터 (`/burrow`) | 해시 라우터 (`#/burrow`) |
+| `NEXT_PUBLIC_LABS` | dev 켬 · build 끔 | 실험실(🧪 패널 · 손잡이 배지 · `/screens` · `/dev/crash` …) 포함 여부 |
+| `NEXT_PUBLIC_API_MODE` | `mock` | 모든 영역의 기본값 (`mock` · `real`) |
+| `NEXT_PUBLIC_API_REAL_AREAS` / `_MOCK_AREAS` | 비움 | 이 영역만 실제 / 목 (실시간 연결은 `events`) |
+| `NEXT_PUBLIC_LOGIN_FREE` | 비움(검사함) | `1`이면 로그인 없이 모든 화면 (시연용) |
+| `API_PROXY_TARGET` | `http://localhost:8080` | `/api/v1/*`를 넘길 백엔드 (`off`면 안 넘김) |
+
+![지금 프론트엔드는 두 프로젝트다. frontend/(Next.js)는 .next/를 만들어 Next 서버로 띄우고 팀 리포로 옮겼다. app/(Vite)는 팀 공유 데모만 맡아 dist-share/를 만들어 아티팩트에 올린다](guide-diagrams/two-builds.svg)
+
+### 두 프로젝트
+| | `frontend/` (Next.js) | `app/` (예전 Vite, 공유 빌드) |
+|---|---|---|
+| 쓰는 곳 | 실서비스 · 팀 리포 (PR #37) | 팀 공유 데모 (Claude 아티팩트) |
+| 라우터 | Next App Router (`/burrow`) | 해시 라우터 (`#/burrow`) |
 | 첫 화면 | `/` 랜딩 | `#/start`로 보냄 |
 | glb 모델 | 파일로 | JS 안에 data URL로 (아티팩트가 .glb를 못 받음) |
 | Draco 해독 | wasm (`public/draco/`) | JS 해독기를 Worker에서 (실패하면 메인 스레드) |
-| 데이터 | `VITE_API_MODE`에 따라 | 목 서버 |
+| 데이터 | 영역마다 목/실제 (`NEXT_PUBLIC_API_*`) | 늘 목 서버 |
+| 로그인 검사 | 기본 켬 | 꺼짐 (누구나 둘러봄) |
+| 명세 반영 | 최신 (리뷰 고침 포함) | 2026-11-23 명세 `35d107a`까지 |
 
 ### 직접 해 볼 것
-- 개발자 도구 → Network에서 `index-*.js`처럼 해시가 붙은 파일 이름을 찾아본다
-- `app/.env.example`을 읽고 각 변수가 무엇을 바꾸는지 설명해 본다
+- 개발자 도구 → Network에서 `/_next/static/` 아래 해시가 붙은 파일 이름을 찾아본다
+- `frontend/.env.example`을 읽고 각 변수가 무엇을 바꾸는지 설명해 본다
+- `NEXT_PUBLIC_LABS=0 npm run build && npm run start`로 띄워 `/screens`가 404인 것을 본다
 
 ---
 
@@ -445,21 +477,27 @@ const RoomCanvas = lazy(() => import('../three/RoomCanvas'))
 ### 개념
 - **단위 테스트**: 함수 하나에 입력을 넣고 답이 맞는지 자동으로 확인한다. 화면 없이 빠르게 돈다
 - **스모크 테스트**: 앱을 켜 보고 "연기가 나는지"만 본다. 깊이 확인하지 않지만 넓게 훑는다
+- **린트**: 코드 모양과 흔한 실수(훅 규칙 등)를 자동으로 찾는다
 - **CI**: 코드를 올릴 때마다 위 검사를 자동으로 돌린다
+- **리뷰**: 사람(또는 AI)이 바뀐 코드를 읽고 문제를 짚는다. 자동 검사가 못 잡는 "실제 모드에서만" 틀리는 것을 찾는다
 
 ### 이 프로젝트에서는
-- 단위 테스트 166개(통과 163, 할 일 3), `app/src/tests/` ([testing-ci.md](testing-ci.md) 1장)
+- 단위 테스트 661개(2026-11-24), `frontend/src/tests/`
   - 테스트 이름에 명세 번호를 적는다: "M7 마감 일시가 지나면 처리 안 된 신청은 자동 미승인", "M2 만들자마자 1명 확정 (주최자)"
+  - **명세와 맞춰 보는 시험**: `api-v1-endpoints.test.ts`가 명세 사본(`docs/backend/team-spec/api/*.md`)의 API 제목 111개와 영역마다의 `ENDPOINTS`를 비교한다. 명세가 바뀌면 `spec-61e6c10.test.ts`처럼 그 판의 규칙을 시험으로 남긴다
+  - 리뷰에서 나온 문제는 고칠 때 시험을 먼저 만든다: `auth-cache`, `session-mutation`(쓰기 훅이 모두 `useSessionMutation`을 쓰는지까지), `query-gate`, `optimistic-rollback`, `comment-order`, `chat-room-gone`, `notif-settings-save`, `guestbook-report-refresh`
   - 시간대는 서울로 고정한다(CI 서버는 UTC라 날짜 계산이 달라짐). 시계를 고정하고(`vi.setSystemTime`) 저장소를 처음 상태로 되돌린 뒤 검사한다
   - 화면 규칙을 화면 밖 함수로 빼 두었기 때문에 테스트하기 쉽다(모임 상태, 방 배치, 들판 자리, 비밀번호 규칙 등)
-  - "할 일"(`it.todo`) 3개는 지금 구현과 명세가 달라서 통과시킬 수 없는 것을 적어 둔 것이다 (예: 가입 캠퍼스-층 목록과 들판 목록이 다름)
-- 스모크 `app/scripts/smoke.mjs`: 화면 목록(`/screens`) + 라우트에서 96개 주소를 만들어 하나씩 연다. 잡는 것: 처리 안 된 예외, `console.error`, 리소스 4xx/5xx, 빈 화면, 오류 화면, 캔버스가 WebGL을 얻었는지. 모드: 가속 켬 · 끔 · WebGL 없음 · SwiftShader
-- CI `.github/workflows/ci.yml`: 설치(`npm ci`) → 타입 → 테스트 → 빌드 → 번들 크기 → 스모크 → 스크린샷·보고서 올리기. CI의 스모크는 그래픽카드가 없는 러너라 SwiftShader 한 모드로 돌고, 번들 크기는 예산을 넘어도 막지 않고 경고만 한다. GitHub에서는 아직 안 돌려 봤다
+  - 한계: 목 서버로 도는 시험은 "목에서만 맞는 코드"를 못 잡는다 ([가이드 사건 25](frontend-guide.md#사건-25-나와-오늘을-목-상수로-정함-2026-11-24-로컬-리뷰))
+- 스모크 `frontend/scripts/smoke.mjs`: `next build` 결과를 `next start -p 3100`으로 띄우고, `src/app` 파일 트리와 화면 목록에서 106개 주소를 만들어 하나씩 연다. 잡는 것: 처리 안 된 예외, `console.error`, 리소스 4xx/5xx, 빈 화면, 오류 화면, 캔버스가 WebGL을 얻었는지. 모드: 가속 켬 · 끔 · WebGL 없음 · SwiftShader
+- 실험실 빠짐 검사 `frontend/scripts/check-labs-off.mjs`: 배포 빌드에 실험 화면·패널이 들어가지 않았는지
+- CI `.github/workflows/frontend-ci.yml`: `frontend/`나 명세 사본이 바뀌면 설치 → 타입 → 린트 → 테스트 → 빌드 → 실험실 빠짐 검사. 스모크는 그래픽카드 없는 러너라 CI에서 돌리지 않고 로컬에서 돌린다
+- 팀 리포로 옮길 때는 커밋 62개 하나하나마다 타입·린트·테스트·빌드를 돌렸다(커밋마다 빌드 통과 규칙)
 
-![세 가지 검사: 단위 테스트는 함수 규칙을 좁고 빠르게, 스모크는 96개 화면을 세 모드로 넓고 얕게, CI는 올릴 때마다 둘을 순서대로 돌린다](guide-diagrams/test-layers.svg)
+![세 가지 검사: 단위 테스트는 함수 규칙을 좁고 빠르게, 스모크는 화면 전체를 여러 모드로 넓고 얕게, CI는 올릴 때마다 순서대로 돌린다 (그림의 숫자는 2026-11-17 예전 앱 기준)](guide-diagrams/test-layers.svg)
 
-![스모크가 찍은 화면 96개 중 24개 (가속 켬, 2026-11-17). 매번 이 화면들이 열리는지, 예외·콘솔 에러·빈 화면이 없는지 본다](guide-images/smoke-sheet.jpg)
+![스모크가 찍은 화면 중 24개 (2026-11-17 예전 Vite 앱, 가속 켬). 매번 이 화면들이 열리는지, 예외·콘솔 에러·빈 화면이 없는지 본다](guide-images/smoke-sheet.jpg)
 
 ### 직접 해 볼 것
 - `npm test`를 돌리고, `src/tests/meetup.test.ts`에서 명세 번호(M2, M5, M7 …)가 붙은 테스트 이름을 찾아 명세 문서([meetup-spec-review.md](meetup-spec-review.md))와 맞춰 본다
-- `npm run smoke -- --only=/meetups`처럼 일부 화면만 돌려 보고 `app/shots/smoke/` 보고서를 연다
+- `npm run smoke -- --only=meetups`처럼 일부 화면만 돌려 보고 `frontend/shots/smoke/<gpu>/report.md` 보고서를 연다

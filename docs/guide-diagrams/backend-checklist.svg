@@ -1,101 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 486" width="760" height="486" role="img" aria-label="백엔드와 합의할 것 체크리스트: API 결정 8개, ERD에 먼저 물어볼 질문 Q1~Q5, 실시간 채팅 약속, 글자 수 대조표. 모두 아직 합의 전인 프론트 제안" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 486" width="760" height="486" role="img" aria-label="백엔드 확정 API 명세 v1(API 111개)로 정해진 약속 8개와, 프론트가 아직 백엔드에 묻고 있는 질문. 프론트는 이 약속에 맞췄고, 남은 질문은 지금 정한 방식대로 동작한다" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-size="13" style="fill:var(--ink,#3e2a1f)">
   <rect width="760" height="486" rx="14" style="fill:var(--fig-bg,#fffaf4)"/>
 
-  <!-- 왼쪽: 결정 8개 -->
+  <!-- 왼쪽: 확정 8개 -->
   <rect x="16" y="16" width="468" height="308" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
-  <text x="28" y="40" font-weight="700">먼저 합의할 결정 8개 (프론트 제안)</text>
-  <text x="472" y="40" text-anchor="end" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">backend/api-draft.md 0장</text>
+  <text x="28" y="40" font-weight="700">확정된 약속 8개 (명세 v1, 2026-11-22)</text>
+  <text x="472" y="40" text-anchor="end" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">api-v1-alignment.md</text>
 
   <g>
     <rect x="28" y="54" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="40" y="66" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <rect x="40" y="66" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M42.5 72.5 L45.5 76 L51 68.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
     <text x="62" y="78" font-weight="700">1 주소</text>
-    <text x="40" y="100" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">같은 출처 + /api</text>
+    <text x="40" y="100" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">같은 출처 + /api/v1/…</text>
 
     <rect x="256" y="54" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="268" y="66" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <rect x="268" y="66" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M270.5 72.5 L273.5 76 L279 68.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
     <text x="290" y="78" font-weight="700">2 인증</text>
-    <text x="268" y="100" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">HttpOnly 쿠키 세션 + 리프레시</text>
+    <text x="268" y="100" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">세션 쿠키 14일 · 갱신 API 없음</text>
 
     <rect x="28" y="120" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="40" y="132" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="62" y="144" font-weight="700">3 응답 봉투</text>
-    <text x="40" y="166" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">없음. 리소스를 그대로</text>
+    <rect x="40" y="132" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M42.5 138.5 L45.5 142 L51 134.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
+    <text x="62" y="144" font-weight="700">3 응답 틀</text>
+    <text x="40" y="166" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">{ success, data, error }</text>
 
     <rect x="256" y="120" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="268" y="132" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <rect x="268" y="132" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M270.5 138.5 L273.5 142 L279 134.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
     <text x="290" y="144" font-weight="700">4 에러</text>
-    <text x="268" y="166" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">{code, message, …} 모양 하나로</text>
+    <text x="268" y="166" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">{code, message, fields, detail}</text>
 
     <rect x="28" y="186" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="40" y="198" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <rect x="40" y="198" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M42.5 204.5 L45.5 208 L51 200.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
     <text x="62" y="210" font-weight="700">5 ID</text>
-    <text x="40" y="232" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">JSON에서는 문자열 "42"</text>
+    <text x="40" y="232" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">숫자 (앱 안에서는 문자열로)</text>
 
     <rect x="256" y="186" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="268" y="198" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="290" y="210" font-weight="700">6 날짜</text>
-    <text x="268" y="232" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">ISO 8601 + 오프셋 (+09:00 또는 Z)</text>
+    <rect x="268" y="198" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M270.5 204.5 L273.5 208 L279 200.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
+    <text x="290" y="210" font-weight="700">6 시각</text>
+    <text x="268" y="232" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">UTC “…Z”, 날짜만은 YYYY-MM-DD</text>
 
     <rect x="28" y="252" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="40" y="264" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="62" y="276" font-weight="700">7 목록 나누기</text>
-    <text x="40" y="298" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">게시판·모임은 번호, 채팅·알림은 커서</text>
+    <rect x="40" y="264" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M42.5 270.5 L45.5 274 L51 266.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
+    <text x="62" y="276" font-weight="700">7 목록</text>
+    <text x="40" y="298" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">페이지(1부터) 또는 커서 · hasNext</text>
 
     <rect x="256" y="252" width="216" height="58" rx="8" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
-    <rect x="268" y="264" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="290" y="276" font-weight="700">8 서버가 계산할 값</text>
-    <text x="268" y="298" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">모집 상태 · 안 읽은 수 · 만료</text>
+    <rect x="268" y="264" width="13" height="13" rx="2" style="fill:var(--chip-mint-bg,#d5e8df);stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.5"/>
+    <path d="M270.5 270.5 L273.5 274 L279 266.5" style="fill:none;stroke:var(--chip-mint-fg,#2e5e4c)" stroke-width="1.8"/>
+    <text x="290" y="276" font-weight="700">8 실시간</text>
+    <text x="268" y="298" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">SSE 하나 · 보내기는 일반 API</text>
   </g>
 
-  <!-- 합의 뒤 -->
+  <!-- 맞춘 뒤 -->
   <rect x="16" y="338" width="468" height="74" rx="12" style="fill:var(--chip-mint-bg,#d5e8df)"/>
   <g style="fill:var(--chip-mint-fg,#2e5e4c)">
-    <text x="28" y="362" font-weight="700">합의 뒤 프론트가 고치는 곳</text>
-    <text x="28" y="382" font-size="11.5">경로 · 필드 이름이 바뀌어도 app/src/api/ 한 곳만 (화면은 그대로)</text>
-    <text x="28" y="400" font-size="11.5">서버 응답 모양 api/types.ts · 앱 모양으로 번역 api/mappers.ts</text>
+    <text x="28" y="362" font-weight="700">프론트가 맞춘 곳 (2026-11-23 API 111개 모두)</text>
+    <text x="28" y="382" font-size="11.5">영역 폴더 11개 frontend/src/api/&lt;영역&gt;/ (화면은 그대로)</text>
+    <text x="28" y="400" font-size="11.5">명세 모양 types.ts · 앱 모양으로 번역 mappers.ts · code → 문구 errors.ts</text>
   </g>
-  <rect x="28" y="432" width="13" height="13" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-  <text x="50" y="443" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">빈 칸 = 아직 합의 전. 모두 프론트 제안 (2026-11-16 초안)</text>
+  <text x="28" y="443" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">우리 초안(api-draft.md, 2026-11-16)과 달라진 것: 응답 틀, 숫자 ID, UTC,</text>
+  <text x="28" y="461" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">갱신 API 없음, WebSocket + STOMP → SSE (6-2 표)</text>
 
-  <!-- 오른쪽 위: ERD 질문 -->
-  <rect x="500" y="16" width="244" height="180" rx="12" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
-  <text x="514" y="40" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">ERD 질문: 회의에서 먼저</text>
-  <text x="514" y="58" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">backend/erd-gaps.md Q1~Q5</text>
-  <g font-size="12">
+  <!-- 오른쪽 위: 공통 질문 -->
+  <rect x="500" y="16" width="244" height="196" rx="12" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
+  <text x="514" y="40" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">아직 묻는 것: 공통</text>
+  <text x="514" y="58" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">api-v1/questions-for-backend.md</text>
+  <g font-size="12" style="fill:var(--chip-sky-fg,#2f5868)">
     <rect x="514" y="72" width="12" height="12" rx="2" style="fill:none;stroke:var(--chip-sky-fg,#2f5868)" stroke-width="1.5"/>
-    <text x="534" y="83">Q1 차단 테이블</text>
+    <text x="534" y="83">관심사에 바뀌지 않는 code</text>
     <rect x="514" y="94" width="12" height="12" rx="2" style="fill:none;stroke:var(--chip-sky-fg,#2f5868)" stroke-width="1.5"/>
-    <text x="534" y="105">Q2 방명록 길이</text>
+    <text x="534" y="105">SSE 동안 세션 연장되나</text>
     <rect x="514" y="116" width="12" height="12" rx="2" style="fill:none;stroke:var(--chip-sky-fg,#2f5868)" stroke-width="1.5"/>
-    <text x="534" y="127">Q3 모임 관심사 태그</text>
+    <text x="534" y="127">놓친 소식 (Last-Event-ID)</text>
     <rect x="514" y="138" width="12" height="12" rx="2" style="fill:none;stroke:var(--chip-sky-fg,#2f5868)" stroke-width="1.5"/>
-    <text x="534" y="149">Q4 알림 제목 스냅숏</text>
+    <text x="534" y="149">CORS · 개발용 쿠키</text>
     <rect x="514" y="160" width="12" height="12" rx="2" style="fill:none;stroke:var(--chip-sky-fg,#2f5868)" stroke-width="1.5"/>
-    <text x="534" y="171">Q5 ID 문자열 · ISO 날짜</text>
+    <text x="534" y="171">사진 올리기 실패 모양</text>
   </g>
-  <text x="514" y="189" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">답에 따라 API 모양이 바뀜</text>
+  <text x="514" y="200" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">지금은 문서에 적은 방식대로 동작</text>
 
-  <!-- 오른쪽 가운데: 실시간 -->
-  <rect x="500" y="206" width="244" height="150" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
-  <text x="514" y="230" font-weight="700">실시간 채팅</text>
-  <text x="514" y="248" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">frontend-hardening.md 1-4</text>
+  <!-- 오른쪽 가운데: 채팅 -->
+  <rect x="500" y="222" width="244" height="124" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="514" y="246" font-weight="700">아직 묻는 것: 채팅</text>
+  <text x="514" y="264" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">api-v1/06-chat.md 7장</text>
   <g font-size="12">
-    <rect x="514" y="262" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="534" y="273">client_message_id: 두 번 막기</text>
-    <rect x="514" y="284" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="534" y="295">방별 seq: 순서 · 다시 받기</text>
-    <rect x="514" y="306" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="534" y="317">구독할 때 참여자인지 검사</text>
-    <rect x="514" y="328" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-    <text x="534" y="339">인증 만료 신호 (닫힘 4401)</text>
+    <rect x="514" y="278" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <text x="534" y="289">clientMessageId: 두 번 저장 막기</text>
+    <rect x="514" y="300" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <text x="534" y="311">모임 링크 모양</text>
+    <rect x="514" y="322" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
+    <text x="534" y="333">목록에 모임 카테고리 · 인원</text>
   </g>
 
-  <!-- 오른쪽 아래: 글자 수 -->
-  <rect x="500" y="366" width="244" height="104" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
-  <text x="514" y="390" font-weight="700">글자 수 대조표</text>
-  <text x="514" y="408" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">frontend-hardening.md 3-1</text>
-  <rect x="514" y="422" width="12" height="12" rx="2" style="fill:none;stroke:var(--ink-soft,#5c4334)" stroke-width="1.5"/>
-  <text x="534" y="433" font-size="12">화면 · ERD · 명세 길이 맞추기</text>
-  <text x="514" y="456" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">예: 채팅 500자는 프론트가 정한 값</text>
+  <!-- 오른쪽 아래: 영역별 -->
+  <rect x="500" y="356" width="244" height="114" rx="12" style="fill:var(--box,#f4e6d8);stroke:var(--box-line,#e3cbb5)"/>
+  <text x="514" y="380" font-weight="700">영역별 질문</text>
+  <text x="514" y="398" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">인증 8 · 온보딩 4 · 탐색 4 · 채팅 4</text>
+  <text x="514" y="416" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">모임 6 · 커뮤니티 5 · 알림 6</text>
+  <text x="514" y="440" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">명세에서 뺀 기능은 화면에서도 뺌</text>
+  <text x="514" y="458" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">(api-v1/feature-changes.md)</text>
 </svg>

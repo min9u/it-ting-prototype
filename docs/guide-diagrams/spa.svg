@@ -56,12 +56,12 @@
   <text x="34" y="348.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
   <text x="52" y="348" font-weight="700">게시판 메뉴 클릭</text>
   <text x="52" y="368" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">JS가 안쪽만 바꿈, 헤더는 그대로</text>
-  <text x="380" y="337" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--cta,#c8643a)">GET /api/posts</text>
+  <text x="380" y="337" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--cta,#c8643a)">GET /api/v1/posts</text>
   <line x1="258" y1="344" x2="500" y2="344" style="stroke:var(--cta,#c8643a)" stroke-width="1.8" marker-end="url(#ahc)"/>
   <line x1="500" y1="366" x2="258" y2="366" style="stroke:var(--cta,#c8643a)" stroke-width="1.8" marker-end="url(#ahc)"/>
   <text x="380" y="382" text-anchor="middle" font-size="12" style="fill:var(--cta,#c8643a)">JSON: 글 목록 데이터만</text>
   <rect x="504" y="326" width="240" height="60" rx="8" style="fill:var(--chip-sky-bg,#d9e6ec)"/>
-  <text x="518" y="350" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">API 서버 (/api)</text>
+  <text x="518" y="350" font-weight="700" style="fill:var(--chip-sky-fg,#2f5868)">API 서버 (/api/v1)</text>
   <text x="518" y="370" font-size="11.5" style="fill:var(--chip-sky-fg,#2f5868)">지금은 목 서버(가짜 서버)</text>
 
   <!-- ④ 다시 땅굴 -->

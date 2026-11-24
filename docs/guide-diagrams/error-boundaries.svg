@@ -6,7 +6,7 @@
   <circle cx="40" cy="38" r="11" style="fill:var(--cta,#c8643a)"/>
   <text x="40" y="42.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">1</text>
   <text x="58" y="43" font-weight="700">맨 바깥 경계</text>
-  <text x="152" y="43" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">모든 화면의 마지막 그물 (기본 영어 에러 화면 대신)</text>
+  <text x="152" y="43" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">app/error.tsx: 모든 화면의 마지막 그물</text>
   <g font-size="12" text-anchor="middle">
     <rect x="30" y="60" width="98" height="26" rx="13" style="fill:var(--fig-bg,#fffaf4);stroke:var(--box-line,#e3cbb5)"/>
     <text x="79" y="77.5">시작 화면</text>
@@ -22,17 +22,17 @@
   <rect x="30" y="100" width="456" height="290" rx="10" style="fill:var(--fig-bg,#fffaf4);stroke:var(--accent,#9a4a2c)" stroke-width="1.4"/>
   <circle cx="54" cy="122" r="11" style="fill:var(--cta,#c8643a)"/>
   <text x="54" y="126.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">2</text>
-  <text x="72" y="127" font-weight="700">로그인 영역 틀 (AppLayout)</text>
-  <text x="262" y="127" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">헤더 자체가 깨질 때</text>
+  <text x="72" y="127" font-weight="700">로그인 영역 틀 (AppShell)</text>
+  <text x="262" y="127" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">깨지면 1번(app/error.tsx)이 잡음</text>
   <rect x="44" y="140" width="428" height="30" rx="6" style="fill:var(--strong,#6b4a3a)"/>
-  <text x="58" y="160" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">헤더 (땅굴 · 커뮤니티 · 모임 · 채팅)</text>
+  <text x="58" y="160" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">헤더 (땅굴 · 게시판 · 모임 · 채팅)</text>
   <text x="458" y="160" text-anchor="end" font-size="11.5" style="fill:var(--on-strong,#fbf4ec)">깨져도 남음</text>
 
   <!-- 3 화면 하나 -->
   <rect x="44" y="180" width="428" height="196" rx="10" style="fill:var(--box,#f4e6d8);stroke:var(--cta,#c8643a)" stroke-width="1.6"/>
   <circle cx="68" cy="202" r="11" style="fill:var(--cta,#c8643a)"/>
   <text x="68" y="206.5" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-strong,#fbf4ec)">3</text>
-  <text x="86" y="207" font-weight="700">화면 하나 (RouteError inline)</text>
+  <text x="86" y="207" font-weight="700">화면 하나 ((app)/error.tsx)</text>
   <text x="58" y="230" font-size="12" style="fill:var(--ink-soft,#5c4334)">화면 코드가 깨지면 이 칸만 바뀜:</text>
   <text x="58" y="248" font-size="12" font-weight="700" style="fill:var(--accent,#9a4a2c)">“잠시 문제가 생겼어요 · 다시 시도”</text>
   <text x="58" y="266" font-size="11.5" style="fill:var(--ink-mute,#8a7262)">재배포 뒤 옛 파일(청크 404)이면 한 번만 새로고침</text>
@@ -67,6 +67,6 @@
   <text x="540" y="322" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">그 코드가 직접 잡아서</text>
   <text x="540" y="340" font-size="11.5" style="fill:var(--ink-soft,#5c4334)">안내를 띄움</text>
 
-  <text x="530" y="380" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">없는 주소는 맨 끝 라우트 *</text>
-  <text x="530" y="396" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">→ “없는 주소예요”</text>
+  <text x="530" y="380" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">없는 주소는 not-found.tsx</text>
+  <text x="530" y="396" font-size="11.5" style="fill:var(--chip-butter-fg,#6b5410)">→ “없는 주소예요” (응답 404)</text>
 </svg>
