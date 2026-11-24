@@ -26,6 +26,7 @@
 | G | 백엔드 질문 답 (관심사 `code` 칼럼, 채팅 멱등 키, SSE 와 세션 연장 등) | [questions-for-backend.md](backend/api-v1/questions-for-backend.md) 를 팀에 보냄 |
 | H | 명세 문구 수정 요청 (06 채팅 "대표 관심사", 05 탐색 안내판 → 방노트 사이드바 등) | 기획에 요청 |
 | I | 62개 커밋 PR 리뷰어 | 팀이 정함 |
+| J | KAN-25(Next.js 초기 설정, 담당 JunHwan Choi)를 KAN-64 와 함께 닫을지 | KAN-64 에 다 들어가므로 닫자고 제안 (2026-11-24 "관련" 링크만 걸어 둠) |
 
 ## Jira 전에 한 일
 
@@ -35,7 +36,7 @@
 | 로그인 검사 환경 변수 | `lib/env.ts` `loginFree`, `data/auth.ts` `LOGIN_FREE = ENV.loginFree`, `.env.example` · `README.md` |
 | 팀 리뷰 기준으로 미리 본 것 | 비밀값 · `.env` 파일 없음(`.env.example`만), 로그에 개인 정보 없음(`console.info` 6곳은 3D 성능 · 인증 상태), 단언 없는 테스트 · `skip` · `only` 없음. 로그인 검사가 꺼져 있던 것(명세와 다른 동작, P1 후보)은 위 1번으로 고침 |
 | 커밋 계획 | `plan.json` 에 새 테스트 배정, `--dry-run` 통과 (파일 586개 · 커밋 62개) |
-| 계획서 초안 | [`tools/team-import/team/work-plan-draft.md`](../tools/team-import/team/work-plan-draft.md). 번호만 넣으면 팀 리포 `docs/work/KAN-<번호>.md` |
+| 계획서 초안 | [`tools/team-import/team/work-plan-draft.md`](../tools/team-import/team/work-plan-draft.md). 번호(KAN-64)를 넣음. 팀 리포 `docs/work/KAN-64.md` 로 복사할 것 |
 | 최신 `dev` 위 재연습 | 아래 "재연습" |
 
 ## 재연습 (최신 `origin/dev` `61e6c10` 위)
@@ -46,15 +47,16 @@
 - **처음 두 번은 45번에서 멈춤**: 테스트가 아니라 vitest 작업자가 제때 안 뜬 시간 초과(`Timeout waiting for worker to respond`). 맥이 배터리로 돌며 절전 ↔ 잠깐 깨기를 되풀이해 43 · 44번이 커밋당 15 ~ 17분(평소 25 ~ 40초)이 걸렸음. 같은 45번 트리에서 직접 돌리면 530개 통과. 다시 이어서(`--from 45`) 끝까지 통과. **실제로 옮길 때는 전원을 연결하고 덮개를 열어 둘 것** (`caffeinate` 로는 덮개 닫힘 절전을 못 막음)
 - 이 과정에서 팀용 README 사본(`tools/team-import/team/README.md`)이 옛 내용이던 것을 발견해 지금 README 로 다시 만듦 (로그인 검사 줄 · 생성 파일 설명 정리)
 
-## Jira 카드 초안 (로그인되면 그대로 만듦)
+## Jira 카드 (2026-11-24 만듦): [KAN-64](https://it-ting.atlassian.net/browse/KAN-64)
 
-- 프로젝트 KAN, 유형 작업(Task)
-- 제목: `프론트엔드 프로토타입 이전 (Next.js)`
-- 설명: 프로토타입 리포(min9u/it-ting-prototype)의 웹 프론트엔드(Next.js 16.4 App Router)를 팀 리포 `frontend/`에 커밋 62개 · PR 하나로 넣는다. 서비스 · API 명세(dev `61e6c10`, API 111개)에 맞춘 화면 48개 주소, 3D 땅굴 · 탐색 들판, 목 서버, SSE. 처음엔 모든 영역 목 서버, 실제 백엔드 연결은 다음 티켓(영역별). 완료 기준: 커밋마다 tsc · 린트 오류 0 · 테스트 · 빌드 통과, 화면 스모크 105개, 실험실 빠짐 검사, `frontend-ci` 통과, 계획서 `docs/work/KAN-<번호>.md` 승인
-- 브랜치: `chore/fe/KAN-<번호>-frontend-import`
+- 요청: "atlassian mcp 연결했어. 카드를 어떻게 만들건지 설명해줘" → 설명 뒤 "A 안으로 해줘"
+- 팀 카드 형식을 따름(최근 카드 30개 · KAN-58 · KAN-25 확인): 유형 Task · 우선순위 Medium · 제목 머리말 `[FE]` · 라벨 `fe` · 담당자 본인 · 상위 항목 · 스프린트 없음
+- 제목: `[FE] 프론트엔드 프로토타입 이전 (Next.js)`
+- 설명(팀 순서): 목적 / 작업 내용(화면 48개 주소 · 3D · 목 서버 · SSE · 커밋 62개 PR 하나 · `frontend/` 밖은 CI 파일 · `AGENTS.md` 한 줄) / KAN-25 와의 관계 / 시작 조건(없음, 명세가 `61e6c10` 뒤 바뀌면 PR 전에 다시 맞춤) / 작업 방법(`work-plan` 계획서 → 승인, 브랜치 `chore/fe/KAN-64-frontend-import`) / 완료 기준(커밋마다 tsc · 린트 오류 0 · 테스트 · 빌드, 스모크 105 · 실험실 빠짐 검사, `frontend-ci`, 리뷰 P0 · P1) / 범위 제외(실제 백엔드 연결 · 배포 · KAN-4)
+- **KAN-25 와 겹침**: KAN-25 "Next.js 프로젝트 초기 설정"(담당 JunHwan Choi, 해야 할 일)의 일(App Router · strict TS · ESLint · TanStack Query)이 이 이전에 모두 들어감. 팀 `AGENTS.md` 도 "`frontend/`는 KAN-25에서 추가"라고 적혀 있음. 사용자 결정 **A**: KAN-64 ↔ KAN-25 "관련(Relates)" 링크만 걸고, KAN-25 는 건드리지 않음. 닫을지는 담당자와 이야기해서 정함 (팀과 정할 것에 추가)
 
 ## 다음
 
-1. Atlassian 로그인 → Jira 새 티켓("프론트엔드 프로토타입 이전 (Next.js)") → 번호
-2. 계획서 초안에 번호 → 팀 리포 `docs/work/KAN-<번호>.md` 로 복사(커밋하지 않음) → 사용자 승인 ("이번에 정할 것" A ~ I 를 팀과 정했거나 제안대로 가도 되는지)
-3. `node tools/team-import/import.mjs --target ~/Workspace/it-ting --branch chore/fe/KAN-<번호>-frontend-import` → 계획서 커밋(`docs: 프론트엔드 이전 작업 계획서 추가`) → `merge-tree` → `code-review` → `pr-create`
+1. ~~Atlassian 로그인 → Jira 새 티켓 → 번호~~ 끝남: KAN-64
+2. 계획서 초안(번호 넣음) → 팀 리포 `docs/work/KAN-64.md` 로 복사(커밋하지 않음) → 사용자 승인 ("이번에 정할 것" A ~ I 를 팀과 정했거나 제안대로 가도 되는지)
+3. `node tools/team-import/import.mjs --target ~/Workspace/it-ting --branch chore/fe/KAN-64-frontend-import` → 계획서 커밋(`docs: 프론트엔드 이전 작업 계획서 추가`) → `merge-tree` → `code-review` → `pr-create`

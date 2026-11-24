@@ -192,6 +192,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-23 [Next.js 전환](docs/nextjs-migration.md): 저장소 맨 위 **`frontend/`** = Next.js 16.4 App Router(React 19.3, TS 6). 라우트 48개 같은 주소(`lib/nav.tsx` react-router 이름 어댑터), 화면은 브라우저에서만 그림, 에셋은 Turbopack asset 규칙, 실험실은 `NEXT_PUBLIC_LABS`(dev 켬 · build 끔, `page.lab.tsx`), `/api/v1` rewrite(`API_PROXY_TARGET`), SSE 위해 `compress:false`. 시험 630 · 스모크 105화면 · 실험실 빠짐 검사 통과, Vite 앱과 픽셀 비교 같음(전역 CSS 명시도 `:not(template)`). `app/`(Vite)는 공유 빌드용으로 남김
 - 2026-11-23 **[인수인계: 다른 컴퓨터에서 이어서 하기](docs/handoff-2026-11-23.md)**: 지금 상태, 다음 일(명세 다시 확인 → 커밋 나누기 연습 → Jira → 팀 리포 계획서 · PR), 팀과 정할 것, 새 컴퓨터 설정(서명 키 포함)
 - 2026-11-23 [팀 리포 옮기기: 팀과 정할 것 · 내가 정할 것 · Jira 전에 한 일](docs/team-import-decisions-2026-11-23.md): Jira 는 새 티켓(Atlassian 로그인 대기), 안 쓰는 파일 지움. 사용자 결정: 로그인 검사 `NEXT_PUBLIC_LOGIN_FREE`(기본 명세대로 검사) · PR 하나 · 실제 백엔드는 다음 티켓 · 파일 나누지 않음. 팀과 정할 것 A ~ I. 팀 명세 dev `61e6c10` 반영(이모지 한 자 · 자기소개 공백 · 방명록 page/size), 계획서 초안 `tools/team-import/team/work-plan-draft.md`
+- 2026-11-24 [Jira 카드 KAN-64 만듦](docs/team-import-decisions-2026-11-23.md): `[FE] 프론트엔드 프로토타입 이전 (Next.js)`(Task · 라벨 fe · 담당 본인, 팀 카드 형식). KAN-25(Next.js 초기 설정, 다른 담당자)와 겹쳐 "관련" 링크만 걸고 닫을지는 팀과 정함(사용자 결정 A). 계획서 초안에 번호 넣음 → 다음은 팀 리포 `docs/work/KAN-64.md` 승인
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
