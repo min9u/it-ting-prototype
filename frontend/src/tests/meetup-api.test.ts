@@ -288,7 +288,7 @@ describe('화면은 모임 API 로만 읽고 씀', () => {
   it('screens/meetups 는 모임 저장소(data/meetupStore)에서 타입 · 표기 함수만 가져옴 (상태 · 쓰기 함수 없음)', async () => {
     const FS = 'node:fs'
     const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string; readdirSync(p: string): string[] }
-    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs', 'TODAY', 'endNotAfterStart'])  // TODAY: 화면의 "오늘"(실제 모드는 진짜 오늘, 목 모드는 목 데이터의 오늘)
+    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs', 'TODAY', 'endNotAfterStart', 'deadlineAfterStart', 'NOW'])  // TODAY: 화면의 "오늘"(실제 모드는 진짜 오늘, 목 모드는 목 데이터의 오늘)
     for (const f of fs.readdirSync('src/screens/meetups').filter((x) => x.endsWith('.tsx'))) {
       const src = fs.readFileSync(`src/screens/meetups/${f}`, 'utf8')
       for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'..\/..\/data\/meetupStore'/g)) {
@@ -322,6 +322,23 @@ describe('참여 취소 뒤 대화방 캐시', () => {
     const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
     const src = fs.readFileSync('src/screens/meetups/MeetupDetail.tsx', 'utf8')
     expect(src).toMatch(/cancelParticipation\(m\.id\)[\s\S]{0,200}invalidate: \[meetupKeys\.all, chatKeys\.rooms, \.\.\.\(data\.chatRoomId \? \[chatKeys\.room\(data\.chatRoomId\), chatKeys\.messages\(data\.chatRoomId\)\]/)
+  })
+})
+
+describe('모집 마감 검사 (deadlineAfterStart)', () => {
+  it('마감이 시작 시각과 같으면 통과, 뒤면 막음 (명세 07: startsAt 보다 늦을 수 없다, PR #37 Codex 리뷰 P1)', async () => {
+    const { deadlineAfterStart } = await import('../data/meetupStore')
+    expect(deadlineAfterStart('2026-12-01T14:00', '2026-12-01', '오후 2:00')).toBe(false)
+    expect(deadlineAfterStart('2026-12-01T13:30', '2026-12-01', '오후 2:00')).toBe(false)
+    expect(deadlineAfterStart('2026-12-01T14:10', '2026-12-01', '오후 2:00')).toBe(true)
+    expect(deadlineAfterStart('', '2026-12-01', '오후 2:00')).toBe(false)
+  })
+  it('마감 입력의 최솟값은 목 데이터의 정오가 아니라 지금(NOW) 기준 (PR #37 Codex 리뷰 P1)', async () => {
+    const FS = 'node:fs'
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
+    const src = fs.readFileSync('src/screens/meetups/MeetupNew.tsx', 'utf8')
+    expect(src).toMatch(/min=\{msToWall\(NOW\)\}/)
+    expect(src).not.toMatch(/T12:00`\}/)
   })
 })
 

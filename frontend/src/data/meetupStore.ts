@@ -83,6 +83,11 @@ export function endNotAfterStart(start: string, end: string) {
   if (!start || !end || /^다음\s*날/.test(end)) return false
   return parseHour(end) <= parseHour(start)
 }
+/** 모집 마감('YYYY-MM-DDTHH:mm', 서울)이 시작 시각보다 뒤인지 (양식 검사). 같은 시각은 됨 — 명세 07: 마감은 startsAt 보다 늦을 수 없다 */
+export function deadlineAfterStart(deadline: string, ymd: string, start: string) {
+  if (!deadline || !ymd || !start) return false
+  return wallToMs(deadline) > ymdMs(ymd) + parseHour(start) * HOUR
+}
 export function startMs(m: Meetup) {
   return ymdMs(m.date) + parseHour(m.start) * HOUR
 }

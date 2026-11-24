@@ -13,12 +13,13 @@ import MoleAvatar from '../../components/MoleAvatar'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import { ME_ID } from '../../data/mock'
 import { MEETUP_CATEGORIES } from '../../data/meetupCategory'
-import { type Draft, type MeetupX, deadlineLabel, draftOf, endNotAfterStart, hourLabel, parseHour } from '../../data/meetupStore'
+import { type Draft, type MeetupX, deadlineLabel, deadlineAfterStart, draftOf, endNotAfterStart, hourLabel, NOW, parseHour } from '../../data/meetupStore'
 import { fieldErrorText, toAppId } from '../../api/common'
 import { useOptimistic } from '../../api'
 import { MEETUP_ERRORS, MEETUP_LIMITS, meetupCalls, meetupKeys, useMeetupDetail, type MeetupCreateResponse, type MeetupDetailVM } from '../../api/meetups'
 import { dateParts } from '../../lib/format'
 import { SignHero, TODAY_PARTS, fullDate, shiftMonth } from './parts'
+import { msToWall } from '../../lib/time'
 import s from './Meetups.module.css'
 
 /** 30분 간격 오전 7시 ~ 오후 11시 30분 */
@@ -92,7 +93,8 @@ function MeetupForm({ editing }: { editing?: MeetupDetailVM }) {
   const minCap = Math.max(2, editing?.confirmed ?? 2)
   const { w } = d.ymd ? dateParts(d.ymd) : { w: '' }
   const endBad = endNotAfterStart(d.start, d.end)
-  const dlBad = !!d.deadline && !!d.ymd && !!d.start && d.deadline >= toIso(d.ymd, d.start)
+  // 모집 마감은 시작 시각보다 늦을 수 없음 — 같은 시각은 됨 (명세 07 API recruitDeadlineAt)
+  const dlBad = deadlineAfterStart(d.deadline, d.ymd, d.start)
   const missing = [
     !d.title.trim() && '모임 이름', !d.category && '카테고리', !d.ymd && '날짜', !d.start && '시작 시간',
     d.mode === '오프라인' && !d.place.trim() && '장소',
@@ -196,7 +198,7 @@ function MeetupForm({ editing }: { editing?: MeetupDetailVM }) {
                   <div className="field"><label htmlFor="dl">모집 마감 <span className={s.optTag}>선택</span></label>
                     {editing
                       ? <><p className={s.readonly}>{d.deadline ? deadlineLabel(d.deadline) : '모임이 시작될 때 마감돼요'}</p><span className="hint">모집 마감 일시는 만들 때만 정할 수 있어요.</span></>
-                      : <><input id="dl" type="datetime-local" className={`input ${s.fill}`} value={d.deadline} min={`${TODAY_PARTS.y}-${String(TODAY_PARTS.m).padStart(2, '0')}-${String(TODAY_PARTS.d).padStart(2, '0')}T12:00`} max={d.ymd && d.start ? toIso(d.ymd, d.start) : undefined} onChange={(e) => set('deadline', e.target.value)} />
+                      : <><input id="dl" type="datetime-local" className={`input ${s.fill}`} value={d.deadline} min={msToWall(NOW)} max={d.ymd && d.start ? toIso(d.ymd, d.start) : undefined} onChange={(e) => set('deadline', e.target.value)} />
                         {dlBad ? <span className={s.capWarn}>ⓘ 모집 마감은 모임 시작보다 앞이어야 해요.</span> : <span className="hint">비우면 모임 시작 때 마감돼요. 정원이 차 있는 동안에는 새 신청을 받지 않아요.</span>}
                         {fe('recruitDeadlineAt') && <span className={s.fieldErr}>ⓘ {fe('recruitDeadlineAt')}</span>}</>}
                   </div>
