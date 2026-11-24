@@ -1,6 +1,7 @@
 /**
  * 쓰기: 낙관적 업데이트 (모든 영역이 같이 씀. 영역 작업자는 고치지 않음)
  * 캐시를 먼저 바꾸고 → 서버 호출 → 실패하면 되돌리고 오류 토스트 → 끝나면 관련 키를 새로 받음
+ * (invalidate: [] 로 성공 뒤 새로 받기를 끈 쓰기도, 실패하면 바꿨던 캐시는 새로 받음: 되돌리기가 그 사이 다른 변경을 덮지 않게)
  *
  *   const run = useOptimistic()
  *   run.mutate({ call: () => meetupsApi.like(id), patches: [patch(meetupKeys.detail(id), (d) => …)], errors: MEETUP_ERRORS })
@@ -54,6 +55,9 @@ export function useOptimistic() {
     },
     onError: (e, op, ctx) => {
       for (const [k, v] of ctx?.snapshots ?? []) qc.setQueryData(k, v)
+      // 되돌린 값은 요청 전 전체 모습이라, 그 사이 끝난 다른 쓰기(예: 좋아요 대기 중 댓글 삭제)까지 덮을 수 있음 →
+      // invalidate 를 비워 둔 쓰기라도 실패하면 바꿨던 캐시를 서버에서 다시 받아 맞춤 (PR #37 Codex 리뷰)
+      for (const p of op.patches ?? []) void qc.invalidateQueries({ queryKey: p.key, exact: p.exact })
       if (isApiError(e) && op.quietCodes?.includes(e.code)) return
       toastApiError(e, op.errorTitle, op.errors)
     },
