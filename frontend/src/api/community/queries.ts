@@ -3,7 +3,7 @@
  * 좋아요 · 저장 · 댓글 좋아요 · 댓글 수정은 낙관적(먼저 바꾸고 실패하면 되돌림 + 오류 토스트), 나머지 쓰기는 서버 답을 받고 캐시를 고친다.
  */
 import { useEffect, useState } from 'react'
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { isApiError } from '../client'
 import { toAppId, toDtoId } from '../common/ids'
 import { patch, toastApiError, useOptimistic, type CachePatch } from '../optimistic'
@@ -109,17 +109,42 @@ export function useRelatedPosts(id: string, enabled = true) {
 }
 type CommentPage = { items: CommentThreadVM[]; nextCursor: string | null; hasNext: boolean }
 type CommentData = InfiniteData<CommentPage, string | null>
+async function fetchCommentPage(postId: string, cursor: string | null, signal?: AbortSignal): Promise<CommentPage> {
+  const d = await communityApi.comments(toDtoId(postId), { cursor, size: COMMENT_PAGE_SIZE }, signal)
+  return { ...d, items: d.items.map(toCommentThread) }
+}
 /** GET /posts/{postId}/comments — 댓글 10개씩 ("댓글 10개 더 보기" = fetchNextPage) */
 export function useComments(postId: string, enabled = true) {
   return useInfiniteQuery({
     queryKey: communityKeys.comments(postId),
-    queryFn: async ({ pageParam, signal }): Promise<CommentPage> => {
-      const d = await communityApi.comments(toDtoId(postId), { cursor: pageParam, size: COMMENT_PAGE_SIZE }, signal)
-      return { ...d, items: d.items.map(toCommentThread) }
-    },
+    queryFn: ({ pageParam, signal }) => fetchCommentPage(postId, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => (last.hasNext ? last.nextCursor : undefined),
     enabled,
+  })
+}
+/**
+ * 새 댓글(답글 아님)을 목록에 넣음. 명세 08: 댓글은 등록순이라 새 댓글은 맨 끝.
+ * 아직 안 받은 페이지가 있으면 받아 둔 페이지 끝에 붙이지 않고(1 ~ 10, 새 댓글, 11 ~ 20 처럼 순서가 깨짐) 남은 페이지를 모두 받는다.
+ * 새 댓글은 마지막 페이지에 들어 있고, 혹시 없으면(그 사이 지워짐 등) 끝에 붙임
+ */
+export async function appendTopComment(qc: QueryClient, postId: string, made: CommentThreadVM) {
+  const key = communityKeys.comments(postId)
+  for (let guard = 0; guard < 100; guard++) {
+    const d = qc.getQueryData<CommentData>(key)
+    if (!d) return
+    const last = d.pages[d.pages.length - 1]
+    if (!last.hasNext) break
+    const cursor = last.nextCursor
+    const page = await fetchCommentPage(postId, cursor)
+    qc.setQueryData<CommentData>(key, (o) => (o && o.pages[o.pages.length - 1] === last ? { pages: [...o.pages, page], pageParams: [...o.pageParams, cursor] } : o))
+  }
+  qc.setQueryData<CommentData>(key, (d) => {
+    if (!d || d.pages.some((pg) => pg.items.some((c) => c.id === made.id))) return d
+    const pages = [...d.pages]
+    const last = pages[pages.length - 1]
+    pages[pages.length - 1] = { ...last, items: [...last.items, made] }
+    return { ...d, pages }
   })
 }
 /** 받은 댓글 페이지들을 한 줄로 (쓴 뒤 끝에 붙인 댓글이 다음 페이지에도 오면 한 번만) */
@@ -206,16 +231,12 @@ export function usePostActions(postId: string) {
       const made = toComment(r)
       const parent = r.parentCommentId == null ? null : toAppId(r.parentCommentId)
       setComments((d) => {
-        if (parent == null) {
-          const pages = [...d.pages]
-          const last = pages[pages.length - 1]
-          pages[pages.length - 1] = { ...last, items: [...last.items, { ...made, replies: [] }] }
-          return { ...d, pages }
-        }
+        if (parent == null) return d // 맨 끝에 넣기는 아래 appendTopComment (남은 페이지를 먼저 받음)
         return { ...d, pages: d.pages.map((pg) => ({ ...pg, items: pg.items.map((t) => (t.id === parent ? { ...t, replies: [...t.replies, made] } : t)) })) }
       })
       setDetail((o) => ({ ...o, comments: r.commentCount }))
       afterMine()
+      if (parent == null) return appendTopComment(qc, postId, { ...made, replies: [] }).catch(() => qc.invalidateQueries({ queryKey: commentsKey }))
     },
     onError: (e) => toastApiError(e, '댓글을 등록하지 못했어요', COMMUNITY_ERRORS),
   })

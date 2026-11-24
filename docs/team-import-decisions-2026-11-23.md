@@ -75,4 +75,6 @@
 - **PR [#37](https://github.com/it-ting-team/it-ting/pull/37)** `chore: KAN-64 프론트엔드 프로토타입 이전 (Next.js)` → `dev`. 병합은 사람이. 다음: CI · Codex 리뷰 확인, Jira KAN-64 상태
 - 스모크에서 드러난 것: 글꼴 `Do Hyeon` 은 `src/app/layout.tsx` 가 Google Fonts 에서 받음(인터넷이 끊기면 기본 글꼴. 계획서 "남은 일")
 - **Codex 리뷰**: PR 을 연 뒤 33분 넘게 오지 않아(앞 PR 들은 2 ~ 7분, 이번은 파일 590개) 사용자 요청으로 `@codex review` 직접 요청 → 10분 만에 P0 1 · P1 1. ① P0 같은 탭에서 세션이 끝난 뒤 다른 계정으로 로그인하면 이전 계정 캐시(내 땅굴 · 계정 · 대화 목록)가 보임 → 401 · 로그인 성공 때 계정마다 다른 캐시를 모두 버림(`lib/authFlow.ts` `dropUserData`, `useSessionReset`, 테스트 `auth-cache.test.ts`) ② P1 온보딩 확정 뒤 `GET /me` 를 기다리지 않음(우리 리뷰의 "확인 필요"였음) → 기다린 뒤 이동. 팀 브랜치 커밋 74개, 다시 `@codex review` 요청
+- **Codex 재리뷰(`8ffdfb2`)**: 새 P0 1 · P1 1. ① P0 보내지 못한 채팅 메시지(`api/chat/outbox`, 탭 메모리)가 로그아웃 뒤에도 남음 → 로그아웃 · 401 · 로그인 성공 때 비우고 세대 번호로 늦은 전송 결과를 버림 ② P1 댓글을 다 받기 전에 쓰면 등록순이 깨짐(우리 리뷰 "확인 필요"였음) → 남은 페이지를 받은 뒤 맨 끝에(`appendTopComment`). 테스트 647. `lib/authFlow` 가 `api/chat/outbox` 를 쓰게 돼 커밋 계획에서 `outbox.ts` 를 화면 이동 어댑터 커밋으로 앞당김(커밋마다 빌드 유지). 팀 브랜치 커밋 77개, 다시 `@codex review`
+- 교훈: Codex 지적 4건 중 2건은 우리 로컬 리뷰의 "확인 필요"였음 → "확인 필요"도 재현 경로가 분명하면 PR 전에 고칠 것. 계정 전환은 서버 캐시만이 아니라 탭 메모리 저장소(outbox 등)까지 볼 것
 

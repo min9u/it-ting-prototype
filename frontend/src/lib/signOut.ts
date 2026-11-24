@@ -9,12 +9,14 @@ import { queryClient } from '../api/queryClient'
 import { isUnauthorized } from '../api/client'
 import { authApi } from '../api/auth'
 import { stopEventStream } from '../realtime/events'
+import { outbox } from '../api/chat/outbox'
 import { disablePush, forgetPush } from './browserPush'
 
 /** 세션이 끝난 뒤: 실시간 연결을 끊고, 받아 둔 서버 데이터를 모두 버림 (다음 사람에게 보이지 않게) */
 export function afterSignOut() {
   stopEventStream()
   queryClient.clear()
+  outbox.clear() // 보내지 못한 채팅 메시지 (서버 캐시 밖, 탭 메모리)
 }
 
 /**

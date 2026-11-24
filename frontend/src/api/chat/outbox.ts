@@ -22,6 +22,8 @@ export interface PendingMessage {
 }
 
 let all: PendingMessage[] = []
+/** 계정이 바뀔 때(clear)마다 늘어남. 이전 계정에서 보내던 결과가 늦게 와도 새 세션에 넣지 않으려고 */
+let generation = 0
 const subs = new Set<() => void>()
 const set = (next: PendingMessage[]) => { all = next; byRoomCache.clear(); subs.forEach((f) => f()) }
 const byRoomCache = new Map<string, PendingMessage[]>()
@@ -49,7 +51,9 @@ export const outbox = {
     set(all.filter((x) => x !== p))
     return p.clientId
   },
-  clear: () => set([]),
+  /** 로그아웃 · 401 · 로그인 성공 때 (lib/authFlow dropUserData, lib/signOut afterSignOut). 다른 계정에 이전 사람의 미전송 글이 보이지 않게 */
+  clear: () => { generation++; set([]) },
+  generation: () => generation,
   subscribe: (f: () => void) => { subs.add(f); return () => { subs.delete(f) } },
 }
 

@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isUnauthorized } from '../client'
 import type { ApiMeta } from '../queryClient'
 import { authApi } from './api'
+import { dropUserData } from '../../lib/authFlow'
 import { toMe, type MeVM } from './mappers'
 import type {
   EmailVerificationCheckRequest, EmailVerificationRequest, LoginRequest, PasswordResetCompleteRequest, PasswordResetRequest, SignupRequest,
@@ -43,7 +44,7 @@ export function useSessionReset() {
   const qc = useQueryClient()
   return () => {
     void qc.cancelQueries()
-    qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'common' && q.queryKey[0] !== authKeys.all[0] })
+    dropUserData() // 계정마다 다른 캐시 + 보내지 못한 채팅 메시지 (lib/authFlow)
     return qc.resetQueries({ queryKey: authKeys.all })
   }
 }

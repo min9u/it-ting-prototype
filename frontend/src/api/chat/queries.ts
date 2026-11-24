@@ -198,25 +198,7 @@ export function useChatEvents() {
 /** 보내기 · 다시 보내기 · 지우기. 화면에는 바로 "보내는 중"으로 보이고 실패하면 "다시 보내기" */
 export function useSendMessage(roomId: string) {
   const qc = useQueryClient()
-  const deliver = (clientId: string) => {
-    const p = outbox.find(clientId)
-    if (!p) return
-    chatApi.sendMessage(toDtoId(p.roomId), { content: p.content, imageIds: p.images.map((i) => toDtoId(i.id)) })
-      .then((dto) => {
-        const m = toChatMessage(dto)
-        addMessageToCache(qc, p.roomId, m)
-        bumpRoom(qc, p.roomId, (r) => (r.last && r.last.num >= m.num ? r : { ...r, last: m, lastAt: m.at }))
-        outbox.remove(clientId)
-      })
-      .catch((e: unknown) => {
-        outbox.fail(clientId, errorText(e, CHAT_ERRORS))
-        // 그 사이 상대가 나갔거나 방이 없어짐 → 방 · 목록을 다시 받아 입력창을 맞춤
-        if (isApiError(e) && (e.code === 'CHAT_ROOM_READ_ONLY' || e.code === 'CHAT_ROOM_NOT_FOUND')) {
-          void qc.invalidateQueries({ queryKey: chatKeys.room(p.roomId) })
-          void qc.invalidateQueries({ queryKey: chatKeys.rooms })
-        }
-      })
-  }
+  const deliver = (clientId: string) => deliverPending(qc, clientId)
   return {
     /** 빈 메시지(글도 사진도 없음)는 보내지 않음 */
     send: (text: string, images: { id: string; url: string }[] = []) => {
@@ -229,6 +211,30 @@ export function useSendMessage(roomId: string) {
     retry: (clientId: string) => { outbox.resend(clientId); deliver(clientId) },
     discard: (clientId: string) => outbox.remove(clientId),
   }
+}
+
+/** 보내는 중인 메시지 하나를 POST. 그 사이 계정이 바뀌었으면(outbox.clear) 결과를 버림 */
+export function deliverPending(qc: QueryClient, clientId: string): Promise<void> {
+  const p = outbox.find(clientId)
+  if (!p) return Promise.resolve()
+  const gen = outbox.generation()
+  return chatApi.sendMessage(toDtoId(p.roomId), { content: p.content, imageIds: p.images.map((i) => toDtoId(i.id)) })
+      .then((dto) => {
+        if (gen !== outbox.generation()) return
+        const m = toChatMessage(dto)
+        addMessageToCache(qc, p.roomId, m)
+        bumpRoom(qc, p.roomId, (r) => (r.last && r.last.num >= m.num ? r : { ...r, last: m, lastAt: m.at }))
+        outbox.remove(clientId)
+      })
+      .catch((e: unknown) => {
+        if (gen !== outbox.generation()) return
+        outbox.fail(clientId, errorText(e, CHAT_ERRORS))
+        // 그 사이 상대가 나갔거나 방이 없어짐 → 방 · 목록을 다시 받아 입력창을 맞춤
+        if (isApiError(e) && (e.code === 'CHAT_ROOM_READ_ONLY' || e.code === 'CHAT_ROOM_NOT_FOUND')) {
+          void qc.invalidateQueries({ queryKey: chatKeys.room(p.roomId) })
+          void qc.invalidateQueries({ queryKey: chatKeys.rooms })
+        }
+      })
 }
 
 /**
