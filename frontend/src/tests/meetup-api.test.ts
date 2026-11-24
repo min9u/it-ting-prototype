@@ -342,3 +342,28 @@ describe('모집 마감 검사 (deadlineAfterStart)', () => {
   })
 })
 
+describe('여러 날 이어지는 모임 수정 (PR #37 Codex 리뷰 P1)', () => {
+  it('12월 1일 시작 · 3일 끝 모임을 받아 그대로 수정해 보내도 끝나는 날짜가 3일 그대로', async () => {
+    const { toMeetup, toUpdateRequest } = await import('../api/meetups/mappers')
+    const { draftOf } = await import('../data/meetupStore')
+    const card = { id: 7, title: '2박 3일 MT', category: 'HOBBY_CULTURE', startsAt: '2026-12-01T01:00:00Z', endsAt: '2026-12-03T03:00:00Z', mode: 'OFFLINE', place: '가평', capacity: 10, recruitStatus: 'OPEN' }
+    const m = toMeetup(card as never)
+    expect(m.end).toBe('12월 3일 오후 12:00')
+    expect(m.endYmd).toBe('2026-12-03')
+    const req = toUpdateRequest(draftOf(m))
+    expect(req.startsAt).toBe('2026-12-01T01:00:00Z')
+    expect(req.endsAt).toBe('2026-12-03T03:00:00Z')
+  })
+  it('바로 다음 날 끝나면 다음 날 표시 · 같은 날이면 날짜 없이, 보내는 값은 그대로', async () => {
+    const { toMeetup, toUpdateRequest } = await import('../api/meetups/mappers')
+    const { draftOf } = await import('../data/meetupStore')
+    const next = toMeetup({ id: 8, title: '밤샘', category: 'STUDY_PROJECT', startsAt: '2026-12-01T14:00:00Z', endsAt: '2026-12-01T23:00:00Z', mode: 'ONLINE', place: null, capacity: 4, recruitStatus: 'OPEN' } as never)
+    expect(next.end).toBe('다음 날 오전 8:00')
+    expect(toUpdateRequest(draftOf(next)).endsAt).toBe('2026-12-01T23:00:00Z')
+    const same = toMeetup({ id: 9, title: '점심', category: 'FOOD_CAFE', startsAt: '2026-12-01T03:00:00Z', endsAt: '2026-12-01T04:00:00Z', mode: 'ONLINE', place: null, capacity: 4, recruitStatus: 'OPEN' } as never)
+    expect(same.end).toBe('오후 1:00')
+    expect(same.endYmd).toBeUndefined()
+    expect(toUpdateRequest(draftOf(same)).endsAt).toBe('2026-12-01T04:00:00Z')
+  })
+})
+

@@ -5,9 +5,9 @@
  * - id 는 common toAppId · toDtoId, 시각은 lib/time (UTC ↔ 서울), 사람은 common toPersonFromDisplay
  */
 import { toAppId, toAppIdOrNull, toPersonFromDisplay, type Person } from '../common'
-import type { Draft, MeetupX, Recruit } from '../../data/meetupStore'
+import { END_DAY_PREFIX, type Draft, type MeetupX, type Recruit } from '../../data/meetupStore'
 import { meetupCategoryOf } from '../../data/meetupCategory'
-import { msToWall, parseIso, seoulMs, seoulParts, seoulYmd, toIso, wallToMs } from '../../lib/time'
+import { msToWall, parseIso, seoulMs, seoulParts, seoulYmd, toIso, wallToMs, ymdDiff } from '../../lib/time'
 import type {
   MeetupApplicationsDto, MeetupCalendarDto, MeetupCardDto, MeetupCategoryCode, MeetupCreateRequest, MeetupDetailDto, MeetupMyStatus,
   MeetupUpdateRequest, MyMeetupItemDto, MyMeetupSummaryDto, RecruitStatus,
@@ -38,10 +38,13 @@ export function toMeetup(d: MeetupCardDto): MeetupX {
   const start = parseIso(d.startsAt)
   const end = d.endsAt ? parseIso(d.endsAt) : null
   const date = seoulYmd(start)
+  const endYmd = end == null ? null : seoulYmd(end)
+  // 다른 날 끝나면 날짜를 앞에 붙임: 바로 다음 날은 '다음 날', 그 뒤는 'M월 D일' (명세 07: 기간 제한 없음). 실제 날짜는 endYmd 로 따로 들고 감
+  const endDay = endYmd == null || endYmd === date ? '' : ymdDiff(date, endYmd) === 1 ? '다음 날 ' : `${+endYmd.slice(5, 7)}월 ${+endYmd.slice(8, 10)}일 `
   const place = d.place ?? ''
   return {
     id: toAppId(d.id), title: d.title, category: meetupCategoryOf(d.category)?.name ?? d.category, date, start: hm(start),
-    end: end == null ? '' : `${seoulYmd(end) !== date ? '다음 날 ' : ''}${hm(end)}`,
+    end: end == null ? '' : `${endDay}${hm(end)}`, endYmd: endYmd && endYmd !== date ? endYmd : undefined,
     area: d.mode === 'ONLINE' ? '온라인' : areaOf(place), place, mode: MODE[d.mode] ?? '오프라인', capacity: d.capacity,
     // 카드 응답에는 참여자 · 주최자가 없음 → 인원은 MeetupCardVM.confirmed 를 씀
     memberIds: [], hostId: '', intro: '',
@@ -163,8 +166,11 @@ const orNull = (v: string) => (v.trim() ? v.trim() : null)
 /** 만들기 양식 → POST /meetups 본문 */
 export function toCreateRequest(f: Draft): MeetupCreateRequest {
   const start = formMs(f.ymd, f.start)
-  let end = f.end ? formMs(f.ymd, f.end.replace(/^다음\s*날\s*/, '')) : null
-  if (end != null && (end <= start || /^다음\s*날/.test(f.end))) end += 24 * 3_600_000
+  // 끝나는 시간: 다른 날 끝나는 값(서버에서 받은 '다음 날 …' · 'M월 D일 …')은 받아 둔 날짜(endYmd) 그대로, 같은 날 값이 시작보다 앞이면 다음 날
+  const dayed = END_DAY_PREFIX.test(f.end)
+  const endT = f.end.replace(END_DAY_PREFIX, '')
+  let end = !f.end ? null : dayed && f.endYmd ? formMs(f.endYmd, endT) : formMs(f.ymd, endT)
+  if (end != null && !(dayed && f.endYmd) && (end <= start || dayed)) end += 24 * 3_600_000
   const offline = f.mode === '오프라인'
   return {
     title: f.title.trim(), category: (meetupCategoryOf(f.category)?.code ?? 'ETC') as MeetupCategoryCode, description: orNull(f.intro),

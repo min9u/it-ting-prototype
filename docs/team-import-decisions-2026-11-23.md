@@ -93,4 +93,5 @@
 - **Codex 열두 번째 리뷰(`d544a4e`)**: 새 P1 1 — 내 정보 수정 중 꾸미기로 가면 확인 없이 내용이 사라짐 → `MyInfoEdit` `onDirtyChange` + 꾸미기 전 `UnsavedDialog`. 테스트 666. 팀 브랜치 커밋 100개
 - **Codex 열세 번째 리뷰(`91566fe`)**: 새 P1 1 — 내 정보 수정 중 상단 메뉴로 가면 확인 없이 내용이 사라짐 → `useBlocker`(모임 · 글쓰기와 같은 방식) + `UnsavedDialog`. 테스트 667. 팀 브랜치 커밋 102개
 - **Codex 열네 번째 리뷰(`3e390fb`)**: 새 P1 2 — 모집 마감이 시작과 같으면 수정 막힘 → `deadlineAfterStart`(같으면 통과), 마감 최솟값이 목 정오 고정 → `msToWall(NOW)`. 테스트 669. 팀 브랜치 커밋 104개
+- **Codex 열다섯 번째 리뷰(`b998e34`)**: 새 P1 1 — 여러 날 이어지는 모임을 수정하면 끝나는 날짜가 다음 날로 앞당겨짐 → `MeetupX.endYmd` · `Draft.endYmd` 로 받은 날짜 보존, 표시 '다음 날' · 'M월 D일'(`END_DAY_PREFIX`). 테스트 671. 팀 브랜치 커밋 106개
 

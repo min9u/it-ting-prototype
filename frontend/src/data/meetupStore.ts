@@ -23,6 +23,8 @@ import { seoulParts, seoulYmd, wallToMs, ymdDiff, ymdMs } from '../lib/time'
 /* ===== 타입 ===== */
 export interface MeetupX extends Meetup {
   placeDetail?: string
+  /** 끝나는 날짜(서울, 시작 날짜와 다를 때만). end 는 '다음 날 오전 8:00' · '12월 3일 오전 3:00' 처럼 표시용이라, 수정해 보낼 때 이 날짜를 씀 */
+  endYmd?: string
   /** 접속 링크(선택) — 참여 확정자에게만 보임. 모임에는 플랫폼 이름을 두지 않음 (명세 07, M16 은 명세로 뒤집힘) */
   link?: string
   prep?: string
@@ -44,6 +46,8 @@ export interface Applicant { userId: string; msg: string; at: number }
 export interface Draft {
   cap: number; prep: string; askMsg: boolean
   ymd: string; start: string; end: string; deadline: string
+  /** 서버에서 받은 모임이 다른 날 끝날 때의 끝나는 날짜 (MeetupX.endYmd) */
+  endYmd?: string
   mode: '오프라인' | '온라인'; place: string; placeDetail: string; link: string
   title: string; intro: string; category: string
 }
@@ -79,8 +83,10 @@ export function parseHour(t: string) {
  * 끝나는 시간이 시작 시간보다 앞이거나 같은지 (양식 검사). '다음 날 오전 8:00' 처럼 다음 날 끝나는 값(서버에서 받은 모임, api/meetups/mappers toMeetup)은
  * 시작보다 뒤로 본다 — 명세 07: 종료 시각은 startsAt 보다 뒤면 됨. 만들기 화면의 선택지는 같은 날 시간만이라 새로 만들 때는 그대로
  */
+/** 끝나는 시간 앞의 날짜 표시 ('다음 날 ' · '12월 3일 ') — 시작과 다른 날 끝나는 모임 */
+export const END_DAY_PREFIX = /^(다음\s*날|\d+월\s*\d+일)\s*/
 export function endNotAfterStart(start: string, end: string) {
-  if (!start || !end || /^다음\s*날/.test(end)) return false
+  if (!start || !end || END_DAY_PREFIX.test(end)) return false
   return parseHour(end) <= parseHour(start)
 }
 /** 모집 마감('YYYY-MM-DDTHH:mm', 서울)이 시작 시각보다 뒤인지 (양식 검사). 같은 시각은 됨 — 명세 07: 마감은 startsAt 보다 늦을 수 없다 */
@@ -356,7 +362,7 @@ export function deleteMeetup(id: string) {
 /** 모임 → 만들기·수정 양식 값 */
 export function draftOf(m: MeetupX): Draft {
   return {
-    cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, deadline: m.deadline ?? '',
+    cap: m.capacity, prep: m.prep ?? '', askMsg: m.askMsg, ymd: m.date, start: m.start, end: m.end, endYmd: m.endYmd, deadline: m.deadline ?? '',
     mode: m.mode, place: m.mode === '오프라인' ? m.place : '', placeDetail: m.placeDetail ?? '',
     link: m.link ?? '',
     title: m.title, intro: m.intro, category: m.category,
