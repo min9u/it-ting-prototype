@@ -288,7 +288,7 @@ describe('화면은 모임 API 로만 읽고 씀', () => {
   it('screens/meetups 는 모임 저장소(data/meetupStore)에서 타입 · 표기 함수만 가져옴 (상태 · 쓰기 함수 없음)', async () => {
     const FS = 'node:fs'
     const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string; readdirSync(p: string): string[] }
-    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs', 'TODAY'])  // TODAY: 화면의 "오늘"(실제 모드는 진짜 오늘, 목 모드는 목 데이터의 오늘)
+    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs', 'TODAY', 'endNotAfterStart'])  // TODAY: 화면의 "오늘"(실제 모드는 진짜 오늘, 목 모드는 목 데이터의 오늘)
     for (const f of fs.readdirSync('src/screens/meetups').filter((x) => x.endsWith('.tsx'))) {
       const src = fs.readFileSync(`src/screens/meetups/${f}`, 'utf8')
       for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'..\/..\/data\/meetupStore'/g)) {
@@ -297,3 +297,22 @@ describe('화면은 모임 API 로만 읽고 씀', () => {
     }
   })
 })
+
+describe('모임 끝나는 시간 검사 (endNotAfterStart)', () => {
+  it('같은 날: 시작보다 앞이거나 같으면 막음 / 뒤면 통과', async () => {
+    const { endNotAfterStart } = await import('../data/meetupStore')
+    expect(endNotAfterStart('오후 2:00', '오후 1:00')).toBe(true)
+    expect(endNotAfterStart('오후 2:00', '오후 2:00')).toBe(true)
+    expect(endNotAfterStart('오후 2:00', '오후 4:00')).toBe(false)
+    expect(endNotAfterStart('오후 2:00', '')).toBe(false)
+  })
+  it("다음 날 끝나는 모임('다음 날 오전 8:00')은 시작보다 뒤로 봄 → 수정 화면에서 다른 항목을 저장할 수 있음 (PR #37 Codex 리뷰 P1, 명세 07)", async () => {
+    const { endNotAfterStart } = await import('../data/meetupStore')
+    expect(endNotAfterStart('오후 11:00', '다음 날 오전 8:00')).toBe(false)
+    const { toUpdateRequest } = await import('../api/meetups/mappers')
+    const { draftOf } = await import('../data/meetupStore')
+    const req = toUpdateRequest(draftOf({ id: 'x', title: '밤샘 코딩', category: '스터디/프로젝트', date: '2026-12-01', start: '오후 11:00', end: '다음 날 오전 8:00', area: '', place: '', mode: '온라인', capacity: 4, memberIds: [], hostId: 'h', sign: '', intro: '' } as never))
+    expect(Date.parse(req.endsAt!) - Date.parse(req.startsAt)).toBe(9 * 3_600_000)
+  })
+})
+

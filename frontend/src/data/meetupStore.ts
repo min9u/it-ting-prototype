@@ -75,6 +75,14 @@ export function parseHour(t: string) {
   if (!m) return 0
   return (+m[2] % 12) + (m[1] === '오후' ? 12 : 0) + +m[3] / 60
 }
+/**
+ * 끝나는 시간이 시작 시간보다 앞이거나 같은지 (양식 검사). '다음 날 오전 8:00' 처럼 다음 날 끝나는 값(서버에서 받은 모임, api/meetups/mappers toMeetup)은
+ * 시작보다 뒤로 본다 — 명세 07: 종료 시각은 startsAt 보다 뒤면 됨. 만들기 화면의 선택지는 같은 날 시간만이라 새로 만들 때는 그대로
+ */
+export function endNotAfterStart(start: string, end: string) {
+  if (!start || !end || /^다음\s*날/.test(end)) return false
+  return parseHour(end) <= parseHour(start)
+}
 export function startMs(m: Meetup) {
   return ymdMs(m.date) + parseHour(m.start) * HOUR
 }

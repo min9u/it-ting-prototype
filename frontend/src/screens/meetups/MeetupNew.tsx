@@ -13,7 +13,7 @@ import MoleAvatar from '../../components/MoleAvatar'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
 import { ME_ID } from '../../data/mock'
 import { MEETUP_CATEGORIES } from '../../data/meetupCategory'
-import { type Draft, type MeetupX, deadlineLabel, draftOf, hourLabel, parseHour } from '../../data/meetupStore'
+import { type Draft, type MeetupX, deadlineLabel, draftOf, endNotAfterStart, hourLabel, parseHour } from '../../data/meetupStore'
 import { fieldErrorText, toAppId } from '../../api/common'
 import { useOptimistic } from '../../api'
 import { MEETUP_ERRORS, MEETUP_LIMITS, meetupCalls, meetupKeys, useMeetupDetail, type MeetupCreateResponse, type MeetupDetailVM } from '../../api/meetups'
@@ -91,7 +91,7 @@ function MeetupForm({ editing }: { editing?: MeetupDetailVM }) {
   // 정원 2 ~ 50, 수정할 때는 지금 확정 인원보다 적을 수 없음 (명세 07 API 모임 수정 capacity)
   const minCap = Math.max(2, editing?.confirmed ?? 2)
   const { w } = d.ymd ? dateParts(d.ymd) : { w: '' }
-  const endBad = !!d.end && !!d.start && parseHour(d.end) <= parseHour(d.start)
+  const endBad = endNotAfterStart(d.start, d.end)
   const dlBad = !!d.deadline && !!d.ymd && !!d.start && d.deadline >= toIso(d.ymd, d.start)
   const missing = [
     !d.title.trim() && '모임 이름', !d.category && '카테고리', !d.ymd && '날짜', !d.start && '시작 시간',
@@ -190,7 +190,7 @@ function MeetupForm({ editing }: { editing?: MeetupDetailVM }) {
                   <div className="field"><label htmlFor="st">시작 시간</label>
                     <select id="st" className={`input ${s.fill}`} value={d.start} onChange={(e) => set('start', e.target.value)}><option value="">시작 시간을 골라 주세요</option>{TIMES.map((t) => <option key={t}>{t}</option>)}</select></div>
                   <div className="field"><label htmlFor="et">끝나는 시간 <span className={s.optTag}>선택</span></label>
-                    <select id="et" className={`input ${s.fill}`} value={d.end} onChange={(e) => set('end', e.target.value)}><option value="">정하지 않음</option>{TIMES.map((t) => <option key={t}>{t}</option>)}</select>
+                    <select id="et" className={`input ${s.fill}`} value={d.end} onChange={(e) => set('end', e.target.value)}><option value="">정하지 않음</option>{d.end && !TIMES.includes(d.end) && <option key={d.end}>{d.end}</option>}{TIMES.map((t) => <option key={t}>{t}</option>)}</select>
                     {endBad ? <span className={s.capWarn}>ⓘ 끝나는 시간은 시작 시간보다 뒤여야 해요.</span> : <span className="hint">비워두면 시작 시간만 보여요.</span>}
                     {(fe('startsAt') || fe('endsAt')) && <span className={s.fieldErr}>ⓘ {fe('startsAt') ?? fe('endsAt')}</span>}</div>
                   <div className="field"><label htmlFor="dl">모집 마감 <span className={s.optTag}>선택</span></label>
