@@ -95,7 +95,8 @@ export function EmptyState({ message, children }: { message: string; children?: 
  * - 처음 불러오는 중 → skeleton
  * - 404·410 → notFound (없으면 오류로)
  * - 그 밖의 오류 → error 또는 ErrorState(다시 시도)
- * - 값이 있으면 → children (다시 불러오다 실패해도 이전 값을 계속 보여 줌)
+ * - 값이 있으면 → children (다시 불러오다 일시적으로 실패해도 이전 값을 계속 보여 줌)
+ * - 단, 다시 불러와 404·410 을 받으면 이전 값보다 없음 안내가 먼저 (지워졌거나 가려진 글의 본문이 남아 보이지 않게, 명세 08 글 상세 17)
  */
 export function QueryGate<T>({ q, skeleton, notFound, error, children }: {
   q: UseQueryResult<T>
@@ -104,9 +105,9 @@ export function QueryGate<T>({ q, skeleton, notFound, error, children }: {
   error?: (retry: () => void, e: unknown) => ReactNode
   children: (data: T) => ReactNode
 }) {
+  if (notFound && isNotFound(q.error)) return <>{typeof notFound === 'function' ? notFound(q.error) : notFound}</>
   if (q.data !== undefined) return <>{children(q.data)}</>
   if (q.isPending && !q.isError) return <>{skeleton}</>
-  if (notFound && isNotFound(q.error)) return <>{typeof notFound === 'function' ? notFound(q.error) : notFound}</>
   const retry = () => { void q.refetch() }
   return <>{error ? error(retry, q.error) : <ErrorState error={q.error} onRetry={retry} retrying={q.isFetching} />}</>
 }
