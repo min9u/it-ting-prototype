@@ -82,8 +82,8 @@ describe('들판 (GET /terms/{termId}/fields · /fields/{campusFloorId})', () =>
     const dto: FieldDto = {
       term: { id: 4, year: 2026, half: 2, isCurrent: true }, campusFloorId: 12, campusName: '서울', floor: 2,
       items: [
-        { slot: 31, burrowId: 18, isMine: true, owner: owner(31, '두더지왕'), interests: [{ id: 12, name: '러닝', interestCategoryId: 3, isShared: false }], answers: [] },
-        { slot: 7, burrowId: 27, isMine: false, owner: owner(52, '새벽산책'), interests: [{ id: 12, name: '러닝', interestCategoryId: 3, isShared: true }, { id: 61, name: '캠핑', interestCategoryId: 5, isShared: false }], answers: [{ slot: 1, introQuestionId: 8, question: '가장 좋아하는 운동 코스는?', answer: '한강' }] },
+        { slot: 31, burrowId: 18, isMine: true, owner: owner(31, '두더지왕'), interests: [{ id: 12, name: '러닝', interestCategoryId: 3, isShared: false }], answers: [], intro: null },
+        { slot: 7, burrowId: 27, isMine: false, owner: owner(52, '새벽산책'), interests: [{ id: 12, name: '러닝', interestCategoryId: 3, isShared: true }, { id: 61, name: '캠핑', interestCategoryId: 5, isShared: false }], answers: [{ slot: 1, introQuestionId: 8, question: '가장 좋아하는 운동 코스는?', answer: '한강' }], intro: '주말마다 달리고 캠핑 가는 14기입니다.' },
       ],
     }
     const vm = P.toField(dto)
@@ -93,6 +93,9 @@ describe('들판 (GET /terms/{termId}/fields · /fields/{campusFloorId})', () =>
     expect(vm.zones).toBe(2)
     expect(vm.residents[0]).toMatchObject({ burrowId: '27', shared: ['러닝'] })
     expect(vm.residents[0].user.qna).toEqual([{ q: 'Q1. 가장 좋아하는 운동 코스는?', a: '한강' }])
+    // 방노트의 자기소개 (명세 05 dev 2862f69 KAN-46 items[].intro, 안 썼으면 null → 빈 칸)
+    expect(vm.residents[0].user.intro).toBe('주말마다 달리고 캠핑 가는 14기입니다.')
+    expect(vm.residents[1].user.intro).toBe('')
   })
   it('주소 값: 학기 id|캠퍼스-층 id (첫 | 로 나눔)', () => {
     expect(P.parsePlace('4|12')).toEqual({ termId: '4', campusFloorId: '12' })

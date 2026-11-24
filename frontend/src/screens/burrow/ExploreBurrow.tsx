@@ -303,7 +303,7 @@ function ExploreField({ field, home }: { field: FieldVM; home: FieldPlace | null
       {/* 방노트: 가장 가까운(서 있는) 땅굴 주인 정보 + 땅굴 놀러가기. 접힌 동안은 오른쪽 위 "방노트" 버튼만 (MyBurrow 와 같은 모양) */}
       <NotePanel panel={note} title={!owner ? '빈 들판' : here?.mine ? '내 땅굴' : `${owner.nickname}님 땅굴`}>
         {owner ? (
-          <RoomNoteBody owner={owner} shared={shared} mine={!!here?.mine} intro={false}>
+          <RoomNoteBody owner={owner} shared={shared} mine={!!here?.mine}>
             {/* 땅굴 놀러가기: 두더지 옆 안내판 대신 여기, 관심사 바로 아래·Q&A 위. Enter 키로 들어가는 것도 그대로 (위 keydown) */}
             <button className={`btn btn-cta ${x.noteEnter}`} onClick={enter} disabled={moving || leaving}>
               {here?.mine ? '내 땅굴 들어가기' : '땅굴 놀러가기'} <kbd className={x.kbd}>Enter</kbd>

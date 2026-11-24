@@ -45,6 +45,8 @@ export interface FieldEntranceDto {
   /** 고른 순서. 나와 겹치는 것은 isShared */
   interests: InterestTagDto[]
   answers: AnswerDto[]
+  /** 주인의 자기소개. 쓰지 않았으면 null (명세 05 dev 2862f69 KAN-46: 방노트에 보여 줌) */
+  intro: string | null
 }
 /** GET /terms/{termId}/fields/{campusFloorId} */
 export interface FieldDto {

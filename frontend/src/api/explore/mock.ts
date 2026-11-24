@@ -97,7 +97,7 @@ export const cardInterests = (tags: InterestTagDto[]): InterestTagDto[] => [...t
 
 function entranceItem(r: { seat: number; user: { id: string }; mine?: boolean }): FieldEntranceDto {
   const id = r.mine ? ME_ID : r.user.id
-  return { slot: r.seat, burrowId: burrowIdOf(id), isMine: !!r.mine, owner: userDisplay(id), interests: interestTags(id), answers: answersOf(id) }
+  return { slot: r.seat, burrowId: burrowIdOf(id), isMine: !!r.mine, owner: userDisplay(id), interests: interestTags(id), answers: answersOf(id), intro: rawPerson(id)?.intro || null }
 }
 const friendDto = (id: string): RecommendedFriendDto => ({ burrowId: burrowIdOf(id), owner: userDisplay(id), interests: cardInterests(interestTags(id)), answers: answersOf(id) })
 function dailyDto(): DailyRecommendationDto {

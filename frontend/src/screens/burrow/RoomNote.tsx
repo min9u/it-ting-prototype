@@ -55,8 +55,7 @@ export function NotePanel({ panel, title, children }: { panel: NotePanelState; t
  * children 은 관심사 바로 아래·Q&A 위 (탐색은 "땅굴 놀러가기" 버튼, 방문자 뷰는 없음)
  * mine 이면 겹침이 없어 범례를 뺌. "접속 중" 표시는 없음 (명세 README "이번 범위에 없는 것")
  * onReport 를 주면(방문자 뷰) 프로필 오른쪽 위에 신고 깃발 버튼 (Figma 510:13152)
- * intro={false} 면 자기소개 칸을 뺌 (탐색의 가까운 주인 정보). 명세 05 탐색 3(dev 9ea6698)은 방노트에 자기소개를 적지만
- * 들판 API(GET /terms/{termId}/fields/{campusFloorId})의 입구 항목에 intro 가 없어 빼 둠 → docs/backend/api-v1/questions-for-backend.md
+ * intro={false} 면 자기소개 칸을 뺌. 탐색의 가까운 주인 정보도 이제 자기소개를 보임(들판 API 입구 항목 intro, 명세 05 dev 2862f69 KAN-46)
  */
 export function RoomNoteBody({ owner, shared, mine = false, onReport, intro = true, children }: { owner: User; shared: string[]; mine?: boolean; onReport?: () => void; intro?: boolean; children?: ReactNode }) {
   return (

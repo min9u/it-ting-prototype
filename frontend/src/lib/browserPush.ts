@@ -41,7 +41,25 @@ export function base64UrlToBytes(s: string): Uint8Array {
 
 async function swRegistration(): Promise<ServiceWorkerRegistration> {
   const base = ENV.base.endsWith('/') ? ENV.base : `${ENV.base}/`
-  return navigator.serviceWorker.register(`${base}${SW_PATH}`)
+  return whenActive(await navigator.serviceWorker.register(`${base}${SW_PATH}`))
+}
+
+/**
+ * register() 는 설치가 끝나기 전에 돌아올 수 있다. 처음 켤 때 설치 중인 워커로 pushManager.subscribe() 를 부르면
+ * InvalidStateError → 활성화될 때까지 기다린다 (10초 넘거나 설치에 실패하면 오류, 설정 화면이 "켜지 못했어요")
+ */
+export function whenActive(reg: ServiceWorkerRegistration, timeoutMs = 10_000): Promise<ServiceWorkerRegistration> {
+  if (reg.active) return Promise.resolve(reg)
+  const w = reg.installing ?? reg.waiting
+  if (!w) return Promise.reject(new Error('서비스 워커를 찾지 못했어요'))
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { w.removeEventListener('statechange', on); reject(new Error('서비스 워커가 준비되지 않았어요')) }, timeoutMs)
+    function on() {
+      if (w!.state === 'activated') { clearTimeout(t); w!.removeEventListener('statechange', on); resolve(reg) }
+      else if (w!.state === 'redundant') { clearTimeout(t); w!.removeEventListener('statechange', on); reject(new Error('서비스 워커를 설치하지 못했어요')) }
+    }
+    w.addEventListener('statechange', on)
+  })
 }
 
 /** 브라우저 구독 만들기 → 명세 요청 모양 */

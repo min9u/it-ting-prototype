@@ -67,7 +67,7 @@ export function toField(d: FieldDto): FieldVM {
   const place = { termId: term.id, campusFloorId: toAppId(d.campusFloorId) }
   const floor: Floor = { id: placeId(place), term: term.label, campus: d.campusName, floor: d.floor, current: term.isCurrent }
   const residents: Resident[] = [...d.items].sort((a, b) => a.slot - b.slot).map((e) => {
-    const p = personOf(e.owner, e.interests, e.answers)
+    const p = personOf(e.owner, e.interests, e.answers, e.intro)
     const user: FieldUser = { ...p, campus: p.campus ?? '', gen: p.gen ?? 0, floor: p.floor ?? 0 }
     return { seat: e.slot, user, mine: e.isMine || undefined, shared: e.isMine ? [] : sharedNames(e.interests), burrowId: toAppId(e.burrowId) }
   })
