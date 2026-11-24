@@ -58,5 +58,5 @@
 ## 다음
 
 1. ~~Atlassian 로그인 → Jira 새 티켓 → 번호~~ 끝남: KAN-64
-2. 계획서 초안(번호 넣음) → 팀 리포 `docs/work/KAN-64.md` 로 복사(커밋하지 않음) → 사용자 승인 ("이번에 정할 것" A ~ I 를 팀과 정했거나 제안대로 가도 되는지)
+2. ~~계획서 → 팀 리포 `docs/work/KAN-64.md` 복사 · 승인~~ 끝남(2026-11-24): 사용자 "계획서 복사해줘, 제안대로 가자" → "이번에 정할 것" A ~ F 와 KAN-25(J)를 제안대로 "정한 것" 13 ~ 19 로 옮김. 팀 리포 `dev` 작업 폴더에 커밋 안 한 파일로 있음. **`import.mjs` 는 팀 리포가 깨끗해야 돌므로 실행 전에 이 파일을 잠시 빼 두고, 62개 커밋 뒤 다시 넣어 `docs: 프론트엔드 이전 작업 계획서 추가`로 커밋**
 3. `node tools/team-import/import.mjs --target ~/Workspace/it-ting --branch chore/fe/KAN-64-frontend-import` → 계획서 커밋(`docs: 프론트엔드 이전 작업 계획서 추가`) → `merge-tree` → `code-review` → `pr-create`
