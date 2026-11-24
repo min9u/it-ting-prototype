@@ -140,7 +140,7 @@ erDiagram
 | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | PK | NOT NULL, PK로 유일 | 자동 증가 공지 ID |
 | `category` | `ENUM` | — | NOT NULL, 개별 UNIQUE 없음, `NOTICE`, `UPDATE`, `EVENT` | 일반 공지·업데이트·이벤트 구분 |
-| `title` | `VARCHAR`(길이 미정) | — | NOT NULL, 개별 UNIQUE 없음 | 공지 제목 |
+| `title` | `VARCHAR(100)` | — | NOT NULL, 개별 UNIQUE 없음 | 공지 제목. 100자는 KAN-58에서 정했다. 관리자 API(11)가 입력을 이 길이에 맞춰 검사한다 |
 | `content` | `TEXT` | — | NOT NULL, 개별 UNIQUE 없음 | 공지 본문 |
 | `created_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 공지 게시 시각. 최신순 정렬 기준 |
 | `updated_at` | `DATETIME` | — | NOT NULL, 개별 UNIQUE 없음 | 행이 마지막으로 바뀐 시각 |

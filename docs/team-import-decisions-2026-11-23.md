@@ -66,3 +66,12 @@
 - 마지막 `frontend/` 는 이 리포와 같음(README 상대 링크만 의도한 차이). 이어서 계획서 커밋 `fac94d7`(`docs: 프론트엔드 이전 작업 계획서 추가`), `merge-tree` 충돌 0, `frontend/` 밖은 `frontend-ci.yml` · `AGENTS.md` 한 줄 · `docs/work/KAN-64.md`
 - 푸시 안 함. 다음: 팀 스킬 `code-review` → P0 · P1 → 계획서 "결과" → 푸시 · `pr-create` (사용자 확인)
 
+## 리뷰 · PR (2026-11-24)
+- 사용자 "1·2번 진행해줘"(로컬 리뷰 · 결과 채우기) → "1,2번 모두 이어서 해줘"(커밋 · 푸시 · PR)
+- 로컬 리뷰: 팀 `AGENTS.md` Code Review Rules 기준, 영역 넷(인증·설정 / 땅굴·탐색 / 채팅·알림 / 모임·게시판)으로 나눠 봄. 도중에 네트워크가 끊겨 둘은 이어서 다시 돌림. **P0 0 · P1 10 고침** (목록은 팀 리포 `docs/work/KAN-64.md` "확인한 것"). 1·2·6·7 은 원인이 같음: 목 계정 id `'me'`(`ME_ID`)나 목 데이터 날짜(`TODAY`)로 "나"·"오늘"을 정해서 목 모드에서는 맞고 실제 모드에서만 틀림 → 목 서버 테스트로는 안 잡힘. 다음 영역 연결 때도 `ME_ID` · `TODAY` · `getMyWorn` 을 먼저 볼 것
+- 재설정 메일 링크는 KAN-41 명세(`/password-reset/{token}`)로 이미 정해져 있어(백엔드 질문 02-4 답) `app/(pc)/password-reset/[token]` 을 더함
+- PR 직전 `dev` 가 `fa73cd7`(KAN-58 설정 ①)로 나아감 → `pushPublicKey` 가 `null` 일 수 있게 맞춤, 명세 사본 `docs/backend/team-spec/` 갱신
+- 고친 것은 이 리포 `frontend/` 와 팀 브랜치에 똑같이(`frontend/src` 같음). 팀 브랜치 커밋 71개(이전 62 + 계획서 + 리뷰 고침 5 + 결과 + 최신 명세 1 + 결과 보탬), 모두 서명 `G` · 커밋마다 빌드 · 타입 · 린트 오류 0 · 테스트 641. 스모크 가속 켬 · 끔 106/106
+- **PR [#37](https://github.com/it-ting-team/it-ting/pull/37)** `chore: KAN-64 프론트엔드 프로토타입 이전 (Next.js)` → `dev`. 병합은 사람이. 다음: CI · Codex 리뷰 확인, Jira KAN-64 상태
+- 스모크에서 드러난 것: 글꼴 `Do Hyeon` 은 `src/app/layout.tsx` 가 Google Fonts 에서 받음(인터넷이 끊기면 기본 글꼴. 계획서 "남은 일")
+

@@ -78,6 +78,9 @@ export default function Onboarding() {
 
   const idx = STEPS.findIndex((x) => x.key === step || (x.key === 'building' && step === 'preview'))
   if (idx < 0) return <Navigate to="/onboarding/name" replace />
+  // 앞 단계 값이 없으면(새로 고침 · 주소로 바로 들어옴) 온보딩 1부터 (명세 03: 1 → 2 → 3 → 3a → 4, 도중에 나가면 1부터 빈 상태로)
+  const lacking = (idx >= 1 && !name.trim()) || (idx >= 2 && picks.length < MIN_PICK) || (idx >= 3 && qids.length === 0)
+  if (lacking) return <Navigate to="/onboarding/name" replace />
   const go = (k: string) => { nav(`/onboarding/${k}`); window.scrollTo(0, 0) }
   const nick = name.trim() || '새벽산책'
   const qna = qids.map((id) => ({ q: questionOf(id, questions.data)?.text ?? '', a: (answers[id] ?? '').trim() }))

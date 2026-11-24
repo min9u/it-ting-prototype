@@ -733,7 +733,7 @@ export function PasswordResetSent() {
 }
 
 /**
- * 비밀번호 찾기 · 새 비밀번호 설정 (재설정 메일의 링크 /password-reset/new?token=…)
+ * 비밀번호 찾기 · 새 비밀번호 설정 (재설정 메일의 링크 /password-reset/{token} → app/(pc)/password-reset/[token] 이 /password-reset/new?token=… 로 넘김)
  * 들어올 때 GET /password-resets/{token} 으로 링크 확인 → 404 PASSWORD_RESET_LINK_INVALID 면 링크 만료 화면
  * 1·2 회원가입 2와 같음 · 3 비밀번호 바꾸기(POST …/complete) → 로그인으로 (로그인시키지 않음). ?token=demo 는 목 서버 시연용(늘 유효)
  */

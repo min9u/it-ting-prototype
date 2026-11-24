@@ -11,13 +11,14 @@
  * - 시작 시각이 지나면 바로 지난 모임 (M14). 모집 완료 = 정원이 찼거나 모집 마감 시각이 지남
  * - 참여 취소는 시작 24시간 전까지 (data/chat.ts canQuitMeetup 과 같은 규칙), 수정은 12시간 전까지, 취소는 시작 전까지 (M5)
  * - 참여 확정자(주최자 제외)가 0명이면 삭제, 1명 이상이면 취소(기록 남음)
- * - 시간 기준은 목 데이터의 오늘(TODAY) 정오 (채팅과 같음)
+ * - 시간 기준: 목 모드는 목 데이터의 오늘(mock TODAY) 정오 (채팅과 같음), 실제 모드(meetups 영역 real)는 페이지를 연 때의 서울 날짜 · 시각
  */
 import { useSyncExternalStore } from 'react'
-import { ME_ID, MEETUPS, TODAY } from './mock'
+import { ME_ID, MEETUPS, TODAY as MOCK_TODAY } from './mock'
+import { areaMode } from '../api/config'
 import { meetupCategoryOf, meetupToneOf } from './meetupCategory'
 import type { Meetup, Tone } from './types'
-import { seoulParts, wallToMs, ymdDiff, ymdMs } from '../lib/time'
+import { seoulParts, seoulYmd, wallToMs, ymdDiff, ymdMs } from '../lib/time'
 
 /* ===== 타입 ===== */
 export interface MeetupX extends Meetup {
@@ -63,8 +64,11 @@ interface State {
 
 /* ===== 시간 (Asia/Seoul 기준, lib/time.ts) ===== */
 const HOUR = 3_600_000
-/** 목 데이터의 지금 = TODAY 정오 (서울) */
-export const NOW = ymdMs(TODAY, 12)
+const REAL = areaMode('meetups') === 'real'
+/** 모임 화면의 "오늘" (YYYY-MM-DD, 서울). 실제 모드는 진짜 오늘 (명세 07 API: 오늘 · 이번 주 · D-day 는 프론트가 계산), 목 모드는 목 데이터의 오늘 */
+export const TODAY = REAL ? seoulYmd(Date.now()) : MOCK_TODAY
+/** 모임 화면의 지금. 실제 모드는 페이지를 연 시각, 목 모드는 목 데이터의 오늘 정오 (서울) */
+export const NOW = REAL ? Date.now() : ymdMs(TODAY, 12)
 /** '오후 2:00' → 14 (모임 시각은 만들기 양식의 값 그대로 들고 있음. 서버와는 ISO 로 주고받음 → api/mappers) */
 export function parseHour(t: string) {
   const m = /(오전|오후)\s*(\d+):(\d+)/.exec(t)

@@ -71,7 +71,7 @@ const IGNORE = [/favicon\.ico/, /GPU stall due to ReadPixels/, /Automatic fallba
 
 /* ---------- 화면 목록 ---------- */
 /** :param 에 넣을 예시 값 (목 데이터에 있는 것) */
-const SAMPLE = { userId: 'yerin', postId: 'p1', id: 'm1', roomId: 'r-yerin', step: 'name', what: 'meetup' }
+const SAMPLE = { userId: 'yerin', postId: 'p1', id: 'm1', roomId: 'r-yerin', step: 'name', what: 'meetup', token: 'demo' }
 const SAMPLE_BY_PATH = { '/board/:postId/edit': '/board/p6/edit', '/meetups/:id/edit': '/meetups/m3/edit', '/settings/notices/:id': '/settings/notices/sn2' }
 
 /**

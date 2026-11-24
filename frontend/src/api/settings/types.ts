@@ -31,7 +31,8 @@ export interface NotificationSettingValuesDto {
   isNoticeOn: boolean
 }
 /** GET /me/notification-settings: 다섯 값 + 푸시 구독에 쓰는 공개 키. "브라우저 알림 받기" 상태는 주지 않는다 */
-export interface NotificationSettingsDto extends NotificationSettingValuesDto { pushPublicKey: string }
+/** pushPublicKey: 서버 설정에 키가 아직 없으면 null (명세 10 API, 브라우저 푸시 KAN-59 전까지) */
+export interface NotificationSettingsDto extends NotificationSettingValuesDto { pushPublicKey: string | null }
 /** PATCH /me/notification-settings 요청 (다섯 값을 모두) · 응답(저장한 뒤의 다섯 값) */
 export type NotificationSettingsUpdateRequest = NotificationSettingValuesDto
 

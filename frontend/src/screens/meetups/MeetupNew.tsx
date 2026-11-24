@@ -88,7 +88,8 @@ function MeetupForm({ editing }: { editing?: MeetupDetailVM }) {
   const fe = (field: string) => fieldErrorText(run.error, field)
 
   const locked = !!editing && !editing.can.edit
-  const minCap = editing ? editing.confirmed : 2
+  // 정원 2 ~ 50, 수정할 때는 지금 확정 인원보다 적을 수 없음 (명세 07 API 모임 수정 capacity)
+  const minCap = Math.max(2, editing?.confirmed ?? 2)
   const { w } = d.ymd ? dateParts(d.ymd) : { w: '' }
   const endBad = !!d.end && !!d.start && parseHour(d.end) <= parseHour(d.start)
   const dlBad = !!d.deadline && !!d.ymd && !!d.start && d.deadline >= toIso(d.ymd, d.start)

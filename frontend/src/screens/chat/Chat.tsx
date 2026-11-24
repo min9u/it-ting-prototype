@@ -8,6 +8,7 @@ import ConnectionStrip from '../../components/ConnectionStrip'
 import { CalendarIcon, ChatIcon, CloseIcon, CompassIcon, HomeIcon, PenIcon, PinIcon, PlusIcon, SearchIcon, SendIcon } from '../../components/Icons'
 import { ErrorState, SkeletonRows } from '../../components/AsyncState'
 import { ME_ID, USERS, toneOf } from '../../data/mock'
+import { useUserProfile } from '../../api/onboarding'
 import { catNameOf } from '../../data/meetupStore'
 import { meetupToneOf } from '../../data/meetupCategory'
 import { getMyWorn } from '../../data/moleItems'
@@ -111,8 +112,9 @@ export default function Chat({ requests }: { requests?: boolean }) {
 }
 
 /** 내 두더지 (찻방). 내 프로필 · 두더지는 내 땅굴 영역의 값 (명세: GET /users/{내 id}/profile) */
-const meGuest = (): TeaGuest => ({ id: ME_ID, name: USERS[ME_ID]?.nickname ?? '나', worn: getMyWorn(), me: true })
-const guestOf = (p: Person, myId: string): TeaGuest => (p.id === myId ? meGuest() : { id: p.id, name: p.nickname, worn: p.worn ?? [], gone: p.id === GONE_ID })
+// 실제 모드의 내 id · 닉네임은 RoomView 가 GET /me · GET /users/{내 id}/profile 로 넘김, 모습은 getMyWorn (실제 모드는 AppShell MyWornSync 가 서버 값으로 맞춤)
+const meGuest = (id: string = ME_ID, name: string = USERS[ME_ID]?.nickname ?? '나'): TeaGuest => ({ id, name, worn: getMyWorn(), me: true })
+const guestOf = (p: Person, myId: string): TeaGuest => (p.id === myId ? meGuest(myId, p.nickname) : { id: p.id, name: p.nickname, worn: p.worn ?? [], gone: p.id === GONE_ID })
 
 /** 이름 첫 글자 타일 (03 Chat List Item) */
 function Initial({ text, tone, size = 44 }: { text: string; tone: string; size?: number }) {
@@ -169,7 +171,9 @@ const toPendingMessage = (p: PendingMessage, me: Person): ChatMessage => ({
 function RoomView({ room, onProfile, onToast }: { room: ChatRoomVM; onProfile: (p: Person) => void; onToast: (t: string) => void }) {
   const navigate = useNavigate()
   const myId = useMyId()
-  const me: Person = USERS[myId] ?? USERS[ME_ID]
+  // 실제 모드: 목 사용자(USERS)에 내가 없으므로 내 프로필(GET /users/{내 id}/profile)로. 받기 전에도 id 는 내 id (보내는 중 메시지가 오른쪽에)
+  const myProfile = useUserProfile(USERS[myId] ? null : myId)
+  const me: Person = useMemo(() => USERS[myId] ?? { ...USERS[ME_ID], ...(myProfile.data?.person ?? {}), id: myId }, [myId, myProfile.data])
   const run = useOptimistic()
   const msgsQ = useChatMessages(room.id)
   const pending = useOutbox(room.id)
@@ -217,8 +221,8 @@ function RoomView({ room, onProfile, onToast }: { room: ChatRoomVM; onProfile: (
   // 사용자별 마지막으로 말한 시각 (찻방 3D: 6명 초과일 때 누가 앉을지)
   const spoke = useMemo(() => { const r: Record<string, number> = {}; for (const m of msgs) if (!isNoticeMessage(m)) r[m.authorId] = Math.max(r[m.authorId] ?? 0, m.at); return r }, [msgs])
   const guests = useMemo<TeaGuest[]>(() => (room.kind === 'group'
-    ? [...room.members].sort((a, b) => Number(b.isMe) - Number(a.isMe)).map((x) => (x.isMe ? meGuest() : guestOf(x.person, myId)))
-    : [meGuest(), ...(partner ? [guestOf(partner, myId)] : [])]), [room, partner, myId])
+    ? [...room.members].sort((a, b) => Number(b.isMe) - Number(a.isMe)).map((x) => (x.isMe ? meGuest(myId, me.nickname) : guestOf(x.person, myId)))
+    : [meGuest(myId, me.nickname), ...(partner ? [guestOf(partner, myId)] : [])]), [room, partner, myId, me.nickname])
   const pickGuest = (id: string) => {
     const p = room.kind === 'group' ? room.members.find((x) => x.person.id === id)?.person : partner?.id === id ? partner : undefined
     if (p) onProfile(p)
@@ -282,7 +286,7 @@ function RoomView({ room, onProfile, onToast }: { room: ChatRoomVM; onProfile: (
           ) : null}
         </header>
 
-        {meetup && <NoticeBar room={room} />}
+        {meetup && <NoticeBar room={room} onToast={onToast} />}
         {!room.readOnly && <ConnectionStrip />}
 
         <div className={s.messages} ref={scroller} aria-live="polite" aria-relevant="additions" onScroll={(e) => { if (e.currentTarget.scrollTop < 40) loadOlder() }}>
@@ -417,16 +421,17 @@ function Composer({ placeholder, onSend, onToast }: { placeholder: string; onSen
 }
 
 /** 공지: 맨 위 고정, 하나만. 쓸 수 있는 사람(canEditNotice = 주최자)에게만 쓰기·고치기·지우기. 공지가 없으면 참여자에게는 줄이 안 보임 */
-function NoticeBar({ room }: { room: ChatRoomVM }) {
+function NoticeBar({ room, onToast }: { room: ChatRoomVM; onToast: (t: string) => void }) {
   const run = useOptimistic()
   const [edit, setEdit] = useState(false)
+  const [askDelete, setAskDelete] = useState(false)
   const [text, setText] = useState(room.notice ?? '')
   if (!room.notice && !room.canEditNotice) return null
   const save = (next: string | null) => run.mutate({
     call: () => (next ? chatCalls.setNotice(room.id, next) : chatCalls.deleteNotice(room.id)),
     errorTitle: next ? '공지를 저장하지 못했어요' : '공지를 지우지 못했어요', errors: CHAT_ERRORS,
     patches: [patch<ChatRoomVM>(chatKeys.room(room.id), (d) => ({ ...d, notice: next?.trim() || null }))],
-  })
+  }, { onSuccess: () => onToast(next ? '공지를 저장했어요' : '공지를 지웠어요') })  // 00 공통 16 완료 토스트
   if (edit) {
     return (
       <form className={s.noticeEdit} onSubmit={(e) => { e.preventDefault(); save(text); setEdit(false) }}>
@@ -443,9 +448,12 @@ function NoticeBar({ room }: { room: ChatRoomVM }) {
       {room.canEditNotice && (
         <span className={s.noticeTools}>
           <button onClick={() => { setText(room.notice ?? ''); setEdit(true) }}>고치기</button>
-          <button onClick={() => save(null)}>지우기</button>
+          <button onClick={() => setAskDelete(true)}>지우기</button>
         </span>
       )}
+      {/* 00 공통 17 삭제 확인 (취소 / 삭제) */}
+      <ConfirmDialog open={askDelete} onClose={() => setAskDelete(false)} title="공지를 지울까요?" desc="지운 공지는 되돌릴 수 없어요."
+        onConfirm={() => { setAskDelete(false); save(null) }} />
     </div>
   )
 }

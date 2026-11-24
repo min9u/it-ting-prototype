@@ -7,10 +7,10 @@ import fb from '../../components/Feedback.module.css'
 import Modal from '../../components/Modal'
 import ProfilePopup from '../../components/ProfilePopup'
 import { ChevronLeft, ChevronRight } from '../../components/Icons'
-import { TODAY, toneOf } from '../../data/mock'
+import { toneOf } from '../../data/mock'
 import { meetupToneOf } from '../../data/meetupCategory'
 import type { User } from '../../data/types'
-import { type MeetupX, ddayOf, hourLabel, placeLine, startMs } from '../../data/meetupStore'
+import { type MeetupX, TODAY, ddayOf, hourLabel, placeLine, startMs } from '../../data/meetupStore'
 import { patch, useOptimistic } from '../../api'
 import {
   MEETUP_ERRORS, meetupCalls, meetupKeys, useMeetupApplications, useMeetupCalendar, useMyMeetupSummary,

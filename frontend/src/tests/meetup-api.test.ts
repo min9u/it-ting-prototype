@@ -288,7 +288,7 @@ describe('화면은 모임 API 로만 읽고 씀', () => {
   it('screens/meetups 는 모임 저장소(data/meetupStore)에서 타입 · 표기 함수만 가져옴 (상태 · 쓰기 함수 없음)', async () => {
     const FS = 'node:fs'
     const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string; readdirSync(p: string): string[] }
-    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs'])
+    const ALLOWED = new Set(['type MeetupX', 'type Draft', 'ddayOf', 'daysLeft', 'hourLabel', 'placeLine', 'parseHour', 'deadlineLabel', 'draftOf', 'startMs', 'TODAY'])  // TODAY: 화면의 "오늘"(실제 모드는 진짜 오늘, 목 모드는 목 데이터의 오늘)
     for (const f of fs.readdirSync('src/screens/meetups').filter((x) => x.endsWith('.tsx'))) {
       const src = fs.readFileSync(`src/screens/meetups/${f}`, 'utf8')
       for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'..\/..\/data\/meetupStore'/g)) {

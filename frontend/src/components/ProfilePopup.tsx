@@ -11,6 +11,7 @@ import { GONE_ID } from '../api/common'
 import { isApiError, toastApiError } from '../api'
 import { ONBOARDING_ERRORS, useUserProfile } from '../api/onboarding'
 import { reportUser } from '../api/burrow'
+import { useMe } from '../api/auth'
 import s from './ProfilePopup.module.css'
 
 /**
@@ -25,7 +26,9 @@ export default function ProfilePopup({ user, onClose }: { user: User | null; onC
   const [done, setDone] = useState(false)
   const target = user && user.id !== GONE_ID ? user : null
   const q = useUserProfile(target?.id)
-  const isMe = user?.id === ME_ID
+  // 실제 모드의 내 id 는 GET /me 의 userId (목 모드는 ME_ID)
+  const myId = useMe().data?.userId
+  const isMe = !!user && (user.id === ME_ID || user.id === myId)
   const gone = isApiError(q.error) && q.error.code === 'USER_NOT_FOUND'
   // 받은 값이 있으면 그것, 받는 동안은 넘겨받은 값
   const shown = q.data?.person ?? user

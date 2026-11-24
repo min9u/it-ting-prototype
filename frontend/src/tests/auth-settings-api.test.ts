@@ -4,6 +4,9 @@
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
+/** 재설정 메일 링크 /password-reset/{token} (명세 02 API, KAN-41) → token */
+const resetTokenOf = (link: string) => decodeURIComponent(link.split('/').pop() ?? '')
+
 vi.mock('../data/auth', async (orig) => ({ ...(await orig<typeof import('../data/auth')>()), LOGIN_FREE: false }))
 
 type Auth = typeof import('../api/auth')
@@ -129,9 +132,9 @@ describe('02 목 서버 (명세 code)', () => {
   })
   it('비밀번호 재설정: 같은 이메일로 60초 안에 다시 요청하면 새 링크 없이 성공', async () => {
     await A.authApi.requestPasswordReset({ email: 'gap@ssafy.com' })
-    const t1 = new URL(A.mockMailbox.resetLink('gap@ssafy.com'), 'http://x').searchParams.get('token')
+    const t1 = resetTokenOf(A.mockMailbox.resetLink('gap@ssafy.com'))
     expect(await A.authApi.requestPasswordReset({ email: 'GAP@ssafy.com' })).toBeNull()
-    const t2 = new URL(A.mockMailbox.resetLink('gap@ssafy.com'), 'http://x').searchParams.get('token')
+    const t2 = resetTokenOf(A.mockMailbox.resetLink('gap@ssafy.com'))
     expect(t2).toBe(t1)
     expect(await A.authApi.checkPasswordReset(t1 ?? '')).toBeNull()
   })
@@ -147,7 +150,7 @@ describe('02 목 서버 (명세 code)', () => {
   it('비밀번호 재설정: 없는 링크는 404 PASSWORD_RESET_LINK_INVALID, 쓴 링크는 다시 못 씀', async () => {
     expect(await codeOf(A.authApi.checkPasswordReset('nope'))).toBe('PASSWORD_RESET_LINK_INVALID')
     await A.authApi.requestPasswordReset({ email: 'reset@ssafy.com' })
-    const token = new URL(A.mockMailbox.resetLink('reset@ssafy.com'), 'http://x').searchParams.get('token') ?? ''
+    const token = resetTokenOf(A.mockMailbox.resetLink('reset@ssafy.com'))
     expect(await A.authApi.checkPasswordReset(token)).toBeNull()
     expect(await codeOf(A.authApi.completePasswordReset(token, { password: 'short' }))).toBe('INVALID_INPUT')
     await A.authApi.completePasswordReset(token, { password: 'newmole5678@' })

@@ -5,6 +5,7 @@ import AppHeader from './AppHeader'
 import { ApiToaster } from './AsyncState'
 import { MockServerSync } from '../api/mockSync'
 import { useChatEvents } from '../api/chat'
+import { MyWornSync } from '../api/burrow'
 import { startEventStream } from '../realtime/events'
 import NewTermGate from '../screens/burrow/NewTermGate'
 import { RequireLogin } from '../screens/start/Guards'
@@ -27,6 +28,8 @@ function AppLayout({ children }: { children: ReactNode }) {
       <ApiToaster />
       <ApiKnobBadge />
       <MockServerSync />
+      {/* 실제 모드: 내 두더지 모습을 서버 값으로 (api/burrow/queries.ts) */}
+      <MyWornSync />
       {/* 05 새 학기 안내: 이번 학기 캠퍼스-층을 고르기 전에는 어느 화면에서든 닫을 수 없는 안내 */}
       <NewTermGate />
     </>

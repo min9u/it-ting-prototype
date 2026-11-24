@@ -56,7 +56,10 @@ export function NotifSettingsPage() {
     setMsg(null); setPushBusy(true)
     try {
       if (!on) await disablePush()
-      else {
+      else if (!q.data.pushPublicKey) {
+        // 서버에 푸시 공개 키가 아직 없음 (명세 10 API: null, KAN-59 전까지)
+        setMsg('브라우저 알림은 아직 준비 중이에요. 다음에 다시 켜 주세요.')
+      } else {
         const r = await enablePush(q.data.pushPublicKey)
         if (r === 'unsupported') setMsg('이 브라우저는 알림을 지원하지 않아요.')
         if (r === 'denied') setMsg('브라우저에서 알림을 막아 두었어요. 주소창 왼쪽 자물쇠 아이콘에서 알림을 허용한 뒤 다시 켜 주세요.')

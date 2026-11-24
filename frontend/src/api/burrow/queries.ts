@@ -2,7 +2,10 @@
  * 04 내 땅굴 — TanStack Query 훅과 캐시 키
  * 저장 응답으로 화면을 바로 바꾼다 (명세: 내 정보 저장 → 바뀐 내 땅굴 전체, 두더지 저장 → 저장한 두더지. 다시 조회하지 않음)
  */
+import { useEffect } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { areaMode } from '../config'
+import { setMyWorn } from '../../data/moleItems'
 import { toDtoId } from '../common/ids'
 import { onboardingKeys, toMoleDto, wornOfMole } from '../onboarding'
 import { authKeys } from '../auth'
@@ -25,6 +28,17 @@ export function useMyBurrow() {
   return useQuery({ queryKey: burrowKeys.mine, queryFn: async ({ signal }) => toMyBurrow(await burrowApi.myBurrow(signal)) })
 }
 
+/**
+ * 실제 모드: 내 두더지 모습(getMyWorn, 찻방 · 탐색 · 방문의 "나")을 서버 값으로 맞춤. AppShell(로그인 영역)에 한 번 둠.
+ * 목 모드는 목 서버가 저장할 때 setMyWorn 을 부르므로 아무것도 안 함
+ */
+export function useMyWornSync() {
+  const real = areaMode('burrow') === 'real'
+  const q = useQuery({ queryKey: burrowKeys.mine, queryFn: async ({ signal }) => toMyBurrow(await burrowApi.myBurrow(signal)), enabled: real })
+  useEffect(() => { if (real && q.data) setMyWorn(q.data.worn) }, [real, q.data])
+}
+export function MyWornSync() { useMyWornSync(); return null }
+
 /** 내 모습이 바뀌면 다른 화면의 "나"도 새로 받게 (프로필 팝업 · 남이 보는 내 땅굴 · 들판의 내 두더지 · 내 계정) */
 function useRefreshMe() {
   const qc = useQueryClient()
@@ -43,6 +57,7 @@ export function useUpdateMole() {
     mutationFn: (worn: string[]) => burrowApi.updateMole(toMoleDto(worn)),
     onSuccess: (mole) => {
       const worn = wornOfMole(mole)
+      setMyWorn(worn)
       qc.setQueryData<MyBurrowVM>(burrowKeys.mine, (old) => (old ? { ...old, worn, owner: { ...old.owner, worn } } : old))
       refresh()
     },

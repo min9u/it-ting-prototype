@@ -193,6 +193,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-23 **[인수인계: 다른 컴퓨터에서 이어서 하기](docs/handoff-2026-11-23.md)**: 지금 상태, 다음 일(명세 다시 확인 → 커밋 나누기 연습 → Jira → 팀 리포 계획서 · PR), 팀과 정할 것, 새 컴퓨터 설정(서명 키 포함)
 - 2026-11-23 [팀 리포 옮기기: 팀과 정할 것 · 내가 정할 것 · Jira 전에 한 일](docs/team-import-decisions-2026-11-23.md): Jira 는 새 티켓(Atlassian 로그인 대기), 안 쓰는 파일 지움. 사용자 결정: 로그인 검사 `NEXT_PUBLIC_LOGIN_FREE`(기본 명세대로 검사) · PR 하나 · 실제 백엔드는 다음 티켓 · 파일 나누지 않음. 팀과 정할 것 A ~ I. 팀 명세 dev `61e6c10` 반영(이모지 한 자 · 자기소개 공백 · 방명록 page/size), 계획서 초안 `tools/team-import/team/work-plan-draft.md`
 - 2026-11-24 [Jira 카드 KAN-64 만듦](docs/team-import-decisions-2026-11-23.md): `[FE] 프론트엔드 프로토타입 이전 (Next.js)`(Task · 라벨 fe · 담당 본인, 팀 카드 형식). KAN-25(Next.js 초기 설정, 다른 담당자)와 겹쳐 "관련" 링크만 걸고 닫을지는 팀과 정함(사용자 결정 A). 계획서 초안에 번호 넣음 → 다음은 팀 리포 `docs/work/KAN-64.md` 승인
+- 2026-11-24 [팀 리포 PR #37 (KAN-64)](docs/team-import-decisions-2026-11-23.md): 커밋 71개(서명 · 커밋마다 검사), 로컬 리뷰 P0 0 · P1 10 고침(대부분 목 id `ME_ID` · 목 날짜 `TODAY` 로 "나" · "오늘"을 정해 실제 모드에서만 틀리던 것), 재설정 링크 `/password-reset/{token}`, dev `fa73cd7`(KAN-58) `pushPublicKey` null. 명세 사본 갱신. 병합은 사람이
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함

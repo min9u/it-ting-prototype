@@ -40,7 +40,8 @@ export function viewOf(d: Pick<MeetupDetailVM, 'recruit' | 'my' | 'can'>): View 
     case 'CONFIRMED': return 'joined'
     case 'PENDING': return 'pending'
     case 'REJECTED': return 'rejected'
-    case 'CANCELED': case 'KICKED': return d.recruit === 'closed' ? 'full' : 'blocked'
+    // 명세 07 API: CANCELED · KICKED 는 모집 상태와 상관없이 미신청 화면 + "이 모임에는 다시 신청할 수 없어요"
+    case 'CANCELED': case 'KICKED': return 'blocked'
     default: return d.recruit === 'closed' ? 'full' : 'open'
   }
 }
@@ -128,7 +129,7 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
   const more = seats.length - shown.length
   const hostSeat = data.seats.find((x) => x.isHost)
   const host = data.host
-  const mine = host.id === ME_ID
+  const mine = data.my === 'HOST' || host.id === ME_ID
 
   const applyOn = demo === 'open' || (!demo && data.can.apply)
   const quitOn = demo === 'joined' || (!demo && data.can.cancelParticipation)

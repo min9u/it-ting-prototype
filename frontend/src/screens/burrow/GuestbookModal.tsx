@@ -127,11 +127,12 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, onDel
                         </>
                       ) : onDelete ? (
                         <><button onClick={() => setConfirmId(g.id)}>삭제</button><span aria-hidden>|</span><button onClick={() => setReportId(g.id)}>신고</button></>
-                      ) : onDeleteOwn && g.authorId === ME_ID ? (
+                      ) : onDeleteOwn && (flags ? g.canDelete : g.authorId === ME_ID) ? (
+                        // 방문자 뷰: 서버가 준 canDelete · canReport 를 따름 (명세 04 API, 자기 글만 canDelete). 목 데이터에 값이 없으면 ME_ID 로
                         <button onClick={() => { onDeleteOwn(g.id); setToast(TOAST.deleted) }}>삭제</button>
-                      ) : (
+                      ) : !flags || g.canReport ? (
                         <button onClick={() => setReportId(g.id)}>신고</button>
-                      )}
+                      ) : null}
                     </div>
                   </li>
                 )

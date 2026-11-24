@@ -128,7 +128,7 @@ export function mockGoogleCallback(purpose: GooglePurpose, email: string | null)
 
 /** 목 "메일함": 재설정 메일 속 링크 (공유 빌드에서 "체험용 · 메일 속 링크 열기") */
 export const mockMailbox = {
-  resetLink: (email: string) => `/password-reset/new?token=${lastResetToken(emailKey(email)) ?? requestReset(emailKey(email))}`,
+  resetLink: (email: string) => `/password-reset/${lastResetToken(emailKey(email)) ?? requestReset(emailKey(email))}`,
 }
 
 /**

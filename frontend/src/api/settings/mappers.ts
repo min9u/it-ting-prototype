@@ -34,7 +34,7 @@ export const NOTIF_KINDS: readonly { key: NotifKey; label: string; letter: strin
   { key: 'isBurrowOn', label: '땅굴', letter: '땅', color: '#7A8448', desc: '내 방명록에 새 글이 남겨지면 알려드려요.' },
   { key: 'isNoticeOn', label: '공지', letter: '공', color: '#6B4533', desc: '서비스 공지를 알려드려요.' },
 ]
-export interface NotifSettingsVM { values: NotificationSettingValuesDto; pushPublicKey: string }
+export interface NotifSettingsVM { values: NotificationSettingValuesDto; pushPublicKey: string | null }
 export const pickValues = (d: NotificationSettingValuesDto): NotificationSettingValuesDto => ({
   isMeetupOn: d.isMeetupOn, isChatOn: d.isChatOn, isCommunityOn: d.isCommunityOn, isBurrowOn: d.isBurrowOn, isNoticeOn: d.isNoticeOn,
 })
