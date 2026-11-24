@@ -60,3 +60,9 @@
 1. ~~Atlassian 로그인 → Jira 새 티켓 → 번호~~ 끝남: KAN-64
 2. ~~계획서 → 팀 리포 `docs/work/KAN-64.md` 복사 · 승인~~ 끝남(2026-11-24): 사용자 "계획서 복사해줘, 제안대로 가자" → "이번에 정할 것" A ~ F 와 KAN-25(J)를 제안대로 "정한 것" 13 ~ 19 로 옮김. 팀 리포 `dev` 작업 폴더에 커밋 안 한 파일로 있음. **`import.mjs` 는 팀 리포가 깨끗해야 돌므로 실행 전에 이 파일을 잠시 빼 두고, 62개 커밋 뒤 다시 넣어 `docs: 프론트엔드 이전 작업 계획서 추가`로 커밋**
 3. `node tools/team-import/import.mjs --target ~/Workspace/it-ting --branch chore/fe/KAN-64-frontend-import` → 계획서 커밋(`docs: 프론트엔드 이전 작업 계획서 추가`) → `merge-tree` → `code-review` → `pr-create`
+
+## 실제 옮기기 (2026-11-24)
+- 사용자 "진행해줘". 팀 리포 `dev` `61e6c10` 에서 `chore/fe/KAN-64-frontend-import` 브랜치, `import.mjs` 로 **커밋 62개 · 20분**, 모두 서명 `G` · 커밋마다 tsc · 린트 오류 0(마지막 경고 55) · 테스트(마지막 47파일 641개) · 빌드 통과, 59번부터 실험실 빠짐 검사 통과. 처음엔 배터리라 `caffeinate -i`, 10번쯤부터 전원 연결 → 연습 때 멈췄던 45번도 그대로 지나감
+- 마지막 `frontend/` 는 이 리포와 같음(README 상대 링크만 의도한 차이). 이어서 계획서 커밋 `fac94d7`(`docs: 프론트엔드 이전 작업 계획서 추가`), `merge-tree` 충돌 0, `frontend/` 밖은 `frontend-ci.yml` · `AGENTS.md` 한 줄 · `docs/work/KAN-64.md`
+- 푸시 안 함. 다음: 팀 스킬 `code-review` → P0 · P1 → 계획서 "결과" → 푸시 · `pr-create` (사용자 확인)
+
