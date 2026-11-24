@@ -10,9 +10,9 @@ import { QueryGate, SkeletonLines } from '../../components/AsyncState'
 import { PenIcon } from '../../components/Icons'
 import { ME_ID } from '../../data/mock'
 import { NO_SAVED_ROOM, roomLookOf } from '../../data/roomLook'
-import { toastApiError } from '../../api'
+import { toastApiError, useOptimistic } from '../../api'
 import {
-  BURROW_ERRORS, reportGuestbookEntry, useDeleteGuestbookEntry, useGuestbookEntries, useMyBurrow, useUpdateMole, type MyBurrowVM,
+  BURROW_ERRORS, burrowKeys, reportGuestbookEntry, useDeleteGuestbookEntry, useGuestbookEntries, useMyBurrow, useUpdateMole, type MyBurrowVM,
 } from '../../api/burrow'
 import GuestbookModal from './GuestbookModal'
 import MyInfoEdit, { INTRO_MAX } from './MyInfoEdit'
@@ -97,7 +97,9 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
     onSuccess: () => resolve(true),
     onError: (e) => { toastApiError(e, '방명록을 지우지 못했어요', BURROW_ERRORS); resolve(false) },
   }))
-  const report = (id: string, reason: string) => { reportGuestbookEntry(id, reason).catch((e) => toastApiError(e, '신고하지 못했어요', BURROW_ERRORS)) }
+  // 신고가 쌓여 가려지면 목록 · 글 수에서 빠지므로(명세 04) 끝나면 방명록과 내 땅굴을 다시 받음 (방문자 뷰 VisitBurrow 와 같음)
+  const run = useOptimistic()
+  const report = (id: string, reason: string) => run.mutate({ call: () => reportGuestbookEntry(id, reason), errorTitle: '신고하지 못했어요', errors: BURROW_ERRORS, invalidate: [burrowKeys.guestbook(b.burrowId), burrowKeys.mine] })
 
   return (
     <main className={s.page}>
