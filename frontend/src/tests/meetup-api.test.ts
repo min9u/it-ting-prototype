@@ -316,3 +316,12 @@ describe('모임 끝나는 시간 검사 (endNotAfterStart)', () => {
   })
 })
 
+describe('참여 취소 뒤 대화방 캐시', () => {
+  it('참여를 취소하면 모임 대화방 · 메시지 · 대화 목록도 다시 받음 (명세 06 참여 취소 = 대화방에서 나감, PR #37 Codex 리뷰 P1)', async () => {
+    const FS = 'node:fs'
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
+    const src = fs.readFileSync('src/screens/meetups/MeetupDetail.tsx', 'utf8')
+    expect(src).toMatch(/cancelParticipation\(m\.id\)[\s\S]{0,200}invalidate: \[meetupKeys\.all, chatKeys\.rooms, \.\.\.\(data\.chatRoomId \? \[chatKeys\.room\(data\.chatRoomId\), chatKeys\.messages\(data\.chatRoomId\)\]/)
+  })
+})
+

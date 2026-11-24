@@ -24,7 +24,7 @@ import m from './MyBurrow.module.css'
  * 방문자 뷰(VisitBurrow)도 이 모달을 씀: onDelete 가 없으면 삭제 버튼 없이 신고만. compose 를 주면 맨 위에 쓰기 칸(글자 수 제한 · 남기기)이 생겨
  * 한 창에서 쓰기와 읽기를 다 함 (Figma 방문자 뷰 510:13663 · 1243:24838, 방명록은 사이드바가 아니라 우체통 창 안에)
  * - 쓰기 칸은 한 줄 + 오른쪽 갈색 "➤ 남기기", 글자 수는 아래. 글이 하나도 없으면 가운데에 "가장 먼저 방명록을 작성해보세요."
- * - onDeleteOwn(방문자 뷰): 내가 쓴 글은 "신고" 대신 "삭제"(확인 없이 바로, 완료 토스트). 남이 쓴 글은 신고
+ * - onDeleteOwn(방문자 뷰): 내가 쓴 글은 "신고" 대신 "삭제"(명세 05 방명록 3: 방명록 삭제 확인을 거쳐서, 완료 토스트). 남이 쓴 글은 신고
  * - 내가 쓴 글의 작성자는 저장한 내 닉네임(getMyProfile)으로
  * API v1 (2026-11-22, 명세 04 GET /burrows/{burrowId}/guestbook-entries): 서버가 페이지로 나눠 줄 때는 server 를 준다
  *  → entries 는 지금 페이지의 글만, 글 수는 totalItems, 페이지 번호는 서버 값. 글마다 author(쓴 사람) · canDelete · canReport 가 오면 그 값으로
@@ -79,7 +79,8 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, onDel
   const shown = server ? entries : entries.slice((page - 1) * GUESTBOOK_PAGE_SIZE, page * GUESTBOOK_PAGE_SIZE)
   const openProfile = (a: User) => { if (a.id !== GONE_ID) setProfile(a) }
   const del = (id: string) => {
-    const r = onDelete?.(id)
+    if (!onDelete) { onDeleteOwn?.(id); setToast(TOAST.deleted); return }
+    const r = onDelete(id)
     if (r instanceof Promise) void r.then((ok) => { if (ok !== false) setToast(TOAST.deleted) })
     else setToast(TOAST.deleted)
   }
@@ -129,7 +130,7 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, onDel
                         <><button onClick={() => setConfirmId(g.id)}>삭제</button><span aria-hidden>|</span><button onClick={() => setReportId(g.id)}>신고</button></>
                       ) : onDeleteOwn && (flags ? g.canDelete : g.authorId === ME_ID) ? (
                         // 방문자 뷰: 서버가 준 canDelete · canReport 를 따름 (명세 04 API, 자기 글만 canDelete). 목 데이터에 값이 없으면 ME_ID 로
-                        <button onClick={() => { onDeleteOwn(g.id); setToast(TOAST.deleted) }}>삭제</button>
+                        <button onClick={() => setConfirmId(g.id)}>삭제</button>
                       ) : !flags || g.canReport ? (
                         <button onClick={() => setReportId(g.id)}>신고</button>
                       ) : null}
@@ -145,8 +146,9 @@ export default function GuestbookModal({ open, onClose, entries, onDelete, onDel
         </div>
         <ConfirmDialog open={!!target} onClose={() => setConfirmId(null)}
           onConfirm={() => { if (target) del(target.id) }}
-          title={`${target ? authorOf(target).nickname : ''}님의 방명록을 삭제할까요?`}
-          desc="내 땅굴에서 사라지고 되돌릴 수 없어요. 작성자에게 따로 알림은 가지 않아요." />
+          // 방문자가 자기 글을 지울 때의 문구는 명세에 없음(05 "아직 정하지 않은 것") → 주인 문구에 맞춰 방문자 쪽으로 바꿔 씀
+          title={onDelete ? `${target ? authorOf(target).nickname : ''}님의 방명록을 삭제할까요?` : '내가 남긴 방명록을 삭제할까요?'}
+          desc={onDelete ? '내 땅굴에서 사라지고 되돌릴 수 없어요. 작성자에게 따로 알림은 가지 않아요.' : '이 땅굴에서 사라지고 되돌릴 수 없어요.'} />
         <ReportDialog open={!!reportId} target="방명록" onClose={() => setReportId(null)} onConfirm={(reason) => { if (reportId) onReport?.(reportId, reason); setReportId(null); setToast(TOAST.reported) }} />
       </Modal>
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />

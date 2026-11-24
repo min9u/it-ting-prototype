@@ -9,7 +9,7 @@ import { CalendarIcon, HeartIcon, HomeIcon, PinIcon } from '../../components/Ico
 import { ME_ID, USERS } from '../../data/mock'
 import { meetupCategoryOf, meetupToneOf } from '../../data/meetupCategory'
 import { affOf } from '../../data/field'
-import { useChatPreview, useMyId } from '../../api/chat'
+import { chatKeys, useChatPreview, useMyId } from '../../api/chat'
 import type { User } from '../../data/types'
 import { type MeetupX, deadlineLabel, hourLabel, parseHour } from '../../data/meetupStore'
 import { patch, useOptimistic } from '../../api'
@@ -313,7 +313,9 @@ function MeetupDetailView({ d: data }: { d: MeetupDetailVM }) {
         }, { onSuccess: () => setToast({ title: '신청을 취소했어요', desc: '마감 전까지 다시 신청할 수 있어요' }) }))} />
       <ConfirmDialog open={confirm === 'quit'} onClose={() => setConfirm(null)} title="참여를 취소할까요?" desc="주최자에게 알림이 가고 모임 대화방에서도 나가요. 확정 후 참여를 취소하면 이 모임에는 다시 신청할 수 없어요." confirmLabel="참여 취소"
         onConfirm={() => act(() => run.mutate({
-          call: () => meetupCalls.cancelParticipation(m.id), errors: MEETUP_ERRORS, errorTitle: '참여를 취소하지 못했어요', invalidate: [meetupKeys.all],
+          // 참여를 취소하면 모임 대화방에서도 나감(명세 06): 그 대화방 · 메시지 · 대화 목록도 다시 받게 (뒤로 가기로 대화방에 돌아와도 이전 메시지가 안 남게)
+          call: () => meetupCalls.cancelParticipation(m.id), errors: MEETUP_ERRORS, errorTitle: '참여를 취소하지 못했어요',
+          invalidate: [meetupKeys.all, chatKeys.rooms, ...(data.chatRoomId ? [chatKeys.room(data.chatRoomId), chatKeys.messages(data.chatRoomId)] : [])],
           patches: [detailPatch((o) => ({ ...o, my: 'CANCELED', confirmed: o.confirmed - 1, seats: o.seats.filter((x) => !x.isMe), chatRoomId: null, can: { ...o.can, cancelParticipation: false } }))],
         }, { onSuccess: () => setToast({ title: '참여를 취소했어요', desc: '주최자에게 알림으로 전했어요' }) }))} />
       <ProfilePopup user={profile} onClose={() => setProfile(null)} />

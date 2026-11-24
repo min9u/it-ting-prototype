@@ -13,4 +13,13 @@ describe('방명록 신고 뒤 다시 받기', () => {
     const visit = fs.readFileSync('src/screens/burrow/VisitBurrow.tsx', 'utf8')
     expect(visit).toMatch(/createReport\(reportBody\('GUESTBOOK'[^\n]*invalidate: \[burrowKeys\.guestbook\(b\.burrowId\)/)
   })
+
+  it('방문자가 자기 글을 지울 때도 방명록 삭제 확인을 거침 (명세 05 방명록 3, PR #37 Codex 리뷰 P1)', async () => {
+    const FS = 'node:fs'
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
+    const src = fs.readFileSync('src/screens/burrow/GuestbookModal.tsx', 'utf8')
+    expect(src).not.toMatch(/onClick=\{\(\) => \{ onDeleteOwn\(/)
+    expect(src).toMatch(/if \(!onDelete\) \{ onDeleteOwn\?\.\(id\)/)
+  })
 })
+
