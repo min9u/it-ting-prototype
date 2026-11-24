@@ -112,7 +112,7 @@
     { "title": "feat: 로컬 실험실 화면 추가", "desc": "/lab/style · /lab/rooms · /screens · /dev/crash (page.lab.tsx, 배포 빌드에 없음)",
       "files": ["src/screens/lab/**", "src/screens/ScreenIndex.tsx", "src/app/lab/**", "src/app/screens/**", "src/app/(app)/lab/**", "src/app/(app)/dev/**"] },
     { "title": "test: 데이터 규칙과 관심사 태그 테스트 추가", "desc": "rules.test(여러 저장소 규칙) · interest-tags.test(관심사 확정본) + 관심사 v2 사본",
-      "files": ["src/tests/rules.test.ts", "src/tests/interest-tags.test.ts", "src/tests/query-gate.test.ts", "src/tests/session-mutation.test.ts", "src/tests/fixtures/**"] },
+      "files": ["src/tests/rules.test.ts", "src/tests/interest-tags.test.ts", "src/tests/query-gate.test.ts", "src/tests/session-mutation.test.ts", "src/tests/notif-settings-save.test.ts", "src/tests/fixtures/**"] },
     { "title": "test: 화면 스모크와 실험실 빠짐 검사 추가", "desc": "scripts/smoke.mjs · nav-check.mjs · check-labs-off.mjs", "files": ["scripts/**"] },
     { "title": "chore: 프론트엔드 CI 추가", "desc": "팀 .github/workflows/frontend-ci.yml",
       "team": [{ "path": ".github/workflows/frontend-ci.yml", "copy": "team/frontend-ci.yml" }] },

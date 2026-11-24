@@ -53,7 +53,8 @@ export function useNotificationSettings() {
 }
 /**
  * PATCH /me/notification-settings — 스위치를 누르면 바로 (낙관적으로 바꾸고, 실패하면 되돌림).
- * 끈 갈래는 빨간 점 · 알림 목록에서 빠지므로 알림 캐시도 새로 받는다
+ * 끈 갈래는 빨간 점 · 알림 목록에서 빠지므로 알림 캐시도 새로 받는다.
+ * 저장하는 동안에는 화면이 스위치를 잠근다(SettingsInfo: 앞 요청의 되돌리기가 다음 변경을 덮어쓰지 않게). 끝나면 설정도 서버에서 다시 받아 맞춘다
  */
 export function useUpdateNotificationSettings() {
   const qc = useQueryClient()
@@ -68,7 +69,10 @@ export function useUpdateNotificationSettings() {
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev) },
     onSuccess: (d) => { qc.setQueryData(key, (old: object | undefined) => (old ? { ...old, ...d } : old)) },
-    onSettled: () => { void qc.invalidateQueries({ queryKey: notificationKeys.all }) },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key })
+      void qc.invalidateQueries({ queryKey: notificationKeys.all })
+    },
   })
 }
 

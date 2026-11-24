@@ -47,7 +47,7 @@ export function NotifSettingsPage() {
   const supported = pushSupported()
 
   const toggle = (key: NotifKey, on: boolean) => {
-    if (!q.data) return
+    if (!q.data || update.isPending) return // 저장하는 동안은 잠금 (앞 요청의 되돌리기가 다음 변경을 덮어쓰지 않게)
     setMsg(null)
     update.mutate({ ...q.data.values, [key]: on }, { onError: (e) => setMsg(`저장하지 못했어요. ${errorText(e, SETTINGS_ERRORS)}`) })
   }
@@ -79,7 +79,7 @@ export function NotifSettingsPage() {
               <li key={k.key} className={s.setRow}>
                 <span className={s.letter} aria-hidden>{k.letter}</span>
                 <span className={s.setText}><strong>{k.label} 알림</strong><small>{k.desc}</small></span>
-                <Switch on={!!q.data?.values[k.key]} onChange={(v) => toggle(k.key, v)} label={`${k.label} 알림`} disabled={!q.data} />
+                <Switch on={!!q.data?.values[k.key]} onChange={(v) => toggle(k.key, v)} label={`${k.label} 알림`} disabled={!q.data || update.isPending} />
               </li>
             ))}
           </ul>
