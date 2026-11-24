@@ -30,5 +30,13 @@ describe('방명록 신고 뒤 다시 받기', () => {
     expect(mine).toMatch(/onDirtyChange=\{setEditDirty\}/)
     expect(mine).toMatch(/<UnsavedDialog open=\{askDecor\}/)
   })
+
+  it('내 정보 수정에서 바꾼 것이 있는데 다른 화면으로 가면(상단 메뉴 등) 저장 전 확인 (00 공통 18, PR #37 Codex 리뷰 P1)', async () => {
+    const FS = 'node:fs'
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
+    const edit = fs.readFileSync('src/screens/burrow/MyInfoEdit.tsx', 'utf8')
+    expect(edit).toMatch(/useBlocker\(\(\{ currentLocation, nextLocation \}\) => dirty && currentLocation\.pathname !== nextLocation\.pathname\)/)
+    expect(edit).toMatch(/<UnsavedDialog open=\{blocker\.state === 'blocked'\}/)
+  })
 })
 

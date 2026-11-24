@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useBlocker } from '@/lib/nav'
 import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import { ChevronLeft, CloseIcon, PlusIcon } from '../../components/Icons'
@@ -96,6 +97,8 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved, onD
   const dirty = JSON.stringify(d) !== JSON.stringify(start)
   const leave = () => (dirty ? setAsk(true) : onCancel())
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
+  // 바꾼 것이 있는데 다른 화면으로 가면(상단 메뉴 · 뒤로 가기 등) 저장 전 확인 (00 공통 18, 모임 · 글쓰기 양식과 같은 방식)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange])
 
   // 질문: 받은 목록에서 찾고, 아직 못 받았으면 내 땅굴 응답의 문구로
@@ -226,6 +229,7 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved, onD
       </Modal>
 
       <UnsavedDialog open={ask} onStay={() => setAsk(false)} onLeave={() => { setAsk(false); onCancel() }} />
+      <UnsavedDialog open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
     </>
   )
 }
