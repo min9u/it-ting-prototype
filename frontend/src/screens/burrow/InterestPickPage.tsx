@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useBlocker } from '@/lib/nav'
 import { toneOf } from '../../data/mock'
 import type { Category } from '../../data/types'
 import { MAX_PICK } from '../../data/interests'
@@ -32,6 +33,8 @@ export default function InterestPickPage({ categories: CATEGORIES, initial, onDo
     setPicks([...picks, t])
   }
   const leave = () => (dirty ? setAsk(true) : onCancel())
+  // 바꾼 것이 있는데 다른 화면으로 가면(상단 메뉴 · 뒤로 가기 등) 저장 전 확인 (00 공통 18, 내 정보 수정 · 모임 · 글쓰기와 같은 방식)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
 
   return (
     <section className={m.pickPage} aria-labelledby="pick-title">
@@ -88,6 +91,7 @@ export default function InterestPickPage({ categories: CATEGORIES, initial, onDo
         </div>
       </div>
       <UnsavedDialog open={ask} onStay={() => setAsk(false)} onLeave={() => { setAsk(false); onCancel() }} />
+      <UnsavedDialog open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
     </section>
   )
 }

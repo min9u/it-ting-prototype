@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useBlocker } from '@/lib/nav'
 import MoleDresser from '../../components/MoleDresser'
 import { CloseIcon } from '../../components/Icons'
 import UnsavedDialog from './UnsavedDialog'
@@ -21,6 +22,8 @@ export default function DecorPanel({ worn, setWorn, dirty, saving, onCancel, onS
 }) {
   const [ask, setAsk] = useState(false)
   const leave = () => (dirty ? setAsk(true) : onCancel())
+  // 바꾼 것이 있는데 다른 화면으로 가면(상단 메뉴 · 뒤로 가기 등) 저장 전 확인 (00 공통 18, 내 정보 수정 · 모임 · 글쓰기와 같은 방식)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
   return (
     <aside className={`${s.panel} ${s.formPanel}`} aria-label="땅굴 꾸미기">
       <div className={s.panelHead}>
@@ -38,6 +41,7 @@ export default function DecorPanel({ worn, setWorn, dirty, saving, onCancel, onS
         <button className="btn btn-cta" onClick={onSave} disabled={saving} aria-busy={saving}>{saving ? '저장하는 중…' : '저장하기'}</button>
       </div>
       <UnsavedDialog open={ask} onStay={() => setAsk(false)} onLeave={() => { setAsk(false); onCancel() }} />
+      <UnsavedDialog open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
     </aside>
   )
 }

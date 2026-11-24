@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from '@/lib/nav'
+import { Link, useBlocker, useLocation, useNavigate, useParams } from '@/lib/nav'
 import Avatar from '../../components/Avatar'
 import Footer from '../../components/Footer'
 import InterestChip from '../../components/InterestChip'
@@ -363,7 +363,13 @@ function Comments({ p, act, hash, onToast, onOpenUser, ref_ }: {
 
 function EditBox({ initial, onCancel, onSave }: { initial: string; onCancel: (changed: boolean) => void; onSave: (t: string) => void }) {
   const [t, setT] = useState(initial)
+  const dirty = t !== initial
+  // 바꾼 것이 있는데 다른 화면으로 가면(상단 메뉴 · 뒤로 가기 등) 저장 전 확인 (00 공통 18, 내 정보 수정 · 모임 · 글쓰기와 같은 방식)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
   return (
+    <>
+    <ConfirmDialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} onConfirm={() => blocker.proceed?.()}
+      title="아직 저장되지 않았습니다" desc="나가면 고친 내용이 사라져요." confirmLabel="나가기" cancelLabel="계속 수정" />
     <form className={s.editBox} onSubmit={(e) => { e.preventDefault(); if (t.trim()) onSave(t.trim()) }}>
       <textarea autoFocus value={t} maxLength={COMMENT_MAX} onChange={(e) => setT(e.target.value)} aria-label="댓글 수정"
         onKeyDown={(e) => { if (e.key === 'Escape') onCancel(t !== initial) }} />
@@ -375,6 +381,7 @@ function EditBox({ initial, onCancel, onSave }: { initial: string; onCancel: (ch
         </span>
       </span>
     </form>
+    </>
   )
 }
 
