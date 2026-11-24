@@ -35,10 +35,17 @@ export function useMe(enabled = true) {
   })
 }
 
-/** 로그인 · 가입 · 로그아웃 · 탈퇴 뒤: 내 계정 캐시를 버리고 다시 받게 */
+/**
+ * 로그인 · 가입 · 로그아웃 · 탈퇴 뒤: 내 계정 캐시를 버리고 다시 받게.
+ * 같은 탭에서 다른 계정으로 로그인해도 이전 계정의 데이터(내 땅굴 · 계정 · 대화 목록 …)가 보이지 않게 계정마다 다른 캐시를 먼저 모두 버림
+ */
 export function useSessionReset() {
   const qc = useQueryClient()
-  return () => qc.resetQueries({ queryKey: authKeys.all })
+  return () => {
+    void qc.cancelQueries()
+    qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'common' && q.queryKey[0] !== authKeys.all[0] })
+    return qc.resetQueries({ queryKey: authKeys.all })
+  }
 }
 
 /** 재설정 링크가 유효한지 (GET /password-resets/{token}). 404 PASSWORD_RESET_LINK_INVALID 면 isError */

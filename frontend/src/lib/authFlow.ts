@@ -53,6 +53,11 @@ export function takeReturnTo(stateFrom?: unknown): string | null {
   return safeReturnPath(stateFrom) ?? safeReturnPath(saved)
 }
 
+/** 계정마다 다른 서버 데이터를 모두 버림 (내 계정 ['auth','me'] 과 공개 목록 ['common', …] 은 남김). 401 · 로그인 성공 때 */
+export function dropUserData() {
+  queryClient.removeQueries({ predicate: (q) => !(q.queryKey[0] === 'common' || (q.queryKey[0] === ME_KEY[0] && q.queryKey[1] === ME_KEY[1])) })
+}
+
 let handling = false
 /**
  * 인증이 풀렸을 때 (REST 401, 실시간 연결의 인증 실패).
@@ -74,6 +79,9 @@ export function handleUnauthorized(reason = 'unauthorized') {
     if (navigateFn) navigateFn('/login', { replace: true, state })
     else if (typeof window !== 'undefined') window.location.assign(window.location.hash.startsWith('#/') ? '#/login' : '/login')
   }
+  // 이전 계정의 데이터를 다음 사람에게 보이지 않게: 화면이 로그인으로 넘어간 뒤(떠 있던 화면이 다시 불러와 401 을 또 받지 않게)
+  // 받는 중인 요청을 멈추고 내 계정(null) · 공개 목록(common) 말고 모두 버림. 로그아웃은 lib/signOut afterSignOut 이 비움
+  setTimeout(() => { void queryClient.cancelQueries(); dropUserData() }, 0)
   setTimeout(() => { handling = false }, 1000)
 }
 

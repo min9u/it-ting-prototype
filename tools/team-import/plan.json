@@ -53,7 +53,7 @@
     { "title": "feat: 알림 API 연결 추가", "desc": "09 알림 API · 알림 · 공지 저장소 + 명세 대조 테스트, 팀 명세 폴더 찾기(teamDocs)",
       "files": ["src/api/notifications/**", "src/data/notifications.ts", "src/data/serviceNotices.ts", "src/tests/notice-types.test.ts", "src/tests/teamDocs.ts"] },
     { "title": "feat: 인증과 계정 설정 API 연결 추가", "desc": "02 로그인 · 회원가입 · 비밀번호 찾기 · Google, 10 설정 API, 브라우저 알림 · 로그아웃 + 테스트",
-      "files": ["src/api/auth/**", "src/api/settings/**", "src/lib/browserPush.ts", "src/lib/signOut.ts", "public/push-sw.js", "src/tests/auth-settings-api.test.ts"] },
+      "files": ["src/api/auth/**", "src/api/settings/**", "src/lib/browserPush.ts", "src/lib/signOut.ts", "public/push-sw.js", "src/tests/auth-settings-api.test.ts", "src/tests/auth-cache.test.ts"] },
     { "title": "feat: 온보딩 API 연결 추가", "desc": "03 온보딩 API · 관심사 id 잇기 + 테스트 2",
       "files": ["src/api/onboarding/**", "src/tests/interest-map.test.ts", "src/tests/spec-35d107a.test.ts"] },
     { "title": "feat: 게시판 API 연결 추가", "desc": "08 게시판 API + 테스트", "files": ["src/api/community/**", "src/tests/community-api.test.ts"] },

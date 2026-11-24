@@ -74,4 +74,5 @@
 - 고친 것은 이 리포 `frontend/` 와 팀 브랜치에 똑같이(`frontend/src` 같음). 팀 브랜치 커밋 71개(이전 62 + 계획서 + 리뷰 고침 5 + 결과 + 최신 명세 1 + 결과 보탬), 모두 서명 `G` · 커밋마다 빌드 · 타입 · 린트 오류 0 · 테스트 641. 스모크 가속 켬 · 끔 106/106
 - **PR [#37](https://github.com/it-ting-team/it-ting/pull/37)** `chore: KAN-64 프론트엔드 프로토타입 이전 (Next.js)` → `dev`. 병합은 사람이. 다음: CI · Codex 리뷰 확인, Jira KAN-64 상태
 - 스모크에서 드러난 것: 글꼴 `Do Hyeon` 은 `src/app/layout.tsx` 가 Google Fonts 에서 받음(인터넷이 끊기면 기본 글꼴. 계획서 "남은 일")
+- **Codex 리뷰**: PR 을 연 뒤 33분 넘게 오지 않아(앞 PR 들은 2 ~ 7분, 이번은 파일 590개) 사용자 요청으로 `@codex review` 직접 요청 → 10분 만에 P0 1 · P1 1. ① P0 같은 탭에서 세션이 끝난 뒤 다른 계정으로 로그인하면 이전 계정 캐시(내 땅굴 · 계정 · 대화 목록)가 보임 → 401 · 로그인 성공 때 계정마다 다른 캐시를 모두 버림(`lib/authFlow.ts` `dropUserData`, `useSessionReset`, 테스트 `auth-cache.test.ts`) ② P1 온보딩 확정 뒤 `GET /me` 를 기다리지 않음(우리 리뷰의 "확인 필요"였음) → 기다린 뒤 이동. 팀 브랜치 커밋 74개, 다시 `@codex review` 요청
 

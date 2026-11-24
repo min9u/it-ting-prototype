@@ -57,7 +57,9 @@ export function useCompleteOnboarding() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: OnboardingCompleteRequest) => onboardingApi.completeOnboarding(body),
-    onSuccess: () => { void qc.invalidateQueries() },
+    // 새로 받는 것(GET /me 의 nextStep 포함)을 기다린 뒤 화면이 이동하게 Promise 를 돌려줌.
+    // 안 기다리면 로그인 검사(RequireLogin)가 옛 nextStep ONBOARDING 을 보고 온보딩 1로 되돌림 (명세 03: 확정 → 내 땅굴)
+    onSuccess: () => qc.invalidateQueries(),
   })
 }
 
