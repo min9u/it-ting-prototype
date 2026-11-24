@@ -3,11 +3,13 @@
  * 20개 중 10개만 받은 상태에서 21번째를 쓰면 1 ~ 10, 21, 11 ~ 20 이 아니라 1 ~ 21
  */
 import { describe, expect, it, vi } from 'vitest'
-import { QueryClient } from '@tanstack/react-query'
+import { createElement as h, type ReactNode } from 'react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { CommentThreadVM } from '../api/community/mappers'
 
 const { communityApi } = await import('../api/community/api')
-const { appendTopComment, communityKeys, flattenComments } = await import('../api/community/queries')
+const { appendTopComment, communityKeys, flattenComments, usePostActions } = await import('../api/community/queries')
 
 const c = (n: number) => ({ id: String(n), replies: [] }) as unknown as CommentThreadVM
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => c(a + i))
@@ -41,3 +43,22 @@ describe('새 댓글 넣기 (appendTopComment)', () => {
     spy.mockRestore()
   })
 })
+
+describe('글 지우기 (usePostActions removePost)', () => {
+  it('지운 글의 상세 · 댓글은 지금 다시 받지 않고 만료만 → 뒤로 가기로 돌아오면 서버에 다시 물음 (PR #37 Codex 리뷰 P1)', async () => {
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    qc.setQueryData(communityKeys.detail('p9'), { title: '지울 글' })
+    qc.setQueryData(communityKeys.comments('p9'), { pages: [{ items: range(1, 2), nextCursor: null, hasNext: false }], pageParams: [null] })
+    const remove = vi.spyOn(communityApi, 'remove').mockResolvedValue(null as never)
+    const get = vi.spyOn(communityApi, 'get')
+    const wrapper = ({ children }: { children: ReactNode }) => h(QueryClientProvider, { client: qc }, children)
+    const { result } = renderHook(() => usePostActions('p9'), { wrapper })
+    act(() => { result.current.removePost.mutate() })
+    await waitFor(() => expect(result.current.removePost.isSuccess).toBe(true))
+    expect(qc.getQueryState(communityKeys.detail('p9'))?.isInvalidated).toBe(true)
+    expect(qc.getQueryState(communityKeys.comments('p9'))?.isInvalidated).toBe(true)
+    expect(get).not.toHaveBeenCalled()
+    remove.mockRestore(); get.mockRestore()
+  })
+})
+

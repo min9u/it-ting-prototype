@@ -80,4 +80,5 @@
 - **Codex 세 번째 리뷰(`92aa648`)**: 새 P1 1 — 받아 둔 글을 다시 불러와 404(지워짐 · 가려짐)를 받아도 이전 본문이 보임 → `QueryGate` 가 404 · 410 을 이전 값보다 먼저(일시적 실패만 이전 값 유지), 테스트 `query-gate.test.ts`(vitest 는 `.test.ts` 만 읽어 JSX 대신 createElement). 테스트 650 · 스모크(게시판 · 모임 · 땅굴) 통과. 팀 브랜치 커밋 79개, 다시 `@codex review`
 - **Codex 네 번째 리뷰(`54a4e5d`)**: 새 P0 1 — 쓰기를 보낸 뒤 응답 전에 계정이 바뀌면 늦게 끝난 요청의 되돌리기 · 성공 처리가 이전 계정 데이터를 새 계정 캐시에 넣음 → 세션 번호(`api/queryClient` `sessionGeneration`, 계정이 바뀔 때 `newSession`) + 쓰기 훅을 모두 `useSessionMutation`(`api/sessionMutation.ts`, 번호가 바뀌었으면 끝난 뒤 처리를 건너뜀, `api/auth` 만 예외). 테스트 `session-mutation.test.ts`(쓰기 훅이 모두 이걸 쓰는지도). 테스트 653. 팀 브랜치 커밋 81개
 - 그 사이 `dev` 가 `74f54b2`(KAN-52 커뮤니티 ②)로: `docs/api/08-community.md` 만 바뀜(가려진 글의 댓글: 수정 409 · 좋아요 404, 알림 제목). 프론트는 두 code 를 이미 처리, 새 명세로 테스트 653 통과. `COMMENT_EDIT_NOT_ALLOWED` 문구만 "가려진 글의 댓글"까지 넓히기로(다음 커밋에)
+- **Codex 다섯 번째 리뷰(`bd9e758`)**: 새 P1 2 — ① 글을 지운 뒤 뒤로 가기로 돌아오면 지운 글이 보임 → 상세 · 댓글을 만료만(`refetchType: 'none'`) ② 이미 내 땅굴에 있을 때 방명록 알림을 눌러도 안 열림 → 주소 `modal` 이 바뀌면 열고 닫을 때 지움(effect 대신 렌더 중 비교, 린트 경고 55 유지). KAN-52 문구 맞춤 커밋과 함께 팀 브랜치 커밋 85개, 테스트 654. 명세 사본 `74f54b2` 로 갱신
 

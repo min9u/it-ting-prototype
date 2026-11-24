@@ -114,8 +114,8 @@ flowchart TD
 | 화면 | 36 ~ 57 | `src/app/` 주소와 `src/screens/` 화면: 랜딩 · 인증 · 온보딩 · 내 땅굴 · 방문 · 탐색 · 채팅 · 모임 · 게시판 · 알림 · 설정 · 관리자 · 실험실 |
 | 테스트 · CI · 문서 | 58 ~ 62 | 영역을 걸친 테스트, `scripts/smoke.mjs` · `scripts/check-labs-off.mjs`, `.github/workflows/frontend-ci.yml`, `frontend/README.md`, `AGENTS.md` 한 줄 |
 | 로컬 리뷰 고침 | 64 ~ 68 | 아래 "확인한 것"의 P1 |
-| 최신 명세 | 70 | KAN-58: 푸시 공개 키가 없을 때(`null`) 알림 켜기 안내 |
-| Codex 리뷰 고침 | 72 ~ 73, 75 ~ 76, 78, 80 | 인증이 풀릴 때 이전 계정 캐시 비우기(P0), 온보딩 확정 뒤 계정 갱신 기다리기(P1) / 계정이 바뀔 때 보내지 못한 채팅 메시지 비우기(P0), 댓글 등록순 유지(P1) / 다시 불러와 404 면 없음 안내 먼저(P1) / 계정이 바뀐 뒤 끝난 쓰기는 캐시를 바꾸지 않음(P0) |
+| 최신 명세 | 70, 84 | KAN-58: 푸시 공개 키가 없을 때(`null`) 알림 켜기 안내 / KAN-52: 가려진 글의 댓글 수정 실패 문구 |
+| Codex 리뷰 고침 | 72 ~ 73, 75 ~ 76, 78, 80, 82 ~ 83 | 인증이 풀릴 때 이전 계정 캐시 비우기(P0), 온보딩 확정 뒤 계정 갱신 기다리기(P1) / 계정이 바뀔 때 보내지 못한 채팅 메시지 비우기(P0), 댓글 등록순 유지(P1) / 다시 불러와 404 면 없음 안내 먼저(P1) / 계정이 바뀐 뒤 끝난 쓰기는 캐시를 바꾸지 않음(P0) / 지운 글의 상세 · 댓글 캐시 만료(P1), 내 땅굴에서 방명록 알림으로 방명록 열기(P1) |
 
 ### 확인한 것
 
@@ -123,7 +123,7 @@ flowchart TD
 - 리뷰 고친 뒤: 타입 · 린트(오류 0, 경고 55) · 단위 테스트 641개(2 todo) · 배포 빌드 · 실험실 빠짐 검사 통과
 - 화면 스모크(헤드리스 크롬, 실험실 켠 빌드): 가속 켬 106개 · 가속 끔 106개 모두 OK, 경고 · 실패 0
 - PR 전 `dev` 가 `fa73cd7`(KAN-58 병합)로 나아감: 바뀐 명세는 `docs/api/10-settings.md`(`pushPublicKey` 가 `null` 일 수 있음, 공지 제목 100자) · `docs/db/notification.md`. `pushPublicKey` `null` 을 처리하는 커밋을 더했고, 새 명세 문서를 놓고 빌드 · 타입 · 린트 · 테스트 641개 통과
-- `git merge-tree --write-tree HEAD origin/dev`(`fa73cd7`): 충돌 없음. `frontend/` 밖은 `.github/workflows/frontend-ci.yml` · `AGENTS.md` 한 줄 · 이 문서
+- `git merge-tree --write-tree HEAD origin/dev`(`74f54b2`): 충돌 없음. `frontend/` 밖은 `.github/workflows/frontend-ci.yml` · `AGENTS.md` 한 줄 · 이 문서
 - 로컬 코드 리뷰(영역 넷으로 나눠 `AGENTS.md` Code Review Rules 기준): P0 0건, P1 10건 고침
   1. 방문자 뷰 방명록이 서버의 `canDelete` · `canReport`를 무시하고 목 계정 id 와 비교 → 실제 모드에서 내 글에 "삭제"가 없고 "신고"만 보임 (`GuestbookModal.tsx`)
   2. 프로필 팝업의 "나" 판별이 목 계정 id → 실제 모드에서 내 프로필에 신고 아이콘 (`ProfilePopup.tsx`, `GET /me` 의 `userId` 로)
@@ -149,6 +149,11 @@ flowchart TD
 - Codex 네 번째 리뷰(`54a4e5d`): 새 P0 1건 고침
   1. **P0** 쓰기를 보낸 뒤 응답 전에 계정이 바뀌면, 늦게 끝난 요청의 되돌리기 · 성공 처리가 이전 계정 데이터를 새 계정 캐시에 넣음(예: 단골 해제 실패 → A 의 단골 목록이 B 에게) → 세션 번호(`sessionGeneration`)를 계정이 바뀔 때 올리고, 쓰기 훅을 모두 `useSessionMutation`(번호가 바뀌었으면 끝난 뒤 처리를 건너뜀)으로. 세션 자체를 바꾸는 `api/auth` 만 예외
   - 테스트 `session-mutation.test.ts`, 고친 뒤 빌드 · 타입 · 린트 오류 0 · 테스트 653개(2 todo) · 스모크(땅굴 22 · 모임 20 · 게시판 16 · 설정 12 · 채팅 10) 통과
+- Codex 다섯 번째 리뷰(`bd9e758`): 새 P1 2건 고침
+  1. **P1** 글을 지운 뒤 뒤로 가기로 돌아오면 지운 글이 보임 → 상세 · 댓글 캐시를 다시 받지 않고 만료만(`refetchType: 'none'`)
+  2. **P1** 이미 내 땅굴에 있을 때 방명록 알림을 누르면 방명록이 안 열림 → 주소의 `modal` 이 바뀌면 열고, 닫을 때 지움
+  - 테스트 `comment-order.test.ts` 에 1개 추가, 고친 뒤 빌드 · 타입 · 린트 오류 0(경고 55 그대로) · 테스트 654개(2 todo) · 스모크(게시판 16 · 땅굴 22 · 알림 3) 통과. 방명록 알림은 브라우저로 눌러 보지는 않음
+- PR 전 `dev` 가 다시 `74f54b2`(KAN-52 커뮤니티 ②)로: `docs/api/08-community.md` 만 바뀜. 프론트는 두 code 를 이미 처리, 새 명세로 테스트 통과. 수정 실패 문구만 맞춤
 - 리뷰의 "확인 필요"에서 같이 고친 것: 모임 상세 주최자 카드의 "내가 열었어요"가 실제 모드에서 안 나옴(`data.my === 'HOST'` 로)
 
 ### 계획과 달라진 점

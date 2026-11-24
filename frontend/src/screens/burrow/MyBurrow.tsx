@@ -50,7 +50,7 @@ export default function MyBurrow() {
 }
 
 function MyBurrowView({ b }: { b: MyBurrowVM }) {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const [panelOpen, setPanelOpen] = useState(params.get('panel') !== 'closed')
   const [mode, setMode] = useState<Mode>(() => (params.get('mode') === 'edit' ? 'edit' : params.get('mode') === 'decor' ? 'decor' : 'info'))
   const intro = params.get('intro') === '0' ? '' : b.intro
@@ -67,6 +67,16 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
   // 지운 뒤 마지막 페이지가 비면 한 페이지 앞으로
   useEffect(() => { if (gb.data && gb.data.totalPages > 0 && gbPage > gb.data.totalPages) setGbPage(gb.data.totalPages) }, [gb.data, gbPage])
   useEffect(() => { if (allOpen) setGbPage(1) }, [allOpen])
+  // 이미 내 땅굴에 있을 때 방명록 알림을 누르면(→ ?modal=guestbook, 명세 09 GUESTBOOK) 화면이 그대로라 여기서 열어 줌
+  // (effect 대신 렌더 중에 주소가 바뀐 것을 보고 맞춤: React 권장 "이전 값과 비교해 상태 맞추기")
+  const modalParam = params.get('modal')
+  const [seenModal, setSeenModal] = useState(modalParam)
+  if (modalParam !== seenModal) { setSeenModal(modalParam); if (modalParam === 'guestbook') setAllOpen(true) }
+  // 닫을 때 주소의 modal 도 지움 (다음 알림이 다시 주소를 바꿔 열 수 있게)
+  const closeGuestbook = () => {
+    setAllOpen(false)
+    if (params.has('modal')) setParams((p) => { p.delete('modal'); return p }, { replace: true })
+  }
 
   const startDecor = () => { setWornDraft(b.worn); setMode('decor'); setHintOn(false) }
   const decorDirty = wornDraft.join(',') !== b.worn.join(',')
@@ -171,7 +181,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
 
       <GuestbookModal
         open={allOpen}
-        onClose={() => setAllOpen(false)}
+        onClose={closeGuestbook}
         entries={gb.data?.items ?? []}
         server={{ page: gb.data?.page ?? gbPage, totalPages: gb.data?.totalPages ?? 0, totalItems: gb.data?.totalItems ?? b.guestbookCount, onPage: setGbPage, fetching: gb.isFetching }}
         load={{ loading: gb.isPending, error: gb.error, onRetry: () => void gb.refetch(), retrying: gb.isFetching }}

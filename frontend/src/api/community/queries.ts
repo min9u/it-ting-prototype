@@ -250,8 +250,12 @@ export function usePostActions(postId: string) {
   /** 글 지우기 */
   const removePost = useSessionMutation({
     mutationFn: () => communityApi.remove(dto),
-    // 화면이 곧 목록으로 가므로 상세는 다시 받지 않음 (지운 글을 다시 받으면 404)
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: communityKeys.all, predicate: (q) => q.queryKey[1] !== 'detail' && q.queryKey[1] !== 'comments' }) },
+    // 화면이 곧 목록으로 가므로 상세 · 댓글은 지금 다시 받지 않고(받으면 404) 만료만 시킴 → 뒤로 가기로 돌아오면 서버에 다시 물어 삭제 안내 (명세 08 글 상세 17)
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: detailKey, refetchType: 'none' })
+      void qc.invalidateQueries({ queryKey: commentsKey, refetchType: 'none' })
+      void qc.invalidateQueries({ queryKey: communityKeys.all, predicate: (q) => q.queryKey[1] !== 'detail' && q.queryKey[1] !== 'comments' })
+    },
     onError: (e) => toastApiError(e, '게시물을 삭제하지 못했어요', COMMUNITY_ERRORS),
   })
 
