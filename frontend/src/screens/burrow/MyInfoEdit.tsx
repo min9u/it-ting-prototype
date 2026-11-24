@@ -40,8 +40,10 @@ type NickState = { kind: 'idle' } | { kind: 'checking' } | { kind: 'ok' } | { ki
  * 7 패널 · 스크롤: 가운데만 스크롤, 제목줄과 취소/저장하기는 고정
  * (두더지는 꾸미기 모드 · 두더지 탭에서 바꿈 — 명세 04 "서로 맞지 않아 보인 곳" 첫째 줄)
  */
-export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
+export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved, onDirtyChange }: {
   initial: MyBurrowVM
+  /** 바꾼 것이 있는지 (내 땅굴이 꾸미기로 넘어가기 전에 저장 전 확인을 띄우려고, 00 공통 18) */
+  onDirtyChange?: (dirty: boolean) => void
   focusIntro?: boolean
   onCancel: () => void
   /** 저장 끝 (moved = 캠퍼스-층이 바뀌어 입구가 옮겨짐) */
@@ -93,6 +95,8 @@ export default function MyInfoEdit({ initial, focusIntro, onCancel, onSaved }: {
   const ready = !!catalog.data && !!campuses.data
   const dirty = JSON.stringify(d) !== JSON.stringify(start)
   const leave = () => (dirty ? setAsk(true) : onCancel())
+  useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange])
 
   // 질문: 받은 목록에서 찾고, 아직 못 받았으면 내 땅굴 응답의 문구로
   const qList = questions.data ?? []

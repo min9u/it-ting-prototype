@@ -15,6 +15,7 @@ import {
   BURROW_ERRORS, burrowKeys, reportGuestbookEntry, useDeleteGuestbookEntry, useGuestbookEntries, useMyBurrow, useUpdateMole, type MyBurrowVM,
 } from '../../api/burrow'
 import GuestbookModal from './GuestbookModal'
+import UnsavedDialog from './UnsavedDialog'
 import MyInfoEdit, { INTRO_MAX } from './MyInfoEdit'
 import { lengthOf } from '../../lib/validation'
 import DecorPanel from './DecorPanel'
@@ -78,7 +79,11 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
     if (params.has('modal')) setParams((p) => { p.delete('modal'); return p }, { replace: true })
   }
 
-  const startDecor = () => { setWornDraft(b.worn); setMode('decor'); setHintOn(false) }
+  const [editDirty, setEditDirty] = useState(false)
+  const [askDecor, setAskDecor] = useState(false)
+  const goDecor = () => { setWornDraft(b.worn); setMode('decor'); setHintOn(false) }
+  // 내 정보 수정에서 바꾼 것이 있으면 꾸미기로 넘어가기 전에 저장 전 확인 (00 공통 18 "아직 저장되지 않았습니다")
+  const startDecor = () => { if (mode === 'edit' && editDirty) setAskDecor(true); else goDecor() }
   const decorDirty = wornDraft.join(',') !== b.worn.join(',')
   const showPanel = panelOpen || mode !== 'info'
   const focusX = showPanel ? 0.403 : 0.5
@@ -127,7 +132,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
       </RoomView>
 
       {mode === 'edit' && (
-        <MyInfoEdit initial={{ ...b, intro }} focusIntro={focusIntro} onCancel={() => { setMode('info'); setFocusIntro(false) }} onSaved={onSaved} />
+        <MyInfoEdit initial={{ ...b, intro }} focusIntro={focusIntro} onCancel={() => { setMode('info'); setFocusIntro(false) }} onSaved={onSaved} onDirtyChange={setEditDirty} />
       )}
 
       {mode === 'decor' && (
@@ -193,6 +198,7 @@ function MyBurrowView({ b }: { b: MyBurrowVM }) {
       />
 
       <Toast open={!!toast} title={toast?.title ?? ''} desc={toast?.desc} onClose={() => setToast(null)} />
+      <UnsavedDialog open={askDecor} onStay={() => setAskDecor(false)} onLeave={() => { setAskDecor(false); setEditDirty(false); goDecor() }} />
     </main>
   )
 }

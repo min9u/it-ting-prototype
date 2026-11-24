@@ -21,5 +21,14 @@ describe('방명록 신고 뒤 다시 받기', () => {
     expect(src).not.toMatch(/onClick=\{\(\) => \{ onDeleteOwn\(/)
     expect(src).toMatch(/if \(!onDelete\) \{ onDeleteOwn\?\.\(id\)/)
   })
+
+  it('내 정보 수정에서 바꾼 것이 있으면 꾸미기로 넘어가기 전에 저장 전 확인 (00 공통 18, PR #37 Codex 리뷰 P1)', async () => {
+    const FS = 'node:fs'
+    const fs = (await import(/* @vite-ignore */ FS)) as { readFileSync(p: string, e: string): string }
+    const mine = fs.readFileSync('src/screens/burrow/MyBurrow.tsx', 'utf8')
+    expect(mine).toMatch(/const startDecor = \(\) => \{ if \(mode === 'edit' && editDirty\) setAskDecor\(true\); else goDecor\(\) \}/)
+    expect(mine).toMatch(/onDirtyChange=\{setEditDirty\}/)
+    expect(mine).toMatch(/<UnsavedDialog open=\{askDecor\}/)
+  })
 })
 
