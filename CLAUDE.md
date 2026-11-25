@@ -196,6 +196,7 @@ msedge --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader ^
 - 2026-11-24 [팀 리포 PR #37 (KAN-64)](docs/team-import-decisions-2026-11-23.md): 커밋 71개(서명 · 커밋마다 검사), 로컬 리뷰 P0 0 · P1 10 고침(대부분 목 id `ME_ID` · 목 날짜 `TODAY` 로 "나" · "오늘"을 정해 실제 모드에서만 틀리던 것), 재설정 링크 `/password-reset/{token}`, dev `fa73cd7`(KAN-58) `pushPublicKey` null. 명세 사본 갱신. 병합은 사람이
 - 2026-11-24 [백엔드에 물을 것 다시 정리](docs/backend/questions-for-backend-2026-11-24.md): 옛 43개를 명세 dev 2862f69 · 작업 기록 · frontend 코드와 대조 → 열림 14(높음: Google 콜백 주소 · 채팅 clientMessageId · 들판 자리 번호 151+ / 중간: 관심사 code · 질문 예시 · 정지 Google 로그인 · 모임 링크 모양 · SSE 살려 두기 신호) · 답 나옴 24 · 필요 없어짐 6. 프론트가 고칠 것 3(탐색 방노트 자기소개 · 알림 팝업 신청 관리 바로 열기 · 채팅 첨부 미리 검사). "보낼 질문" 절을 팀 채팅 · 이슈에 그대로
 - 2026-11-24 [기획에 넘길 명세 수정 요청 (Claude 명령문)](docs/spec-change-requests-2026-11-24.md): 기획자가 팀 리포에서 연 Claude Code 에 붙여 넣는 블록 하나(브랜치 `docs/common/KAN-<번호>-spec-fe-decisions` · 커밋 · PR 규칙 포함). 고칠 것 22(지금 문구는 명세에서 그대로 확인, 방문자 방명록 삭제 문구 포함) · 확인 필요 5(09 방노트 알림 종류, 03 관심사 뺐을 때 질문, 06 읽기 전용 문구, "놀러가기" 띄어쓰기, 05 방노트 공통 목록)
+- 2026-11-25 **PR #37 dev 병합(`a0cc1e4`)**, Jira KAN-64 · KAN-25 완료. 커밋 114개, Codex 리뷰 19번(P0 4 · P1 22 고침, 마지막 지적 없음). 앞으로 프론트는 팀 리포 `frontend/` 기준. 다음 티켓 후보: 영역별 실제 백엔드 연결, 미룬 수정 2개(알림 팝업 신청 관리 · 채팅 첨부 검사), [백엔드 질문](docs/backend/questions-for-backend-2026-11-24.md) · [기획 명세 요청](docs/spec-change-requests-2026-11-24.md) 전달 → [기록](docs/team-import-decisions-2026-11-23.md)
 ## 남은 아이디어 / 미확인
 - **다음에 할 일은 [docs/next-steps.md](docs/next-steps.md)**
 - 390px 실제 모바일 화면은 스크린샷으로 확인 못 함
